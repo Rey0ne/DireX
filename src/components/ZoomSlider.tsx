@@ -7,13 +7,15 @@ import { useReactFlow } from '@xyflow/react';
 interface ZoomSliderProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
+  snapEnabled: boolean;
+  onSnapToggle: () => void;
 }
 
 const ZOOM_MIN = 0.01;
 const ZOOM_MAX = 5.0;
 const ZOOM_MID = 1.0;
 
-export function ZoomSlider({ zoom, onZoomChange }: ZoomSliderProps) {
+export function ZoomSlider({ zoom, onZoomChange, snapEnabled, onSnapToggle }: ZoomSliderProps) {
   const { fitView, setViewport, getViewport } = useReactFlow();
   const [hover, setHover] = useState(false);
 
@@ -54,9 +56,20 @@ export function ZoomSlider({ zoom, onZoomChange }: ZoomSliderProps) {
         transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         boxShadow: 'var(--tap-shadow-sm)',
         userSelect: 'none',
-        width: '200px',
+        width: '230px',
       }}
     >
+      {/* Snap toggle */}
+      <button onClick={onSnapToggle} title={snapEnabled ? '关闭网格吸附' : '开启网格吸附'}
+        style={{
+          ...stepBtnStyle,
+          color: snapEnabled ? 'var(--tap-accent)' : 'var(--tap-text-3)',
+          fontSize: '15px',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      >#</button>
+
       <button onClick={() => applyZoom(zoom - 0.15)} title="缩小" style={stepBtnStyle}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}

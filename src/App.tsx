@@ -28,6 +28,7 @@ import { ProjectSelector } from './components/ProjectSelector';
 import { AgentPanel } from './components/AgentPanel';
 import { AgentToggleButton } from './components/AgentToggleButton';
 import { CropTool, InpaintTool, RelightTool, MultiAngleTool } from './components/ImageTools';
+import { FullscreenImage } from './components/FullscreenImage';
 import { ZoomSlider } from './components/ZoomSlider';
 import { ShotNode } from './components/nodes/ShotNode';
 import { ImageGenerateNode } from './components/nodes/ImageGenerateNode';
@@ -135,6 +136,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [hasAgentSuggestion, setHasAgentSuggestion] = useState(false);
   const [activeImageTool, setActiveImageTool] = useState<string | null>(null);
+  const [fullscreenImg, setFullscreenImg] = useState<{ url: string; prompt: string; model: string; aspect: string; quality: string } | null>(null);
+  const [snapEnabled, setSnapEnabled] = useState(false);
   const [connectMenu, setConnectMenu] = useState<{ x: number; y: number; flowX: number; flowY: number; sourceNodeId: string; sourcePortId: string } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectTargetId, setConnectTargetId] = useState<string | null>(null);
@@ -191,6 +194,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) { useCanvasStore.getState().updateNode(n.id, { meta: { ...current.meta, ...patch } }); }
+          },
+          onFullscreen: (url: string, prompt: string, model: string, aspect: string, quality: string) => {
+            setFullscreenImg({ url, prompt, model, aspect, quality });
           },
           onGenerate: () => {
             useCanvasStore.getState().setNodeStatus(n.id, 'running');
@@ -409,6 +415,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         paneClickDistance={0}
         nodeClickDistance={0}
         panOnDrag={[2]}
+        snapToGrid={snapEnabled}
+        snapGrid={[20, 20]}
         selectionOnDrag
         selectNodesOnDrag
         onSelectionChange={({ nodes: selectedNodes }) => {
@@ -435,6 +443,18 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         />
       </ReactFlow>
 
+      {/* ── Fullscreen Image Overlay (App-level, covers everything) ── */}
+      {fullscreenImg && (
+        <FullscreenImage
+          imageUrl={fullscreenImg.url}
+          prompt={fullscreenImg.prompt}
+          model={fullscreenImg.model}
+          aspect={fullscreenImg.aspect}
+          quality={fullscreenImg.quality}
+          onClose={() => setFullscreenImg(null)}
+        />
+      )}
+
       {/* ── Custom Selection Box ── */}
       {customBox && (
         <div style={{
@@ -458,6 +478,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
             const vp = useCanvasStore.getState().viewport;
             useCanvasStore.getState().setViewport({ x: vp.x, y: vp.y, zoom: z });
           }}
+          snapEnabled={snapEnabled}
+          onSnapToggle={() => setSnapEnabled(s => !s)}
         />
       </div>
 

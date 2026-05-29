@@ -1,117 +1,121 @@
-/* === FullscreenImage — image preview with zoom/pan === */
-/* Click image card → fullscreen; 2-stage zoom; download */
+/* === FullscreenImage === */
+/* Dark panel overlay with pop-up animation */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FullscreenImageProps {
   imageUrl: string;
-  alt?: string;
+  prompt?: string;
+  model?: string;
+  quality?: string;
+  aspect?: string;
   onClose: () => void;
 }
 
-export function FullscreenImage({ imageUrl, alt = '', onClose }: FullscreenImageProps) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
+export function FullscreenImage({
+  imageUrl, onClose,
+  prompt = '', model = '', quality = '', aspect = '',
+}: FullscreenImageProps) {
+  const [isFull, setIsFull] = useState(false);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') { if (isFull) setIsFull(false); else onClose(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, isFull]);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const delta = e.deltaY > 0 ? -0.15 : 0.15;
-    setZoom(z => Math.max(0.3, Math.min(4, z + delta)));
-  }, []);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (zoom <= 1) return;
-    setIsDragging(true);
-    dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-  }, [zoom, pan]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
-  }, [isDragging]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  // Full fullscreen — just the image
+  if (isFull) {
+    return (
+      <div
+        onClick={() => setIsFull(false)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0, 0, 0, 0.92)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'zoom-out',
+        }}
+      >
+        <img src={imageUrl} alt=""
+          style={{ maxWidth: '100vw', maxHeight: '100vh', objectFit: 'contain' }}
+        />
+        <span onClick={e => { e.stopPropagation(); onClose(); }}
+          style={{ position: 'absolute', top: '20px', right: '28px', fontSize: '16px', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', lineHeight: 1 }}
+        >x</span>
+      </div>
+    );
+  }
 
   return (
     <div
-      ref={containerRef}
-      onClick={e => { if (e.target === containerRef.current) onClose(); }}
-      onWheel={handleWheel}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99990,
-        background: 'rgba(0, 0, 0, 0.92)',
-        backdropFilter: 'blur(20px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-        animation: 'tap-fade-in var(--tap-dur-fast) var(--tap-ease)',
+        position: 'fixed', inset: 0, zIndex: 99999,
+        background: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(18px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'tap-fade-in 0.2s var(--tap-ease)',
       }}
     >
-      {/* Image — fit to screen */}
-      <img
-        src={imageUrl}
-        alt={alt}
-        draggable={false}
-        onMouseDown={handleMouseDown}
-        style={{
-          maxWidth: '88vw',
-          maxHeight: '88vh',
-          objectFit: 'contain',
-          borderRadius: 'var(--tap-r-lg)',
-          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-          transition: isDragging ? 'none' : `transform var(--tap-dur-fast) var(--tap-ease)`,
-          boxShadow: 'var(--tap-shadow-xl)',
-          userSelect: 'none',
-        }}
-      />
+      {/* 21:9 panel */}
+      <div style={{
+        width: '90vw',
+        height: '52vh',
+        background: '#1a1c20',
+        borderRadius: '14px',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.7)',
+        display: 'flex',
+        overflow: 'hidden',
+        animation: 'tap-scale-in 0.3s var(--tap-ease-spring)',
+        position: 'relative',
+      }}>
+        {/* Image — click to go full screen */}
+        <div
+          onClick={() => setIsFull(true)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#0a0a0c', cursor: 'zoom-in',
+          }}
+        >
+          <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+        </div>
 
-      {/* Close button — transparent circle with X */}
-      <button
-        onClick={onClose}
-        title="关闭"
-        style={{
-          position: 'absolute',
-          top: '24px',
-          right: '24px',
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '18px',
-          color: 'rgba(255,255,255,0.7)',
-          background: 'rgba(0,0,0,0.3)',
-          border: 'none',
-          cursor: 'pointer',
-          backdropFilter: 'blur(8px)',
-          zIndex: 10,
-          transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-      >✕</button>
+        {/* Info panel */}
+        <div style={{ width: '300px', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: '24px', borderLeft: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto' }}>
+          <div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '8px', fontWeight: 600, letterSpacing: '0.04em' }}>提示词</div>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7 }}>{prompt || '无'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '10px', fontWeight: 600, letterSpacing: '0.04em' }}>信息</div>
+            <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {model && <InfoRow label="模型" value={model} />}
+              {quality && <InfoRow label="质量" value={quality} />}
+              {aspect && <InfoRow label="宽高比" value={aspect} />}
+            </div>
+          </div>
+        </div>
+
+        {/* X close */}
+        <span onClick={e => { e.stopPropagation(); onClose(); }}
+          style={{
+            position: 'absolute', top: '16px', right: '20px',
+            fontSize: '16px', color: 'rgba(255,255,255,0.35)',
+            cursor: 'pointer', lineHeight: 1, userSelect: 'none',
+          }}
+        >x</span>
+      </div>
     </div>
   );
 }
 
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <span style={{ color: 'rgba(255,255,255,0.3)' }}>{label}</span>
+      <span style={{ color: 'rgba(255,255,255,0.55)' }}>{value}</span>
+    </div>
+  );
+}

@@ -47,6 +47,7 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>VIDEO</div>
         {/* Ports — same position as image node */}
         <Handle type="target" position={Position.Left} id="video-in"
           style={{
@@ -106,7 +107,6 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
                 <polygon points="5,3 19,12 5,21" />
               </svg>
             )}
-            <div style={{ position: 'absolute', top: '10px', left: '10px', fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '3px 8px', backdropFilter: 'blur(8px)' }}>{currentModel}</div>
             <div style={{ position: 'absolute', bottom: '10px', right: '10px', fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '3px 8px', backdropFilter: 'blur(8px)' }}>{currentDuration}</div>
           </div>
         </div>

@@ -30,6 +30,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper — handles position relative to this, NOT the full node */}
       <div style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>TEXT</div>
         {/* Ports — centered on both sides */}
         <Handle type="target" position={Position.Left} id="refs-in"
           style={{
