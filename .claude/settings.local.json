@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import zipfile, xml.etree.ElementTree as ET; z = zipfile.ZipFile\\('AI_Agent_Infinite_Canvas_开发需求说明书_v1.4_含截图.docx', 'r'\\); x = z.read\\('word/document.xml'\\); tree = ET.fromstring\\(x\\); ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}; [print\\(''.join\\([t.text for t in p.iter\\('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t'\\) if t.text]\\)\\) for p in tree.iter\\('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'\\)]\")",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(npm install *)",
+      "Bash(git add *)"
+    ]
+  }
+}

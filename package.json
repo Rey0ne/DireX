@@ -1,0 +1,34 @@
+{
+  "name": "tapnow-canvas",
+  "private": true,
+  "version": "0.0.0",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev:frontend": "vite",
+    "electron:dev": "electron .",
+    "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && npm run electron:dev\""
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.2",
+    "dexie": "^4.4.2",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "reactflow": "^11.11.4",
+    "tldraw": "^5.0.1",
+    "uuid": "^14.0.0",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^42.2.0",
+    "electron-is-dev": "^3.0.1",
+    "gh-pages": "^6.3.0",
+    "typescript": "^5.8.3",
+    "vite": "^8.0.1",
+    "wait-on": "^9.0.10"
+  }
+}
