@@ -5,7 +5,11 @@
       "Bash(npx tsc *)",
       "Bash(npx vite *)",
       "Bash(npm install *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(git rm *)",
+      "WebFetch(domain:ai.reallusion.com)"
     ]
   }
 }

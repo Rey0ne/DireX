@@ -1,7 +1,7 @@
 /* === ProjectSelector — home screen with project thumbnails === */
 /* Shows saved projects, create-new button, recent thumbnails */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db, type DBProject } from '../store/db';
 
 interface ProjectCard {
@@ -21,6 +21,25 @@ export function ProjectSelector({ onSelectProject, onCreateNew }: ProjectSelecto
 
   useEffect(() => {
     loadProjects().then(setProjects).finally(() => setLoading(false));
+  }, []);
+
+  const handleDelete = useCallback(async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    if (!confirm('确定删除此项目？所有画布数据将被永久删除。')) return;
+    try {
+      const canvases = await db.canvases.where({ projectId }).toArray();
+      for (const c of canvases) {
+        await db.nodes.where({ canvasId: c.id }).delete();
+        await db.edges.where({ canvasId: c.id }).delete();
+      }
+      await db.canvases.where({ projectId }).delete();
+      await db.assets.where({ projectId }).delete();
+      await db.jobs.where({ projectId }).delete();
+      await db.projects.delete(projectId);
+      setProjects(prev => prev.filter(p => p.project.id !== projectId));
+    } catch (err) {
+      console.error('Delete project failed:', err);
+    }
   }, []);
 
   return (
@@ -115,10 +134,11 @@ export function ProjectSelector({ onSelectProject, onCreateNew }: ProjectSelecto
             gap: '14px', width: '100%',
           }}>
             {projects.map(card => (
-              <button
+              <div
                 key={card.project.id}
                 onClick={() => onSelectProject(card.project.id)}
                 style={{
+                  position: 'relative',
                   display: 'flex', flexDirection: 'column',
                   padding: '20px',
                   borderRadius: 'var(--tap-r-xl)',
@@ -139,6 +159,22 @@ export function ProjectSelector({ onSelectProject, onCreateNew }: ProjectSelecto
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
+                {/* Delete button */}
+                <button
+                  onClick={(e) => handleDelete(e, card.project.id)}
+                  title="删除项目"
+                  style={{
+                    position: 'absolute', top: '10px', right: '10px',
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', lineHeight: 1, color: 'var(--tap-text-4)',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                    zIndex: 2,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,77,79,0.2)'; e.currentTarget.style.color = 'var(--tap-danger)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+                ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5"/></svg></button>
                 {/* Thumbnail placeholder */}
                 <div style={{
                   width: '100%', height: '120px',
@@ -167,7 +203,7 @@ export function ProjectSelector({ onSelectProject, onCreateNew }: ProjectSelecto
                     <span>{formatDate(card.project.updatedAt)}</span>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

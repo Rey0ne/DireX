@@ -2,16 +2,14 @@
 /* Click image card → fullscreen; 2-stage zoom; download */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Panel } from './shared';
 
 interface FullscreenImageProps {
   imageUrl: string;
   alt?: string;
   onClose: () => void;
-  onDownload?: () => void;
 }
 
-export function FullscreenImage({ imageUrl, alt = '', onClose, onDownload }: FullscreenImageProps) {
+export function FullscreenImage({ imageUrl, alt = '', onClose }: FullscreenImageProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -29,6 +27,7 @@ export function FullscreenImage({ imageUrl, alt = '', onClose, onDownload }: Ful
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const delta = e.deltaY > 0 ? -0.15 : 0.15;
     setZoom(z => Math.max(0.3, Math.min(4, z + delta)));
   }, []);
@@ -47,11 +46,6 @@ export function FullscreenImage({ imageUrl, alt = '', onClose, onDownload }: Ful
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
-
-  const resetZoom = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
 
   return (
     <div
@@ -73,15 +67,15 @@ export function FullscreenImage({ imageUrl, alt = '', onClose, onDownload }: Ful
         animation: 'tap-fade-in var(--tap-dur-fast) var(--tap-ease)',
       }}
     >
-      {/* Image */}
+      {/* Image — fit to screen */}
       <img
         src={imageUrl}
         alt={alt}
         draggable={false}
         onMouseDown={handleMouseDown}
         style={{
-          maxWidth: '90vw',
-          maxHeight: '85vh',
+          maxWidth: '88vw',
+          maxHeight: '88vh',
           objectFit: 'contain',
           borderRadius: 'var(--tap-r-lg)',
           transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
@@ -91,78 +85,33 @@ export function FullscreenImage({ imageUrl, alt = '', onClose, onDownload }: Ful
         }}
       />
 
-      {/* Top toolbar */}
-      <Panel style={{
-        position: 'absolute',
-        top: '20px',
-        right: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 10px',
-        borderRadius: 'var(--tap-r-full)',
-      }}>
-        <button
-          onClick={() => setZoom(z => Math.min(4, z + 0.25))}
-          style={fsBtnStyle}
-          title="放大"
-        >
-          +
-        </button>
-        <span style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-2)', minWidth: '44px', textAlign: 'center' }}>
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          onClick={() => setZoom(z => Math.max(0.3, z - 0.25))}
-          style={fsBtnStyle}
-          title="缩小"
-        >
-          −
-        </button>
-        <button onClick={resetZoom} style={fsBtnStyle} title="重置">
-          ↺
-        </button>
-        <div style={{ width: '1px', height: '20px', background: 'var(--tap-divider)', margin: '0 4px' }} />
-        {onDownload && (
-          <button onClick={onDownload} style={fsBtnStyle} title="下载">
-            ↓
-          </button>
-        )}
-        <button onClick={onClose} style={{ ...fsBtnStyle, fontSize: '16px' }} title="关闭">
-          ✕
-        </button>
-      </Panel>
-
-      {/* Bottom hint */}
-      <div style={{
-        position: 'absolute',
-        bottom: '28px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        fontSize: 'var(--tap-fs-meta)',
-        color: 'var(--tap-text-4)',
-        display: 'flex',
-        gap: '16px',
-      }}>
-        <span>滚轮缩放</span>
-        <span>拖拽平移</span>
-        <span>Esc 关闭</span>
-      </div>
+      {/* Close button — transparent circle with X */}
+      <button
+        onClick={onClose}
+        title="关闭"
+        style={{
+          position: 'absolute',
+          top: '24px',
+          right: '24px',
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          color: 'rgba(255,255,255,0.7)',
+          background: 'rgba(0,0,0,0.3)',
+          border: 'none',
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+          zIndex: 10,
+          transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+      >✕</button>
     </div>
   );
 }
 
-const fsBtnStyle: React.CSSProperties = {
-  width: '36px',
-  height: '36px',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '18px',
-  color: 'var(--tap-text-2)',
-  background: 'transparent',
-  cursor: 'pointer',
-  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-  border: 'none',
-};

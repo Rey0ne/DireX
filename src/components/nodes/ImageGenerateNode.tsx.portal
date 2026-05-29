@@ -4,7 +4,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
-import { useCanvasStore } from '../../store/useCanvasStore';
 import { Panel } from '../shared';
 import { StyleChipPicker } from '../StyleChipPicker';
 import type { StylePreset } from '../StyleChipPicker';
@@ -67,20 +66,17 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
   const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
   const [currentAspect, setCurrentAspect] = useState(gen.aspect || '16:9');
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [imgHover, setImgHover] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const [cardRect, setCardRect] = useState<DOMRect | null>(null);
-  const zoom = useCanvasStore(s => s.viewport.zoom);
+  const [, forceUpdate] = useState(0);
 
   useEffect(() => {
-    if (!selected || !cardRef.current) { setCardRect(null); return; }
-    const update = () => setCardRect(cardRef.current!.getBoundingClientRect());
-    update();
-    const id = setInterval(update, 60);
-    window.addEventListener('scroll', update, true);
-    window.addEventListener('resize', update);
-    return () => { clearInterval(id); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
+    if (!selected) return;
+    const id = setInterval(() => forceUpdate(n => n + 1), 100);
+    return () => clearInterval(id);
   }, [selected]);
+
   const patch = useCallback((k: keyof ImageGenMeta, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
@@ -114,11 +110,6 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
     { icon: '✦', label: '打光', shortcut: 'L', onClick: () => {} },
   ];
 
-  const toolbarRight = [
-    { icon: '⛶', label: '全屏', onClick: () => setShowFullscreen(true) },
-    { icon: '↓', label: '下载', onClick: handleDownload },
-  ];
-
   const moreActions = [
     { icon: '↕️', label: '扩图', onClick: () => {} },
     { icon: '◌', label: '抠图', onClick: () => {} },
@@ -128,7 +119,7 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper — handles position relative to card, not full node */}
       <div style={{ position: 'relative' }}>
         {/* Ports — centered on both sides, close to node */}
@@ -138,18 +129,18 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             left: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
           }}
-        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
+        >+</Handle>
         <Handle type="source" position={Position.Right} id="image-out"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             right: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
           }}
-        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
+        >+</Handle>
 
         {/* ── Floating Toolbar (always rendered, opacity toggle, hide when multi-select) ── */}
         <div style={{
@@ -215,19 +206,13 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
                 </Panel>
               )}
             </span>
-
-            {/* Right-side actions (fullscreen, download) */}
-            <span style={{ display: 'inline-block', width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '6px 2px', verticalAlign: 'middle' }} />
-            {toolbarRight.map(a => (
-              <span key={a.label} style={{ display: 'flex' }}>
-                <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} />
-              </span>
-            ))}
         </div>
 
         {/* ── Image Card (width based on aspect ratio) ── */}
         <div
         ref={cardRef}
+        onMouseEnter={() => { if (data.imageUrl) setImgHover(true); }}
+        onMouseLeave={() => setImgHover(false)}
         style={{
           width: 'var(--tap-node-width)',
           borderRadius: 'var(--tap-node-radius)',
@@ -240,9 +225,10 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
             ? '0 0 32px rgba(180,180,185,0.2)'
             : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
           transition: `border var(--tap-dur-fast) var(--tap-ease), box-shadow var(--tap-dur-fast) var(--tap-ease)`,
-          cursor: 'default',
+          cursor: data.imageUrl ? 'pointer' : 'default',
           position: 'relative',
         }}
+        onClick={() => { if (data.imageUrl) setShowFullscreen(true); }}
       >
         {/* Image area — height follows aspect ratio */}
         <div style={{
@@ -256,7 +242,21 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
           overflow: 'hidden',
         }}>
           {data.imageUrl ? (
-            <img src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <>
+              <img src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {/* Hover overlay: fullscreen + download */}
+              {imgHover && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'rgba(0,0,0,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                  animation: 'tap-fade-in var(--tap-dur-fast) var(--tap-ease)',
+                }}>
+                  <OverlayBtn icon="⛶" label="全屏" onClick={(e) => { e.stopPropagation(); setShowFullscreen(true); }} />
+                  <OverlayBtn icon="↓" label="下载" onClick={(e) => { e.stopPropagation(); handleDownload(); }} />
+                </div>
+              )}
+            </>
           ) : (
             <div style={{
               width: '48px', height: '48px', borderRadius: '12px',
@@ -289,21 +289,20 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
         <FullscreenImage
           imageUrl={data.imageUrl}
           onClose={() => setShowFullscreen(false)}
+          onDownload={handleDownload}
         />
       )}
 
-      {/* ── Bottom Prompt Panel (portal to document.body, zero impact on node) ── */}
-      {selected && !data.multiSelect && cardRect && createPortal(
-        <div
-          onContextMenu={e => e.stopPropagation()}
-          onDoubleClick={e => e.stopPropagation()}
-          style={{
+      {/* ── Bottom Prompt Panel (rendered via portal, outside node DOM) ── */}
+      {selected && !data.multiSelect && cardRef.current && createPortal(
+        <div style={{
           position: 'fixed',
-          left: cardRect.left - cardRect.width / 2,
-          top: cardRect.bottom + 10 * zoom,
-          width: cardRect.width * 2,
+          left: cardRef.current.getBoundingClientRect().left + (cardRef.current.offsetWidth - 760) / 2,
+          top: cardRef.current.getBoundingClientRect().bottom + 10,
+          width: '760px',
           maxWidth: 'calc(100vw - 120px)',
           zIndex: 9999,
+          animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)',
           display: 'flex',
           flexDirection: 'column',
         }}>
@@ -328,7 +327,6 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
-            pointerEvents: 'auto',
           }}>
             {/* Textarea */}
             <div style={{ position: 'relative' }}>
@@ -499,8 +497,9 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
+        </div>
+        , document.body
       )}
       </div>
     </div>
@@ -534,6 +533,30 @@ function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string
 }
 
 // ─── Overlay button (fullscreen/download on image hover) ──
+function OverlayBtn({ icon, label, onClick }: { icon: string; label: string; onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        width: '44px', height: '44px', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '20px',
+        color: '#fff',
+        background: 'rgba(0,0,0,0.5)',
+        border: 'none',
+        cursor: 'pointer',
+        backdropFilter: 'blur(8px)',
+        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.7)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.5)'; e.currentTarget.style.transform = 'scale(1)'; }}
+    >
+      {icon}
+    </button>
+  );
+}
+
 // ─── Style label lookup ────────────────────────────
 const STYLE_LABELS: Record<string, string> = {
   cinematic: '电影质感', noir: '黑色电影', scifi: '科幻风格', period: '年代剧',

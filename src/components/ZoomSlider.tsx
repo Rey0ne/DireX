@@ -45,16 +45,16 @@ export function ZoomSlider({ zoom, onZoomChange }: ZoomSliderProps) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        padding: '8px 14px',
+        display: 'flex', alignItems: 'center', gap: '4px',
+        padding: '5px 10px',
         background: hover ? 'rgba(14,14,16,0.95)' : 'rgba(14,14,16,0.78)',
         border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 'var(--tap-r-md)',
+        borderRadius: 'var(--tap-r-sm)',
         backdropFilter: 'blur(12px)',
         transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         boxShadow: 'var(--tap-shadow-sm)',
         userSelect: 'none',
-        width: '260px',
+        width: '200px',
       }}
     >
       <button onClick={() => applyZoom(zoom - 0.15)} title="缩小" style={stepBtnStyle}
@@ -65,15 +65,15 @@ export function ZoomSlider({ zoom, onZoomChange }: ZoomSliderProps) {
       <div style={{ flex: 1, height: '20px', display: 'flex', alignItems: 'center' }}>
         <input type="range" min={-100} max={100} value={zoomToSlider(zoom)} onChange={handleChange}
           style={{
-            width: '100%', height: '6px',
+            width: '100%', height: '4px',
             WebkitAppearance: 'none', appearance: 'none',
-            background: 'rgba(255,255,255,0.12)', borderRadius: '3px',
+            background: 'rgba(255,255,255,0.12)', borderRadius: '2px',
             outline: 'none', cursor: 'pointer',
           }}
         />
         <style>{`
           input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px;
+            -webkit-appearance: none; width: 12px; height: 12px;
             border-radius: 50%; background: #fff; border: none;
             cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
           }
@@ -85,23 +85,27 @@ export function ZoomSlider({ zoom, onZoomChange }: ZoomSliderProps) {
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
       >+</button>
 
-      <span onClick={() => fitView()} title="适应画布"
+      <span style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)', flexShrink: 0, minWidth: '28px', textAlign: 'center' }}>{pct}%</span>
+
+      <button onClick={() => fitView({ padding: 0.3, duration: 300 })} title="全局预览所有节点"
         style={{
-          fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)',
-          cursor: 'pointer', flexShrink: 0, minWidth: '28px', textAlign: 'center',
-          transition: `color var(--tap-dur-fast) var(--tap-ease)`,
+          width: '18px', height: '18px', borderRadius: '4px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '16px', color: 'var(--tap-text-3)', background: 'transparent',
+          border: 'none', cursor: 'pointer', flexShrink: 0,
+          transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--tap-text-1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'var(--tap-text-3)'; }}
-      >{pct}%</span>
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+      >⌂</button>
     </div>
   );
 }
 
 const stepBtnStyle: React.CSSProperties = {
-  width: '24px', height: '24px', borderRadius: '5px',
+  width: '16px', height: '16px', borderRadius: '3px',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontSize: '16px', fontWeight: 700,
+  fontSize: '13px', fontWeight: 700,
   color: 'var(--tap-text-3)', background: 'transparent',
   border: 'none', cursor: 'pointer', flexShrink: 0,
   transition: `all var(--tap-dur-fast) var(--tap-ease)`,

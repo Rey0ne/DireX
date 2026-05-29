@@ -44,9 +44,9 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
       display: 'flex',
       flexDirection: 'column',
       gap: '2px',
-      padding: '6px',
+      padding: '5px',
       background: 'rgba(18,22,28,0.85)',
-      borderRadius: '14px',
+      borderRadius: '10px',
       backdropFilter: 'blur(16px)',
       boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
       border: 'none',
@@ -65,13 +65,13 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
               onMouseEnter={() => setHoveredTool(tool.id)}
               onMouseLeave={() => setHoveredTool(null)}
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--tap-r-md)',
+                width: '26px',
+                height: '26px',
+                borderRadius: 'var(--tap-r-sm)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
+                fontSize: '15px',
                 color: activeTool === tool.id
                   ? 'var(--tap-accent)'
                   : hoveredTool === tool.id
@@ -95,8 +95,8 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
                   left: '-5px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  width: '3px',
-                  height: '18px',
+                  width: '2px',
+                  height: '16px',
                   borderRadius: 'var(--tap-r-full)',
                   background: 'var(--tap-accent)',
                 }} />

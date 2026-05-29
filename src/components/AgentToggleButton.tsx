@@ -26,13 +26,13 @@ export function AgentToggleButton({ isOpen, onClick, hasSuggestion = false }: Ag
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
           style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '16px',
+            width: '38px',
+            height: '38px',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '22px',
+            fontSize: '18px',
             background: isOpen
               ? 'var(--tap-accent-bg)'
               : hover

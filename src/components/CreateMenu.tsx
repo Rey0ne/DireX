@@ -105,13 +105,25 @@ export function ConnectCreateMenu({ x, y, onSelect, onClose }: ConnectCreateMenu
 
 // ─── DoubleClickMenu (grid layout, different from right-click) ──
 const DOUBLE_CLICK_ACTIONS: CreateMenuAction[] = [
-  { type: 'image.generate', icon: '🖼️', label: '图片生成', sub: '文生图、图生图' },
-  { type: 'video.generate', icon: '🎥', label: '视频生成', sub: '文生视频、图生视频' },
-  { type: 'audio.generate', icon: '🎵', label: '音频生成', sub: '音乐、音效、配音' },
-  { type: 'shot', icon: '🎬', label: '文本转分镜', sub: '剧本 → 分镜' },
-  { type: 'world.3d', icon: '🧊', label: '3D 世界', sub: '3D模型场景' },
-  { type: 'image.editor', icon: '✏️', label: '图片编辑器', sub: '裁切/重绘/打光' },
+  { type: 'image.generate', icon: 'img', label: '图片', sub: '' },
+  { type: 'video.generate', icon: 'vid', label: '视频', sub: '' },
+  { type: 'audio.generate', icon: 'aud', label: '音频', sub: '' },
+  { type: 'shot', icon: 'txt', label: '文本', sub: '' },
+  { type: 'world.3d', icon: '3d', label: '3D 世界', sub: '' },
+  { type: 'image.editor', icon: 'edt', label: '图片编辑器', sub: '' },
 ];
+
+function MiniIcon({ type }: { type: string }) {
+  const s: React.CSSProperties = { display: 'block' };
+  switch (type) {
+    case 'img': return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><circle cx="5" cy="5" r="1.2" fill="currentColor" opacity="0.5"/><path d="M13 10L9 6l-4 7" fill="none" stroke="currentColor" strokeWidth="1.2"/></svg>;
+    case 'vid': return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><polygon points="5.5,4 10,7 5.5,10" fill="currentColor" opacity="0.6"/></svg>;
+    case 'aud': return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><line x1="4" y1="7" x2="4" y2="3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="7" y1="7" x2="7" y2="2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="10" y1="7" x2="10" y2="4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>;
+    case 'txt': return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><line x1="3.5" y1="5" x2="10.5" y2="5" stroke="currentColor" strokeWidth="1" opacity="0.5"/><line x1="3.5" y1="7" x2="9" y2="7" stroke="currentColor" strokeWidth="1" opacity="0.5"/><line x1="3.5" y1="9" x2="10.5" y2="9" stroke="currentColor" strokeWidth="1" opacity="0.5"/></svg>;
+    case '3d': return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><path d="M2 10L7 2l5 8z" fill="none" stroke="currentColor" strokeWidth="1.2"/></svg>;
+    default: return <svg width="14" height="14" viewBox="0 0 14 14" style={s}><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2"/><circle cx="7" cy="7" r="2" fill="none" stroke="currentColor" strokeWidth="1"/></svg>;
+  }
+}
 
 interface DoubleClickMenuProps {
   x: number; y: number;
@@ -120,7 +132,7 @@ interface DoubleClickMenuProps {
 }
 
 export function DoubleClickMenu({ x, y, onSelect, onClose }: DoubleClickMenuProps) {
-  const menuW = 400, menuH = 320;
+  const menuW = 130, menuH = 200;
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
   const left = x + menuW > vw ? x - menuW : x;
@@ -133,30 +145,27 @@ export function DoubleClickMenu({ x, y, onSelect, onClose }: DoubleClickMenuProp
       <Panel onClick={e => e.stopPropagation()}
         style={{
           position: 'fixed', left, top, zIndex: 99999, width: menuW,
-          padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px',
+          padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px',
           userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)',
+          background: 'rgba(23, 23, 23, 0.96)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
         }}>
-        <div style={{ fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-3)', fontWeight: 600, textAlign: 'center' }}>
-          选择创建类型
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-          {DOUBLE_CLICK_ACTIONS.map(item => (
-            <div key={item.type} onClick={() => onSelect(item.type)}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-                padding: '16px 10px', borderRadius: 'var(--tap-r-lg)',
-                cursor: 'pointer', background: 'transparent',
-                transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span style={{ fontSize: '28px' }}>{item.icon}</span>
-              <span style={{ fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)', fontWeight: 500 }}>{item.label}</span>
-              <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', textAlign: 'center', lineHeight: 1.3 }}>{item.sub}</span>
-            </div>
-          ))}
-        </div>
+        {DOUBLE_CLICK_ACTIONS.map(item => (
+          <div key={item.type} onClick={() => onSelect(item.type)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '7px 10px', borderRadius: 'var(--tap-r-sm)',
+              cursor: 'pointer', background: 'transparent',
+              fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)',
+              transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+          >
+            <MiniIcon type={item.icon} />
+            <span>{item.label}</span>
+          </div>
+        ))}
       </Panel>
     </>
   );

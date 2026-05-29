@@ -27,7 +27,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
   const [scriptInput, setScriptInput] = useState('');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper — handles position relative to this, NOT the full node */}
       <div style={{ position: 'relative' }}>
         {/* Ports — centered on both sides */}
@@ -37,18 +37,18 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             left: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
-        >+</Handle>
+        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="shot-out"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             right: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
-        >+</Handle>
+        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
         {/* Main Card */}
         <div style={{
@@ -94,14 +94,21 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
       </div>
       </div>
 
-      {/* ── Bottom Prompt Panel (always occupies space, opacity toggle) ── */}
-      <div style={{
-        width: '280px',
-        marginTop: '10px',
-        opacity: selected && !data.multiSelect ? 1 : 0,
-        pointerEvents: selected && !data.multiSelect ? 'auto' : 'none',
-        transition: `opacity var(--tap-dur-normal) var(--tap-ease)`,
-      }}>
+      {/* ── Bottom Prompt Panel (absolute, no hitbox impact) ── */}
+      {selected && !data.multiSelect && (
+        <div
+          onContextMenu={e => e.stopPropagation()}
+          onDoubleClick={e => e.stopPropagation()}
+          style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '280px',
+          marginTop: '10px',
+          zIndex: 50,
+          animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)',
+        }}>
         <div style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.10)',
@@ -153,7 +160,8 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export function scheduleSave() {
   saveTimer = setTimeout(() => saveNow(), 500);
 }
 
-async function saveNow() {
+export async function saveNow() {
   try {
     const state = useCanvasStore.getState();
     const nodes = Array.from(state.nodes.values());
@@ -132,10 +132,8 @@ export async function loadFromDB() {
     const dbNodes = await db.nodes.where({ canvasId: cid }).toArray();
     const dbEdges = await db.edges.where({ canvasId: cid }).toArray();
 
-    const store = useCanvasStore.getState();
-
-    // Populate nodes
-    const nodeMap = new Map(store.nodes);
+    // Populate nodes from DB only (fresh Map, no stale store data)
+    const nodeMap = new Map();
     for (const n of dbNodes) {
       nodeMap.set(n.id, {
         id: n.id,
@@ -151,8 +149,8 @@ export async function loadFromDB() {
       });
     }
 
-    // Populate edges
-    const edgeMap = new Map(store.edges);
+    // Populate edges from DB only
+    const edgeMap = new Map();
     for (const e of dbEdges) {
       edgeMap.set(e.id, {
         id: e.id,

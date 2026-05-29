@@ -45,7 +45,7 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
         {/* Ports — same position as image node */}
         <Handle type="target" position={Position.Left} id="video-in"
@@ -54,18 +54,18 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             left: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
-        >+</Handle>
+        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="video-out"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
             right: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
-        >+</Handle>
+        ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
         {/* Toolbar — opacity toggle */}
         <div style={{
@@ -112,8 +112,9 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
         </div>
       </div>
 
-      {/* Bottom panel */}
-      <div style={{ width: 'var(--tap-node-width)', marginTop: '10px', opacity: selected && !data.multiSelect ? 1 : 0, pointerEvents: selected && !data.multiSelect ? 'auto' : 'none', transition: `opacity var(--tap-dur-fast) var(--tap-ease)` }}>
+      {/* Bottom panel (absolute, no hitbox impact) */}
+      {selected && !data.multiSelect && (
+        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 'var(--tap-node-width)', marginTop: '10px', zIndex: 50, animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)' }}>
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
           <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
             onPointerDownCapture={e => { e.stopPropagation() }} onMouseDownCapture={e => { e.stopPropagation() }}
@@ -144,7 +145,8 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}>↑</button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -152,7 +154,7 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
 function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string; active?: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
   return <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} title={label}
-    style={{ width: '34px', height: '34px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: active || hover ? 'var(--tap-text-1)' : 'var(--tap-text-2)', background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>{icon}</button>;
+    style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: active || hover ? 'var(--tap-text-1)' : 'var(--tap-text-2)', background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>{icon}</button>;
 }
 
 function InlineChip({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
