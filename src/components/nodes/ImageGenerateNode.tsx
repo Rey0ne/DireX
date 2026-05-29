@@ -69,13 +69,19 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
+  const readyRef = useRef(false);
   const zoom = useCanvasStore(s => s.viewport.zoom);
 
   useEffect(() => {
-    if (!selected || !cardRef.current) { setCardRect(null); return; }
+    if (!selected || !cardRef.current) { setCardRect(null); readyRef.current = false; return; }
+    readyRef.current = false;
+    setCardRect(null);
     let raf = 0;
     const update = () => {
-      if (cardRef.current) setCardRect(cardRef.current.getBoundingClientRect());
+      if (cardRef.current) {
+        setCardRect(cardRef.current.getBoundingClientRect());
+        readyRef.current = true;
+      }
       raf = requestAnimationFrame(update);
     };
     raf = requestAnimationFrame(update);
@@ -154,14 +160,17 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* ── Floating Toolbar (portal, constant visual size) ── */}
-        {selected && !data.multiSelect && cardRect && createPortal(
+        {/* ── Floating Toolbar (portal, no flash) ── */}
+        {createPortal(
         <div style={{
           position: 'fixed',
-          left: cardRect.left + cardRect.width / 2,
-          top: cardRect.top - 40,
+          left: cardRect ? cardRect.left + cardRect.width / 2 : -9999,
+          top: cardRect ? cardRect.top - 40 : -9999,
           transform: 'translateX(-50%) translateY(-100%)',
           zIndex: 9998,
+          opacity: selected && !data.multiSelect && cardRect ? 1 : 0,
+          pointerEvents: selected && !data.multiSelect && cardRect ? 'auto' : 'none',
+          transition: 'opacity 0.1s',
           display: 'flex',
           alignItems: 'center',
           gap: '2px',
