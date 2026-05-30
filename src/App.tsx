@@ -439,7 +439,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           nodeColor={() => 'rgba(160, 160, 170, 0.5)'}
           maskColor="rgba(0,0,0,0.5)"
           bgColor="rgba(24,26,30,0.9)"
-          style={{ marginBottom: 65, marginLeft: 20, width: 200, height: 130, border: '1px solid rgba(255,255,255,0.15)' }}
+          style={{ marginBottom: 80, marginLeft: 20, width: 260, height: 170, border: '1px solid rgba(255,255,255,0.15)' }}
         />
       </ReactFlow>
 

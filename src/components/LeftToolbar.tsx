@@ -43,10 +43,10 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
       zIndex: 100,
       display: 'flex',
       flexDirection: 'column',
-      gap: '2px',
-      padding: '5px',
+      gap: '3px',
+      padding: '6px',
       background: 'rgba(18,22,28,0.85)',
-      borderRadius: '10px',
+      borderRadius: '12px',
       backdropFilter: 'blur(16px)',
       boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
       border: 'none',
@@ -57,7 +57,7 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
           {tool.divider && <div style={{
             height: '1px',
             background: 'rgba(255,255,255,0.06)',
-            margin: '4px 8px',
+            margin: '5px 10px',
           }} />}
           <Tooltip label={tool.label} shortcut={tool.shortcut}>
             <button
@@ -65,13 +65,13 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
               onMouseEnter={() => setHoveredTool(tool.id)}
               onMouseLeave={() => setHoveredTool(null)}
               style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: 'var(--tap-r-sm)',
+                width: '36px',
+                height: '36px',
+                borderRadius: 'var(--tap-r-md)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '15px',
+                fontSize: '20px',
                 color: activeTool === tool.id
                   ? 'var(--tap-accent)'
                   : hoveredTool === tool.id

@@ -56,7 +56,7 @@ export function ZoomSlider({ zoom, onZoomChange, snapEnabled, onSnapToggle }: Zo
         transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         boxShadow: 'var(--tap-shadow-sm)',
         userSelect: 'none',
-        width: '230px',
+        width: '260px',
       }}
     >
       {/* Snap toggle */}
