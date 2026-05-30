@@ -14,6 +14,8 @@ interface AudioGenNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  isPickMode?: boolean;
+  isPickTarget?: boolean;
   hasConnections?: boolean;
   hasConnections?: boolean;
   onChange?: (patch: Partial<AudioGenMeta>) => void;
@@ -74,10 +76,13 @@ export function AudioGenerateNode({ data, selected }: { id: string; data: AudioG
         {/* Audio Card */}
         <div style={{
           width: '300px', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden',
-          border: data.isConnectTarget ? '1px solid rgba(180,180,185,0.5)'
+          border: data.isPickTarget ? '2px solid rgba(180,180,185,0.55)'
+            : data.isPickMode ? '1px dashed rgba(180,180,185,0.3)'
+            : data.isConnectTarget ? '1px solid rgba(180,180,185,0.5)'
             : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
           background: 'var(--tap-panel)',
-          boxShadow: data.isConnectTarget ? '0 0 32px rgba(180,180,185,0.2)'
+          boxShadow: data.isPickTarget ? '0 0 32px rgba(180,180,185,0.25)'
+            : data.isConnectTarget ? '0 0 32px rgba(180,180,185,0.2)'
             : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
           transition: `border var(--tap-dur-fast) var(--tap-ease), box-shadow var(--tap-dur-fast) var(--tap-ease)`,
         }}>

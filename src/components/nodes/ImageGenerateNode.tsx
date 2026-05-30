@@ -6,8 +6,6 @@ import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Panel } from '../shared';
-import { StyleChipPicker } from '../StyleChipPicker';
-import type { StylePreset } from '../StyleChipPicker';
 import type { ImageGenMeta } from '../../types/graph';
 
 interface ImageGenNodeData {
@@ -17,7 +15,10 @@ interface ImageGenNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  isPickMode?: boolean;
+  isPickTarget?: boolean;
   refUrls?: string[];
+  styleImageUrl?: string;
   onChange?: (patch: Partial<ImageGenMeta>) => void;
   onGenerate?: () => void;
   onFullscreen?: (url: string, prompt: string, model: string, aspect: string, quality: string) => void;
@@ -56,10 +57,8 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showRatioPicker, setShowRatioPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [showStylePicker, setShowStylePicker] = useState(false);
   const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
   const [currentAspect, setCurrentAspect] = useState(gen.aspect || '16:9');
-  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgHeight, setImgHeight] = useState(220);
@@ -70,13 +69,13 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const modelChipRef = useRef<HTMLSpanElement>(null);
   const ratioChipRef = useRef<HTMLSpanElement>(null);
   const styleChipRef = useRef<HTMLSpanElement>(null);
+  const styleFileRef = useRef<HTMLInputElement>(null);
   const [modelChipRect, setModelChipRect] = useState<DOMRect | null>(null);
   const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
-  const [styleChipRect, setStyleChipRect] = useState<DOMRect | null>(null);
+  const [styleImgUrl, setStyleImgUrl] = useState<string | null>(data.gen?.styleImageUrl as string || null);
   // Capture trigger rect when picker opens — portal renders outside overflow
   useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
   useEffect(() => { if (showRatioPicker && ratioChipRef.current) setRatioChipRect(ratioChipRef.current.getBoundingClientRect()); }, [showRatioPicker]);
-  useEffect(() => { if (showStylePicker && styleChipRef.current) setStyleChipRect(styleChipRef.current.getBoundingClientRect()); }, [showStylePicker]);
 
   useEffect(() => {
     if (!selected || !cardRef.current) { setCardRect(null); readyRef.current = false; return; }
@@ -114,15 +113,6 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const handleGenerate = () => {
     patch('prompt', prompt);
     data.onGenerate?.();
-  };
-
-  const handleStyleSelect = (style: StylePreset) => {
-    setSelectedStyle(style.id);
-    setShowStylePicker(false);
-    setPrompt(prev => {
-      const styleHint = `, ${style.name} style, ${style.description}`;
-      return prev.includes(style.name) ? prev : prev + styleHint;
-    });
   };
 
   const handleDownload = () => {
@@ -264,15 +254,21 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
           borderRadius: 'var(--tap-node-radius)',
           overflow: 'auto',
           resize: 'horizontal',
-          border: data.isConnectTarget
-            ? '1px solid rgba(180,180,185,0.5)'
-            : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
+          border: data.isPickTarget
+            ? '2px solid rgba(180,180,185,0.55)'
+            : data.isPickMode
+              ? '1px dashed rgba(180,180,185,0.3)'
+              : data.isConnectTarget
+                ? '1px solid rgba(180,180,185,0.5)'
+                : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
           background: 'var(--tap-panel)',
-          boxShadow: data.isConnectTarget
-            ? '0 0 32px rgba(180,180,185,0.2)'
-            : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
+          boxShadow: data.isPickTarget
+            ? '0 0 32px rgba(180,180,185,0.25)'
+            : data.isConnectTarget
+              ? '0 0 32px rgba(180,180,185,0.2)'
+              : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
           transition: `border var(--tap-dur-fast) var(--tap-ease), box-shadow var(--tap-dur-fast) var(--tap-ease)`,
-          cursor: 'default',
+          cursor: data.isPickMode && !data.isPickTarget ? 'pointer' : 'default',
           position: 'relative',
         }}
       >
@@ -355,8 +351,57 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                 >x</span>
               </div>
             ))}
+            {/* Style image thumbnail */}
+            {styleImgUrl && (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <img src={styleImgUrl} alt="风格参考" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1.5px solid rgba(200,160,100,0.4)' }} />
+                <span
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setStyleImgUrl(null);
+                    data.onChange?.({ styleImageUrl: null } as any);
+                  }}
+                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                  onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                  style={{
+                    position: 'absolute', top: -4, right: -4,
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, cursor: 'pointer', lineHeight: 1,
+                  }}
+                >x</span>
+                <div style={{ position: 'absolute', bottom: -2, left: -2, fontSize: '8px', color: 'rgba(200,160,100,0.8)', background: 'rgba(0,0,0,0.6)', borderRadius: '2px', padding: '0 3px', lineHeight: '12px' }}>风格</div>
+              </div>
+            )}
             {(!data.refUrls || data.refUrls.length < 10) && (
-              <div style={{ width: 40, height: 40, borderRadius: 6, border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0 }}>+</div>
+              <div
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  useCanvasStore.getState().setPendingConnection(id);
+                }}
+                onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                title="点击后在画布中选择一个节点来建立连线"
+                style={{
+                  width: 40, height: 40, borderRadius: 6,
+                  border: '1px dashed rgba(255,255,255,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0,
+                  cursor: 'pointer',
+                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                  e.currentTarget.style.color = 'var(--tap-text-2)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                  e.currentTarget.style.color = 'var(--tap-text-4)';
+                }}
+              >+</div>
             )}
           </div>
 
@@ -502,23 +547,34 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                 )}
               </div>
 
-              {/* Style picker */}
+              {/* Style image upload — opens local file picker */}
               <div style={{ position: 'relative' }}>
                 <span ref={styleChipRef} style={{ display: 'inline-flex' }}>
                   <InlineChip
-                    label={selectedStyle ? STYLE_LABELS[selectedStyle] || '风格' : '风格'}
-                    active={showStylePicker}
-                    onClick={() => { setShowStylePicker(!showStylePicker); setShowModelPicker(false); setShowRatioPicker(false); }}
+                    label={styleImgUrl ? '风格 ✓' : '风格'}
+                    active={!!styleImgUrl}
+                    onClick={() => { styleFileRef.current?.click(); }}
                   />
                 </span>
-                {showStylePicker && (
-                  <StyleChipPicker
-                    selectedStyle={selectedStyle}
-                    onSelect={handleStyleSelect}
-                    onClose={() => setShowStylePicker(false)}
-                    anchorRect={styleChipRect}
-                  />
-                )}
+                <input
+                  ref={styleFileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const url = reader.result as string;
+                      setStyleImgUrl(url);
+                      data.onChange?.({ styleImageUrl: url } as any);
+                    };
+                    reader.readAsDataURL(file);
+                    // Reset so same file can be re-selected
+                    e.target.value = '';
+                  }}
+                />
               </div>
 
               {/* Spacer */}
@@ -621,14 +677,6 @@ function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string
 }
 
 // ─── Overlay button (fullscreen/download on image hover) ──
-// ─── Style label lookup ────────────────────────────
-const STYLE_LABELS: Record<string, string> = {
-  cinematic: '电影质感', noir: '黑色电影', scifi: '科幻风格', period: '年代剧',
-  portrait: '人像摄影', landscape: '风光摄影', macro: '微距摄影', street: '街头摄影',
-  anime: '日式动画', ghibli: '吉卜力风', '3dcg': '3D CG', pixel: '像素艺术',
-  matte: 'Matte Painting', sketch: '速写概念', oil: '油画风格', watercolor: '水彩风格',
-};
-
 // ─── InlineChip (seamless, for the unified input bar) ──
 function InlineChip({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
   return (

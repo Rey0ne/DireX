@@ -94,6 +94,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const edgeCount = useCanvasStore(s => s.edges.size);
   const toolMode = useCanvasStore(s => s.toolMode);
   const setToolMode = useCanvasStore(s => s.setToolMode);
+  const pendingConnection = useCanvasStore(s => s.pendingConnection);
 
   const { screenToFlowPosition } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +196,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           imageUrl: (n.meta?.gen as Record<string, unknown>)?.imageUrl as string || undefined,
           videoUrl: (n.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
           isConnecting,
+          isPickMode: useCanvasStore.getState().pendingConnection !== null,
+          isPickTarget: n.id === useCanvasStore.getState().pendingConnection,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
           refUrls: (() => {
             const urls: string[] = [];
@@ -242,9 +245,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   useEffect(() => {
     setRfNodes(prev => prev.map(n => ({
       ...n,
-      data: { ...n.data, isConnecting, isConnectTarget: isConnecting && n.id === connectTargetId, multiSelect }
+      data: { ...n.data, isConnecting, isConnectTarget: isConnecting && n.id === connectTargetId, multiSelect, isPickMode: pendingConnection !== null, isPickTarget: n.id === pendingConnection }
     })));
-  }, [isConnecting, connectTargetId, multiSelect, setRfNodes]);
+  }, [isConnecting, connectTargetId, multiSelect, pendingConnection, setRfNodes]);
 
   // ─── Agent suggestion simulation ────────────────
   useEffect(() => {
@@ -311,11 +314,40 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   }, []);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    useCanvasStore.getState().setSelectedNodes([node.id]);
-  }, []);
+    const store = useCanvasStore.getState();
+    // Pick-source mode: connect clicked node → pending target
+    if (store.pendingConnection) {
+      const targetId = store.pendingConnection;
+      store.setPendingConnection(null);
+      if (node.id !== targetId) {
+        const targetNode = store.nodes.get(targetId);
+        const toPort = targetNode?.type === 'shot' ? 'refs-in' : 'image-in';
+        const fromPort = node.type === 'shot' ? 'shot-out' : 'image-out';
+        addEdge(
+          { nodeId: node.id, portId: fromPort },
+          { nodeId: targetId, portId: toPort },
+          'any'
+        );
+        // Sync ReactFlow edges immediately
+        const edgeList = Array.from(useCanvasStore.getState().edges.values());
+        setRfEdges(edgeList.map(e => ({
+          id: e.id, source: e.from.nodeId, target: e.to.nodeId,
+          sourceHandle: e.from.portId, targetHandle: e.to.portId,
+          animated: false,
+          style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+        })));
+        store.setSelectedNodes([targetId]);
+      }
+      return;
+    }
+    // Normal click: select node
+    store.setSelectedNodes([node.id]);
+  }, [addEdge, setRfEdges]);
 
   const onPaneClick = useCallback(() => {
-    useCanvasStore.getState().setSelectedNodes([]);
+    const store = useCanvasStore.getState();
+    store.setSelectedNodes([]);
+    store.setPendingConnection(null);
     closeMenu();
   }, [closeMenu]);
 
@@ -511,6 +543,34 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(22,26,34,0.85)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
       >⌂</button>
+
+      {/* ── Pick-source mode banner ── */}
+      {pendingConnection && (
+        <div style={{
+          position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 500,
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '10px 20px',
+          background: 'rgba(22,26,34,0.95)', borderRadius: '14px',
+          border: '1px solid rgba(180,180,185,0.25)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
+          pointerEvents: 'auto',
+        }}>
+          <span style={{ fontSize: '14px' }}>👆</span>
+          <span style={{ fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)' }}>在画布中选择一个节点建立连线</span>
+          <button
+            onClick={() => useCanvasStore.getState().setPendingConnection(null)}
+            style={{
+              padding: '4px 12px', borderRadius: 'var(--tap-r-sm)',
+              background: 'rgba(255,255,255,0.08)', color: 'var(--tap-text-3)',
+              fontSize: 'var(--tap-fs-meta)', border: 'none', cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+          >取消</button>
+        </div>
+      )}
 
       {/* ── Left Toolbar ── */}
       <LeftToolbar activeTool={toolMode} onToolSelect={handleToolSelect} />

@@ -19,6 +19,8 @@ interface ShotNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  isPickMode?: boolean;
+  isPickTarget?: boolean;
   hasConnections?: boolean;
   hasConnections?: boolean;
   onChange?: (patch: Record<string, unknown>) => void;
@@ -58,13 +60,19 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
         <div style={{
           width: '280px',
           background: 'var(--tap-panel)',
-          border: data.isConnectTarget
-            ? '1px solid rgba(180,180,185,0.5)'
-            : selected ? '2px solid rgba(180,180,185,0.45)' : '1px solid var(--tap-border)',
+          border: data.isPickTarget
+            ? '2px solid rgba(180,180,185,0.55)'
+            : data.isPickMode
+              ? '1px dashed rgba(180,180,185,0.3)'
+              : data.isConnectTarget
+                ? '1px solid rgba(180,180,185,0.5)'
+                : selected ? '2px solid rgba(180,180,185,0.45)' : '1px solid var(--tap-border)',
           borderRadius: 'var(--tap-r-xl)',
-          boxShadow: data.isConnectTarget
-            ? '0 0 28px rgba(180,180,185,0.2)'
-            : selected ? '0 0 20px rgba(180,180,185,0.08)' : 'var(--tap-shadow-sm)',
+          boxShadow: data.isPickTarget
+            ? '0 0 28px rgba(180,180,185,0.25)'
+            : data.isConnectTarget
+              ? '0 0 28px rgba(180,180,185,0.2)'
+              : selected ? '0 0 20px rgba(180,180,185,0.08)' : 'var(--tap-shadow-sm)',
           padding: '16px',
         display: 'flex',
         flexDirection: 'column',

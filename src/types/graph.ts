@@ -161,6 +161,7 @@ export interface ImageGenMeta {
   resolution: string;
   quality: string;
   seed?: number;
+  styleImageUrl?: string;
   resultAssetIds: string[];
 }
 

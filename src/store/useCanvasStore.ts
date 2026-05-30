@@ -18,6 +18,7 @@ export interface GraphState {
   selectedNodeIds: string[];
   toolMode: 'select' | 'crop' | 'inpaint' | 'relight' | 'multiAngle' | 'annotate' | 'expand' | 'extract' | 'enhance' | null;
   isCommandPaletteOpen: boolean;
+  pendingConnection: string | null; // targetNodeId — when set, next node click creates edge to this node
 
   // Actions — Node
   addNode: (type: NodeType, pos: { x: number; y: number }, title?: string) => string;
@@ -44,6 +45,7 @@ export interface GraphState {
   setViewport: (vp: { x: number; y: number; zoom: number }) => void;
   setToolMode: (mode: GraphState['toolMode']) => void;
   toggleCommandPalette: () => void;
+  setPendingConnection: (nodeId: string | null) => void;
 }
 
 let _nextId = 1;
@@ -64,6 +66,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   selectedNodeIds: [],
   toolMode: null,
   isCommandPaletteOpen: false,
+  pendingConnection: null,
 
   // ─── Node actions ───
   addNode(type, pos, title = '') {
@@ -221,6 +224,10 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
 
   toggleCommandPalette() {
     set(s => ({ isCommandPaletteOpen: !s.isCommandPaletteOpen }));
+  },
+
+  setPendingConnection(nodeId) {
+    set({ pendingConnection: nodeId });
   },
 }));
 
