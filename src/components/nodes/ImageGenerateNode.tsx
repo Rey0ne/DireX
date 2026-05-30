@@ -68,6 +68,7 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [imgHeight, setImgHeight] = useState(220);
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
   const readyRef = useRef(false);
   const zoom = useCanvasStore(s => s.viewport.zoom);
@@ -89,6 +90,18 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
     window.addEventListener('resize', update);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
   }, [selected]);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width;
+      const [rw, rh] = currentAspect.split(':').map(Number);
+      if (rw && rh && w > 100) setImgHeight(Math.round(w * rh / rw));
+    });
+    ro.observe(cardRef.current);
+    return () => ro.disconnect();
+  }, [currentAspect]);
+
   const patch = useCallback((k: keyof ImageGenMeta, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
@@ -244,7 +257,8 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
         style={{
           width: 'var(--tap-node-width)',
           borderRadius: 'var(--tap-node-radius)',
-          overflow: 'hidden',
+          overflow: 'auto',
+          resize: 'horizontal',
           border: data.isConnectTarget
             ? '1px solid rgba(180,180,185,0.5)'
             : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
@@ -260,7 +274,7 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
         {/* Image area — height follows aspect ratio */}
         <div style={{
           width: '100%',
-          height: aspectHeight(currentAspect),
+          height: imgHeight,
           background: data.imageUrl ? '#0a0a10' : 'linear-gradient(135deg, rgba(180,180,185,0.05) 0%, rgba(180,180,185,0.01) 100%)',
           display: 'flex',
           alignItems: 'center',
