@@ -2,6 +2,7 @@
 /* Categories: film, photography, anime, illustration, concept art */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Panel } from './shared';
 
 export interface StylePreset {
@@ -66,21 +67,32 @@ interface StyleChipPickerProps {
   selectedStyle: string | null;
   onSelect: (style: StylePreset) => void;
   onClose: () => void;
+  anchorRect?: DOMRect | null; // portal to body, positioned above the trigger
 }
 
-export function StyleChipPicker({ selectedStyle, onSelect, onClose }: StyleChipPickerProps) {
+export function StyleChipPicker({ selectedStyle, onSelect, onClose, anchorRect }: StyleChipPickerProps) {
   const [activeCat, setActiveCat] = useState<string>(STYLE_CATEGORIES[0].name);
 
   const activeStyles = STYLE_CATEGORIES.find(c => c.name === activeCat)?.styles || [];
 
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 499 }} />
-      <Panel style={{
+  const panelStyle: React.CSSProperties = anchorRect
+    ? {
+        position: 'fixed',
+        bottom: window.innerHeight - anchorRect.top + 8, // above the trigger
+        left: anchorRect.left,
+      }
+    : {
         position: 'absolute',
         bottom: '100%',
         left: 0,
         marginBottom: '8px',
+      };
+
+  const panel = (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 499 }} />
+      <Panel style={{
+        ...panelStyle,
         width: '360px',
         padding: '12px',
         display: 'flex',
@@ -158,6 +170,8 @@ export function StyleChipPicker({ selectedStyle, onSelect, onClose }: StyleChipP
       </Panel>
     </>
   );
+
+  return anchorRect ? createPortal(panel, document.body) : panel;
 }
 
 // Re-export for convenience

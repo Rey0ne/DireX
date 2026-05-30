@@ -43,13 +43,6 @@ function ratioBoxSize(w: number, h: number) {
   return { width: `${Math.round(w * scale)}px`, height: `${Math.round(h * scale)}px` };
 }
 
-function aspectHeight(aspect: string): string {
-  const [w, h] = aspect.split(':').map(Number);
-  if (!w || !h) return '220px';
-  const height = 380 * (h / w);
-  return `${Math.round(Math.min(height, 700))}px`;
-}
-
 const MODEL_OPTIONS = [
   { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['inpaint', 'multi-angle'] },
   { name: 'Banana Pro', badges: ['3折', '新'], maxRes: '2K', features: ['inpaint', 'relight'] },
@@ -73,6 +66,17 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
   const readyRef = useRef(false);
   const zoom = useCanvasStore(s => s.viewport.zoom);
+  // ─── Picker trigger refs (for portal positioning outside overflow:hidden) ──
+  const modelChipRef = useRef<HTMLSpanElement>(null);
+  const ratioChipRef = useRef<HTMLSpanElement>(null);
+  const styleChipRef = useRef<HTMLSpanElement>(null);
+  const [modelChipRect, setModelChipRect] = useState<DOMRect | null>(null);
+  const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
+  const [styleChipRect, setStyleChipRect] = useState<DOMRect | null>(null);
+  // Capture trigger rect when picker opens — portal renders outside overflow
+  useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
+  useEffect(() => { if (showRatioPicker && ratioChipRef.current) setRatioChipRect(ratioChipRef.current.getBoundingClientRect()); }, [showRatioPicker]);
+  useEffect(() => { if (showStylePicker && styleChipRef.current) setStyleChipRect(styleChipRef.current.getBoundingClientRect()); }, [showStylePicker]);
 
   useEffect(() => {
     if (!selected || !cardRef.current) { setCardRect(null); readyRef.current = false; return; }
@@ -432,13 +436,15 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
             }}>
               {/* Model picker */}
               <div style={{ position: 'relative' }}>
-                <InlineChip
-                  label={currentModel}
-                  active={showModelPicker}
-                  onClick={() => { setShowModelPicker(!showModelPicker); setShowRatioPicker(false); }}
-                />
+                <span ref={modelChipRef} style={{ display: 'inline-flex' }}>
+                  <InlineChip
+                    label={currentModel}
+                    active={showModelPicker}
+                    onClick={() => { setShowModelPicker(!showModelPicker); setShowRatioPicker(false); }}
+                  />
+                </span>
                 {showModelPicker && (
-                  <PickerDropdown onClose={() => setShowModelPicker(false)}>
+                  <PickerDropdown onClose={() => setShowModelPicker(false)} anchorRect={modelChipRect}>
                     {MODEL_OPTIONS.map(m => (
                       <div key={m.name}
                         onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
@@ -461,13 +467,15 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
 
               {/* Ratio picker */}
               <div style={{ position: 'relative' }}>
-                <InlineChip
-                  label={currentAspect}
-                  active={showRatioPicker}
-                  onClick={() => { setShowRatioPicker(!showRatioPicker); setShowModelPicker(false); }}
-                />
+                <span ref={ratioChipRef} style={{ display: 'inline-flex' }}>
+                  <InlineChip
+                    label={currentAspect}
+                    active={showRatioPicker}
+                    onClick={() => { setShowRatioPicker(!showRatioPicker); setShowModelPicker(false); }}
+                  />
+                </span>
                 {showRatioPicker && (
-                  <PickerDropdown onClose={() => setShowRatioPicker(false)}>
+                  <PickerDropdown onClose={() => setShowRatioPicker(false)} anchorRect={ratioChipRect}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', padding: '6px' }}>
                       {ASPECT_OPTIONS.map(r => (
                         <div key={r.label}
@@ -496,16 +504,19 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
 
               {/* Style picker */}
               <div style={{ position: 'relative' }}>
-                <InlineChip
-                  label={selectedStyle ? STYLE_LABELS[selectedStyle] || '风格' : '风格'}
-                  active={showStylePicker}
-                  onClick={() => { setShowStylePicker(!showStylePicker); setShowModelPicker(false); setShowRatioPicker(false); }}
-                />
+                <span ref={styleChipRef} style={{ display: 'inline-flex' }}>
+                  <InlineChip
+                    label={selectedStyle ? STYLE_LABELS[selectedStyle] || '风格' : '风格'}
+                    active={showStylePicker}
+                    onClick={() => { setShowStylePicker(!showStylePicker); setShowModelPicker(false); setShowRatioPicker(false); }}
+                  />
+                </span>
                 {showStylePicker && (
                   <StyleChipPicker
                     selectedStyle={selectedStyle}
                     onSelect={handleStyleSelect}
                     onClose={() => setShowStylePicker(false)}
+                    anchorRect={styleChipRect}
                   />
                 )}
               </div>
@@ -653,15 +664,25 @@ const badgeStyle: React.CSSProperties = {
   borderRadius: 'var(--tap-r-full)',
 };
 
-// ─── PickerDropdown ────────────────────────────
-function PickerDropdown({ children, onClose }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
-      <Panel style={{
+// ─── PickerDropdown (portal to body to escape overflow:hidden) ──
+function PickerDropdown({ children, onClose, anchorRect }: { children: React.ReactNode; onClose: () => void; anchorRect?: DOMRect | null }) {
+  const panelStyle: React.CSSProperties = anchorRect
+    ? {
+        position: 'fixed',
+        top: anchorRect.bottom + 6,
+        left: anchorRect.left,
+      }
+    : {
         position: 'absolute',
         top: 'calc(100% + 6px)',
         left: 0,
+      };
+
+  const panel = (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+      <Panel style={{
+        ...panelStyle,
         minWidth: '220px',
         padding: 'var(--tap-space-2)',
         zIndex: 200,
@@ -673,4 +694,6 @@ function PickerDropdown({ children, onClose }: { children: React.ReactNode; onCl
       </Panel>
     </>
   );
+
+  return anchorRect ? createPortal(panel, document.body) : panel;
 }
