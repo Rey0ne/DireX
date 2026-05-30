@@ -17,6 +17,7 @@ interface ImageGenNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  refUrls?: string[];
   onChange?: (patch: Partial<ImageGenMeta>) => void;
   onGenerate?: () => void;
   onFullscreen?: (url: string, prompt: string, model: string, aspect: string, quality: string) => void;
@@ -56,7 +57,7 @@ const MODEL_OPTIONS = [
   { name: '即梦 4.5', badges: [], maxRes: '1080P', features: [] },
 ];
 
-export function ImageGenerateNode({ data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
+export function ImageGenerateNode({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -318,20 +319,42 @@ export function ImageGenerateNode({ data, selected }: { id: string; data: ImageG
           display: 'flex',
           flexDirection: 'column',
         }}>
-          {/* Thumbnail strip */}
-          {data.thumbnails && data.thumbnails.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
-              {data.thumbnails.map((uri, i) => (
-                <img key={i} src={uri} alt=""
+          {/* Reference strip */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', minHeight: 44, alignItems: 'center' }}>
+            {data.refUrls && data.refUrls.map((uri, i) => (
+              <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                <img src={uri} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <span onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const store = useCanvasStore.getState();
+                  const toRemove: string[] = [];
+                  store.edges.forEach(edge => {
+                    if (edge.to.nodeId === id) {
+                      const src = store.nodes.get(edge.from.nodeId);
+                      if (src && (src.meta?.gen as any)?.imageUrl === uri) toRemove.push(edge.id);
+                    }
+                  });
+                  toRemove.forEach(eid => store.removeEdge(eid));
+                  // Keep node selected
+                  store.setSelectedNodes([id]);
+                }}
+                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                  onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
                   style={{
-                    width: '52px', height: '52px', borderRadius: 'var(--tap-r-sm)',
-                    objectFit: 'cover', cursor: 'pointer', flexShrink: 0,
-                    border: '1px solid var(--tap-border)',
+                    position: 'absolute', top: -4, right: -4,
+                    width: 14, height: 14, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, cursor: 'pointer', lineHeight: 1,
                   }}
-                />
-              ))}
-            </div>
-          )}
+                >x</span>
+              </div>
+            ))}
+            {(!data.refUrls || data.refUrls.length < 10) && (
+              <div style={{ width: 40, height: 40, borderRadius: 6, border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0 }}>+</div>
+            )}
+          </div>
 
           {/* Unified input panel — textarea wrapping all controls */}
           <div style={{

@@ -91,6 +91,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const removeNode = useCanvasStore(s => s.removeNode);
   const addEdge = useCanvasStore(s => s.addEdge);
   const nodesMap = useCanvasStore(s => s.nodes);
+  const edgeCount = useCanvasStore(s => s.edges.size);
   const toolMode = useCanvasStore(s => s.toolMode);
   const setToolMode = useCanvasStore(s => s.setToolMode);
 
@@ -181,9 +182,12 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
     setRfNodes(prevNodes => {
       const prevPos = new Map(prevNodes.map(n => [n.id, n.position]));
+      const prevSel = new Map(prevNodes.map(n => [n.id, n.selected]));
+      const storeSel = new Set(useCanvasStore.getState().selectedNodeIds);
       return nodeList.map(n => ({
         id: n.id, type: n.type,
         position: prevPos.get(n.id) || n.pos,
+        selected: storeSel.has(n.id),
         data: {
           title: n.title,
           shot: n.meta?.shot || defaultShotMeta,
@@ -191,6 +195,18 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           imageUrl: (n.meta?.gen as Record<string, unknown>)?.imageUrl as string || undefined,
           videoUrl: (n.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
           isConnecting,
+          hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
+          refUrls: (() => {
+            const urls: string[] = [];
+            edgeList.forEach(e => {
+              if (e.to.nodeId === n.id) {
+                const src = nodeList.find(sn => sn.id === e.from.nodeId);
+                const u = (src?.meta?.gen as any)?.imageUrl;
+                if (u && !urls.includes(u)) urls.push(u);
+              }
+            });
+            return urls.slice(0, 10);
+          })(),
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) { useCanvasStore.getState().updateNode(n.id, { meta: { ...current.meta, ...patch } }); }
@@ -207,20 +223,17 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     });
 
     setRfEdges(prevEdges => {
-      const prevIds = new Set(prevEdges.map(e => e.id));
-      const newEdges = edgeList.map(e => ({
+      const newIds = new Set(edgeList.map(e => e.id));
+      return edgeList.map(e => ({
         id: e.id, source: e.from.nodeId, target: e.to.nodeId,
         sourceHandle: e.from.portId, targetHandle: e.to.portId,
         animated: false,
         style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
-      }));
-      const existingEdges = prevEdges.filter(e => prevIds.has(e.id));
-      const addedEdges = newEdges.filter(e => !prevIds.has(e.id));
-      return [...existingEdges, ...addedEdges].filter(e =>
+      })).filter(e =>
         nodeList.some(n => n.id === e.source) && nodeList.some(n => n.id === e.target)
       );
     });
-  }, [setRfNodes, setRfEdges, nodesMap]);
+  }, [setRfNodes, setRfEdges, nodesMap, edgeCount]);
 
   // ─── Multi-select state ───
   const selectedCount = useCanvasStore(s => s.selectedNodeIds.length);
@@ -271,6 +284,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       { nodeId: connection.target, portId: connection.targetHandle || 'in' },
       'any'
     );
+    useCanvasStore.getState().setSelectedNodes([connection.target]);
     const edgeList = Array.from(useCanvasStore.getState().edges.values());
     setRfEdges(edgeList.map(e => ({
       id: e.id,

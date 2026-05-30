@@ -15,6 +15,8 @@ interface VideoGenNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  hasConnections?: boolean;
+  hasConnections?: boolean;
   onChange?: (patch: Partial<VideoGenMeta>) => void;
   onGenerate?: () => void;
 }
@@ -30,6 +32,7 @@ const DURATION_OPTIONS = ['3s', '5s', '8s', '10s'];
 
 export function VideoGenerateNode({ data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
+  const [hovered, setHovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [currentModel, setCurrentModel] = useState(gen.model || 'Kling 2.1');
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '5s');
@@ -53,7 +56,7 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            left: '-20px', top: '50%',
+            left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -62,7 +65,7 @@ export function VideoGenerateNode({ data, selected }: { id: string; data: VideoG
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            right: '-20px', top: '50%',
+            right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}

@@ -19,11 +19,14 @@ interface ShotNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  hasConnections?: boolean;
+  hasConnections?: boolean;
   onChange?: (patch: Record<string, unknown>) => void;
 }
 
 export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; selected?: boolean }) {
   const shot = data.shot || {};
+  const [hovered, setHovered] = useState(false);
   const [scriptInput, setScriptInput] = useState('');
 
   return (
@@ -36,7 +39,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            left: '-20px', top: '50%',
+            left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -45,7 +48,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            right: '-20px', top: '50%',
+            right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}

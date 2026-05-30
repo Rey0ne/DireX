@@ -14,6 +14,8 @@ interface AudioGenNodeData {
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
+  hasConnections?: boolean;
+  hasConnections?: boolean;
   onChange?: (patch: Partial<AudioGenMeta>) => void;
   onGenerate?: () => void;
 }
@@ -29,6 +31,7 @@ const STYLE_OPTIONS = ['流行', '电子', '古典', '摇滚', '氛围', '嘻哈
 
 export function AudioGenerateNode({ data, selected }: { id: string; data: AudioGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
+  const [hovered, setHovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [currentModel, setCurrentModel] = useState(gen.model || 'Suno v4');
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '60s');
@@ -53,7 +56,7 @@ export function AudioGenerateNode({ data, selected }: { id: string; data: AudioG
           style={{
             width: '20px', height: '20px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            left: '-20px', top: '50%',
+            left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -62,7 +65,7 @@ export function AudioGenerateNode({ data, selected }: { id: string; data: AudioG
           style={{
             width: '20px', height: '20px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            right: '-20px', top: '50%',
+            right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
