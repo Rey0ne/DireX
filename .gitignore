@@ -5,3 +5,6 @@ dist/
 *.local
 .env
 *.log
+server/dist/
+server/node_modules/
+.netlify/

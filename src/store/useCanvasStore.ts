@@ -18,7 +18,8 @@ export interface GraphState {
   selectedNodeIds: string[];
   toolMode: 'select' | 'crop' | 'inpaint' | 'relight' | 'multiAngle' | 'annotate' | 'expand' | 'extract' | 'enhance' | null;
   isCommandPaletteOpen: boolean;
-  pendingConnection: string | null; // targetNodeId — when set, next node click creates edge to this node
+  pendingConnection: string | null;
+  syncTick: number; // incremented to force ReactFlow re-sync
 
   // Actions — Node
   addNode: (type: NodeType, pos: { x: number; y: number }, title?: string) => string;
@@ -67,6 +68,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   toolMode: null,
   isCommandPaletteOpen: false,
   pendingConnection: null,
+  syncTick: 0,
 
   // ─── Node actions ───
   addNode(type, pos, title = '') {
@@ -228,6 +230,10 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
 
   setPendingConnection(nodeId) {
     set({ pendingConnection: nodeId });
+  },
+
+  triggerSync() {
+    set(s => ({ syncTick: s.syncTick + 1 }));
   },
 }));
 

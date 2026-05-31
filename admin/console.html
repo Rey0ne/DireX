@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>TapNow Agent 控制台</title>
+<style>
+:root{--bg:#0a0b0d;--p:rgba(21,23,26,0.96);--b:rgba(255,255,255,0.08);--d:rgba(255,255,255,0.06);--h:rgba(255,255,255,0.10);--t1:rgba(255,255,255,0.88);--t2:rgba(255,255,255,0.65);--t3:rgba(255,255,255,0.45);--t4:rgba(255,255,255,0.28);--s:#52c41a;--e:#ff4d4f;--w:#faad14}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--d);flex-shrink:0}
+.tb{display:flex;gap:2px;padding:8px 12px;border-bottom:1px solid var(--d);flex-shrink:0}
+.tb button{padding:6px 14px;border-radius:8px;font-size:12px;background:0;border:0;color:var(--t3);cursor:pointer}
+.tb button.on{color:var(--t1);background:var(--h)}
+.ct{flex:1;overflow-y:auto;padding:12px 16px}
+.pn{display:none}
+.pn.on{display:block}
+.row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--b);margin-bottom:8px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:10px;flex-shrink:0}
+.dot.on{background:var(--s)}.dot.off{background:var(--t4)}
+.btn{padding:5px 10px;border-radius:6px;font-size:11px;background:0;border:1px solid var(--b);color:var(--t2);cursor:pointer}
+.btn:hover{background:var(--h)}
+.btnX{color:var(--e);border-color:rgba(255,77,79,0.2)}
+.inp{width:100%;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid var(--b);color:var(--t1);font-size:13px;outline:0}
+.sel{padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid var(--b);color:var(--t1);font-size:13px;outline:0}
+.txa{width:100%;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,0.3);border:1px solid var(--b);color:var(--t1);font-size:12px;resize:vertical;outline:0;font-family:monospace}
+.cfg{margin-bottom:14px}.cfg label{font-size:12px;color:var(--t3);display:block;margin-bottom:6px}
+.tgl{width:44px;height:24px;border-radius:12px;border:0;cursor:pointer;position:relative;flex-shrink:0}
+.tgl.on{background:var(--s)}.tgl.off{background:rgba(255,255,255,0.15)}
+.tgl::after{content:'';position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left 0.15s}
+.tgl.on::after{left:22px}.tgl.off::after{left:2px}
+.log{margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--b);font-size:12px}
+.sb{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;border-top:1px solid var(--d);font-size:11px;color:var(--t4);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="hd"><span style="font-size:18px">🔧 Agent 控制台</span><span id="badge" style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,0.06);color:var(--t4)">● 检测中</span></div>
+<div class="tb">
+  <button onclick="sw('keys')" id="tb-keys" class="on">🔑 Keys</button>
+  <button onclick="sw('agent')" id="tb-agent">🤖 Agent</button>
+  <button onclick="sw('logs')" id="tb-logs">📋 日志</button>
+</div>
+<div class="ct">
+  <div class="pn on" id="keys"></div>
+  <div class="pn" id="agent"></div>
+  <div class="pn" id="logs"></div>
+</div>
+<div class="sb"><span id="ss"><span class="dot off"></span>...</span><span>localhost:3001</span></div>
+
+<script>
+var TOKEN='tapnow-dev-key', keys=[], cfg=null, logs=[], editKey=null;
+var LABELS={HTTP_PROXY:'HTTP 代理地址',KIE_BASE_URL:'Kie.ai 基础 URL',KIE_API_URL:'Kie.ai 提交 URL', KIE_API_KEY:'Kie.ai API Key',DEEPSEEK_API_KEY:'DeepSeek V4 官方',GEMINI_API_KEY:'Gemini 3 Pro 官方'};
+var MDLS=['nano-banana','gpt-image2','kling-video','seedance-2'];
+var STY={literal:'直译',cinematic:'电影感',technical:'技术',literary:'文学'};
+
+async function G(p){var r=await fetch(p,{headers:{Authorization:'Bearer '+TOKEN}});return r.json()}
+async function U(p,d){var r=await fetch(p,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify(d)});return r.json()}
+async function D(p){var r=await fetch(p,{method:'DELETE',headers:{Authorization:'Bearer '+TOKEN}});return r.json()}
+function E(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function sw(t){
+  document.querySelectorAll('.tb button').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('.pn').forEach(function(p){p.classList.remove('on')});
+  document.getElementById('tb-'+t).classList.add('on');
+  document.getElementById(t).classList.add('on');
+  if(t==='keys') LK();
+  if(t==='agent') LC();
+  if(t==='logs') LL();
+}
+
+// ─── Keys ────────────────────────────────────
+async function LK(){
+  var el=document.getElementById('keys');
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">加载中...</div>';
+  try{
+    var d=await G('/api/keys');
+    keys=d.keys||[];
+    var h='';
+    keys.forEach(function(k){
+      h+='<div class="row"><div style="display:flex;align-items:center"><span class="dot '+(k.configured?'on':'off')+'"></span><div><div style="font-weight:500">'+E(k.label)+'</div><div style="font-size:10px;color:var(--t4)">'+(k.configured?E(k.masked):'未配置')+'</div></div></div><div style="display:flex;gap:4px"><button class="btn" onclick="ed(\''+K(k.key)+'\')">'+(k.configured?'编辑':'设置')+'</button><button class="btn btnX" onclick="del(\''+K(k.key)+'\',\''+E(k.label)+'\')">✕</button></div></div>';
+    });
+    h+='<div id="ed-area"></div>';
+    h+='<div style="margin-top:10px;text-align:center"><button class="btn" onclick="LK()">🔄 刷新</button> <button class="btn" onclick="test()" style="color:var(--s);border-color:rgba(82,196,26,0.3)">🔗 测试 Kie.ai</button></div><div id="tr" style="text-align:center;margin-top:8px;font-size:12px"></div>';
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div style="color:var(--e);padding:20px">错误: '+e.message+'</div>'}
+}
+
+function K(s){return s.replace(/'/g,"\\'")}
+function ed(k){editKey=k;document.getElementById('ed-area').innerHTML='<div style="padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.12);margin-top:8px"><div style="font-size:12px;color:var(--t2);margin-bottom:8px">输入 '+(LABELS[k]||k)+' 的值</div><input class="inp" id="ki" placeholder="..." autofocus><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" onclick="document.getElementById(\'ed-area\').innerHTML=\'\';editKey=null">取消</button><button class="btn" id="sb" style="color:#fff;background:var(--t3);border:0;opacity:0.4" disabled onclick="sv()">保存</button></div></div>';
+  document.getElementById('ki').oninput=function(){document.getElementById('sb').disabled=!this.value.trim();document.getElementById('sb').style.opacity=this.value.trim()?'1':'0.4'};
+  document.getElementById('ki').onkeydown=function(e){if(e.key==='Enter'&&this.value.trim())sv();if(e.key==='Escape'){editKey=null;document.getElementById('ed-area').innerHTML=''}};
+  document.getElementById('ki').focus()
+}
+async function sv(){var v=document.getElementById('ki').value.trim();if(!v||!editKey)return;document.getElementById('sb').textContent='保存中...';await U('/api/keys',{[editKey]:v});editKey=null;document.getElementById('ed-area').innerHTML='';LK()}
+async function del(k,lb){if(confirm('隐藏 '+lb+' ?')){await D('/api/keys/'+k);LK()}}
+
+async function test(){
+  var area=document.getElementById('tr');
+  area.innerHTML='<span style="color:var(--t2)">正在通过后端调用 Kie.ai (POST /api/generate)...</span>';
+  try{
+    var t0=Date.now();
+    var d=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({providerId:'nano-banana',prompt:'connection test cat',resolution:'1K'})}).then(function(r){return r.json()});
+    var isStub=d.assetUrls&&d.assetUrls[0]&&d.assetUrls[0].indexOf('picsum')>=0;
+    if(isStub) area.innerHTML='<span style="color:var(--w)">⚠ 走了 Stub — 后端连不上 Kie.ai。请在 Keys 里设置 HTTP 代理地址</span>';
+    else if(d.success) area.innerHTML='<span style="color:var(--s)">✅ Kie.ai 通了！('+(Date.now()-t0)+'ms)</span><br><span style="font-size:10px;color:var(--t4)">'+d.assetUrls[0]+'</span>';
+    else area.innerHTML='<span style="color:var(--e)">❌ '+ (d.error||'失败') +'</span>';
+  }catch(e){area.innerHTML='<span style="color:var(--e)">❌ '+e.message+'</span>'}
+}
+
+// ─── Agent Config ─────────────────────────────
+async function LC(){
+  var el=document.getElementById('agent');
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">加载中...</div>';
+  try{cfg=await G('/api/agent/config');RC()}catch(e){el.innerHTML='<div style="color:var(--e);padding:20px">错误: '+e.message+'</div>'}
+}
+function RC(){
+  if(!cfg)return;
+  var h='';
+  h+='<div class="cfg"><label>名称</label><input class="inp" value="'+E(cfg.name)+'" onchange="UC(\'name\',this.value)"></div>';
+  h+='<div class="cfg"><label>头像</label><input class="inp" value="'+E(cfg.avatar)+'" onchange="UC(\'avatar\',this.value)"></div>';
+  h+='<div class="cfg"><label>翻译风格</label><div style="display:flex;gap:4px">';
+  Object.keys(STY).forEach(function(k){h+='<button class="btn" style="'+(cfg.translationStyle===k?'color:var(--t1);background:var(--h)':'')+'" onclick="UC(\'translationStyle\',\''+k+'\')">'+STY[k]+'</button>'});
+  h+='</div></div>';
+  h+='<div class="cfg"><label>默认模型</label><select class="sel" onchange="UC(\'defaultModel\',this.value)">'+MDLS.map(function(m){return'<option'+(cfg.defaultModel===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></div>';
+  h+='<div class="cfg"><label>默认分辨率</label><select class="sel" onchange="UC(\'defaultResolution\',this.value)">'+['1K','2K','4K','1080P'].map(function(r){return'<option'+(cfg.defaultResolution===r?' selected':'')+'>'+r+'</option>'}).join('')+'</select></div>';
+  h+='<div class="cfg"><label style="display:flex;justify-content:space-between;align-items:center">LLM 润色 <button class="tgl '+(cfg.promptEnhancement?'on':'off')+'" onclick="UC(\'promptEnhancement\','+(!cfg.promptEnhancement)+')"></button></label></div>';
+  h+='<div class="cfg"><label>System Prompt (DeepSeek)</label><textarea class="txa" rows="4" onchange="UC(\'systemPrompt\',this.value)">'+E(cfg.systemPrompt)+'</textarea></div>';
+  h+='<div class="cfg"><label>Polish Prompt (Gemini)</label><textarea class="txa" rows="4" onchange="UC(\'polishPrompt\',this.value)">'+E(cfg.polishPrompt||'')+'</textarea></div>';
+  document.getElementById('agent').innerHTML=h;
+}
+function UC(f,v){cfg[f]=v;U('/api/agent/config',{[f]:v})}
+
+// ─── Logs ─────────────────────────────────────
+async function LL(){
+  var el=document.getElementById('logs');
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">加载中...</div>';
+  try{var d=await G('/api/agent/logs');logs=(d.logs||[]).slice(0,50);RL()}catch(e){el.innerHTML='<div style="color:var(--e);padding:20px">错误: '+e.message+'</div>'}
+}
+function RL(){
+  var el=document.getElementById('logs');
+  if(!logs.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t4)">暂无记录</div>';return}
+  el.innerHTML=logs.map(function(l){
+    var s=l.assetUrls&&l.assetUrls[0]&&l.assetUrls[0].indexOf('picsum')>=0?'🟡 STUB':'🟢 Kie.ai';
+    var u=l.assetUrls&&l.assetUrls[0]?l.assetUrls[0]:'';
+    return'<div class="log"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:500;color:var(--t2)">'+E(l.providerId)+'</span><span style="font-size:10px;color:var(--t4)">'+s+'</span><span style="color:'+(l.status==='succeeded'?'var(--s)':'var(--e)')+'">'+(l.status==='succeeded'?'✓':'✕')+'</span></div><div style="color:var(--t3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+E(l.prompt||'').slice(0,80)+'</div>'+(u?'<div style="font-size:10px;color:var(--t4);margin-bottom:4px;word-break:break-all">🖼 '+E(u)+'</div>':'')+'<div style="display:flex;gap:12px;color:var(--t4);font-size:10px"><span>'+new Date(l.timestamp).toLocaleString()+'</span><span>'+l.durationMs+'ms</span><span>$'+(l.cost||0).toFixed(3)+'</span></div></div>';
+  }).join('')
+}
+
+// ─── Init ─────────────────────────────────────
+(function(){
+  document.getElementById('ss').innerHTML='<span class="dot on"></span>已启动';
+  document.getElementById('badge').innerHTML='● 在线';
+  document.getElementById('badge').style.cssText='color:var(--s);background:rgba(82,196,26,0.12)';
+  LK();
+})();
+</script>
+</body>
+</html>

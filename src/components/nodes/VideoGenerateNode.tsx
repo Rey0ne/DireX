@@ -24,10 +24,8 @@ interface VideoGenNodeData {
 }
 
 const MODEL_OPTIONS = [
-  { name: 'Kling 2.1', badges: ['3折'], maxDur: '10s' },
-  { name: 'Runway Gen-4', badges: ['热门'], maxDur: '16s' },
-  { name: 'Sora', badges: ['新'], maxDur: '60s' },
-  { name: '可灵 1.6', badges: [], maxDur: '5s' },
+  { name: 'Kling 2.1', badges: ['推荐'], maxDur: '10s' },
+  { name: 'Seedance 2.0', badges: ['热门'], maxDur: '16s' },
 ];
 
 const DURATION_OPTIONS = ['3s', '5s', '8s', '10s'];

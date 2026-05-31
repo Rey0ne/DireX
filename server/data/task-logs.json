@@ -1,0 +1,578 @@
+{
+  "logs": [
+    {
+      "id": "f4788275-f96b-4c9e-8406-f081a64beb7a",
+      "timestamp": "2026-05-31T14:26:56.810Z",
+      "providerId": "nano-banana",
+      "prompt": "������˶�����ҹ",
+      "compiledPrompt": "������˶�����ҹ",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/223000_0/800/600",
+        "https://picsum.photos/seed/223000_1/800/600",
+        "https://picsum.photos/seed/223000_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2265
+    },
+    {
+      "id": "670d50e9-9fd7-46ec-a954-6fbd8e1ed2d8",
+      "timestamp": "2026-05-31T15:10:54.399Z",
+      "providerId": "nano-banana",
+      "prompt": "A cute orange tabby cat sits poised on a wooden windowsill, bathed in warm, golden sunlight streaming through a dust-flecked window pane. The cat's soft, striped fur glows with amber highlights, its tail curled gently around its paws, head tilted slightly as if watching something outside. Sunbeams cast a soft, hazy light across the scene, creating a quiet, cozy atmosphere. The background reveals a blurred view of a tranquil garden with leafy greens and a hint of blue sky. Shallow depth of field focuses sharply on the cat's whiskers and eyes, with a soft bokeh effect on the foliage outside. Color palette: warm oranges, soft yellows, muted greens, creamy whites. Composition: centered, low-angle shot emphasizing the cat's peaceful posture and the gentle contrast between light and shadow.",
+      "compiledPrompt": "A cute orange tabby cat sits poised on a wooden windowsill, bathed in warm, golden sunlight streaming through a dust-flecked window pane. The cat's soft, striped fur glows with amber highlights, its tail curled gently around its paws, head tilted slightly as if watching something outside. Sunbeams cast a soft, hazy light across the scene, creating a quiet, cozy atmosphere. The background reveals a blurred view of a tranquil garden with leafy greens and a hint of blue sky. Shallow depth of field focuses sharply on the cat's whiskers and eyes, with a soft bokeh effect on the foliage outside. Color palette: warm oranges, soft yellows, muted greens, creamy whites. Composition: centered, low-angle shot emphasizing the cat's peaceful posture and the gentle contrast between light and shadow.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/166010_0/800/600",
+        "https://picsum.photos/seed/166010_1/800/600",
+        "https://picsum.photos/seed/166010_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1301
+    },
+    {
+      "id": "b9cc709f-4502-48aa-bdbf-14f25cf3bdab",
+      "timestamp": "2026-05-31T15:11:13.574Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/859967_0/800/600",
+        "https://picsum.photos/seed/859967_1/800/600",
+        "https://picsum.photos/seed/859967_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1527
+    },
+    {
+      "id": "eb8915dd-755e-4e23-b8e0-bdf1d7a42b01",
+      "timestamp": "2026-05-31T15:18:57.996Z",
+      "providerId": "nano-banana",
+      "prompt": "A cute, fluffy golden retriever puppy sitting on a lush green lawn in a sunlit garden. Soft, dappled sunlight filters through blooming cherry blossom trees, casting gentle shadows. The puppy has bright, curious eyes and perked ears, with a small pink tongue slightly visible. Surrounding it are vibrant wildflowers in pastel shades of pink, lavender, and white. A wooden garden fence and a weathered birdbath are in the soft-focus background. Warm, golden hour lighting with a shallow depth of field, emphasizing the puppy's soft fur and innocent expression. Color palette: warm yellows, soft greens, pastel pinks, and creamy whites. Shot with a 50mm lens at f/2.8, low angle, eye-level composition. Atmosphere: peaceful, joyful, idyllic.",
+      "compiledPrompt": "A cute, fluffy golden retriever puppy sitting on a lush green lawn in a sunlit garden. Soft, dappled sunlight filters through blooming cherry blossom trees, casting gentle shadows. The puppy has bright, curious eyes and perked ears, with a small pink tongue slightly visible. Surrounding it are vibrant wildflowers in pastel shades of pink, lavender, and white. A wooden garden fence and a weathered birdbath are in the soft-focus background. Warm, golden hour lighting with a shallow depth of field, emphasizing the puppy's soft fur and innocent expression. Color palette: warm yellows, soft greens, pastel pinks, and creamy whites. Shot with a 50mm lens at f/2.8, low angle, eye-level composition. Atmosphere: peaceful, joyful, idyllic.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/202338_0/800/600",
+        "https://picsum.photos/seed/202338_1/800/600",
+        "https://picsum.photos/seed/202338_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1737
+    },
+    {
+      "id": "39e0b363-e2b2-4e92-9338-4bd814d24356",
+      "timestamp": "2026-05-31T15:24:09.460Z",
+      "providerId": "gpt-image2",
+      "prompt": "A fluffy kitten, paws outstretched, batting a small red ball on a soft beige sofa. Warm golden-hour sunlight streams through a nearby window, casting long shadows and highlighting the kitten's fur. Shallow depth of field, with the background slightly blurred, cozy living room setting. Vibrant yet soft color palette: warm cream, burnt orange, soft greens, and pops of red from the ball. 50mm lens, f/2.8, natural lighting, playful and tender mood.",
+      "compiledPrompt": "A fluffy kitten, paws outstretched, batting a small red ball on a soft beige sofa. Warm golden-hour sunlight streams through a nearby window, casting long shadows and highlighting the kitten's fur. Shallow depth of field, with the background slightly blurred, cozy living room setting. Vibrant yet soft color palette: warm cream, burnt orange, soft greens, and pops of red from the ball. 50mm lens, f/2.8, natural lighting, playful and tender mood.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/663629_0/800/600",
+        "https://picsum.photos/seed/663629_1/800/600",
+        "https://picsum.photos/seed/663629_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2134
+    },
+    {
+      "id": "169c5e5f-b209-4012-b9ab-1f5cf9e2a356",
+      "timestamp": "2026-05-31T15:24:53.877Z",
+      "providerId": "nano-banana",
+      "prompt": "A fluffy ginger kitten bats a small red ball of yarn on a plush beige sofa, soft afternoon sunlight streaming through a nearby window, casting warm golden highlights on its fur and the textured fabric, shallow depth of field with the background gently blurred, cozy living room ambiance, subtle dust motes floating in the light beam, vibrant green eyes focused intently on the ball, playful tension in its paws, Canon 50mm f/1.4 lens, cinematic lighting, warm color palette with amber and cream tones, 8K resolution, photorealistic style.",
+      "compiledPrompt": "A fluffy ginger kitten bats a small red ball of yarn on a plush beige sofa, soft afternoon sunlight streaming through a nearby window, casting warm golden highlights on its fur and the textured fabric, shallow depth of field with the background gently blurred, cozy living room ambiance, subtle dust motes floating in the light beam, vibrant green eyes focused intently on the ball, playful tension in its paws, Canon 50mm f/1.4 lens, cinematic lighting, warm color palette with amber and cream tones, 8K resolution, photorealistic style.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/843413_0/800/600",
+        "https://picsum.photos/seed/843413_1/800/600",
+        "https://picsum.photos/seed/843413_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1397
+    },
+    {
+      "id": "91e03731-2bb2-4887-92fe-9dfd3d50043e",
+      "timestamp": "2026-05-31T15:28:44.400Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/448443_0/800/600",
+        "https://picsum.photos/seed/448443_1/800/600",
+        "https://picsum.photos/seed/448443_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2087
+    },
+    {
+      "id": "67b29289-650d-4452-bf29-94020aee97f2",
+      "timestamp": "2026-05-31T15:32:06.326Z",
+      "providerId": "nano-banana",
+      "prompt": "A close-up macro shot of a vintage computer monitor displaying glowing green text on a dark screen reading \"HELLO WORLD.\" The monitor is an old CRT model with a curved glass surface, subtle scan lines visible, and a slight chromatic aberration glow around the letters. Warm ambient light from a desk lamp casts a soft amber glow on the monitor's beige casing. In the background, blurred stacks of floppy disks and a mechanical keyboard sit on a wooden desk. The lighting is low-key with a cinematic noir mood, deep shadows, and a narrow depth of field focusing on the text. Color palette: phosphorescent green, warm amber, charcoal black, and faded beige. Composition is centered with the text sharply in focus, evoking a nostalgic, retro-futuristic atmosphere reminiscent of 1980s hacker aesthetics.",
+      "compiledPrompt": "A close-up macro shot of a vintage computer monitor displaying glowing green text on a dark screen reading \"HELLO WORLD.\" The monitor is an old CRT model with a curved glass surface, subtle scan lines visible, and a slight chromatic aberration glow around the letters. Warm ambient light from a desk lamp casts a soft amber glow on the monitor's beige casing. In the background, blurred stacks of floppy disks and a mechanical keyboard sit on a wooden desk. The lighting is low-key with a cinematic noir mood, deep shadows, and a narrow depth of field focusing on the text. Color palette: phosphorescent green, warm amber, charcoal black, and faded beige. Composition is centered with the text sharply in focus, evoking a nostalgic, retro-futuristic atmosphere reminiscent of 1980s hacker aesthetics.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/736918_0/800/600",
+        "https://picsum.photos/seed/736918_1/800/600",
+        "https://picsum.photos/seed/736918_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 917
+    },
+    {
+      "id": "38f122ae-ddca-465c-aed5-7793188c5b65",
+      "timestamp": "2026-05-31T15:33:47.945Z",
+      "providerId": "nano-banana",
+      "prompt": "A cinematic wide shot of a serene, minimalist landscape at golden hour. Soft, diffused light casts long shadows across a field of tall, swaying grass. A single, weathered wooden signpost stands in the foreground, its surface etched with faint, illegible text. The sky above is a gradient of warm peach and pale lavender, with thin, wispy clouds streaked across the horizon. The atmosphere is quiet and contemplative, evoking a sense of solitude and gentle nostalgia. Shot on 35mm film, with a shallow depth of field, warm amber tones, and subtle film grain.",
+      "compiledPrompt": "A cinematic wide shot of a serene, minimalist landscape at golden hour. Soft, diffused light casts long shadows across a field of tall, swaying grass. A single, weathered wooden signpost stands in the foreground, its surface etched with faint, illegible text. The sky above is a gradient of warm peach and pale lavender, with thin, wispy clouds streaked across the horizon. The atmosphere is quiet and contemplative, evoking a sense of solitude and gentle nostalgia. Shot on 35mm film, with a shallow depth of field, warm amber tones, and subtle film grain.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/661860_0/800/600",
+        "https://picsum.photos/seed/661860_1/800/600",
+        "https://picsum.photos/seed/661860_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1050
+    },
+    {
+      "id": "d4972167-90fd-4459-b9be-fbae9ebab732",
+      "timestamp": "2026-05-31T15:54:51.318Z",
+      "providerId": "nano-banana",
+      "prompt": "A close-up shot of a playful kitten batting a colorful ball on a plush sofa. Soft, warm lighting from a nearby window casts gentle shadows, creating a cozy indoor atmosphere. The kitten's fur is fluffy and detailed, with bright, curious eyes focused on the ball. The sofa is textured fabric, slightly rumpled from movement. Warm, pastel color palette with golden hour tones, shallow depth of field blurring the background. High detail, photorealistic style, capturing a candid moment of joy and curiosity.",
+      "compiledPrompt": "A close-up shot of a playful kitten batting a colorful ball on a plush sofa. Soft, warm lighting from a nearby window casts gentle shadows, creating a cozy indoor atmosphere. The kitten's fur is fluffy and detailed, with bright, curious eyes focused on the ball. The sofa is textured fabric, slightly rumpled from movement. Warm, pastel color palette with golden hour tones, shallow depth of field blurring the background. High detail, photorealistic style, capturing a candid moment of joy and curiosity.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/90626_0/800/600",
+        "https://picsum.photos/seed/90626_1/800/600",
+        "https://picsum.photos/seed/90626_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2399
+    },
+    {
+      "id": "cff70e4b-88d3-46a2-ab9b-731a775c62a0",
+      "timestamp": "2026-05-31T16:18:17.262Z",
+      "providerId": "nano-banana",
+      "prompt": "A fluffy kitten with soft orange and white fur playfully bats a small red ball of yarn on a plush beige sofa, natural sunlight streaming through a nearby window casting warm golden highlights on the scene, shallow depth of field with the background softly blurred, cozy living room atmosphere, 85mm lens, f/2.8, warm color palette with earthy tones and soft pastels, gentle shadows and highlights, motion blur on the kitten’s paw mid-swipe, cinematic composition with the kitten centered and the yarn ball slightly off-center, inviting and serene mood.",
+      "compiledPrompt": "A fluffy kitten with soft orange and white fur playfully bats a small red ball of yarn on a plush beige sofa, natural sunlight streaming through a nearby window casting warm golden highlights on the scene, shallow depth of field with the background softly blurred, cozy living room atmosphere, 85mm lens, f/2.8, warm color palette with earthy tones and soft pastels, gentle shadows and highlights, motion blur on the kitten’s paw mid-swipe, cinematic composition with the kitten centered and the yarn ball slightly off-center, inviting and serene mood.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/166096_0/800/600",
+        "https://picsum.photos/seed/166096_1/800/600",
+        "https://picsum.photos/seed/166096_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2038
+    },
+    {
+      "id": "397b2122-7dbe-432e-a968-e929f1ff4e40",
+      "timestamp": "2026-05-31T16:27:29.327Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/837866_0/800/600",
+        "https://picsum.photos/seed/837866_1/800/600",
+        "https://picsum.photos/seed/837866_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2127
+    },
+    {
+      "id": "e0bb72aa-3d40-4507-86c1-47e1d32f7158",
+      "timestamp": "2026-05-31T16:33:18.566Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/794622_0/800/600",
+        "https://picsum.photos/seed/794622_1/800/600",
+        "https://picsum.photos/seed/794622_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1940
+    },
+    {
+      "id": "7b271371-7b82-4c47-b832-332c873a802e",
+      "timestamp": "2026-05-31T17:12:05.824Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/749868_0/800/600",
+        "https://picsum.photos/seed/749868_1/800/600",
+        "https://picsum.photos/seed/749868_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 2529
+    },
+    {
+      "id": "f00b85db-1e06-47a7-a0a8-9c52b2ea03c1",
+      "timestamp": "2026-05-31T17:13:47.574Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/246867_0/800/600",
+        "https://picsum.photos/seed/246867_1/800/600",
+        "https://picsum.photos/seed/246867_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1710
+    },
+    {
+      "id": "87752b7f-17dc-4869-894d-ada54c5b2484",
+      "timestamp": "2026-05-31T17:14:01.775Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/773448_0/800/600",
+        "https://picsum.photos/seed/773448_1/800/600",
+        "https://picsum.photos/seed/773448_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1971
+    },
+    {
+      "id": "4f7327fd-384f-4c1e-a56f-3b2d9b80a198",
+      "timestamp": "2026-05-31T17:14:47.390Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/54923_0/800/600",
+        "https://picsum.photos/seed/54923_1/800/600",
+        "https://picsum.photos/seed/54923_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 725
+    },
+    {
+      "id": "8e27dfbb-66c9-4a73-a953-b92270923195",
+      "timestamp": "2026-05-31T17:15:17.435Z",
+      "providerId": "nano-banana",
+      "prompt": "test",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 579,
+      "error": "Kie.ai 404"
+    },
+    {
+      "id": "28bcda20-8d93-4a73-9154-a8d60d16dcb0",
+      "timestamp": "2026-05-31T17:16:16.973Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 404,
+      "error": "Kie.ai: No task_id returned"
+    },
+    {
+      "id": "e92fe87c-3479-4035-b08c-6fb92a41f171",
+      "timestamp": "2026-05-31T17:17:31.854Z",
+      "providerId": "nano-banana",
+      "prompt": "test",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 585,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "7bce2602-354a-4deb-82a8-8a7a3383bc69",
+      "timestamp": "2026-05-31T17:17:57.294Z",
+      "providerId": "nano-banana",
+      "prompt": "test",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 404,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "a96896a4-08a4-4e35-84e9-3351ce95d8f9",
+      "timestamp": "2026-05-31T17:19:14.166Z",
+      "providerId": "nano-banana",
+      "prompt": "test",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4440,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "7d9f3dea-f479-46ea-9698-b48685d7fbe8",
+      "timestamp": "2026-05-31T17:24:59.623Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 381,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "b5170a44-7209-4c7f-9dee-c4d27538481b",
+      "timestamp": "2026-05-31T17:25:53.979Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 389,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "c2b6861a-1eff-4dc7-854c-62394f3535d7",
+      "timestamp": "2026-05-31T17:27:06.770Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1394,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "21684360-3ed0-4865-80d4-718fa2ba2043",
+      "timestamp": "2026-05-31T17:27:27.298Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat on windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 377,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "5b72f1e3-7200-416e-8dc9-25bcdfc177e1",
+      "timestamp": "2026-05-31T17:27:47.048Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 382,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "acfcb45f-d3fc-40ce-a8dc-e2365005e238",
+      "timestamp": "2026-05-31T17:30:09.983Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 421,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "579c5cc2-40df-47f7-ac9e-ad5948231fd8",
+      "timestamp": "2026-05-31T17:30:34.608Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 386,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "94fbb399-f2d2-42dc-8775-cb4d6eb84209",
+      "timestamp": "2026-05-31T17:30:54.627Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 386,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "68752878-860c-47d6-860e-6be77368294d",
+      "timestamp": "2026-05-31T17:31:35.662Z",
+      "providerId": "gpt-image2",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 389,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "bb2bf19b-ebf9-406a-85a6-5edb1b3d11a4",
+      "timestamp": "2026-05-31T17:33:53.526Z",
+      "providerId": "gpt-image2",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 375,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "4b4ad167-de4c-496e-94ee-90203643e383",
+      "timestamp": "2026-05-31T17:34:20.003Z",
+      "providerId": "gpt-image2",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4672,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "9a1485dd-3868-4f85-87ee-658900c62394",
+      "timestamp": "2026-05-31T17:35:26.424Z",
+      "providerId": "gpt-image2",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 390,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "bb027def-34c0-4d77-919b-0630677a684f",
+      "timestamp": "2026-05-31T17:38:49.005Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat on windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 590,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "6f2e2ec6-53c5-4330-9cb6-11dc4f418f83",
+      "timestamp": "2026-05-31T17:40:03.866Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/603152_0/800/600",
+        "https://picsum.photos/seed/603152_1/800/600",
+        "https://picsum.photos/seed/603152_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 6357
+    },
+    {
+      "id": "f93fcfc2-ae45-4bbe-8de5-0fb294d9628f",
+      "timestamp": "2026-05-31T17:40:11.893Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 371,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "17d67fa5-441a-4cd8-a6e3-9cd89f57cd09",
+      "timestamp": "2026-05-31T17:40:31.735Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 397,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "f710fc4c-31eb-4146-be2d-6e61a2363149",
+      "timestamp": "2026-05-31T17:40:59.690Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 389,
+      "error": "Kie.ai: No task_id returned — see server log"
+    },
+    {
+      "id": "275f32f9-7cca-4d53-ad73-0bc98d0bc640",
+      "timestamp": "2026-05-31T17:47:51.605Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/862353_0/800/600",
+        "https://picsum.photos/seed/862353_1/800/600",
+        "https://picsum.photos/seed/862353_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 1927
+    },
+    {
+      "id": "93e9c173-bc5b-4b29-8beb-b9b5e2fd9765",
+      "timestamp": "2026-05-31T17:52:38.783Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 145233,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "172797c4-0d0c-46bc-be15-e0fc030f1b5d",
+      "timestamp": "2026-05-31T17:59:03.759Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0.18,
+      "durationMs": 59835
+    },
+    {
+      "id": "5a89316a-8486-434c-bb01-129070405780",
+      "timestamp": "2026-05-31T18:00:34.649Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0.18,
+      "durationMs": 32882
+    },
+    {
+      "id": "3a3fdc90-8824-40d3-9dd2-2e61e90bb342",
+      "timestamp": "2026-05-31T18:02:04.443Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1780250520868-3ydwuvklv9h.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 67740
+    },
+    {
+      "id": "16520f40-a354-4723-8d9f-2f5b60d28e51",
+      "timestamp": "2026-05-31T18:06:31.067Z",
+      "providerId": "nano-banana",
+      "prompt": "A close-up shot of a playful kitten batting a small, colorful ball on a soft, plush sofa. The scene is bathed in warm, golden-hour sunlight streaming through a nearby window, casting gentle shadows and creating a cozy, intimate atmosphere. The kitten's fur is detailed, with soft highlights and a fluffy texture, while its paws are mid-air, frozen in motion as it swats at the ball. The sofa is slightly worn, with fabric texture visible, and the background is softly blurred (shallow depth of field), emphasizing the kitten's expressive eyes and playful energy. The color palette features warm beige and cream tones with pops of vibrant red or blue from the ball, evoking a sense of comfort, joy, and domestic tranquility. Lighting: soft natural light with a slight golden glow. Camera: 85mm lens, f/2.8 aperture, eye-level angle. Composition: rule of thirds, with the kitten slightly off-center and the ball as a secondary focal point. Atmosphere: serene, playful, and heartwarming.",
+      "compiledPrompt": "A close-up shot of a playful kitten batting a small, colorful ball on a soft, plush sofa. The scene is bathed in warm, golden-hour sunlight streaming through a nearby window, casting gentle shadows and creating a cozy, intimate atmosphere. The kitten's fur is detailed, with soft highlights and a fluffy texture, while its paws are mid-air, frozen in motion as it swats at the ball. The sofa is slightly worn, with fabric texture visible, and the background is softly blurred (shallow depth of field), emphasizing the kitten's expressive eyes and playful energy. The color palette features warm beige and cream tones with pops of vibrant red or blue from the ball, evoking a sense of comfort, joy, and domestic tranquility. Lighting: soft natural light with a slight golden glow. Camera: 85mm lens, f/2.8 aperture, eye-level angle. Composition: rule of thirds, with the kitten slightly off-center and the ball as a secondary focal point. Atmosphere: serene, playful, and heartwarming.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/1d267cef97a30ad7e0445d60bbd4dfe2_1780250788108.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 35931
+    },
+    {
+      "id": "dda21da2-9ff9-4e37-bc26-85230cfbdf02",
+      "timestamp": "2026-05-31T18:07:05.352Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1780250824191-5dd8148axpj.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 31186
+    }
+  ]
+}

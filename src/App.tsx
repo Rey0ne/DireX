@@ -20,6 +20,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from './store/useCanvasStore';
 import { loadFromDB, startAutoSave, saveNow } from './store/persistence';
+import { generateWithAgent, mapModelNameToProviderId } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
@@ -92,6 +93,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const addEdge = useCanvasStore(s => s.addEdge);
   const nodesMap = useCanvasStore(s => s.nodes);
   const edgeCount = useCanvasStore(s => s.edges.size);
+  const syncTick = useCanvasStore(s => s.syncTick);
   const toolMode = useCanvasStore(s => s.toolMode);
   const setToolMode = useCanvasStore(s => s.setToolMode);
   const pendingConnection = useCanvasStore(s => s.pendingConnection);
@@ -164,23 +166,25 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount — NOT when nodes change
 
-  // ─── Sync store → ReactFlow (only on structural changes) ──
+  // ─── Sync store → ReactFlow ──
   const prevNodeIdsRef = useRef('');
   const prevEdgeIdsRef = useRef('');
+  const syncTickRef = useRef(0);
 
   useEffect(() => {
     const nodeList = Array.from(useCanvasStore.getState().nodes.values());
     const edgeList = Array.from(useCanvasStore.getState().edges.values());
 
-    // Skip sync if nothing structural changed (prevents jitter)
+    const currentTick = syncTick;
     const nodeStructureChanged = nodeList.map(n => n.id).sort().join(',') !== prevNodeIdsRef.current;
     const edgeStructureChanged = edgeList.map(e => e.id).sort().join(',') !== prevEdgeIdsRef.current;
+    const forceSync = currentTick !== syncTickRef.current;
 
-    if (!nodeStructureChanged && !edgeStructureChanged) return;
+    if (!nodeStructureChanged && !edgeStructureChanged && !forceSync) return;
 
     prevNodeIdsRef.current = nodeList.map(n => n.id).sort().join(',');
     prevEdgeIdsRef.current = edgeList.map(e => e.id).sort().join(',');
-
+    syncTickRef.current = currentTick;
     setRfNodes(prevNodes => {
       const prevPos = new Map(prevNodes.map(n => [n.id, n.position]));
       const prevSel = new Map(prevNodes.map(n => [n.id, n.selected]));
@@ -195,6 +199,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           gen: n.meta?.gen || defaultGenMeta,
           imageUrl: (n.meta?.gen as Record<string, unknown>)?.imageUrl as string || undefined,
           videoUrl: (n.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
+          status: n.status,
           isConnecting,
           isPickMode: useCanvasStore.getState().pendingConnection !== null,
           isPickTarget: n.id === useCanvasStore.getState().pendingConnection,
@@ -212,14 +217,46 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           })(),
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
-            if (current) { useCanvasStore.getState().updateNode(n.id, { meta: { ...current.meta, ...patch } }); }
+            if (current) {
+              const gen = (current.meta?.gen || {}) as Record<string, unknown>;
+              useCanvasStore.getState().updateNode(n.id, { meta: { ...current.meta, gen: { ...gen, ...patch } } });
+            }
           },
           onFullscreen: (url: string, prompt: string, model: string, aspect: string, quality: string) => {
             setFullscreenImg({ url, prompt, model, aspect, quality });
           },
-          onGenerate: () => {
-            useCanvasStore.getState().setNodeStatus(n.id, 'running');
-            setTimeout(() => { useCanvasStore.getState().setNodeStatus(n.id, 'succeeded'); }, 2000);
+          onGenerate: async () => {
+            const store = useCanvasStore.getState();
+            const node = store.nodes.get(n.id);
+            const meta = node?.meta?.gen as Record<string, unknown> | undefined;
+            if (!meta?.prompt) return;
+            store.setNodeStatus(n.id, 'running');
+
+            const modelName = (meta.model as string) || 'GPT Image2';
+            const isI2I = modelName.includes('I2I');
+
+            const agentResult = await generateWithAgent({
+              providerId: mapModelNameToProviderId(modelName),
+              mode: isI2I ? 'image-to-image' : 'text-to-image',
+              rawText: (meta.prompt as string) || '',
+              aspect: meta.aspect as string | undefined,
+              resolution: meta.resolution as string || '2K',
+              referenceImage: meta.imageUrl as string | undefined,
+              styleImageUrl: meta.styleImageUrl as string | undefined,
+            });
+
+            const result = agentResult.result;
+            if (result.success) {
+              store.setNodeStatus(n.id, 'succeeded');
+              if (result.assetUrls.length > 0) {
+                store.updateNode(n.id, {
+                  meta: { ...node!.meta, gen: { ...meta, imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls } },
+                });
+              }
+              store.triggerSync();
+            } else {
+              store.setNodeStatus(n.id, 'failed');
+            }
           },
         },
       }));
@@ -236,7 +273,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         nodeList.some(n => n.id === e.source) && nodeList.some(n => n.id === e.target)
       );
     });
-  }, [setRfNodes, setRfEdges, nodesMap, edgeCount]);
+  }, [setRfNodes, setRfEdges, nodesMap, edgeCount, syncTick]);
 
   // ─── Multi-select state ───
   const selectedCount = useCanvasStore(s => s.selectedNodeIds.length);

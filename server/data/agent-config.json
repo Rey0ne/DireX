@@ -1,0 +1,22 @@
+{
+  "name": "TapNow 助手",
+  "avatar": "🤖",
+  "translationStyle": "cinematic",
+  "defaultModel": "nano-banana",
+  "defaultResolution": "2K",
+  "promptEnhancement": true,
+  "systemPrompt": "You are a professional cinematography prompt engineer. Deeply analyze the user's Chinese scene description — understand the emotional tone, cultural nuances, visual metaphors, and artistic intent. Compose a detailed, evocative English image-generation prompt that captures ALL the implied visual details. Include precise camera setup, lighting mood, color palette, composition, and atmospheric elements. Output ONLY the final English prompt with no commentary.",
+  "polishPrompt": "You are a world-class prompt refinement specialist. Take the draft prompt and elevate it to cinematic perfection. Refine the language to be more vivid and precise. Ensure proper English flow while preserving the original artistic intent. Add subtle atmospheric details and sensory richness. Output ONLY the polished final prompt.",
+  "createdAt": "2026-05-31T00:00:00.000Z",
+  "updatedAt": "2026-05-31T17:40:32.812Z",
+  "hiddenKeys": [
+    "BANANA_API_KEY"
+  ],
+  "_keys": {
+    "DEEPSEEK_API_KEY": "sk-12f79f66363340c8919320a9964b2d85",
+    "NANO_BANANA_PRO_API_KEY": "sk-fake-test-key",
+    "KIE_BASE_URL": "https://api.kie.ai/v1",
+    "KIE_API_KEY": "956f15226d71d3e66bce423109339497",
+    "HTTP_PROXY": "http://127.0.0.1:7897"
+  }
+}

@@ -11,6 +11,7 @@ import type { ImageGenMeta } from '../../types/graph';
 interface ImageGenNodeData {
   imageUrl?: string;
   gen: ImageGenMeta;
+  status?: string;
   thumbnails?: string[];
   isConnecting?: boolean;
   isConnectTarget?: boolean;
@@ -45,10 +46,15 @@ function ratioBoxSize(w: number, h: number) {
 }
 
 const MODEL_OPTIONS = [
-  { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['inpaint', 'multi-angle'] },
-  { name: 'Banana Pro', badges: ['3折', '新'], maxRes: '2K', features: ['inpaint', 'relight'] },
-  { name: 'Flux Pro', badges: [], maxRes: '2K', features: ['multi-angle'] },
-  { name: '即梦 4.5', badges: [], maxRes: '1080P', features: [] },
+  { name: 'Nano Banana', badges: ['推荐'], maxRes: '4K', features: ['inpaint', 'multi-angle'] },
+  { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['t2i'] },
+  { name: 'GPT Image2 I2I', badges: [], maxRes: '4K', features: ['i2i'] },
+];
+
+const RESOLUTION_OPTIONS = [
+  { label: '1K', desc: '1024×1024' },
+  { label: '2K', desc: '1792×1024' },
+  { label: '4K', desc: '2048×2048' },
 ];
 
 export function ImageGenerateNode({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
@@ -59,6 +65,8 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [showMore, setShowMore] = useState(false);
   const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
   const [currentAspect, setCurrentAspect] = useState(gen.aspect || '16:9');
+  const [currentResolution, setCurrentResolution] = useState(gen.resolution || '2K');
+  const [showResolutionPicker, setShowResolutionPicker] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgHeight, setImgHeight] = useState(220);
@@ -68,14 +76,17 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   // ─── Picker trigger refs (for portal positioning outside overflow:hidden) ──
   const modelChipRef = useRef<HTMLSpanElement>(null);
   const ratioChipRef = useRef<HTMLSpanElement>(null);
+  const resolutionChipRef = useRef<HTMLSpanElement>(null);
   const styleChipRef = useRef<HTMLSpanElement>(null);
   const styleFileRef = useRef<HTMLInputElement>(null);
   const [modelChipRect, setModelChipRect] = useState<DOMRect | null>(null);
   const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
+  const [resolutionChipRect, setResolutionChipRect] = useState<DOMRect | null>(null);
   const [styleImgUrl, setStyleImgUrl] = useState<string | null>(data.gen?.styleImageUrl as string || null);
   // Capture trigger rect when picker opens — portal renders outside overflow
   useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
   useEffect(() => { if (showRatioPicker && ratioChipRef.current) setRatioChipRect(ratioChipRef.current.getBoundingClientRect()); }, [showRatioPicker]);
+  useEffect(() => { if (showResolutionPicker && resolutionChipRef.current) setResolutionChipRect(resolutionChipRef.current.getBoundingClientRect()); }, [showResolutionPicker]);
 
   useEffect(() => {
     if (!selected || !cardRef.current) { setCardRect(null); readyRef.current = false; return; }
@@ -110,9 +121,19 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
     data.onChange?.({ [k]: v });
   }, [data]);
 
+  const [genRunning, setGenRunning] = useState(false);
+  const genRunningRef = useRef(false);
+
   const handleGenerate = () => {
+    if (genRunningRef.current || !prompt.trim()) return;
+    genRunningRef.current = true;
+    setGenRunning(true);
     patch('prompt', prompt);
-    data.onGenerate?.();
+    // onGenerate is async but we fire-and-forget — button stays ⏳ until node remounts with imageUrl
+    Promise.resolve(data.onGenerate?.()).finally(() => {
+      genRunningRef.current = false;
+      setGenRunning(false);
+    });
   };
 
   const handleDownload = () => {
@@ -547,6 +568,38 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                 )}
               </div>
 
+              {/* Resolution picker (1K/2K/4K) */}
+              <div style={{ position: 'relative' }}>
+                <span ref={resolutionChipRef} style={{ display: 'inline-flex' }}>
+                  <InlineChip
+                    label={currentResolution}
+                    active={showResolutionPicker}
+                    onClick={() => { setShowResolutionPicker(!showResolutionPicker); setShowModelPicker(false); setShowRatioPicker(false); }}
+                  />
+                </span>
+                {showResolutionPicker && (
+                  <PickerDropdown onClose={() => setShowResolutionPicker(false)} anchorRect={resolutionChipRect}>
+                    {RESOLUTION_OPTIONS.map(r => (
+                      <div key={r.label}
+                        onClick={() => { setCurrentResolution(r.label); patch('resolution', r.label); setShowResolutionPicker(false); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          height: '38px', padding: '0 12px', borderRadius: 'var(--tap-r-md)',
+                          cursor: 'pointer',
+                          background: currentResolution === r.label ? 'var(--tap-hover)' : 'transparent',
+                          color: 'var(--tap-text-1)', fontSize: 'var(--tap-fs-body)',
+                        }}
+                        onMouseEnter={e => { if (currentResolution !== r.label) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                        onMouseLeave={e => { if (currentResolution !== r.label) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{r.label}</span>
+                        <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)' }}>{r.desc}</span>
+                      </div>
+                    ))}
+                  </PickerDropdown>
+                )}
+              </div>
+
               {/* Style image upload — opens local file picker */}
               <div style={{ position: 'relative' }}>
                 <span ref={styleChipRef} style={{ display: 'inline-flex' }}>
@@ -580,23 +633,27 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
               {/* Spacer */}
               <div style={{ flex: 1 }} />
 
-              {/* Send button */}
+              {/* Send button — shows spinner when running */}
               <button
                 onClick={handleGenerate}
+                disabled={genRunning}
+                title={genRunning ? '生成中...' : '发送'}
                 style={{
                   width: '28px', height: '28px', borderRadius: '50%',
-                  background: prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)',
-                  color: prompt.trim() ? '#fff' : 'var(--tap-text-4)',
+                  background: genRunning ? 'var(--tap-warning)' : prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)',
+                  color: genRunning || prompt.trim() ? '#fff' : 'var(--tap-text-4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                  fontWeight: 700, fontSize: genRunning ? '16px' : '13px',
+                  cursor: genRunning ? 'wait' : 'pointer',
                   transition: `all var(--tap-dur-fast) var(--tap-ease)`,
                   flexShrink: 0,
                   border: 'none',
+                  animation: genRunning ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onMouseEnter={e => { if (!genRunning) e.currentTarget.style.transform = 'scale(1.12)'; }}
+                onMouseLeave={e => { if (!genRunning) e.currentTarget.style.transform = 'scale(1)'; }}
               >
-                ↑
+                {genRunning ? '⏳' : '↑'}
               </button>
             </div>
           </div>

@@ -1,0 +1,10 @@
+{
+  "name": "tapnow-admin",
+  "version": "1.0.0",
+  "description": "TapNow Admin Console",
+  "main": "main.js",
+  "scripts": {
+    "start": "cd .. && npx electron admin/main.js",
+    "dev": "cd .. && npx electron admin/main.js --dev"
+  }
+}
