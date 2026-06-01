@@ -68,6 +68,10 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [currentResolution, setCurrentResolution] = useState(gen.resolution || '2K');
   const [showResolutionPicker, setShowResolutionPicker] = useState(false);
   const [expanded, setExpanded] = useState(false);
+
+  // @mention — reference connected nodes
+  const [showAtMention, setShowAtMention] = useState(false);
+  const [atMentions, setAtMentions] = useState<{name: string; url: string}[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgHeight, setImgHeight] = useState(220);
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
@@ -83,6 +87,25 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
   const [resolutionChipRect, setResolutionChipRect] = useState<DOMRect | null>(null);
   const [styleImgUrl, setStyleImgUrl] = useState<string | null>(data.gen?.styleImageUrl as string || null);
+
+  // Build @mention list from connected refUrls
+  const getMentionList = useCallback(() => {
+    const list: {name: string; url: string}[] = [];
+    if (data.refUrls) {
+      const store = useCanvasStore.getState();
+      data.refUrls.forEach(url => {
+        store.nodes.forEach(node => {
+          const imgUrl = (node.meta?.gen as any)?.imageUrl;
+          if (imgUrl === url && !list.find(m => m.url === url)) {
+            list.push({ name: node.title || 'IMAGE', url });
+          }
+        });
+      });
+    }
+    if (styleImgUrl) list.push({ name: '风格参考', url: styleImgUrl });
+    return list;
+  }, [data.refUrls, styleImgUrl]);
+
   // Capture trigger rect when picker opens — portal renders outside overflow
   useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
   useEffect(() => { if (showRatioPicker && ratioChipRef.current) setRatioChipRect(ratioChipRef.current.getBoundingClientRect()); }, [showRatioPicker]);
@@ -138,10 +161,14 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
 
   const handleDownload = () => {
     if (!data.imageUrl) return;
+    // Proxy through backend to force download (cross-origin URLs won't download directly)
+    const downloadUrl = `/api/download?url=${encodeURIComponent(data.imageUrl)}`;
     const a = document.createElement('a');
-    a.href = data.imageUrl;
-    a.download = 'tapnow-image.png';
+    a.href = downloadUrl;
+    a.download = `tapnow-${Date.now()}.png`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   const toolbarActions = [
@@ -438,13 +465,32 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
             <div style={{ position: 'relative' }}>
               <textarea
                 value={prompt}
-                onChange={e => setPrompt(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setPrompt(val);
+                  // Detect @ trigger
+                  const cursorPos = e.target.selectionStart || 0;
+                  const textBefore = val.slice(0, cursorPos);
+                  const atIdx = textBefore.lastIndexOf('@');
+                  if (atIdx >= 0 && (atIdx === 0 || textBefore[atIdx-1] === ' ' || textBefore[atIdx-1] === '\n')) {
+                    const query = textBefore.slice(atIdx + 1);
+                    if (!query.includes(' ')) {
+                      setShowAtMention(true);
+                      setAtMentions(getMentionList());
+                    } else {
+                      setShowAtMention(false);
+                    }
+                  } else {
+                    setShowAtMention(false);
+                  }
+                }}
                 onPointerDownCapture={e => { e.stopPropagation() }}
                 onMouseDownCapture={e => { e.stopPropagation() }}
                 onKeyDown={e => {
+                  if (showAtMention && e.key === 'Escape') { setShowAtMention(false); return; }
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
                 }}
-                placeholder="描述你想要生成的图像…"
+                placeholder="输入 @ 引用已连线节点的参考图…"
                 maxLength={2000}
                 rows={expanded ? 16 : 4}
                 style={{
@@ -461,6 +507,48 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                   lineHeight: 1.5,
                 }}
               />
+              {/* @mention popup */}
+              {showAtMention && atMentions.length > 0 && (
+                <div onMouseDown={e => e.preventDefault()} style={{
+                  position: 'absolute', bottom: '100%', left: 0, right: 0,
+                  background: 'var(--tap-panel)', border: '1px solid var(--tap-border)',
+                  borderRadius: 'var(--tap-r-lg)', padding: '8px',
+                  zIndex: 200, maxHeight: '180px', overflowY: 'auto',
+                  display: 'flex', flexDirection: 'column', gap: '4px',
+                  boxShadow: 'var(--tap-shadow-lg)',
+                }}>
+                  <div style={{ fontSize:'10px',color:'var(--tap-text-4)',padding:'2px 6px' }}>选择参考图 (权重按顺序)</div>
+                  {atMentions.map((m, i) => (
+                    <div key={i}
+                      onClick={() => {
+                        const atIdx = prompt.lastIndexOf('@');
+                        const before = prompt.slice(0, atIdx);
+                        const after = prompt.slice(prompt.indexOf(' ', atIdx) > 0 ? prompt.indexOf(' ', atIdx) : prompt.length);
+                        setPrompt(before + '@' + m.name + ' ' + after);
+                        setShowAtMention(false);
+                        // Add to reference images in generate request
+                        const refs = [...(atMentions.filter(r => r.url !== m.url).map(r => r.url)), m.url];
+                        data.onChange?.({ referenceUrls: refs } as any);
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--tap-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '6px', borderRadius: 'var(--tap-r-sm)',
+                        cursor: 'pointer', background: 'transparent',
+                        transition: `background var(--tap-dur-fast)`,
+                      }}
+                    >
+                      <img src={m.url} alt="" style={{ width:36,height:36,borderRadius:4,objectFit:'cover' }} />
+                      <div>
+                        <div style={{ fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500 }}>@{m.name}</div>
+                        <div style={{ fontSize:'10px',color:'var(--tap-text-4)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'200px' }}>{m.url}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Expand/collapse */}
               <button
                 onClick={() => setExpanded(!expanded)}

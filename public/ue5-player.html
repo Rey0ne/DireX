@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>UE5 Pixel Streaming</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center;height:100vh}
+video{width:100%;height:100%;object-fit:contain}
+.status{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.6);font:12px monospace;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:4px}
+</style>
+</head>
+<body>
+<video id="v" autoplay playsinline muted></video>
+<div class="status" id="s">连接中...</div>
+<script>
+var v=document.getElementById('v'), s=document.getElementById('s'), pc=null, ws=null;
+
+function log(t){s.textContent=t;console.log(t)}
+
+async function connect(){
+  log('连接 ws://127.0.0.1:8888 ...');
+  ws=new WebSocket('ws://127.0.0.1:8888');
+  ws.binaryType='arraybuffer';
+
+  ws.onopen=()=>log('已连接，等待配置...');
+
+  ws.onmessage=async(e)=>{
+    try{
+      var txt=typeof e.data==='string'?e.data:new TextDecoder().decode(e.data);
+      var msg=JSON.parse(txt);
+      // Don't log every identify to avoid spam
+      if(msg.type!=='identify') log('收到: '+msg.type);
+      else console.log('identify:',JSON.stringify(msg));
+
+      switch(msg.type){
+        case 'identify':
+          ws.send(JSON.stringify({type:'subscribe',streamerId:'*'}));
+          break;
+
+        case 'config':
+          var cfg=msg.peerConnectionOptions||msg.RTCConfiguration||{iceServers:[]};
+          pc=new RTCPeerConnection({iceServers:cfg.iceServers||[]});
+          pc.ontrack=ev=>{if(ev.streams[0]){v.srcObject=ev.streams[0];log('● 已连接')}};
+          pc.onicecandidate=ev=>{if(ev.candidate)ws.send(JSON.stringify({type:'iceCandidate',candidate:ev.candidate}))};
+          var offer=await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          ws.send(JSON.stringify({type:'offer',sdp:offer.sdp}));
+          log('发送 offer');
+          break;
+
+        case 'answer':
+          if(pc) await pc.setRemoteDescription(new RTCSessionDescription({type:'answer',sdp:msg.sdp}));
+          log('协商完成');
+          break;
+
+        case 'iceCandidate':
+          if(pc&&msg.candidate) try{await pc.addIceCandidate(new RTCIceCandidate(msg.candidate))}catch(e){}
+          break;
+
+        case 'playerCount':
+          log('● 已连接 (观众:'+msg.count+')');
+          break;
+
+        default:
+          // Log unknown types for debugging
+          console.log('Unknown msg type:', msg.type, msg);
+      }
+    }catch(err){
+      // Binary data — ignore
+    }
+  };
+
+  ws.onerror=()=>log('✕ WebSocket 错误');
+  ws.onclose=()=>{log('断开，3秒后重试');if(pc){pc.close();pc=null}setTimeout(connect,3000)};
+}
+connect();
+</script>
+</body>
+</html>

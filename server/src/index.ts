@@ -157,15 +157,30 @@ app.post('/api/kie-callback', (req, res) => {
 // ─── Download ────────────────────────────────
 app.get('/api/download', handleDownload);
 
-// ─── Serve Admin Panel (same-origin, no CORS issues) ──
+// ─── UE5 Proxy ────────────────────────────
+import { createProxyMiddleware } from 'http-proxy-middleware';
+// UE5 HTTP player page
+app.use('/ue5', createProxyMiddleware({ target: 'http://127.0.0.1:80', changeOrigin: true, pathRewrite: { '^/ue5': '' } }));
+// UE5 WebSocket signalling (Pixel Streaming needs ws:// → ws://localhost:8888)
+app.use('/ue5-ws', createProxyMiddleware({ target: 'ws://127.0.0.1:8888', changeOrigin: true, ws: true, pathRewrite: { '^/ue5-ws': '' } }));
+
+// ─── Serve static files ──
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use('/admin', express.static(path.join(__dirname, '../../admin'), {
   setHeaders: (res) => { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate'); }
 }));
+// Production frontend
+// Proxy to Vite dev server (localhost:5173)
+app.use('/', createProxyMiddleware({
+  target: 'http://127.0.0.1:5173',
+  changeOrigin: true,
+  ws: true,
+  filter: (pathname: string) => !pathname.startsWith('/api/') && !pathname.startsWith('/admin/') && !pathname.startsWith('/ue5'),
+}));
 
-// ─── Start ───────────────────────────────────
 app.listen(PORT, () => {
   console.log(`[server] TapNow API → http://localhost:${PORT}`);
   console.log(`[server] Admin → http://localhost:${PORT}/admin`);

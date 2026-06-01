@@ -35,6 +35,7 @@ import { ShotNode } from './components/nodes/ShotNode';
 import { ImageGenerateNode } from './components/nodes/ImageGenerateNode';
 import { VideoGenerateNode } from './components/nodes/VideoGenerateNode';
 import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
+import { UE5Node } from './components/nodes/UE5Node';
 
 // ─── Node type registry ──────────────────────────
 const nodeTypes: NodeTypes = {
@@ -43,6 +44,7 @@ const nodeTypes: NodeTypes = {
   'image.editor': ImageGenerateNode,
   'video.generate': VideoGenerateNode,
   'audio.generate': AudioGenerateNode,
+  'world.3d': UE5Node,
 } as unknown as NodeTypes;
 
 // ─── Default meta ─────────────────────────────────
@@ -88,6 +90,22 @@ function closestAspect(ratio: number): string {
 
 // ─── CanvasWorkspace (only rendered when project selected) ──
 function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
+  // Demo expiration — only in production builds (Vite define injects __BUILD_TIME__)
+  // @ts-ignore
+  const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
+  const DEMO_HOURS = 1;
+  const expiryTime = buildTime > 0 ? buildTime + DEMO_HOURS * 3600000 : 0;
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    if (expiryTime <= 0) return;
+    const check = () => {
+      if (Date.now() >= expiryTime) setIsExpired(true);
+      else setTimeout(check, 1000);
+    };
+    check();
+  }, [expiryTime]);
+
   const addNode = useCanvasStore(s => s.addNode);
   const removeNode = useCanvasStore(s => s.removeNode);
   const addEdge = useCanvasStore(s => s.addEdge);
@@ -425,6 +443,16 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [addNode, removeNode, handleToolSelect, setToolMode]);
+
+  if (isExpired) {
+    return (
+      <div style={{ width:'100vw',height:'100vh',background:'var(--tap-bg)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'var(--tap-text-1)',gap:'16px' }}>
+        <div style={{ fontSize:'48px' }}>⏰</div>
+        <div style={{ fontSize:'var(--tap-fs-h1)',fontWeight:600 }}>Demo 已过期</div>
+        <div style={{ fontSize:'var(--tap-fs-body)',color:'var(--tap-text-3)' }}>此演示版本已超过有效期，请联系管理员获取新链接</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef}

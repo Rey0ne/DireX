@@ -13,6 +13,7 @@
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && npm run electron:dev\""
   },
   "dependencies": {
+    "@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5": "^1.4.0",
     "@xyflow/react": "^12.10.2",
     "dexie": "^4.4.2",
     "react": "^19.2.1",

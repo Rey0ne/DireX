@@ -573,6 +573,109 @@
       ],
       "cost": 0.18,
       "durationMs": 31186
+    },
+    {
+      "id": "ddd74fca-486a-4c94-9338-beaa57a979f9",
+      "timestamp": "2026-06-01T03:00:22.030Z",
+      "providerId": "nano-banana",
+      "prompt": "test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1780282820351-2ozscdg8lkt.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 60771
+    },
+    {
+      "id": "542672c2-3fe8-470f-ae61-38432ced0fad",
+      "timestamp": "2026-06-01T03:02:46.862Z",
+      "providerId": "nano-banana",
+      "prompt": "A pack of gray wolves silently tracking a herd of elk through a snow-covered Siberian forest. Heavy snowfall, misty pale-blue light filtering through frost-laden pine trees. The wolves move in a low, predatory formation, eyes glowing with amber intensity, breath forming white vapor clouds. The elk are alert, antlers raised, half-obscured by swirling snow and bare birch trunks. Cinematic composition, wide-angle lens, low-angle shot emphasizing the wolves' muscular tension and the elk's nervous energy. Cold, desaturated color palette with hints of icy blue, silver, and charcoal. Atmospheric haze, deep shadows, soft diffused light resembling overcast twilight. Hyper-realistic texture of fur, snow, and frosted branches.",
+      "compiledPrompt": "A pack of gray wolves silently tracking a herd of elk through a snow-covered Siberian forest. Heavy snowfall, misty pale-blue light filtering through frost-laden pine trees. The wolves move in a low, predatory formation, eyes glowing with amber intensity, breath forming white vapor clouds. The elk are alert, antlers raised, half-obscured by swirling snow and bare birch trunks. Cinematic composition, wide-angle lens, low-angle shot emphasizing the wolves' muscular tension and the elk's nervous energy. Cold, desaturated color palette with hints of icy blue, silver, and charcoal. Atmospheric haze, deep shadows, soft diffused light resembling overcast twilight. Hyper-realistic texture of fur, snow, and frosted branches.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1780282964940-tnxqdhrkz3.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 72511
+    },
+    {
+      "id": "d2ea39a3-24be-4e1b-8354-b6303b4aec47",
+      "timestamp": "2026-06-01T03:10:02.584Z",
+      "providerId": "gpt-image2",
+      "prompt": "a cute cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/file_00000000979471fd97265c6aa8931d38.png"
+      ],
+      "cost": 0.06,
+      "durationMs": 47770
+    },
+    {
+      "id": "5b7cdcf8-1409-4315-b562-366f653a5332",
+      "timestamp": "2026-06-01T03:12:50.944Z",
+      "providerId": "gpt-image2",
+      "prompt": "A pack of gray wolves silently stalks a herd of elk through a snow-covered Siberian taiga forest. Deep winter, heavy snowfall, misty air, dim blue twilight filtering through dense pine and birch trees. The wolves move in low, coordinated formation, fur bristling against the cold, eyes glowing with amber intensity. The elk, antlers raised, breath forming clouds of vapor, stand alert in a clearing ahead. Footprints trail across the untouched white ground. Cinematic composition, low-angle wide shot, 35mm lens, shallow depth of field, soft diffused natural light, cold blue and muted gray color palette, subtle frost particles in the air, eerie stillness, atmospheric tension, hyper-realistic texture of fur and snow, moody wilderness photography style.",
+      "compiledPrompt": "A pack of gray wolves silently stalks a herd of elk through a snow-covered Siberian taiga forest. Deep winter, heavy snowfall, misty air, dim blue twilight filtering through dense pine and birch trees. The wolves move in low, coordinated formation, fur bristling against the cold, eyes glowing with amber intensity. The elk, antlers raised, breath forming clouds of vapor, stand alert in a clearing ahead. Footprints trail across the untouched white ground. Cinematic composition, low-angle wide shot, 35mm lens, shallow depth of field, soft diffused natural light, cold blue and muted gray color palette, subtle frost particles in the air, eerie stillness, atmospheric tension, hyper-realistic texture of fur and snow, moody wilderness photography style.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/99c59b87a9abe13e1eb1839fc3a46c2d_ac2daeadbabb463e8cd79aa5f9dc5e8b.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 118912
+    },
+    {
+      "id": "e80ce210-5b92-4791-9c36-640852f7b0b8",
+      "timestamp": "2026-06-01T03:21:57.429Z",
+      "providerId": "gpt-image2",
+      "prompt": "A pack of gray wolves tracking a herd of elk through a snow-covered Siberian taiga forest. Extreme low-angle camera perspective from within the wolf pack, 35mm lens, f/2.8 aperture. Foreground wolves are slightly blurred, their breath forming mist in the frigid air. Snow-dusted pine trees and skeletal birch trunks recede into a soft, frosty background. Muted winter color palette: icy blues, pale grays, and stark whites, with subtle amber tones in the wolves' eyes. Diffused, overcast light creates a cold, cinematic atmosphere. Composition emphasizes depth and tension, with the wolves' focused, predatory gaze leading the eye toward the distant, barely visible elk.",
+      "compiledPrompt": "A pack of gray wolves tracking a herd of elk through a snow-covered Siberian taiga forest. Extreme low-angle camera perspective from within the wolf pack, 35mm lens, f/2.8 aperture. Foreground wolves are slightly blurred, their breath forming mist in the frigid air. Snow-dusted pine trees and skeletal birch trunks recede into a soft, frosty background. Muted winter color palette: icy blues, pale grays, and stark whites, with subtle amber tones in the wolves' eyes. Diffused, overcast light creates a cold, cinematic atmosphere. Composition emphasizes depth and tension, with the wolves' focused, predatory gaze leading the eye toward the distant, barely visible elk.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1780284116288-2yx0osnd285.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 132582
+    },
+    {
+      "id": "8753d3c4-0efd-4574-9f74-afbb91b73fa5",
+      "timestamp": "2026-06-01T10:09:07.682Z",
+      "providerId": "gpt-image2",
+      "prompt": "A flock of Atlantic puffins perched on the rugged cliffside of an Icelandic fjord in summer, soft golden hour light casting long shadows across green moss-covered basalt. Rory Gardiner style, medium-format photography, natural daylight, muted cool tones with warm highlights, shallow depth of field, intimate composition focusing on a single puffin in the foreground with blurred colony behind, gentle sea mist drifting, tranquil and serene atmosphere, clean minimalist framing, cinematic yet documentary feel, 4K, high detail, ambient coastal light.",
+      "compiledPrompt": "A flock of Atlantic puffins perched on the rugged cliffside of an Icelandic fjord in summer, soft golden hour light casting long shadows across green moss-covered basalt. Rory Gardiner style, medium-format photography, natural daylight, muted cool tones with warm highlights, shallow depth of field, intimate composition focusing on a single puffin in the foreground with blurred colony behind, gentle sea mist drifting, tranquil and serene atmosphere, clean minimalist framing, cinematic yet documentary feel, 4K, high detail, ambient coastal light.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 146075,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "91c71959-43ce-45c4-9008-4f444d3251c1",
+      "timestamp": "2026-06-01T10:13:04.142Z",
+      "providerId": "gpt-image2",
+      "prompt": "A dramatic summer scene along the rugged cliffs of an Icelandic fjord, a colony of Atlantic Puffins perched on the edge of a steep, grassy slope overlooking a deep, turquoise-blue channel of glacial meltwater. The light is soft, diffused, and high-key, characteristic of the midnight sun, casting long, gentle shadows. The puffins stand in sharp focus, their orange and black beaks vibrant against the muted tones of the mossy green, grey basalt, and pale, weathered rock. The background fades into a misty, atmospheric haze over the distant mountains and sea. Shot in a cinematic, documentary style reminiscent of Rory Gardiner, using a medium format camera with a shallow depth of field, a 45mm or 85mm lens at f/2.8, focusing on the texture of the birds' feathers and the lichen-covered stone. The composition is balanced, with the puffins forming a natural leading line along the cliff's edge, the vastness of the landscape contrasting with the intimate detail of the seabirds. The color palette is muted, cool, and earthy—soft blues, greens, greys, and the warm accents of the birds' beaks. Evoking a quiet, contemplative mood, capturing the raw, untouched beauty of Iceland's wild coast.",
+      "compiledPrompt": "A dramatic summer scene along the rugged cliffs of an Icelandic fjord, a colony of Atlantic Puffins perched on the edge of a steep, grassy slope overlooking a deep, turquoise-blue channel of glacial meltwater. The light is soft, diffused, and high-key, characteristic of the midnight sun, casting long, gentle shadows. The puffins stand in sharp focus, their orange and black beaks vibrant against the muted tones of the mossy green, grey basalt, and pale, weathered rock. The background fades into a misty, atmospheric haze over the distant mountains and sea. Shot in a cinematic, documentary style reminiscent of Rory Gardiner, using a medium format camera with a shallow depth of field, a 45mm or 85mm lens at f/2.8, focusing on the texture of the birds' feathers and the lichen-covered stone. The composition is balanced, with the puffins forming a natural leading line along the cliff's edge, the vastness of the landscape contrasting with the intimate detail of the seabirds. The color palette is muted, cool, and earthy—soft blues, greens, greys, and the warm accents of the birds' beaks. Evoking a quiet, contemplative mood, capturing the raw, untouched beauty of Iceland's wild coast.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/709535_0/800/600",
+        "https://picsum.photos/seed/709535_1/800/600",
+        "https://picsum.photos/seed/709535_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 18973
+    },
+    {
+      "id": "e4e6613a-2cd6-4993-a683-8f5c45f6af2c",
+      "timestamp": "2026-06-01T10:13:17.209Z",
+      "providerId": "gpt-image2",
+      "prompt": "A colony of Atlantic Puffins perched along the edge of a rugged Icelandic fjord in summer, soft golden hour light casting long shadows across the cliffside, mist rolling in from the North Atlantic, vivid green moss and wildflowers clinging to the basalt rock faces, the sea a deep teal and slate blue below, composition balanced and serene with a documentary-like intimacy, shot on medium format film, natural light, shallow depth of field, muted yet rich color palette with earthy tones and cool blues, atmosphere of quiet solitude and wild beauty, in the style of Rory Gardiner.",
+      "compiledPrompt": "A colony of Atlantic Puffins perched along the edge of a rugged Icelandic fjord in summer, soft golden hour light casting long shadows across the cliffside, mist rolling in from the North Atlantic, vivid green moss and wildflowers clinging to the basalt rock faces, the sea a deep teal and slate blue below, composition balanced and serene with a documentary-like intimacy, shot on medium format film, natural light, shallow depth of field, muted yet rich color palette with earthy tones and cool blues, atmosphere of quiet solitude and wild beauty, in the style of Rory Gardiner.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/f473494ee24497bef8fba06b29007300_527dd35163b1496f9c38d8adde3f1a24.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 144175
     }
   ]
 }

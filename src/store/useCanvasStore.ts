@@ -47,6 +47,7 @@ export interface GraphState {
   setToolMode: (mode: GraphState['toolMode']) => void;
   toggleCommandPalette: () => void;
   setPendingConnection: (nodeId: string | null) => void;
+  triggerSync: () => void;
 }
 
 let _nextId = 1;
