@@ -2,7 +2,6 @@
 /* DeepSeek V4 (understand CN) → Gemini 3 Pro (polish EN) → output */
 /* Falls back to rule-based if LLM keys unavailable */
 
-import { deepseekChat } from '../ai/deepseek.js';
 import { geminiChat } from '../ai/gemini.js';
 import { getProfile } from '../../config.js';
 import type { CompiledPrompt } from '../../../../shared/api-types.js';
@@ -41,17 +40,24 @@ function compileRules(shot: Record<string, string>): CompiledPrompt {
 // ─── Main compile ──────────────────────────────
 export async function compilePrompt(
   shot?: Record<string, string>,
-  rawText?: string
+  rawText?: string,
+  referenceUrls?: string[]
 ): Promise<CompiledPrompt> {
   const config = getProfile();
+
+  // Build reference image hint for LLM
+  const refHint = referenceUrls && referenceUrls.length > 0
+    ? `\n\n[图生图模式: 用户提供了 ${referenceUrls.length} 张参考图片，在提示词中以 [图:名称] 标签标记。用户可能在描述一个图像合成/融合任务，例如将某张图的角色放到另一张图的场景中，或以某张图为主体进行风格变换。请根据用户提示词的语义，理解每张参考图在生成任务中的角色（主体/场景/风格/元素），并据此生成精确的英文图像生成提示词。]`
+    : '';
 
   // Raw text only — no structured shot data
   if (!shot || (!shot.intent_cn && !shot.framing && !shot.movement && !shot.key)) {
     if (rawText) {
       const compiled: CompiledPrompt = { en: rawText, cn: rawText, negative: 'blurry, low quality', debug: [{ field:'raw', contribution: rawText }] };
       if (config.promptEnhancement) {
-        const ds = await deepseekChat(config.systemPrompt, `Transform into a detailed English image prompt:\n\n${rawText}`);
-        if (ds) { compiled.en = ds; compiled.debug.push({ field:'deepseek', contribution:'compiled' }); }
+        const ds = await geminiChat(config.systemPrompt, `Transform into a detailed English image prompt:${refHint}\n\n${rawText}`);
+        if (ds) { compiled.en = ds; compiled.debug.push({ field:'gemini', contribution:'compiled' }); }
+        if (referenceUrls?.length) compiled.debug.push({ field:'refs', contribution: `${referenceUrls.length} images` });
         const gm = await geminiChat(config.polishPrompt, `Polish:\n\n${compiled.en}`);
         if (gm) { compiled.en = gm; compiled.debug.push({ field:'gemini', contribution:'polished' }); }
       }
@@ -67,8 +73,9 @@ export async function compilePrompt(
     const userContent = rawText || shot.intent_cn || compiled.cn;
     const debugInfo = compiled.debug.map(d => d.contribution).join(', ');
 
-    const ds = await deepseekChat(config.systemPrompt, `Technical context: ${debugInfo}\n\nScene: ${userContent}`);
-    if (ds) { compiled.en = ds; compiled.debug.push({ field:'deepseek', contribution:'compiled' }); }
+    const ds = await geminiChat(config.systemPrompt, `Technical context: ${debugInfo}${refHint}\n\nScene: ${userContent}`);
+    if (ds) { compiled.en = ds; compiled.debug.push({ field:'gemini', contribution:'compiled' }); }
+    if (referenceUrls?.length) compiled.debug.push({ field:'refs', contribution: `${referenceUrls.length} images` });
 
     const gm = await geminiChat(config.polishPrompt, `Original: ${userContent}\n\nDraft: ${compiled.en}`);
     if (gm) { compiled.en = gm; compiled.debug.push({ field:'gemini', contribution:'polished' }); }

@@ -100,6 +100,7 @@ export interface AgentGenerateRequest {
   aspect?: string;
   resolution?: string;
   referenceImage?: string;
+  referenceUrls?: string[];
   styleImageUrl?: string;
 }
 

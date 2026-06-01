@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var TOKEN='tapnow-dev-key', keys=[], cfg=null, logs=[], editKey=null;
-var LABELS={HTTP_PROXY:'HTTP 代理地址',KIE_BASE_URL:'Kie.ai 基础 URL',KIE_API_URL:'Kie.ai 提交 URL', KIE_API_KEY:'Kie.ai API Key',DEEPSEEK_API_KEY:'DeepSeek V4 官方',GEMINI_API_KEY:'Gemini 3 Pro 官方'};
+var LABELS={HTTP_PROXY:'HTTP 代理地址',KIE_BASE_URL:'Kie.ai 基础 URL',KIE_API_URL:'Kie.ai 提交 URL', KIE_API_KEY:'Kie.ai API Key',GEMINI_API_KEY:'Gemini 3 Pro (Kie.ai)'};
 var MDLS=['nano-banana','gpt-image2','kling-video','seedance-2'];
 var STY={literal:'直译',cinematic:'电影感',technical:'技术',literary:'文学'};
 
@@ -124,7 +124,7 @@ function RC(){
   h+='<div class="cfg"><label>默认模型</label><select class="sel" onchange="UC(\'defaultModel\',this.value)">'+MDLS.map(function(m){return'<option'+(cfg.defaultModel===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></div>';
   h+='<div class="cfg"><label>默认分辨率</label><select class="sel" onchange="UC(\'defaultResolution\',this.value)">'+['1K','2K','4K','1080P'].map(function(r){return'<option'+(cfg.defaultResolution===r?' selected':'')+'>'+r+'</option>'}).join('')+'</select></div>';
   h+='<div class="cfg"><label style="display:flex;justify-content:space-between;align-items:center">LLM 润色 <button class="tgl '+(cfg.promptEnhancement?'on':'off')+'" onclick="UC(\'promptEnhancement\','+(!cfg.promptEnhancement)+')"></button></label></div>';
-  h+='<div class="cfg"><label>System Prompt (DeepSeek)</label><textarea class="txa" rows="4" onchange="UC(\'systemPrompt\',this.value)">'+E(cfg.systemPrompt)+'</textarea></div>';
+  h+='<div class="cfg"><label>System Prompt (Gemini)</label><textarea class="txa" rows="4" onchange="UC(\'systemPrompt\',this.value)">'+E(cfg.systemPrompt)+'</textarea></div>';
   h+='<div class="cfg"><label>Polish Prompt (Gemini)</label><textarea class="txa" rows="4" onchange="UC(\'polishPrompt\',this.value)">'+E(cfg.polishPrompt||'')+'</textarea></div>';
   document.getElementById('agent').innerHTML=h;
 }

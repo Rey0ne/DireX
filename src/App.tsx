@@ -260,6 +260,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               aspect: meta.aspect as string | undefined,
               resolution: meta.resolution as string || '2K',
               referenceImage: meta.imageUrl as string | undefined,
+              referenceUrls: meta.referenceUrls as string[] | undefined,
               styleImageUrl: meta.styleImageUrl as string | undefined,
             });
 

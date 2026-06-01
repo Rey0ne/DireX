@@ -113,7 +113,7 @@ app.post('/api/generate', async (req: Request, res: Response) => {
 // ─── Agent ───────────────────────────────────
 app.post('/api/agent/compile', async (req: Request, res: Response) => {
   const body = req.body as CompileRequest;
-  res.json({ compiled: await compilePrompt(body.shot, body.rawText) });
+  res.json({ compiled: await compilePrompt(body.shot, body.rawText, (body as any).referenceUrls) });
 });
 
 app.post('/api/agent/generate', async (req: Request, res: Response) => {

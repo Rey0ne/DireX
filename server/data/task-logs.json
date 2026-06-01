@@ -676,6 +676,19 @@
       ],
       "cost": 0.1,
       "durationMs": 144175
+    },
+    {
+      "id": "8d85e92c-9abc-4094-ade3-117772a347d7",
+      "timestamp": "2026-06-01T17:13:31.803Z",
+      "providerId": "gpt-image2",
+      "prompt": "A premium product seamlessly composited into a serene, sunlit minimalist interior. The product sits on a smooth, light wood surface, bathed in soft, warm natural light streaming through a large window with sheer white curtains. The background features a clean, off-white wall with subtle texture and a single, dried pampas grass arrangement in a beige ceramic vase on a low shelf. The composition is centered, with soft shadows cast to the right, evoking a calm, modern, and airy aesthetic. High-resolution, realistic rendering, soft focus, shallow depth of field, natural color palette of beige, cream, and warm wood tones, gentle bokeh, 8K, cinematic lighting.",
+      "compiledPrompt": "A premium product seamlessly composited into a serene, sunlit minimalist interior. The product sits on a smooth, light wood surface, bathed in soft, warm natural light streaming through a large window with sheer white curtains. The background features a clean, off-white wall with subtle texture and a single, dried pampas grass arrangement in a beige ceramic vase on a low shelf. The composition is centered, with soft shadows cast to the right, evoking a calm, modern, and airy aesthetic. High-resolution, realistic rendering, soft focus, shallow depth of field, natural color palette of beige, cream, and warm wood tones, gentle bokeh, 8K, cinematic lighting.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/c197e7a2552e3f5f55b1a7304c3be231_7b09557d433d4f4bbfe5e446448c5e79.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 58766
     }
   ]
 }

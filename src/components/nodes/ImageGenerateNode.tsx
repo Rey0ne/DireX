@@ -458,7 +458,6 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 'var(--tap-r-xl)',
-            overflow: 'hidden',
             pointerEvents: 'auto',
           }}>
             {/* Textarea */}

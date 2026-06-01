@@ -10,8 +10,7 @@ export const KEY_LABELS: Record<string, string> = {
   HTTP_PROXY: 'HTTP 代理地址',
   KIE_BASE_URL: 'Kie.ai 基础 URL',
   KIE_API_KEY: 'Kie.ai API Key',
-  DEEPSEEK_API_KEY: 'DeepSeek V4 (官方)',
-  GEMINI_API_KEY: 'Gemini 3 Pro (官方)',
+  GEMINI_API_KEY: 'Gemini 3 Pro (Kie.ai)',
 };
 
 // ─── Agent Profile ─────────────────────────────
