@@ -231,7 +231,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                 if (u && !urls.includes(u)) urls.push(u);
               }
             });
-            return urls.slice(0, 10);
+            return urls.slice(0, 20);
           })(),
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
@@ -253,6 +253,21 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
             const modelName = (meta.model as string) || 'GPT Image2';
             const isI2I = modelName.includes('I2I');
 
+            // Collect original prompts for reference images
+            const refUrls = meta.referenceUrls as string[] | undefined;
+            let refPrompts: string[] | undefined;
+            if (refUrls && refUrls.length > 0) {
+              refPrompts = [];
+              const store = useCanvasStore.getState();
+              refUrls.forEach(url => {
+                store.nodes.forEach(n => {
+                  const imgUrl = (n.meta?.gen as any)?.imageUrl;
+                  const prompt = (n.meta?.gen as any)?.prompt || (n.meta?.gen as any)?.compiledPrompt || '';
+                  if (imgUrl === url && prompt) refPrompts!.push(prompt);
+                });
+              });
+            }
+
             const agentResult = await generateWithAgent({
               providerId: mapModelNameToProviderId(modelName),
               mode: isI2I ? 'image-to-image' : 'text-to-image',
@@ -260,16 +275,18 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               aspect: meta.aspect as string | undefined,
               resolution: meta.resolution as string || '2K',
               referenceImage: meta.imageUrl as string | undefined,
-              referenceUrls: meta.referenceUrls as string[] | undefined,
+              referenceUrls: refUrls,
+              referencePrompts: refPrompts,
               styleImageUrl: meta.styleImageUrl as string | undefined,
-            });
+            } as any);
 
             const result = agentResult.result;
             if (result.success) {
               store.setNodeStatus(n.id, 'succeeded');
               if (result.assetUrls.length > 0) {
+                const compiledEn = agentResult.compiled?.en || '';
                 store.updateNode(n.id, {
-                  meta: { ...node!.meta, gen: { ...meta, imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls } },
+                  meta: { ...node!.meta, gen: { ...meta, imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls, compiledPrompt: compiledEn } },
                 });
               }
               store.triggerSync();

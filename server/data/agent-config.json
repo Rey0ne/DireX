@@ -8,16 +8,16 @@
   "systemPrompt": "You are a professional cinematography prompt engineer. Deeply analyze the user's Chinese scene description — understand the emotional tone, cultural nuances, visual metaphors, and artistic intent. Compose a detailed, evocative English image-generation prompt that captures ALL the implied visual details. Include precise camera setup, lighting mood, color palette, composition, and atmospheric elements. Output ONLY the final English prompt with no commentary.",
   "polishPrompt": "You are a world-class prompt refinement specialist. Take the draft prompt and elevate it to cinematic perfection. Refine the language to be more vivid and precise. Ensure proper English flow while preserving the original artistic intent. Add subtle atmospheric details and sensory richness. Output ONLY the polished final prompt.",
   "createdAt": "2026-05-31T00:00:00.000Z",
-  "updatedAt": "2026-06-01T17:20:53.057Z",
+  "updatedAt": "2026-06-02T09:20:52.096Z",
   "hiddenKeys": [
-    "BANANA_API_KEY",
-    "DEEPSEEK_API_KEY"
+    "BANANA_API_KEY"
   ],
   "_keys": {
     "NANO_BANANA_PRO_API_KEY": "sk-fake-test-key",
-    "KIE_BASE_URL": "https://api.kie.ai/v1",
+    "KIE_BASE_URL": "https://api.kie.ai/api/v1",
     "KIE_API_KEY": "956f15226d71d3e66bce423109339497",
     "HTTP_PROXY": "http://127.0.0.1:7897",
-    "GEMINI_API_KEY": "0f0d5e2067723f869d7faa54959c2dc5"
+    "DEEPSEEK_API_KEY": "sk-432b823bc3954dbab53e15a08adcb90c",
+    "GEMINI_API_KEY": "f4812813f2cbaa9eea285d90169e7d05"
   }
 }

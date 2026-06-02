@@ -115,7 +115,25 @@ async function LC(){
 }
 function RC(){
   if(!cfg)return;
-  var h='';
+  var agents=[
+    {id:'creative-producer',name:'Creative Producer',role:'创意制片人 / 总导演',avatar:'🎬',desc:'理解需求 → 制定方案 → 协调调度'},
+    {id:'art-director',name:'Art Director',role:'美术总监',avatar:'🎨',desc:'色彩/材质/世界观 — Visual Bible'},
+    {id:'storyboard-director',name:'Storyboard Director',role:'分镜导演',avatar:'🎞️',desc:'文字→镜头拆解 + 运镜节奏'},
+    {id:'prompt-architect',name:'Prompt Architect',role:'提示词导演',avatar:'🔮',desc:'模型专用Prompt生成 + 摄影知识库'},
+  ];
+  var h='<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:4px">4-Agent Pipeline</div>';
+  h+='<div style="font-size:11px;color:var(--t3)">用户需求 → 🎬 → 🎨 → 🎞️ → 🔮 → 生成</div></div>';
+
+  agents.forEach(function(a){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,0.15);border:1px solid var(--b);margin-bottom:6px">';
+    h+='<span style="font-size:24px">'+a.avatar+'</span>';
+    h+='<div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--t1)">'+a.name+'</div>';
+    h+='<div style="font-size:10px;color:var(--t3)">'+a.role+'</div>';
+    h+='<div style="font-size:10px;color:var(--t4)">'+a.desc+'</div></div></div>';
+  });
+
+  h+='<div style="margin-top:16px;border-top:1px solid var(--b);padding-top:12px">';
+  h+='<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">Agent 基础配置</div>';
   h+='<div class="cfg"><label>名称</label><input class="inp" value="'+E(cfg.name)+'" onchange="UC(\'name\',this.value)"></div>';
   h+='<div class="cfg"><label>头像</label><input class="inp" value="'+E(cfg.avatar)+'" onchange="UC(\'avatar\',this.value)"></div>';
   h+='<div class="cfg"><label>翻译风格</label><div style="display:flex;gap:4px">';
@@ -123,9 +141,10 @@ function RC(){
   h+='</div></div>';
   h+='<div class="cfg"><label>默认模型</label><select class="sel" onchange="UC(\'defaultModel\',this.value)">'+MDLS.map(function(m){return'<option'+(cfg.defaultModel===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select></div>';
   h+='<div class="cfg"><label>默认分辨率</label><select class="sel" onchange="UC(\'defaultResolution\',this.value)">'+['1K','2K','4K','1080P'].map(function(r){return'<option'+(cfg.defaultResolution===r?' selected':'')+'>'+r+'</option>'}).join('')+'</select></div>';
-  h+='<div class="cfg"><label style="display:flex;justify-content:space-between;align-items:center">LLM 润色 <button class="tgl '+(cfg.promptEnhancement?'on':'off')+'" onclick="UC(\'promptEnhancement\','+(!cfg.promptEnhancement)+')"></button></label></div>';
-  h+='<div class="cfg"><label>System Prompt (DeepSeek)</label><textarea class="txa" rows="4" onchange="UC(\'systemPrompt\',this.value)">'+E(cfg.systemPrompt)+'</textarea></div>';
+  h+='<div class="cfg"><label style="display:flex;justify-content:space-between;align-items:center">4-Agent Pipeline <button class="tgl '+(cfg.promptEnhancement?'on':'off')+'" onclick="UC(\'promptEnhancement\','+(!cfg.promptEnhancement)+')"></button></label></div>';
+  h+='<div class="cfg"><label>System Prompt (Gemini)</label><textarea class="txa" rows="4" onchange="UC(\'systemPrompt\',this.value)">'+E(cfg.systemPrompt)+'</textarea></div>';
   h+='<div class="cfg"><label>Polish Prompt (Gemini)</label><textarea class="txa" rows="4" onchange="UC(\'polishPrompt\',this.value)">'+E(cfg.polishPrompt||'')+'</textarea></div>';
+  h+='</div>';
   document.getElementById('agent').innerHTML=h;
 }
 function UC(f,v){cfg[f]=v;U('/api/agent/config',{[f]:v})}

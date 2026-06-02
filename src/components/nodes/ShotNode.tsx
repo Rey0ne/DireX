@@ -2,7 +2,10 @@
 /* Unified panel: card + bottom prompt, centered layout */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
+import { RefStrip } from '../shared/RefStrip';
+import { useMention } from '../shared/useMention';
 
 interface ShotNodeData {
   title: string;
@@ -26,8 +29,9 @@ interface ShotNodeData {
   onChange?: (patch: Record<string, unknown>) => void;
 }
 
-export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; selected?: boolean }) {
+export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeData; selected?: boolean }) {
   const shot = data.shot || {};
+  const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention((data as any).refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
   const [scriptInput, setScriptInput] = useState('');
 
@@ -119,7 +123,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
           width: '280px',
           marginTop: '10px',
           zIndex: 50,
-          animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)',
+          animation: 'tap-fade-in 50ms var(--tap-ease)',
         }}>
         <div style={{
           background: 'rgba(255,255,255,0.03)',
@@ -127,9 +131,10 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
           borderRadius: 'var(--tap-r-xl)',
           overflow: 'hidden',
         }}>
+          <div style={{padding:'8px 12px 0'}}><RefStrip nodeId={id} refUrls={(data as any).refUrls} /></div>
           <textarea
             value={scriptInput}
-            onChange={e => setScriptInput(e.target.value)}
+            onChange={e => { const v=e.target.value; setScriptInput(v); detectMention(v, e.target.selectionStart||0); }}
             onPointerDownCapture={e => { e.stopPropagation() }}
             onMouseDownCapture={e => { e.stopPropagation() }}
             placeholder="在此粘贴剧本或场景描述，大模型将自动解析并转换为分镜…"
@@ -149,6 +154,7 @@ export function ShotNode({ data, selected }: { id: string; data: ShotNodeData; s
             <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
               剧本 → 分镜转换
             </span>
+{showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:120,left:'50vw',transform:'translateX(-50%)',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setScriptInput(insertMention(m,scriptInput));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}
             <button
               onClick={() => {
                 const words = scriptInput.trim();

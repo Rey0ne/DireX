@@ -423,7 +423,7 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                 <div style={{ position: 'absolute', bottom: -2, left: -2, fontSize: '8px', color: 'rgba(200,160,100,0.8)', background: 'rgba(0,0,0,0.6)', borderRadius: '2px', padding: '0 3px', lineHeight: '12px' }}>风格</div>
               </div>
             )}
-            {(!data.refUrls || data.refUrls.length < 10) && (
+            {(!data.refUrls || data.refUrls.length < 20) && (
               <div
                 onClick={e => {
                   e.stopPropagation();
@@ -471,11 +471,13 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                   const cursorPos = e.target.selectionStart || 0;
                   const textBefore = val.slice(0, cursorPos);
                   const atIdx = textBefore.lastIndexOf('@');
-                  if (atIdx >= 0 && (atIdx === 0 || textBefore[atIdx-1] === ' ' || textBefore[atIdx-1] === '\n')) {
+                  if (atIdx >= 0) {
                     const query = textBefore.slice(atIdx + 1);
                     if (!query.includes(' ')) {
+                      const list = getMentionList();
+                      console.log('[Mention] @ detected, list:', list?.length, 'items');
                       setShowAtMention(true);
-                      setAtMentions(getMentionList());
+                      setAtMentions(list);
                     } else {
                       setShowAtMention(false);
                     }

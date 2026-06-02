@@ -9,6 +9,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
+import { runAgentPipeline } from './systems/agent/pipeline.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -119,31 +120,43 @@ app.post('/api/agent/compile', async (req: Request, res: Response) => {
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
-
   const handler = getProvider(body.providerId);
-  if (!handler) { res.status(400).json({ error: `Unknown provider: ${body.providerId}` }); return; }
-
+  if (!handler) { res.status(400).json({ error: 'Unknown provider: ' + body.providerId }); return; }
   const config = getProfile();
-  const compiled = await compilePrompt(body.shot, body.rawText);
-  console.log(`[agent] Generate: ${body.providerId} "${compiled.en.slice(0,60)}..."`);
-
+  const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
+  let compiledPrompt = '';
+  let agentTrace = [];
+  if (config.promptEnhancement) {
+    try {
+      const pipelineResult = await runAgentPipeline({
+        userInput: userPrompt, model: body.providerId, mode: body.mode,
+        referenceUrls: (body as any).referenceUrls,
+        referencePrompts: (body as any).referencePrompts,
+        aspect: body.aspect, resolution: body.resolution,
+      });
+      compiledPrompt = pipelineResult.modelPrompt || userPrompt;
+      agentTrace = pipelineResult.trace;
+    } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
+  } else {
+    const compiled = await compilePrompt(body.shot, body.rawText, (body as any).referenceUrls);
+    compiledPrompt = compiled.en;
+  }
+  console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 60));
   const t0 = Date.now();
   const result: GenerateResult = await handler({
-    providerId: body.providerId, mode: body.mode, prompt: compiled.en,
-    negativePrompt: compiled.negative, aspect: body.aspect || '16:9',
-    resolution: body.resolution || config.defaultResolution,
+    providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
+    negativePrompt: 'blurry, low quality, distorted, deformed, watermark, text, logo',
+    aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
     referenceImage: body.referenceImage, styleImageUrl: body.styleImageUrl,
   });
   result.durationMs = Date.now() - t0;
-
   addLog({
     id: uuid(), timestamp: new Date().toISOString(), providerId: body.providerId,
-    prompt: compiled.en, compiledPrompt: compiled.en,
+    prompt: compiledPrompt, compiledPrompt: compiledPrompt,
     status: result.success ? 'succeeded' : 'failed',
     assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
   });
-
-  res.json({ compiled, result } as AgentGenerateResult);
+  res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; }) }, result, agentTrace });
 });
 
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
