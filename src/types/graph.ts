@@ -165,6 +165,14 @@ export interface ImageGenMeta {
   resultAssetIds: string[];
 }
 
+// ─── Crop ──────────────────────────────────────
+export interface CropRect {
+  x: number; // px from left of image container
+  y: number; // px from top of image container
+  w: number; // px width
+  h: number; // px height
+}
+
 // ─── Event / Audit ───────────────────────────────
 export type AuditEvent =
   | 'node.create'

@@ -16,10 +16,11 @@ interface Command {
 
 interface SlashPanelProps {
   onSelect: (type: string) => void;
+  onCommand: (cmd: string) => void;
   onClose: () => void;
 }
 
-export function SlashPanel({ onSelect, onClose }: SlashPanelProps) {
+export function SlashPanel({ onSelect, onCommand, onClose }: SlashPanelProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,13 +33,13 @@ export function SlashPanel({ onSelect, onClose }: SlashPanelProps) {
     { id: 'shot', icon: '🎬', title: '新建镜头节点', desc: '结构化分镜描述，景别/运镜/打光', shortcut: 'N', action: () => onSelect('shot') },
     { id: 'image.generate', icon: '🖼️', title: '新建图片生成节点', desc: '文生图、图生图、风格复刻', shortcut: 'I', action: () => onSelect('image.generate') },
     { id: 'image.editor', icon: '✏️', title: '新建图片编辑器', desc: '裁切/擦除/打光/多角度', badge: 'Stage 2', action: () => onSelect('image.editor') },
-    { id: 'compile', icon: '🔮', title: '编译镜头 → Prompt', desc: '将 shot 结构化字段编译为提示词', action: () => {} },
-    { id: 'crop', icon: '✂️', title: '裁切工具', desc: 'PS-like 裁切模式', action: () => {} },
-    { id: 'inpaint', icon: '🖌️', title: '擦除/重绘', desc: '涂抹遮罩后重绘', action: () => {} },
-    { id: 'relight', icon: '💡', title: '打光', desc: '调整光源方向与色温', action: () => {} },
-    { id: 'multi-angle', icon: '🔄', title: '多角度', desc: '批量生成不同视角', action: () => {} },
-    { id: 'auto-layout', icon: '📐', title: '自动排布', desc: '按类型网格排列所有节点', shortcut: 'L', action: () => {} },
-    { id: 'export', icon: '📥', title: '导出资产', desc: '导出选定资产为 PNG/MP4', action: () => {} },
+    { id: 'compile', icon: '🔮', title: '编译镜头 → Prompt', desc: '将 shot 结构化字段编译为提示词', action: () => onCommand('compile') },
+    { id: 'crop', icon: '✂️', title: '裁切工具', desc: 'PS-like 裁切模式', action: () => onCommand('crop') },
+    { id: 'inpaint', icon: '🖌️', title: '擦除/重绘', desc: '涂抹遮罩后重绘', action: () => onCommand('inpaint') },
+    { id: 'relight', icon: '💡', title: '打光', desc: '调整光源方向与色温', action: () => onCommand('relight') },
+    { id: 'multi-angle', icon: '🔄', title: '多角度', desc: '批量生成不同视角', action: () => onCommand('multiAngle') },
+    { id: 'auto-layout', icon: '📐', title: '自动排布', desc: '按类型网格排列所有节点', action: () => onCommand('autoLayout') },
+    { id: 'export', icon: '📥', title: '导出资产', desc: '导出选定资产为 PNG/MP4', action: () => onCommand('export') },
   ];
 
   const filtered = query.trim()

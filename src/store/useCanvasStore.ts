@@ -19,7 +19,13 @@ export interface GraphState {
   toolMode: 'select' | 'crop' | 'inpaint' | 'relight' | 'multiAngle' | 'annotate' | 'expand' | 'extract' | 'enhance' | null;
   isCommandPaletteOpen: boolean;
   pendingConnection: string | null;
-  syncTick: number; // incremented to force ReactFlow re-sync
+  syncTick: number;
+
+  // Undo/Redo
+  history: Array<{ nodes: Array<[string, CanvasNode]>; edges: Array<[string, CanvasEdge]> }>;
+  historyIndex: number;
+  canUndo: boolean;
+  canRedo: boolean;
 
   // Actions — Node
   addNode: (type: NodeType, pos: { x: number; y: number }, title?: string) => string;
@@ -48,6 +54,11 @@ export interface GraphState {
   toggleCommandPalette: () => void;
   setPendingConnection: (nodeId: string | null) => void;
   triggerSync: () => void;
+
+  // Undo/Redo actions
+  pushHistory: (_description?: string) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 let _nextId = 1;
@@ -70,9 +81,34 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   isCommandPaletteOpen: false,
   pendingConnection: null,
   syncTick: 0,
+  history: [],
+  historyIndex: -1,
+  canUndo: false,
+  canRedo: false,
+
+  // ─── History helper ──
+  pushHistory: (_description?: string) => {
+    const MAX = 50;
+    set(s => {
+      const snap = {
+        nodes: Array.from(s.nodes.entries()),
+        edges: Array.from(s.edges.entries()),
+      };
+      const newHistory = s.history.slice(0, s.historyIndex + 1);
+      newHistory.push(snap);
+      if (newHistory.length > MAX) newHistory.shift();
+      return {
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+        canUndo: newHistory.length > 1,
+        canRedo: false,
+      };
+    });
+  },
 
   // ─── Node actions ───
   addNode(type, pos, title = '') {
+    get().pushHistory();
     const id = uid('node');
     const node: CanvasNode = {
       id,
@@ -105,6 +141,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   },
 
   removeNode(id) {
+    get().pushHistory();
     set(s => {
       const nextNodes = new Map(s.nodes);
       nextNodes.delete(id);
@@ -128,6 +165,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
 
   // ─── Edge actions ───
   addEdge(from, to, dataType = 'any') {
+    get().pushHistory();
     const id = uid('edge');
     const edge: CanvasEdge = {
       id,
@@ -146,6 +184,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   },
 
   removeEdge(id) {
+    get().pushHistory();
     set(s => {
       const next = new Map(s.edges);
       next.delete(id);
@@ -235,6 +274,37 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
 
   triggerSync() {
     set(s => ({ syncTick: s.syncTick + 1 }));
+  },
+
+  // ─── Undo/Redo ──
+  undo() {
+    const { history, historyIndex } = get();
+    if (historyIndex <= 0) return;
+    const snap = history[historyIndex - 1];
+    set({
+      nodes: new Map(snap.nodes),
+      edges: new Map(snap.edges),
+      historyIndex: historyIndex - 1,
+      canUndo: historyIndex - 1 > 0,
+      canRedo: true,
+      selectedNodeIds: [],
+      syncTick: get().syncTick + 1,
+    });
+  },
+
+  redo() {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 1) return;
+    const snap = history[historyIndex + 1];
+    set({
+      nodes: new Map(snap.nodes),
+      edges: new Map(snap.edges),
+      historyIndex: historyIndex + 1,
+      canUndo: true,
+      canRedo: historyIndex + 1 < history.length - 1,
+      selectedNodeIds: [],
+      syncTick: get().syncTick + 1,
+    });
   },
 }));
 

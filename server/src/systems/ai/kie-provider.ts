@@ -139,6 +139,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
 
   if (req.negativePrompt) (body.input as any).negative_prompt = req.negativePrompt;
   if (req.referenceImage) (body.input as any).reference_image = req.referenceImage;
+  if (req.maskImage) (body.input as any).mask_image = req.maskImage;
 
   const startTime = Date.now();
   const submitUrl = `${BASE_URL}/jobs/createTask`;

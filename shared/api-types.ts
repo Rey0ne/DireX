@@ -9,6 +9,7 @@ export interface GenerateRequest {
   aspect?: string;
   resolution?: string;
   referenceImage?: string;  // base64 or URL for image-to-image
+  maskImage?: string;       // base64 mask for inpainting
   styleImageUrl?: string;
   duration?: string;   // video: "5s", "8s", "10s"
   seed?: number;
@@ -100,6 +101,7 @@ export interface AgentGenerateRequest {
   aspect?: string;
   resolution?: string;
   referenceImage?: string;
+  maskImage?: string;       // base64 mask for inpainting
   referenceUrls?: string[];
   styleImageUrl?: string;
 }

@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Panel } from '../shared';
-import type { ImageGenMeta } from '../../types/graph';
+import type { ImageGenMeta, CropRect } from '../../types/graph';
 
 interface ImageGenNodeData {
   imageUrl?: string;
@@ -23,6 +23,12 @@ interface ImageGenNodeData {
   onChange?: (patch: Partial<ImageGenMeta>) => void;
   onGenerate?: () => void;
   onFullscreen?: (url: string, prompt: string, model: string, aspect: string, quality: string) => void;
+  // Crop mode
+  isCropping?: boolean;
+  onCropStart?: () => void;
+  onCropApply?: (croppedDataUrl: string, cropW: number, cropH: number) => void;
+  onCropCancel?: () => void;
+  onOpenTool?: (toolName: string) => void;
 }
 
 const ASPECT_OPTIONS = [
@@ -57,7 +63,9 @@ const RESOLUTION_OPTIONS = [
   { label: '4K', desc: '2048×2048' },
 ];
 
-export function ImageGenerateNode({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
+import { memo } from 'react';
+
+function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -87,6 +95,21 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
   const [resolutionChipRect, setResolutionChipRect] = useState<DOMRect | null>(null);
   const [styleImgUrl, setStyleImgUrl] = useState<string | null>(data.gen?.styleImageUrl as string || null);
+
+  // ─── Crop state ────────────────────────────────
+  const CROP_RATIOS = [
+    { label: '自由', w: 0, h: 0 },
+    { label: '1:1', w: 1, h: 1 },
+    { label: '4:3', w: 4, h: 3 },
+    { label: '3:4', w: 3, h: 4 },
+    { label: '16:9', w: 16, h: 9 },
+    { label: '9:16', w: 9, h: 16 },
+  ];
+  const [cropRect, setCropRect] = useState<CropRect>({ x: 0, y: 0, w: 0, h: 0 });
+  const [cropRatio, setCropRatio] = useState(CROP_RATIOS[0]);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, startRect: { x: 0, y: 0, w: 0, h: 0 }, handle: '' });
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Build @mention list from connected refUrls
   const getMentionList = useCallback(() => {
@@ -140,6 +163,267 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
     return () => ro.disconnect();
   }, [currentAspect]);
 
+  // ─── Crop: initialize rect when entering crop mode ──
+  useEffect(() => {
+    if (data.isCropping && cardRef.current) {
+      const cw = cardRef.current.offsetWidth;
+      const ch = imgHeight;
+      const margin = 0.1;
+      setCropRect({
+        x: cw * margin,
+        y: ch * margin,
+        w: cw * (1 - 2 * margin),
+        h: ch * (1 - 2 * margin),
+      });
+      setCropRatio(CROP_RATIOS[0]);
+    }
+  }, [data.isCropping]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Crop: ratio change → snap crop rect to match ──
+  useEffect(() => {
+    if (!data.isCropping) return;
+    if (cropRatio.w === 0 || cropRatio.h === 0) return; // free mode
+    const container = cardRef.current;
+    if (!container) return;
+    const cw = container.offsetWidth;
+    const ch = imgHeight;
+    const targetRatio = cropRatio.w / cropRatio.h;
+
+    // Keep center, MAXIMIZE area within container
+    const cx = cropRect.x + cropRect.w / 2;
+    const cy = cropRect.y + cropRect.h / 2;
+    // How far can we expand from center to each edge?
+    const maxHalfW = Math.min(cx, cw - cx);
+    const maxHalfH = Math.min(cy, ch - cy);
+    // Fit ratio into available space
+    let halfW = maxHalfW;
+    let halfH = halfW / targetRatio;
+    if (halfH > maxHalfH) { halfH = maxHalfH; halfW = halfH * targetRatio; }
+    // Minimum 20px total
+    halfW = Math.max(10, halfW);
+    halfH = Math.max(10, halfH);
+
+    setCropRect({
+      x: cx - halfW,
+      y: cy - halfH,
+      w: halfW * 2,
+      h: halfH * 2,
+    });
+  }, [cropRatio]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Crop: drag gesture ──
+  useEffect(() => {
+    if (!isDragging) return;
+    const container = cardRef.current;
+    if (!container) return;
+    const cw = container.offsetWidth;
+    const ch = imgHeight;
+
+    const onMove = (e: PointerEvent) => {
+      const dx = e.clientX - dragRef.current.startX;
+      const dy = e.clientY - dragRef.current.startY;
+      const sr = dragRef.current.startRect;
+      const h = dragRef.current.handle;
+      let newRect = { x: sr.x, y: sr.y, w: sr.w, h: sr.h };
+
+      // ── Move ──
+      if (h === 'move') {
+        newRect.x = Math.max(0, Math.min(cw - sr.w, sr.x + dx));
+        newRect.y = Math.max(0, Math.min(ch - sr.h, sr.y + dy));
+      }
+
+      // ── Resize: corner handles (anchor = opposite corner) ──
+      if (h === 'se') { newRect.w = Math.max(20, sr.w + dx); newRect.h = Math.max(20, sr.h + dy); }
+      if (h === 'sw') { newRect.x = Math.min(sr.x + sr.w - 20, sr.x + dx); newRect.w = sr.x + sr.w - newRect.x; newRect.h = Math.max(20, sr.h + dy); }
+      if (h === 'ne') { newRect.w = Math.max(20, sr.w + dx); newRect.y = Math.min(sr.y + sr.h - 20, sr.y + dy); newRect.h = sr.y + sr.h - newRect.y; }
+      if (h === 'nw') { newRect.x = Math.min(sr.x + sr.w - 20, sr.x + dx); newRect.w = sr.x + sr.w - newRect.x; newRect.y = Math.min(sr.y + sr.h - 20, sr.y + dy); newRect.h = sr.y + sr.h - newRect.y; }
+
+      // ── Resize: edge handles ──
+      if (h === 'e') { newRect.w = Math.max(20, sr.w + dx); }
+      if (h === 'w') { newRect.x = Math.min(sr.x + sr.w - 20, sr.x + dx); newRect.w = sr.x + sr.w - newRect.x; }
+      if (h === 's') { newRect.h = Math.max(20, sr.h + dy); }
+      if (h === 'n') { newRect.y = Math.min(sr.y + sr.h - 20, sr.y + dy); newRect.h = sr.y + sr.h - newRect.y; }
+
+      // ── Container clamp + ratio constraint ──
+        const shiftHeld = e.shiftKey;
+        let targetRatio: number | null = null;
+        if (cropRatio.w > 0 && cropRatio.h > 0) {
+          targetRatio = cropRatio.w / cropRatio.h;
+        } else if (shiftHeld) {
+          targetRatio = sr.w / sr.h;
+        }
+
+        if (h !== 'move') {
+          // Step 1: clamp raw resize to container (never exceed bounds)
+          newRect.x = Math.max(0, newRect.x);
+          newRect.y = Math.max(0, newRect.y);
+          newRect.w = Math.min(cw - newRect.x, Math.max(20, newRect.w));
+          newRect.h = Math.min(ch - newRect.y, Math.max(20, newRect.h));
+
+          if (targetRatio) {
+            if (h === 'se' || h === 'ne' || h === 'sw' || h === 'nw') {
+              // CORNER: anchor is opposite corner — shrink oversized dimension
+              if (newRect.w / newRect.h > targetRatio) {
+                const oldW = newRect.w;
+                newRect.w = newRect.h * targetRatio;
+                if (h === 'sw' || h === 'nw') newRect.x += oldW - newRect.w;
+              } else {
+                const oldH = newRect.h;
+                newRect.h = newRect.w / targetRatio;
+                if (h === 'ne' || h === 'nw') newRect.y += oldH - newRect.h;
+              }
+            } else if (h === 'e' || h === 'w') {
+              // EDGE (horizontal): height from center, capped by container
+              const centerY = sr.y + sr.h / 2;
+              newRect.h = newRect.w / targetRatio;
+              if (newRect.h > ch) { newRect.h = ch; newRect.w = ch * targetRatio; }
+              newRect.y = Math.max(0, Math.min(ch - newRect.h, centerY - newRect.h / 2));
+            } else {
+              // EDGE (vertical): width from center, capped by container
+              const centerX = sr.x + sr.w / 2;
+              newRect.w = newRect.h * targetRatio;
+              if (newRect.w > cw) { newRect.w = cw; newRect.h = cw / targetRatio; }
+              newRect.x = Math.max(0, Math.min(cw - newRect.w, centerX - newRect.w / 2));
+            }
+          }
+          // Final boundary safety
+          newRect.x = Math.max(0, newRect.x);
+          newRect.y = Math.max(0, newRect.y);
+          if (newRect.x + newRect.w > cw) newRect.w = cw - newRect.x;
+          if (newRect.y + newRect.h > ch) newRect.h = ch - newRect.y;
+          newRect.w = Math.max(20, newRect.w);
+          newRect.h = Math.max(20, newRect.h);
+        }
+
+        setCropRect({ x: newRect.x, y: newRect.y, w: newRect.w, h: newRect.h });
+    };
+
+    const onUp = () => { setIsDragging(false); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+  }, [isDragging, imgHeight, cropRatio]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startDrag = (e: React.PointerEvent, handle: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startRect: { ...cropRect }, handle };
+    setIsDragging(true);
+  };
+
+  // ─── Crop: apply (canvas crop → data URL) ──
+  // Use refs so this callback is stable — never changes, no effect thrashing
+  const cropRectRef = useRef(cropRect);
+  cropRectRef.current = cropRect;
+  const imgHeightRef = useRef(imgHeight);
+  imgHeightRef.current = imgHeight;
+  const onCropApplyRef = useRef(data.onCropApply);
+  onCropApplyRef.current = data.onCropApply;
+  const onCropCancelRef = useRef(data.onCropCancel);
+  onCropCancelRef.current = data.onCropCancel;
+
+  const [cropError, setCropError] = useState<string | null>(null);
+  const [cropSuccess, setCropSuccess] = useState(false);
+
+  const handleCropApply = useCallback(() => {
+    setCropError(null);
+    const img = imgRef.current;
+    const container = cardRef.current;
+    console.log('[crop] handleCropApply called. img:', !!img, 'container:', !!container);
+    if (!img || !container) { setCropError('图片元素未找到'); return; }
+    const cw = container.offsetWidth;
+    const ch = imgHeightRef.current;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    console.log('[crop] container:', cw, 'x', ch, 'image natural:', iw, 'x', ih);
+    if (!iw || !ih) { setCropError('图片未完全加载，请稍后重试'); return; }
+
+    const rect = cropRectRef.current;
+    console.log('[crop] cropRect:', rect);
+    // object-fit:contain math
+    const containerAspect = cw / ch;
+    const imageAspect = iw / ih;
+    let displayW: number, displayH: number, offsetX: number, offsetY: number;
+    if (imageAspect > containerAspect) {
+      displayW = cw;
+      displayH = cw / imageAspect;
+      offsetX = 0;
+      offsetY = (ch - displayH) / 2;
+    } else {
+      displayH = ch;
+      displayW = ch * imageAspect;
+      offsetX = (cw - displayW) / 2;
+      offsetY = 0;
+    }
+
+    const scaleX = iw / displayW;
+    const scaleY = ih / displayH;
+    const srcX = Math.max(0, (rect.x - offsetX) * scaleX);
+    const srcY = Math.max(0, (rect.y - offsetY) * scaleY);
+    const srcW = Math.min(iw - srcX, rect.w * scaleX);
+    const srcH = Math.min(ih - srcY, rect.h * scaleY);
+    console.log('[crop] source region:', Math.round(srcX), Math.round(srcY), Math.round(srcW), Math.round(srcH));
+
+    if (srcW < 1 || srcH < 1) { setCropError('裁切区域太小'); return; }
+
+    // Use backend proxy to bypass CORS for external images
+    const doCrop = (source: CanvasImageSource) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(srcW);
+      canvas.height = Math.round(srcH);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { setCropError('Canvas 创建失败'); return; }
+      ctx.drawImage(source, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+      const dataUrl = canvas.toDataURL('image/png');
+      const cropW = Math.round(srcW);
+      const cropH = Math.round(srcH);
+      console.log('[crop] SUCCESS: ' + cropW + 'x' + cropH + ', dataUrl length: ' + dataUrl.length);
+      setCropSuccess(true);
+      onCropApplyRef.current?.(dataUrl, cropW, cropH);
+    };
+
+    const imgSrc = img.src;
+    // data: URLs and same-origin images work directly
+    if (imgSrc.startsWith('data:') || imgSrc.startsWith(window.location.origin)) {
+      try {
+        const testCanvas = document.createElement('canvas');
+        testCanvas.width = 1; testCanvas.height = 1;
+        const testCtx = testCanvas.getContext('2d');
+        testCtx?.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
+        testCanvas.toDataURL();
+        doCrop(img);
+        return;
+      } catch (_e) { /* tainted, fall through to proxy */ }
+    }
+
+    // External images — proxy through backend to avoid CORS
+    console.log('[crop] Using backend proxy for:', imgSrc.slice(0, 80));
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imgSrc)}`;
+    const proxyImg = new Image();
+    proxyImg.onload = () => {
+      console.log('[crop] Proxy image loaded');
+      doCrop(proxyImg);
+    };
+    proxyImg.onerror = () => {
+      setCropError('图片代理加载失败，请稍后重试');
+      console.warn('[crop] Proxy image load failed');
+    };
+    proxyImg.src = proxyUrl;
+  }, []); // stable — never changes
+
+  // ─── Crop: keyboard (Enter/Escape) ──
+  useEffect(() => {
+    if (!data.isCropping) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'Enter') { e.preventDefault(); handleCropApply(); }
+      if (e.key === 'Escape') { onCropCancelRef.current?.(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [data.isCropping, handleCropApply]); // handleCropApply is now stable (empty deps)
+
   const patch = useCallback((k: keyof ImageGenMeta, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
@@ -172,10 +456,10 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   };
 
   const toolbarActions = [
-    { icon: '⊞', label: '裁切', shortcut: 'C', onClick: () => {} },
-    { icon: '⊿', label: '多角度', shortcut: 'A', onClick: () => {} },
-    { icon: '◐', label: '重绘', shortcut: 'B', onClick: () => {} },
-    { icon: '✦', label: '打光', shortcut: 'L', onClick: () => {} },
+    { icon: 'crop-svg', label: '裁切', shortcut: 'C', onClick: () => { console.log('[crop] toolbar button clicked, onCropStart:', !!data.onCropStart); data.onCropStart?.(); } },
+    { icon: '⊿', label: '多角度', shortcut: 'A', onClick: () => data.onOpenTool?.('multiAngle') },
+    { icon: '◐', label: '重绘', shortcut: 'B', onClick: () => data.onOpenTool?.('inpaint') },
+    { icon: 'relight-svg', label: '打光', shortcut: 'L', onClick: () => data.onOpenTool?.('relight') },
   ];
 
   const toolbarRight = [
@@ -184,11 +468,11 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   ];
 
   const moreActions = [
-    { icon: '↕️', label: '扩图', onClick: () => {} },
-    { icon: '◌', label: '抠图', onClick: () => {} },
-    { icon: '⊕', label: '标注', onClick: () => {} },
-    { icon: '◇', label: '画质增强', onClick: () => {} },
-    { icon: '⊡', label: '像素调整', onClick: () => {} },
+    { icon: '↕️', label: '扩图', onClick: () => data.onOpenTool?.('expand') },
+    { icon: '◌', label: '抠图', onClick: () => data.onOpenTool?.('extract') },
+    { icon: '⊕', label: '标注', onClick: () => data.onOpenTool?.('annotate') },
+    { icon: '◇', label: '画质增强', onClick: () => data.onOpenTool?.('enhance') },
+    { icon: '⊡', label: '像素调整', onClick: () => data.onOpenTool?.('resize') },
   ];
 
   return (
@@ -332,7 +616,7 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
           overflow: 'hidden',
         }}>
           {data.imageUrl ? (
-            <img src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img ref={imgRef} src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           ) : (
             <div style={{
               width: '48px', height: '48px', borderRadius: '12px',
@@ -348,8 +632,161 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
             </div>
           )}
 
+          {/* ── Photoshop-style Crop Overlay ── */}
+          {data.isCropping && (() => {
+            const handles = [
+              { id: 'nw', top: -4, left: -4, cursor: 'nwse-resize' },
+              { id: 'n',  top: -4, left: '50%', ml: -4, cursor: 'ns-resize' },
+              { id: 'ne', top: -4, right: -4, cursor: 'nesw-resize' },
+              { id: 'e',  top: '50%', mt: -4, right: -4, cursor: 'ew-resize' },
+              { id: 'se', bottom: -4, right: -4, cursor: 'nwse-resize' },
+              { id: 's',  bottom: -4, left: '50%', ml: -4, cursor: 'ns-resize' },
+              { id: 'sw', bottom: -4, left: -4, cursor: 'nesw-resize' },
+              { id: 'w',  top: '50%', mt: -4, left: -4, cursor: 'ew-resize' },
+            ];
+            const borderColor = 'rgba(255,255,255,0.8)';
+            return (
+              <>
+                {/* Dark overlay + crop window (box-shadow creates the dark outside) */}
+                <div
+                  onPointerDown={(e) => { e.stopPropagation(); startDrag(e, 'move'); }}
+                  style={{
+                    position: 'absolute', zIndex: 20,
+                    left: cropRect.x, top: cropRect.y,
+                    width: cropRect.w, height: cropRect.h,
+                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.62)',
+                    cursor: 'move',
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  {/* Border line */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    border: `1px solid ${borderColor}`,
+                    pointerEvents: 'none',
+                  }} />
+                  {/* Inner shadow for depth */}
+                  <div style={{
+                    position: 'absolute', inset: 1,
+                    border: '1px solid rgba(0,0,0,0.25)',
+                    pointerEvents: 'none',
+                  }} />
+                </div>
+
+                {/* Handle + guide container — positioned exactly at crop rect */}
+                <div style={{
+                  position: 'absolute', zIndex: 25,
+                  left: cropRect.x, top: cropRect.y,
+                  width: cropRect.w, height: cropRect.h,
+                  pointerEvents: 'none',
+                }}>
+                  {/* Resize handles — now relative to crop rect */}
+                  {handles.map(h => (
+                    <div key={h.id}
+                      onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); startDrag(e, h.id); }}
+                      style={{
+                        position: 'absolute',
+                        width: 8, height: 8,
+                        background: '#fff',
+                        border: '1px solid rgba(0,0,0,0.5)',
+                        boxShadow: '0 0 2px rgba(0,0,0,0.3)',
+                        cursor: h.cursor,
+                        top: h.top, bottom: h.bottom,
+                        left: h.left, right: h.right,
+                        marginTop: h.mt, marginLeft: h.ml,
+                        pointerEvents: 'auto',
+                      }}
+                    />
+                  ))}
+                  {/* Rule-of-thirds guides */}
+                  {[1/3, 2/3].map((f, i) => (
+                    <div key={i}>
+                      <div style={{ position: 'absolute', top: `${f * 100}%`, left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+                      <div style={{ position: 'absolute', left: `${f * 100}%`, top: 0, bottom: 0, borderLeft: '1px solid rgba(255,255,255,0.08)' }} />
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+
         </div>
       </div>
+
+      {/* ── Crop floating toolbar (portal above the card, Photoshop-style options bar) ── */}
+      {data.isCropping && cardRect && (() => {
+        const cw = cardRef.current?.offsetWidth || 380;
+        return createPortal(
+        <div style={{
+          position: 'fixed',
+          left: cardRect.left + cw / 2,
+          top: cardRect.top - 48,
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '6px 12px',
+          background: 'rgba(30,32,38,0.96)',
+          borderRadius: '10px',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+          pointerEvents: 'auto',
+          animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--tap-text-4)', fontWeight: 500, marginRight: '4px' }}>比例</span>
+          {CROP_RATIOS.map(r => {
+            const isActive = cropRatio.label === r.label;
+            return (
+              <button key={r.label}
+                onClick={() => setCropRatio(r)}
+                style={{
+                  padding: '3px 12px', borderRadius: '6px',
+                  fontSize: '12px', fontWeight: isActive ? 600 : 400,
+                  background: isActive ? 'rgba(255,255,255,0.14)' : 'transparent',
+                  color: isActive ? '#fff' : 'var(--tap-text-3)',
+                  border: 'none', cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+              >{r.label}</button>
+            );
+          })}
+          <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+          <button
+            onClick={handleCropApply}
+            style={{
+              padding: '5px 16px', borderRadius: '7px',
+              fontSize: '12px', fontWeight: 600,
+              background: 'var(--tap-accent)', color: '#fff',
+              border: 'none', cursor: 'pointer',
+              letterSpacing: '0.02em',
+            }}
+          >Enter ↵</button>
+          <button
+            onClick={() => data.onCropCancel?.()}
+            style={{
+              padding: '4px 10px', borderRadius: '7px',
+              fontSize: '11px', fontWeight: 500,
+              background: 'transparent', color: 'var(--tap-text-3)',
+              border: 'none', cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--tap-text-3)'; e.currentTarget.style.background = 'transparent'; }}
+          >Esc 取消</button>
+          {/* Crop status feedback */}
+          {cropError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--tap-danger)', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cropError}</span>
+              <span onClick={() => setCropError(null)} style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer' }}>✕</span>
+            </div>
+          )}
+          {cropSuccess && (
+            <span style={{ fontSize: '11px', color: 'var(--tap-success)', fontWeight: 500 }}>✓ 裁切完成</span>
+          )}
+        </div>,
+        document.body
+      );})()}
 
       {/* ── Bottom Prompt Panel (portal to document.body, zero impact on node) ── */}
       {selected && !data.multiSelect && cardRect && createPortal(
@@ -491,7 +928,7 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
                   if (showAtMention && e.key === 'Escape') { setShowAtMention(false); return; }
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
                 }}
-                placeholder="输入 @ 引用已连线节点的参考图…"
+                placeholder=""
                 maxLength={2000}
                 rows={expanded ? 16 : 4}
                 style={{
@@ -754,6 +1191,8 @@ export function ImageGenerateNode({ id, data, selected }: { id: string; data: Im
   );
 }
 
+export const ImageGenerateNode = memo(ImageGenerateNodeInner);
+
 // ─── Editable node label ──────────────────────────
 function NodeLabel({ initial }: { initial: string }) {
   const [editing, setEditing] = useState(false);
@@ -799,6 +1238,8 @@ function NodeLabel({ initial }: { initial: string }) {
 // ─── Tool button (borderless, hover-only raise) ────
 function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string; active?: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
+  const isActive = active || hover;
+  const fg = isActive ? 'var(--tap-text-1)' : 'var(--tap-text-2)';
 
   return (
     <button
@@ -810,14 +1251,26 @@ function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string
         width: '30px', height: '30px', borderRadius: '8px',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: '16px',
-        color: active || hover ? 'var(--tap-text-1)' : 'var(--tap-text-2)',
+        color: fg,
         background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent',
         border: 'none',
         cursor: 'pointer',
         transition: `all var(--tap-dur-fast) var(--tap-ease)`,
       }}
     >
-      {icon}
+      {icon === 'crop-svg' ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+          <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+        </svg>
+      ) : icon === 'relight-svg' ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.1">
+          <circle cx="12" cy="13" r="7" />
+          <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
+        </svg>
+      ) : (
+        icon
+      )}
     </button>
   );
 }

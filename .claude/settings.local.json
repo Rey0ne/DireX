@@ -39,7 +39,14 @@
       "Bash(curl -s -X PUT http://localhost:3001/api/agent/config -H \"Authorization: Bearer tapnow-dev-key\" -H \"Content-Type: application/json\" -d '{\"name\":\"电影导演\",\"avatar\":\"🎬\"}')",
       "Bash(curl -s -X POST http://localhost:3001/api/generate -H \"Authorization: Bearer tapnow-dev-key\" -H \"Content-Type: application/json\" -d '{\"providerId\":\"nano-banana\",\"prompt\":\"beautiful landscape\"}')",
       "Bash(curl -s -X POST http://localhost:3001/api/generate -H \"Authorization: Bearer tapnow-dev-key\" -H \"Content-Type: application/json\" -d '{\"providerId\":\"seedance-2\",\"prompt\":\"cyberpunk city\"}')",
-      "Bash(curl -s -X POST http://localhost:3001/api/agent/generate -H \"Authorization: Bearer tapnow-dev-key\" -H \"Content-Type: application/json\" -d '{\"providerId\":\"nano-banana\",\"shot\":{\"intent_cn\":\"赛博朋克东京雨夜\",\"framing\":\"中景\",\"key\":\"霓虹\",\"mood\":\"忧郁\"}}')"
+      "Bash(curl -s -X POST http://localhost:3001/api/agent/generate -H \"Authorization: Bearer tapnow-dev-key\" -H \"Content-Type: application/json\" -d '{\"providerId\":\"nano-banana\",\"shot\":{\"intent_cn\":\"赛博朋克东京雨夜\",\"framing\":\"中景\",\"key\":\"霓虹\",\"mood\":\"忧郁\"}}')",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'server/.env'}\\); console.log\\(process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY is set \\(length: ' + process.env.GEMINI_API_KEY.length + '\\)' : 'NOT SET'\\)\")",
+      "Bash(node *)",
+      "Bash(Findstr /C:\"GEMINI_API_KEY\" \"c:\\\\Users\\\\ROG\\\\tapnow-canvas\\\\server\\\\.env\")",
+      "Read(//d/Download/**)",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL available'\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('PIL available'\\)\")",
+      "Bash(python *)"
     ]
   }
 }

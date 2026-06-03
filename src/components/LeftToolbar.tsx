@@ -16,9 +16,9 @@ interface ToolDef {
 
 const TOOLS: ToolDef[] = [
   { id: 'select', icon: '⇱', label: '选择 / 移动', shortcut: 'V' },
-  { id: 'crop', icon: '⊞', label: '裁切', shortcut: 'C', divider: true },
+  { id: 'crop', icon: 'crop-svg', label: '裁切', shortcut: 'C', divider: true },
   { id: 'inpaint', icon: '◐', label: '擦除 / 重绘', shortcut: 'B' },
-  { id: 'relight', icon: '✦', label: '重打光', shortcut: 'L' },
+  { id: 'relight', icon: 'relight-svg', label: '重打光', shortcut: 'L' },
   { id: 'multiAngle', icon: '⊿', label: '多角度', shortcut: 'A' },
   { id: 'expand', icon: '↕', label: '扩图', shortcut: 'E', divider: true },
   { id: 'extract', icon: '◌', label: '抠图', shortcut: 'X' },
@@ -88,7 +88,23 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
                 position: 'relative',
               }}
             >
-              {tool.icon}
+              {tool.icon === 'crop-svg' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                  stroke={activeTool === tool.id ? 'var(--tap-accent)' : hoveredTool === tool.id ? 'var(--tap-text-1)' : 'var(--tap-text-3)'}
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+                  <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+                </svg>
+              ) : tool.icon === 'relight-svg' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke={activeTool === tool.id ? 'var(--tap-accent)' : hoveredTool === tool.id ? 'var(--tap-text-1)' : 'var(--tap-text-3)'}
+                  strokeWidth="1.1">
+                  <circle cx="12" cy="13" r="7" />
+                  <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
+                </svg>
+              ) : (
+                tool.icon
+              )}
               {activeTool === tool.id && (
                 <span style={{
                   position: 'absolute',

@@ -9,7 +9,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline } from './systems/agent/pipeline.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -20,6 +20,27 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 // ─── Middleware ───────────────────────────────
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', methods: ['GET','POST','PUT','DELETE'], allowedHeaders: ['Content-Type','Authorization'] }));
 app.use(express.json({ limit: '50mb' }));
+// ─── Public routes (no auth needed) ──────────
+// Image proxy — loaded via <img> tag, can't send auth headers
+app.get('/api/proxy-image', async (req, res) => {
+  const url = req.query.url as string;
+  if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
+  try {
+    const fetchResp = await fetch(url, {
+      headers: { 'User-Agent': 'TapNow/1.0' },
+    });
+    if (!fetchResp.ok) { res.status(502).json({ error: `Upstream fetch failed: ${fetchResp.status}` }); return; }
+    const buffer = Buffer.from(await fetchResp.arrayBuffer());
+    const contentType = fetchResp.headers.get('content-type') || 'image/png';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.use(authMiddleware);
 
 // ─── Startup ──────────────────────────────────
@@ -117,6 +138,51 @@ app.post('/api/agent/compile', async (req: Request, res: Response) => {
   res.json({ compiled: await compilePrompt(body.shot, body.rawText, (body as any).referenceUrls) });
 });
 
+app.post('/api/agent/text', async (req: Request, res: Response) => {
+  const body = req.body;
+  const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
+  console.log('[text-api] Request: rawText=' + (userPrompt || '').slice(0, 80) + ' refUrls=' + (body.referenceUrls?.length || 0) + ' refPrompts=' + (body.referencePrompts?.length || 0));
+  if (!userPrompt) { res.status(400).json({ error: 'Missing prompt' }); return; }
+
+  try {
+    const pipelineResult = await runTextPipeline({
+      userInput: userPrompt,
+      model: body.providerId || 'text',
+      mode: 'text-analysis',
+      referenceUrls: body.referenceUrls,
+      referencePrompts: body.referencePrompts,
+      aspect: body.aspect,
+      resolution: body.resolution,
+    });
+
+    const trace = pipelineResult.trace.map(t => ({
+      agentId: t.agentId, agentName: t.agentName,
+      output: t.output.slice(0, 500), durationMs: t.durationMs,
+    }));
+
+    console.log('[text-agent] Complete in ' + pipelineResult.totalDurationMs + 'ms');
+
+    res.json({
+      compiled: {
+        en: pipelineResult.textOutput,
+        cn: pipelineResult.textOutput,
+        negative: '',
+        debug: trace,
+      },
+      result: {
+        success: true,
+        assetUrls: [],
+        cost: 0,
+        durationMs: pipelineResult.totalDurationMs,
+        seed: 0,
+      },
+    });
+  } catch (err) {
+    console.error('[text-agent] Error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
@@ -147,7 +213,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
     negativePrompt: 'blurry, low quality, distorted, deformed, watermark, text, logo',
     aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
-    referenceImage: body.referenceImage, styleImageUrl: body.styleImageUrl,
+    referenceImage: body.referenceImage, maskImage: body.maskImage, styleImageUrl: body.styleImageUrl,
   });
   result.durationMs = Date.now() - t0;
   addLog({
@@ -169,6 +235,8 @@ app.post('/api/kie-callback', (req, res) => {
 
 // ─── Download ────────────────────────────────
 app.get('/api/download', handleDownload);
+
+// ─── Proxy Image (for CORS-free canvas crop)
 
 // ─── UE5 Proxy ────────────────────────────
 import { createProxyMiddleware } from 'http-proxy-middleware';
@@ -194,7 +262,26 @@ app.use('/', createProxyMiddleware({
   filter: (pathname: string) => !pathname.startsWith('/api/') && !pathname.startsWith('/admin/') && !pathname.startsWith('/ue5'),
 }));
 
-app.listen(PORT, () => {
+// Create HTTP server explicitly for WebSocket upgrade proxying
+import http from 'node:http';
+const server = http.createServer(app);
+
+// UE5 Pixel Streaming WebSocket proxy (created once, reused)
+const ue5WsProxy = createProxyMiddleware({
+  target: 'ws://127.0.0.1:8888',
+  changeOrigin: true,
+  ws: true,
+  pathRewrite: { '^/ue5-ws': '' },
+});
+server.on('upgrade', (req, socket, head) => {
+  if (req.url?.startsWith('/ue5-ws')) {
+    console.log('[ws-proxy] Upgrade:', req.url);
+    // @ts-ignore
+    ue5WsProxy.upgrade(req, socket, head);
+  }
+});
+
+server.listen(PORT, () => {
   console.log(`[server] TapNow API → http://localhost:${PORT}`);
   console.log(`[server] Admin → http://localhost:${PORT}/admin`);
 });

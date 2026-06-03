@@ -5,7 +5,8 @@ import { defineConfig } from 'vite'
 export default defineConfig(({ mode }) => ({
 	plugins: [react()],
 	define: {
-		__BUILD_TIME__: JSON.stringify(Date.now()),
+		// Only set build time in production to enable demo expiry
+		__BUILD_TIME__: mode === 'production' ? JSON.stringify(Date.now()) : '0',
 		__API_URL__: JSON.stringify(process.env.VITE_API_URL || ''),
 	},
 	server: {
@@ -14,7 +15,11 @@ export default defineConfig(({ mode }) => ({
 				target: 'http://localhost:3001',
 				changeOrigin: true,
 			},
+			'/ue5-ws': {
+				target: 'ws://localhost:3001',
+				changeOrigin: true,
+				ws: true,
+			},
 		},
 	},
 }))
-

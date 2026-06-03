@@ -1,11 +1,13 @@
 /* === Agent Pipeline — 4-Agent Orchestrator === */
 /* Creative Producer → Art Director → Storyboard Director → Prompt Architect */
 
-import { geminiChat } from '../ai/gemini.js';
+import { geminiChat, visionAnalyze } from '../ai/gemini.js';
 import {
-  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT,
+  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST,
   type AgentProfile,
 } from './profiles.js';
+
+const MAX_PREV_OUTPUT_CHARS = 2000; // truncate each previous agent output
 
 export interface PipelineContext {
   userInput: string;
@@ -13,6 +15,7 @@ export interface PipelineContext {
   mode?: string;
   referenceUrls?: string[];
   referencePrompts?: string[]; // original prompts of the referenced images
+  referenceAnalysis?: string[]; // vision analysis results (Gemini 3.1 Pro)
   aspect?: string;
   resolution?: string;
 }
@@ -33,6 +36,52 @@ export interface PipelineResult {
   totalDurationMs: number;
 }
 
+const VISION_ANALYSIS_PROMPT = `Analyze this image in precise detail. Your analysis will be used by creative AI agents, so accuracy is critical. Identify and describe:
+1. TEXT (OCR): Transcribe ALL visible text exactly. Note font style, size, color, position.
+2. ICONS & UI ELEMENTS: Describe every icon, button, logo, symbol. Note shape, color, style.
+3. GRAPHICS & CHARTS: Describe graphs, diagrams, data visualizations, illustrations. Note type, structure, data shown.
+4. COMPOSITION: Overall layout, spatial relationships, color palette, visual hierarchy.
+
+Be specific and factual. Do not interpret creatively — describe what you literally see.`;
+
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
+  if (url.startsWith('data:')) {
+    const match = url.match(/^data:([^;]+);base64,(.+)$/);
+    if (match) { console.log('[vision] Extracted data URL, length=' + match[2].length); return { mimeType: match[1], base64: match[2] }; }
+    console.log('[vision] Invalid data URL format');
+    return null;
+  }
+  try {
+    console.log('[vision] Fetching image: ' + url.slice(0, 80));
+    const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    const opts: any = {
+      headers: { 'User-Agent': 'TapNow/1.0' },
+    };
+    if (proxy) {
+      const { ProxyAgent } = await import('undici');
+      opts.dispatcher = new ProxyAgent(proxy);
+    }
+    const resp = await fetch(url, opts);
+    if (!resp.ok) { console.log('[vision] Fetch failed: HTTP ' + resp.status); return null; }
+    const buffer = Buffer.from(await resp.arrayBuffer());
+    const contentType = resp.headers.get('content-type') || 'image/png';
+    console.log('[vision] Fetched image, size=' + buffer.length + ' type=' + contentType);
+    return { mimeType: contentType, base64: buffer.toString('base64') };
+  } catch (err) { console.log('[vision] Fetch error: ' + String(err).slice(0, 100)); return null; }
+}
+
+async function analyzeReferenceImages(urls: string[]): Promise<string[]> {
+  const results: string[] = [];
+  for (let i = 0; i < urls.length; i++) {
+    console.log('[vision] Analyzing reference image ' + (i + 1) + '/' + urls.length);
+    const img = await fetchImageAsBase64(urls[i]);
+    if (!img) { results.push('[Unable to fetch image]'); continue; }
+    const analysis = await visionAnalyze(VISION_ANALYSIS_PROMPT, img.base64, img.mimeType);
+    results.push(analysis || '[Vision analysis failed]');
+  }
+  return results;
+}
+
 async function runAgent(
   profile: AgentProfile,
   context: PipelineContext,
@@ -43,23 +92,36 @@ async function runAgent(
   let contextBlock = '';
   for (const dep of profile.dependencies) {
     if (previousOutputs[dep]) {
-      contextBlock += '\n\n--- ' + dep + ' 的输出 ---\n' + previousOutputs[dep];
+      const prev = previousOutputs[dep];
+      const truncated = prev.length > MAX_PREV_OUTPUT_CHARS
+        ? prev.slice(0, MAX_PREV_OUTPUT_CHARS) + '\n...[truncated]'
+        : prev;
+      contextBlock += '\n\n--- ' + dep + ' 的输出 ---\n' + truncated;
     }
   }
 
-  // Reference image descriptions (using original prompts, not vision)
+  // Reference image analysis — prefer Gemini Vision, fallback to original prompts
   let refBlock = '';
   if (context.referenceUrls && context.referenceUrls.length > 0) {
-    refBlock = '\n\n[参考图片 — 以下是这些图片生成时的原始Prompt]\n';
-    context.referenceUrls.forEach((url, i) => {
-      const prompt = context.referencePrompts?.[i] || '';
-      if (prompt) {
-        refBlock += '参考图' + (i+1) + ': ' + prompt + '\n';
-      } else {
-        refBlock += '参考图' + (i+1) + ': [URL: ' + url + ']\n';
-      }
-    });
-    refBlock += '请根据这些原始Prompt理解每张参考图的内容和风格。\n';
+    if (context.referenceAnalysis && context.referenceAnalysis.length > 0) {
+      refBlock = '\n\n[参考图片分析 — Gemini 3.1 Pro Vision 识别结果]\n';
+      context.referenceUrls.forEach((_url, i) => {
+        const analysis = context.referenceAnalysis[i] || '[No analysis]';
+        refBlock += '\n### 参考图' + (i + 1) + '\n' + analysis + '\n';
+      });
+      refBlock += '\n请严格依据以上视觉分析结果来理解每张参考图。';
+    } else {
+      refBlock = '\n\n[参考图片 — 以下是这些图片生成时的原始Prompt]\n';
+      context.referenceUrls.forEach((url, i) => {
+        const prompt = context.referencePrompts?.[i] || '';
+        if (prompt) {
+          refBlock += '参考图' + (i+1) + ': ' + prompt + '\n';
+        } else {
+          refBlock += '参考图' + (i+1) + ': [URL: ' + url + ']\n';
+        }
+      });
+      refBlock += '请根据这些原始Prompt理解每张参考图的内容和风格。\n';
+    }
   }
 
   const userMessage = '用户需求: ' + context.userInput +
@@ -85,6 +147,13 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   const outputs: Record<string, string> = {};
 
   console.log('[pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
+
+  // Pre-process: analyze reference images with Gemini Vision
+  if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
+    console.log('[pipeline] Analyzing ' + context.referenceUrls.length + ' reference image(s) with Vision...');
+    context.referenceAnalysis = await analyzeReferenceImages(context.referenceUrls);
+    console.log('[pipeline] Vision analysis complete');
+  }
 
   try {
     console.log('[pipeline] Step 1: Creative Producer');
@@ -128,4 +197,79 @@ function extractModelPrompt(output: string): string {
   if (m) return m[1].trim();
   const lines = output.split('\n').filter(l => l.trim().length > 20);
   return lines.length > 0 ? lines[lines.length - 1].trim() : output.slice(-500).trim();
+}
+
+// ─── Fast Text Pipeline (single agent, for TEXT nodes) ──
+export interface TextPipelineResult {
+  textOutput: string;
+  trace: AgentResult[];
+  totalDurationMs: number;
+}
+
+export async function runTextPipeline(context: PipelineContext): Promise<TextPipelineResult> {
+  const t0 = Date.now();
+  const trace: AgentResult[] = [];
+
+  console.log('[text-pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
+
+  // Pre-process: analyze reference images with Gemini Vision if available
+  if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
+    console.log('[text-pipeline] Analyzing ' + context.referenceUrls.length + ' reference image(s) with Vision...');
+    const results = await analyzeReferenceImages(context.referenceUrls);
+    // Check if all vision analyses failed
+    const allFailed = results.every(r => r.includes('[Unable to fetch image]') || r.includes('[Vision analysis failed]'));
+    if (allFailed) {
+      console.log('[text-pipeline] All vision analyses failed, skipping Agent');
+      return {
+        textOutput: '失败请重新提交',
+        trace,
+        totalDurationMs: Date.now() - t0,
+      };
+    }
+    context.referenceAnalysis = results;
+    console.log('[text-pipeline] Vision analysis complete');
+  }
+
+  // If there are reference URLs but no vision analysis and no prompts, can't analyze
+  const hasUsableRefs = (context.referenceAnalysis && context.referenceAnalysis.length > 0) ||
+                        (context.referencePrompts && context.referencePrompts.length > 0);
+  if (context.referenceUrls && context.referenceUrls.length > 0 && !hasUsableRefs) {
+    console.log('[text-pipeline] No usable reference data (no vision, no prompts)');
+    return {
+      textOutput: '失败请重新提交',
+      trace,
+      totalDurationMs: Date.now() - t0,
+    };
+  }
+
+  // Determine if we have usable image data
+  const hasImageData = !!(context.referenceAnalysis && context.referenceAnalysis.length > 0 &&
+    !context.referenceAnalysis.every(r => r.includes('[Unable to fetch image]') || r.includes('[Vision analysis failed]')));
+
+  try {
+    console.log('[text-pipeline] Running Prompt Analyst | hasImageData:', hasImageData, 'refUrls:', context.referenceUrls?.length || 0);
+    // Inject a clear signal so the Agent doesn't have to guess
+    const signalBlock = hasImageData
+      ? '\n\n[系统] 参考图视觉分析数据已就绪，请执行图像反推。'
+      : '\n\n[系统] 无参考图数据，请根据用户文本需求执行文本反推或提示词优化。';
+    const augmentedContext = { ...context, userInput: context.userInput + signalBlock };
+    const result = await runAgent(PROMPT_ANALYST, augmentedContext, {});
+    console.log('[text-pipeline] Agent output (' + result.output.length + ' chars): ' + result.output.slice(0, 120));
+    trace.push(result);
+
+    console.log('[text-pipeline] Complete in ' + (Date.now() - t0) + 'ms');
+
+    return {
+      textOutput: result.output,
+      trace,
+      totalDurationMs: Date.now() - t0,
+    };
+  } catch (err) {
+    console.error('[text-pipeline] Error:', err);
+    return {
+      textOutput: '失败请重新提交',
+      trace,
+      totalDurationMs: Date.now() - t0,
+    };
+  }
 }

@@ -1,7 +1,7 @@
-/* === ShotNode — Script-to-storyboard text node === */
-/* Unified panel: card + bottom prompt, centered layout */
+/* === ShotNode — Text generation node === */
+/* Agent decides output type (storyboard / image-prompt / etc.) based on user input */
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
@@ -9,7 +9,7 @@ import { useMention } from '../shared/useMention';
 
 interface ShotNodeData {
   title: string;
-  shot: {
+  shot?: {
     intent_cn?: string;
     framing?: string;
     movement?: string;
@@ -19,33 +19,64 @@ interface ShotNodeData {
     mood?: string;
     color?: string;
   };
+  gen?: {
+    prompt?: string;
+    model?: string;
+    [key: string]: unknown;
+  };
+  imageUrl?: string;
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   multiSelect?: boolean;
   isPickMode?: boolean;
   isPickTarget?: boolean;
   hasConnections?: boolean;
-  hasConnections?: boolean;
+  refUrls?: string[];
+  styleImageUrl?: string | null;
   onChange?: (patch: Record<string, unknown>) => void;
+  onGenerate?: () => void;
 }
 
 export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeData; selected?: boolean }) {
   const shot = data.shot || {};
-  const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention((data as any).refUrls, data.styleImageUrl);
+  const gen = data.gen || {};
+  const panelRef = useRef<HTMLDivElement>(null);
+  const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
-  const [scriptInput, setScriptInput] = useState('');
+  const [prompt, setPrompt] = useState(gen.prompt || '');
+  const [genRunning, setGenRunning] = useState(false);
+  const genRunningRef = useRef(false);
+  const mentionedUrlsRef = useRef<string[]>([]);
+
+  const patch = useCallback((k: string, v: unknown) => {
+    data.onChange?.({ [k]: v });
+  }, [data]);
+
+  const handleGenerate = () => {
+    if (genRunningRef.current || !prompt.trim()) return;
+    genRunningRef.current = true;
+    setGenRunning(true);
+    patch('prompt', prompt);
+    Promise.resolve(data.onGenerate?.()).finally(() => {
+      genRunningRef.current = false;
+      setGenRunning(false);
+    });
+  };
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {/* Card wrapper — handles position relative to this, NOT the full node */}
-      <div style={{ position: 'relative' }}>
+      {/* Card wrapper */}
+      <div style={{ position: 'relative' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>TEXT</div>
-        {/* Ports — centered on both sides */}
+
         <Handle type="target" position={Position.Left} id="refs-in"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
+            left: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -54,7 +85,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
+            right: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -78,106 +109,186 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               ? '0 0 28px rgba(180,180,185,0.2)'
               : selected ? '0 0 20px rgba(180,180,185,0.08)' : 'var(--tap-shadow-sm)',
           padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-      }}>
-        {/* Title */}
-        <input
-          value={data.title || ''}
-          onChange={e => { data.onChange?.({ title: e.target.value }); }}
-          placeholder="分镜标题…"
-          onPointerDownCapture={e => { e.stopPropagation() }}
-          onMouseDownCapture={e => { e.stopPropagation() }}
-          style={{
-            fontSize: 'var(--tap-fs-h2)', fontWeight: 600,
-            color: 'var(--tap-text-1)', background: 'transparent',
-            border: 'none', outline: 'none', width: '100%',
-          }}
-        />
-
-        {/* Content area — no nested box, text directly in card */}
-        <div style={{
-          minHeight: '100px',
-          fontSize: 'var(--tap-fs-body)',
-          color: shot.intent_cn ? 'var(--tap-text-1)' : 'var(--tap-text-4)',
-          lineHeight: 1.8,
-          whiteSpace: 'pre-wrap',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}>
-          {shot.intent_cn || ''}
+          {/* Title */}
+          <input
+            value={data.title || ''}
+            onChange={e => { data.onChange?.({ title: e.target.value }); }}
+            placeholder="标题…"
+            onPointerDownCapture={e => { e.stopPropagation() }}
+            onMouseDownCapture={e => { e.stopPropagation() }}
+            style={{
+              fontSize: 'var(--tap-fs-h2)', fontWeight: 600,
+              color: 'var(--tap-text-1)', background: 'transparent',
+              border: 'none', outline: 'none', width: '100%',
+            }}
+          />
+
+          {/* Content — Agent output area */}
+          {genRunning ? (
+            <div style={{
+              minHeight: '80px', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}>
+              <div style={{
+                width: '24px', height: '24px', borderRadius: '50%',
+                border: '2px solid rgba(255,255,255,0.1)',
+                borderTopColor: 'var(--tap-accent)',
+                animation: 'tap-spin 0.8s linear infinite',
+              }} />
+              <div style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-4)' }}>
+                Agent 分析中…
+              </div>
+            </div>
+          ) : (shot.intent_cn || (gen.compiledPromptCn as string) || gen.compiledPrompt) ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: 600,
+                  color: 'var(--tap-accent)',
+                  background: 'rgba(74,158,255,0.12)',
+                  padding: '2px 8px', borderRadius: 'var(--tap-r-full)',
+                }}>
+                  {shot.intent_cn ? '分镜解析' : '提示词生成'}
+                </span>
+              </div>
+              <div
+                onPointerDownCapture={e => e.stopPropagation()}
+                onMouseDownCapture={e => e.stopPropagation()}
+                style={{
+                  maxHeight: '200px', overflowY: 'auto',
+                  fontSize: 'var(--tap-fs-body)',
+                  color: 'var(--tap-text-1)', lineHeight: 1.8,
+                  whiteSpace: 'pre-wrap', userSelect: 'text',
+                  cursor: 'text',
+                }}>
+                {shot.intent_cn || (gen.compiledPromptCn as string) || (gen.compiledPrompt as string)}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              minHeight: '80px', fontSize: 'var(--tap-fs-body)',
+              color: 'var(--tap-text-4)', lineHeight: 1.8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              输入需求，Agent 自动分析并输出文本
+            </div>
+          )}
         </div>
       </div>
-      </div>
 
-      {/* ── Bottom Prompt Panel (absolute, no hitbox impact) ── */}
+      {/* ── Bottom Prompt Panel ── */}
       {selected && !data.multiSelect && (
         <div
+          ref={panelRef}
           onContextMenu={e => e.stopPropagation()}
           onDoubleClick={e => e.stopPropagation()}
           style={{
-          position: 'absolute',
-          top: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '280px',
-          marginTop: '10px',
-          zIndex: 50,
-          animation: 'tap-fade-in 50ms var(--tap-ease)',
-        }}>
-        <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          borderRadius: 'var(--tap-r-xl)',
-          overflow: 'hidden',
-        }}>
-          <div style={{padding:'8px 12px 0'}}><RefStrip nodeId={id} refUrls={(data as any).refUrls} /></div>
-          <textarea
-            value={scriptInput}
-            onChange={e => { const v=e.target.value; setScriptInput(v); detectMention(v, e.target.selectionStart||0); }}
-            onPointerDownCapture={e => { e.stopPropagation() }}
-            onMouseDownCapture={e => { e.stopPropagation() }}
-            placeholder="在此粘贴剧本或场景描述，大模型将自动解析并转换为分镜…"
-            maxLength={5000}
-            rows={4}
-            style={{
-              width: '100%', background: 'transparent', border: 'none',
-              padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
-              color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
-              lineHeight: 1.5,
-            }}
-          />
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '280px',
+            marginTop: '10px',
+            zIndex: 50,
+            animation: 'tap-fade-in 50ms var(--tap-ease)',
           }}>
-            <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-              剧本 → 分镜转换
-            </span>
-{showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:120,left:'50vw',transform:'translateX(-50%)',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setScriptInput(insertMention(m,scriptInput));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}
-            <button
-              onClick={() => {
-                const words = scriptInput.trim();
-                if (!words) return;
-                const storyboard = `🎬 分镜 1：${words.slice(0, 60)}${words.length > 60 ? '...' : ''}\n\n景别：中景 | 运镜：推 | 打光：侧光\n\n画面描述：${words}`;
-                data.onChange?.({ shot: { ...shot, intent_cn: storyboard } });
-                setScriptInput('');
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 'var(--tap-r-xl)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '8px 12px 0' }}><RefStrip nodeId={id} refUrls={data.refUrls} /></div>
+            <textarea
+              value={prompt}
+              onChange={e => {
+                const v = e.target.value;
+                setPrompt(v);
+                detectMention(v, e.target.selectionStart || 0);
               }}
+              onPointerDownCapture={e => { e.stopPropagation() }}
+              onMouseDownCapture={e => { e.stopPropagation() }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
+              placeholder="输入需求或场景描述…"
+              maxLength={5000}
+              rows={4}
               style={{
-                padding: '5px 14px', borderRadius: 'var(--tap-r-sm)',
-                background: scriptInput.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.06)',
-                color: scriptInput.trim() ? '#fff' : 'var(--tap-text-4)',
-                fontSize: 'var(--tap-fs-meta)', fontWeight: 500,
-                border: 'none', cursor: 'pointer',
-                transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                width: '100%', background: 'transparent', border: 'none',
+                padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
+                color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
+                lineHeight: 1.5,
               }}
-              onMouseEnter={e => { if (scriptInput.trim()) e.currentTarget.style.opacity = '0.85'; }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-            >
-              转换为分镜
-            </button>
+            />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
+                Agent 自动路由
+              </span>
+              {showMention && mentionList.length > 0 && createPortal(
+                <div onMouseDown={e => e.preventDefault()} style={{
+                  position: 'fixed',
+                  bottom: panelRef.current ? window.innerHeight - panelRef.current.getBoundingClientRect().top + 4 : 200,
+                  left: panelRef.current ? panelRef.current.getBoundingClientRect().left : '25vw',
+                  width: 360, background: 'var(--tap-panel)',
+                  border: '1px solid var(--tap-border)', borderRadius: 'var(--tap-r-lg)',
+                  padding: '8px', zIndex: 99999, maxHeight: '180px', overflowY: 'auto',
+                  boxShadow: 'var(--tap-shadow-lg)',
+                }}>
+                  <div style={{ fontSize: 10, color: 'var(--tap-text-4)', padding: '2px 6px' }}>选择参考图</div>
+                  {mentionList.map((m, i) => (
+                    <div key={i} onClick={() => {
+                      setPrompt(insertMention(m, prompt));
+                      if (!mentionedUrlsRef.current.includes(m.url)) {
+                        mentionedUrlsRef.current.push(m.url);
+                        patch('referenceUrls', [...mentionedUrlsRef.current]);
+                      }
+                      setShowMention(false);
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--tap-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 6, borderRadius: 'var(--tap-r-sm)', cursor: 'pointer', background: 'transparent' }}>
+                      <img src={m.url} style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover' }} />
+                      <div><div style={{ fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)', fontWeight: 500 }}>{m.name}</div></div>
+                    </div>
+                  ))}
+                </div>,
+                document.body
+              )}
+              <button
+                onClick={handleGenerate}
+                disabled={genRunning}
+                style={{
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  background: genRunning ? 'var(--tap-warning)' : prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)',
+                  color: (genRunning || prompt.trim()) ? '#fff' : 'var(--tap-text-4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: '13px',
+                  cursor: genRunning ? 'wait' : 'pointer', border: 'none',
+                  flexShrink: 0,
+                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                  animation: genRunning ? 'tap-pulse-glow 1.5s var(--tap-ease) infinite' : 'none',
+                }}
+                onMouseEnter={e => { if (!genRunning) e.currentTarget.style.transform = 'scale(1.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                {genRunning ? '⏳' : '↑'}
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       )}
     </div>

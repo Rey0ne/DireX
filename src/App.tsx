@@ -19,8 +19,9 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from './store/useCanvasStore';
+import type { CanvasNode, NodeType } from './types/graph';
 import { loadFromDB, startAutoSave, saveNow } from './store/persistence';
-import { generateWithAgent, mapModelNameToProviderId } from './api/gateway';
+import { generateWithAgent, analyzeText, mapModelNameToProviderId } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
@@ -28,7 +29,7 @@ import type { ToolMode } from './components/LeftToolbar';
 import { ProjectSelector } from './components/ProjectSelector';
 import { AgentPanel } from './components/AgentPanel';
 import { AgentToggleButton } from './components/AgentToggleButton';
-import { CropTool, InpaintTool, RelightTool, MultiAngleTool } from './components/ImageTools';
+import { InpaintTool, RelightTool, MultiAngleTool } from './components/ImageTools';
 import { FullscreenImage } from './components/FullscreenImage';
 import { ZoomSlider } from './components/ZoomSlider';
 import { ShotNode } from './components/nodes/ShotNode';
@@ -89,6 +90,13 @@ function closestAspect(ratio: number): string {
 }
 
 // ─── CanvasWorkspace (only rendered when project selected) ──
+function getNodeProviderId(store: ReturnType<typeof useCanvasStore.getState>, nodeId: string | null): string {
+  if (!nodeId) return 'gpt-image2';
+  const node = store.nodes.get(nodeId);
+  const model = ((node?.meta?.gen as any)?.model) || 'GPT Image2';
+  return mapModelNameToProviderId(model);
+}
+
 function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   // Demo expiration — only in production builds (Vite define injects __BUILD_TIME__)
   // @ts-ignore
@@ -120,6 +128,84 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Custom selection box (ReactFlow's built-in one is buggy)
   const [customBox, setCustomBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  // ─── Clipboard (copy/paste) ──
+  const clipboardRef = useRef<{ nodes: Array<{ type: string; title: string; pos: { x: number; y: number }; meta: Record<string, unknown> }>; edges: Array<{ fromIdx: number; toIdx: number; fromPort: string; toPort: string }>; minX: number; minY: number } | null>(null);
+  const pasteOffsetRef = useRef(0);
+
+  const handleCopy = useCallback(() => {
+    const store = useCanvasStore.getState();
+    const selectedIds = store.selectedNodeIds;
+    if (selectedIds.length === 0) return;
+    const nodeList = selectedIds.map(id => store.nodes.get(id)).filter(Boolean) as CanvasNode[];
+    if (nodeList.length === 0) return;
+    // Find min position for offset calculation
+    let minX = Infinity, minY = Infinity;
+    const nodeData = nodeList.map(n => {
+      if (n.pos.x < minX) minX = n.pos.x;
+      if (n.pos.y < minY) minY = n.pos.y;
+      return { type: n.type, title: n.title, pos: { ...n.pos }, meta: JSON.parse(JSON.stringify(n.meta)) };
+    });
+    // Copy edges between selected nodes
+    const edgeList: Array<{ fromIdx: number; toIdx: number; fromPort: string; toPort: string }> = [];
+    const edgeEntries = Array.from(store.edges.values());
+    edgeEntries.forEach(e => {
+      const fromIdx = selectedIds.indexOf(e.from.nodeId);
+      const toIdx = selectedIds.indexOf(e.to.nodeId);
+      if (fromIdx >= 0 && toIdx >= 0) {
+        edgeList.push({ fromIdx, toIdx, fromPort: e.from.portId, toPort: e.to.portId });
+      }
+    });
+    clipboardRef.current = { nodes: nodeData, edges: edgeList, minX, minY };
+    pasteOffsetRef.current = 0;
+    console.log('[copy] Copied', nodeList.length, 'nodes,', edgeList.length, 'edges');
+  }, []);
+
+  const handlePaste = useCallback(() => {
+    const cb = clipboardRef.current;
+    if (!cb || cb.nodes.length === 0) return;
+    const store = useCanvasStore.getState();
+    const offset = 60 + pasteOffsetRef.current * 40;
+    pasteOffsetRef.current++;
+    // Create new nodes
+    const newIds: string[] = [];
+    const baseX = cb.minX + offset;
+    const baseY = cb.minY + offset;
+    cb.nodes.forEach(n => {
+      const newPos = { x: n.pos.x - cb.minX + baseX, y: n.pos.y - cb.minY + baseY };
+      const id = addNode(n.type as NodeType, newPos, n.title + ' 复制');
+      store.updateNode(id, { meta: n.meta });
+      newIds.push(id);
+    });
+    // Recreate internal edges
+    cb.edges.forEach(e => {
+      if (e.fromIdx < newIds.length && e.toIdx < newIds.length) {
+        addEdge(
+          { nodeId: newIds[e.fromIdx], portId: e.fromPort },
+          { nodeId: newIds[e.toIdx], portId: e.toPort },
+        );
+      }
+    });
+    store.setSelectedNodes(newIds);
+    store.triggerSync();
+    console.log('[paste] Pasted', newIds.length, 'nodes');
+  }, [addNode, addEdge]);
+
+  // ─── Node grouping ──
+  const handleGroup = useCallback(() => {
+    const store = useCanvasStore.getState();
+    const selectedIds = store.selectedNodeIds;
+    if (selectedIds.length < 2) return;
+    const groupId = 'group-' + Date.now();
+    selectedIds.forEach(nid => {
+      const node = store.nodes.get(nid);
+      if (node) {
+        store.updateNode(nid, { meta: { ...node.meta, groupId } });
+      }
+    });
+    store.triggerSync();
+    console.log('[group] Grouped', selectedIds.length, 'nodes as', groupId);
+  }, []);
   const boxRef = useRef({ sx: 0, sy: 0, on: false });
 
   useEffect(() => {
@@ -158,11 +244,13 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [hasAgentSuggestion, setHasAgentSuggestion] = useState(false);
   const [activeImageTool, setActiveImageTool] = useState<string | null>(null);
+  const [activeToolNodeId, setActiveToolNodeId] = useState<string | null>(null);
   const [fullscreenImg, setFullscreenImg] = useState<{ url: string; prompt: string; model: string; aspect: string; quality: string } | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [connectMenu, setConnectMenu] = useState<{ x: number; y: number; flowX: number; flowY: number; sourceNodeId: string; sourcePortId: string } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectTargetId, setConnectTargetId] = useState<string | null>(null);
+  const [cropNodeId, setCropNodeId] = useState<string | null>(null);
 
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
@@ -203,10 +291,22 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     prevNodeIdsRef.current = nodeList.map(n => n.id).sort().join(',');
     prevEdgeIdsRef.current = edgeList.map(e => e.id).sort().join(',');
     syncTickRef.current = currentTick;
+    // Pre-compute refUrls map (O(N+E) instead of O(N*E))
+    const refUrlsMap = new Map<string, string[]>();
+    nodeList.forEach(n => refUrlsMap.set(n.id, []));
+    edgeList.forEach(e => {
+      const src = nodeList.find(sn => sn.id === e.from.nodeId);
+      const u = (src?.meta?.gen as any)?.imageUrl;
+      if (u) {
+        const arr = refUrlsMap.get(e.to.nodeId);
+        if (arr && !arr.includes(u)) arr.push(u);
+      }
+    });
+
     setRfNodes(prevNodes => {
       const prevPos = new Map(prevNodes.map(n => [n.id, n.position]));
-      const prevSel = new Map(prevNodes.map(n => [n.id, n.selected]));
       const storeSel = new Set(useCanvasStore.getState().selectedNodeIds);
+      const pendingConn = useCanvasStore.getState().pendingConnection;
       return nodeList.map(n => ({
         id: n.id, type: n.type,
         position: prevPos.get(n.id) || n.pos,
@@ -219,26 +319,21 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           videoUrl: (n.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
           status: n.status,
           isConnecting,
-          isPickMode: useCanvasStore.getState().pendingConnection !== null,
-          isPickTarget: n.id === useCanvasStore.getState().pendingConnection,
+          isPickMode: pendingConn !== null,
+          isPickTarget: n.id === pendingConn,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
-          refUrls: (() => {
-            const urls: string[] = [];
-            edgeList.forEach(e => {
-              if (e.to.nodeId === n.id) {
-                const src = nodeList.find(sn => sn.id === e.from.nodeId);
-                const u = (src?.meta?.gen as any)?.imageUrl;
-                if (u && !urls.includes(u)) urls.push(u);
-              }
-            });
-            return urls.slice(0, 20);
-          })(),
+          refUrls: refUrlsMap.get(n.id)?.slice(0, 20) || [],
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) {
               const gen = (current.meta?.gen || {}) as Record<string, unknown>;
               useCanvasStore.getState().updateNode(n.id, { meta: { ...current.meta, gen: { ...gen, ...patch } } });
             }
+          },
+          onOpenTool: (toolName: string) => {
+            setActiveToolNodeId(n.id);
+            setActiveImageTool(toolName);
+            setToolMode(toolName as any);
           },
           onFullscreen: (url: string, prompt: string, model: string, aspect: string, quality: string) => {
             setFullscreenImg({ url, prompt, model, aspect, quality });
@@ -250,49 +345,116 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
             if (!meta?.prompt) return;
             store.setNodeStatus(n.id, 'running');
 
-            const modelName = (meta.model as string) || 'GPT Image2';
-            const isI2I = modelName.includes('I2I');
-
-            // Collect original prompts for reference images
-            const refUrls = meta.referenceUrls as string[] | undefined;
+            // Collect reference URLs from edges (same logic as data.refUrls)
+            const edgeRefUrls: string[] = [];
+            edgeList.forEach(e => {
+              if (e.to.nodeId === n.id) {
+                const src = nodeList.find(sn => sn.id === e.from.nodeId);
+                const u = (src?.meta?.gen as any)?.imageUrl;
+                if (u && !edgeRefUrls.includes(u)) edgeRefUrls.push(u);
+              }
+            });
+            const refUrls = edgeRefUrls.length > 0 ? edgeRefUrls : (meta.referenceUrls as string[] | undefined);
             let refPrompts: string[] | undefined;
             if (refUrls && refUrls.length > 0) {
               refPrompts = [];
-              const store = useCanvasStore.getState();
+              const store2 = useCanvasStore.getState();
               refUrls.forEach(url => {
-                store.nodes.forEach(n => {
-                  const imgUrl = (n.meta?.gen as any)?.imageUrl;
-                  const prompt = (n.meta?.gen as any)?.prompt || (n.meta?.gen as any)?.compiledPrompt || '';
+                store2.nodes.forEach(n2 => {
+                  const imgUrl = (n2.meta?.gen as any)?.imageUrl;
+                  const prompt = (n2.meta?.gen as any)?.prompt || (n2.meta?.gen as any)?.compiledPrompt || '';
                   if (imgUrl === url && prompt) refPrompts!.push(prompt);
                 });
               });
             }
 
-            const agentResult = await generateWithAgent({
-              providerId: mapModelNameToProviderId(modelName),
-              mode: isI2I ? 'image-to-image' : 'text-to-image',
-              rawText: (meta.prompt as string) || '',
-              aspect: meta.aspect as string | undefined,
-              resolution: meta.resolution as string || '2K',
-              referenceImage: meta.imageUrl as string | undefined,
-              referenceUrls: refUrls,
-              referencePrompts: refPrompts,
-              styleImageUrl: meta.styleImageUrl as string | undefined,
-            } as any);
+            // ── Route: TEXT node → fast text pipeline, others → full image pipeline ──
+            const isTextNode = n.type === 'shot';
+            console.log('[onGenerate] nodeType:', n.type, 'isTextNode:', isTextNode, 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length);
+            const agentResult = isTextNode
+              ? await analyzeText({
+                  providerId: 'text',
+                  mode: 'text-analysis' as any,
+                  rawText: (meta.prompt as string) || '',
+                  referenceUrls: refUrls,
+                  referencePrompts: refPrompts,
+                } as any)
+              : await generateWithAgent({
+                  providerId: mapModelNameToProviderId((meta.model as string) || 'GPT Image2'),
+                  mode: (meta.model as string || '').includes('I2I') ? 'image-to-image' : 'text-to-image',
+                  rawText: (meta.prompt as string) || '',
+                  aspect: meta.aspect as string | undefined,
+                  resolution: meta.resolution as string || '2K',
+                  referenceImage: meta.imageUrl as string | undefined,
+                  referenceUrls: refUrls,
+                  referencePrompts: refPrompts,
+                  styleImageUrl: meta.styleImageUrl as string | undefined,
+                } as any);
 
             const result = agentResult.result;
             if (result.success) {
               store.setNodeStatus(n.id, 'succeeded');
+              const compiledEn = agentResult.compiled?.en || '';
+              const compiledCn = agentResult.compiled?.cn || '';
+              const genPatch: Record<string, unknown> = { compiledPrompt: compiledEn, compiledPromptCn: compiledCn };
               if (result.assetUrls.length > 0) {
-                const compiledEn = agentResult.compiled?.en || '';
-                store.updateNode(n.id, {
-                  meta: { ...node!.meta, gen: { ...meta, imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls, compiledPrompt: compiledEn } },
-                });
+                Object.assign(genPatch, { imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls });
               }
+              store.updateNode(n.id, {
+                meta: { ...node!.meta, gen: { ...meta, ...genPatch } },
+              });
               store.triggerSync();
             } else {
               store.setNodeStatus(n.id, 'failed');
             }
+          },
+          // ── Crop callbacks ──
+          isCropping: cropNodeId === n.id,
+          onCropStart: () => {
+            console.log('[App] onCropStart called for node:', n.id);
+            setCropNodeId(n.id);
+            setToolMode('crop');
+          },
+          onCropApply: (croppedDataUrl: string, cropW: number, cropH: number) => {
+            console.log('[App] onCropApply called, dataUrl length:', croppedDataUrl?.length, 'size:', cropW, 'x', cropH);
+            const store2 = useCanvasStore.getState();
+            const currentNode = store2.nodes.get(n.id);
+            const currentGen = (currentNode?.meta?.gen || {}) as Record<string, unknown>;
+            const newTitle = (n.title || 'IMAGE') + ' 裁切';
+            const newX = (currentNode?.pos?.x || 0) + (currentNode?.size?.w || 380) + 60;
+            const newY = (currentNode?.pos?.y || 0);
+            // Calculate aspect ratio from actual cropped dimensions
+            const cropRatio = cropW / cropH;
+            const cropAspect = closestAspect(cropRatio);
+            console.log('[App] crop aspect:', cropAspect, 'from', cropW, 'x', cropH, 'ratio:', cropRatio);
+            const newId = addNode('image.generate', { x: newX, y: newY }, newTitle);
+            useCanvasStore.getState().updateNode(newId, {
+              meta: {
+                gen: {
+                  prompt: currentGen.prompt || '',
+                  negativePrompt: currentGen.negativePrompt || '',
+                  model: currentGen.model || 'GPT Image2',
+                  aspect: cropAspect,
+                  resolution: currentGen.resolution || '2K',
+                  quality: currentGen.quality || 'high',
+                  imageUrl: croppedDataUrl,
+                  resultAssetIds: [],
+                },
+              },
+            });
+            addEdge(
+              { nodeId: n.id, portId: 'image-out' },
+              { nodeId: newId, portId: 'image-in' },
+              'asset.image' as any,
+            );
+            useCanvasStore.getState().triggerSync();
+            useCanvasStore.getState().setSelectedNodes([newId]);
+            setCropNodeId(null);
+            setToolMode(null);
+          },
+          onCropCancel: () => {
+            setCropNodeId(null);
+            setToolMode(null);
           },
         },
       }));
@@ -321,6 +483,15 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       data: { ...n.data, isConnecting, isConnectTarget: isConnecting && n.id === connectTargetId, multiSelect, isPickMode: pendingConnection !== null, isPickTarget: n.id === pendingConnection }
     })));
   }, [isConnecting, connectTargetId, multiSelect, pendingConnection, setRfNodes]);
+
+  // ─── Sync crop state to ReactFlow nodes ──
+  useEffect(() => {
+    console.log('[App] crop sync effect: cropNodeId =', cropNodeId);
+    setRfNodes(prev => prev.map(n => ({
+      ...n,
+      data: { ...n.data, isCropping: n.id === cropNodeId },
+    })));
+  }, [cropNodeId, setRfNodes]);
 
   // ─── Agent suggestion simulation ────────────────
   useEffect(() => {
@@ -373,8 +544,30 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     })));
   }, [addEdge, setRfEdges]);
 
+  const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    const store = useCanvasStore.getState();
+    const existing = store.nodes.get(node.id);
+    if (!existing) return;
+    const groupId = (existing.meta as Record<string, unknown>)?.groupId as string | undefined;
+    if (!groupId) return;
+    // Move all nodes in the same group
+    const dx = node.position.x - existing.pos.x;
+    const dy = node.position.y - existing.pos.y;
+    store.nodes.forEach(n => {
+      const gid = (n.meta as Record<string, unknown>)?.groupId;
+      if (gid === groupId && n.id !== node.id) {
+        store.updateNode(n.id, { pos: { x: n.pos.x + dx, y: n.pos.y + dy } });
+      }
+    });
+  }, []);
+
   const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
-    useCanvasStore.getState().updateNode(node.id, { pos: node.position });
+    const store = useCanvasStore.getState();
+    const existing = store.nodes.get(node.id);
+    if (existing && (existing.pos.x !== node.position.x || existing.pos.y !== node.position.y)) {
+      store.pushHistory();
+    }
+    store.updateNode(node.id, { pos: node.position });
   }, []);
 
   // ─── Node hover during connection → target glow ──
@@ -421,6 +614,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     const store = useCanvasStore.getState();
     store.setSelectedNodes([]);
     store.setPendingConnection(null);
+    setCropNodeId(null);
     closeMenu();
   }, [closeMenu]);
 
@@ -437,7 +631,21 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'v' || e.key === 'V') { handleToolSelect('select'); return; }
-      if (e.key === 'c' || e.key === 'C') { handleToolSelect('crop'); return; }
+      if (e.key === 'c' || e.key === 'C') {
+        const store = useCanvasStore.getState();
+        const ids = store.selectedNodeIds;
+        if (ids.length === 1) {
+          const node = store.nodes.get(ids[0]);
+          const imgUrl = (node?.meta?.gen as any)?.imageUrl;
+          if (imgUrl && (node?.type === 'image.generate' || node?.type === 'image.editor')) {
+            e.preventDefault();
+            setCropNodeId(ids[0]);
+            setToolMode('crop');
+            return;
+          }
+        }
+        handleToolSelect('crop'); return;
+      }
       if (e.key === 'b' || e.key === 'B') { handleToolSelect('inpaint'); return; }
       if (e.key === 'l' || e.key === 'L') { handleToolSelect('relight'); return; }
       if (e.key === 'a' || e.key === 'A') { handleToolSelect('multiAngle'); return; }
@@ -455,12 +663,25 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         const ids = useCanvasStore.getState().selectedNodeIds;
         if (ids.length > 0) { ids.forEach(id => removeNode(id)); useCanvasStore.getState().setSelectedNodes([]); }
       }
-      if (e.key === 'Escape') { setMenu(null); setActiveImageTool(null); setToolMode(null); }
+      if (e.key === 'Escape') { setMenu(null); setActiveImageTool(null); setCropNodeId(null); setToolMode(null); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useCanvasStore.getState().undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        useCanvasStore.getState().redo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) { e.preventDefault(); handleCopy(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); handlePaste(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') { e.preventDefault(); handleGroup(); return; }
       if (e.key === '/') { e.preventDefault(); useCanvasStore.getState().toggleCommandPalette(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [addNode, removeNode, handleToolSelect, setToolMode]);
+  }, [addNode, removeNode, handleToolSelect, setToolMode, handleCopy, handlePaste, handleGroup]);
 
   if (isExpired) {
     return (
@@ -539,6 +760,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onPaneClick={onPaneClick}
         paneClickDistance={0}
@@ -703,6 +925,52 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
             addNode(type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d', { x: (window.innerWidth / 2 - vp.x) / vp.zoom - 190, y: (window.innerHeight / 2 - vp.y) / vp.zoom - 100 });
             useCanvasStore.getState().toggleCommandPalette();
           }}
+          onCommand={(cmd) => {
+            const store = useCanvasStore.getState();
+            const selectedIds = store.selectedNodeIds;
+            // For tool commands, open the tool with the selected node's image
+            if (['crop','inpaint','relight','multiAngle'].includes(cmd)) {
+              if (selectedIds.length === 1) {
+                const node = store.nodes.get(selectedIds[0]);
+                const imgUrl = (node?.meta?.gen as any)?.imageUrl;
+                if (imgUrl && (node?.type === 'image.generate' || node?.type === 'image.editor')) {
+                  setActiveToolNodeId(selectedIds[0]);
+                  setActiveImageTool(cmd);
+                  setToolMode(cmd as any);
+                }
+              }
+            } else if (cmd === 'compile') {
+              if (selectedIds.length > 0) {
+                // Trigger Agent compile for selected shot node
+                const node = store.nodes.get(selectedIds[0]);
+                if (node) {
+                  setIsAgentOpen(true);
+                }
+              }
+            } else if (cmd === 'autoLayout') {
+              // Simple grid layout
+              const nodeArr = Array.from(store.nodes.values());
+              const cols = Math.ceil(Math.sqrt(nodeArr.length));
+              nodeArr.forEach((n, i) => {
+                store.updateNode(n.id, {
+                  pos: { x: 100 + (i % cols) * 420, y: 100 + Math.floor(i / cols) * 280 },
+                });
+              });
+              store.triggerSync();
+            } else if (cmd === 'export') {
+              // Export selected nodes info as JSON
+              const exportData = selectedIds.map(id => {
+                const n = store.nodes.get(id);
+                return n ? { id: n.id, type: n.type, title: n.title, meta: n.meta } : null;
+              }).filter(Boolean);
+              const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'tapnow-export-' + Date.now() + '.json';
+              a.click();
+            }
+            useCanvasStore.getState().toggleCommandPalette();
+          }}
           onClose={() => useCanvasStore.getState().toggleCommandPalette()}
         />
       )}
@@ -712,13 +980,71 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         onClick={() => { setIsAgentOpen(!isAgentOpen); if (!isAgentOpen) setHasAgentSuggestion(false); }}
         hasSuggestion={hasAgentSuggestion}
       />
-      <AgentPanel isOpen={isAgentOpen} onClose={() => setIsAgentOpen(false)} />
+      <AgentPanel isOpen={isAgentOpen} onClose={() => setIsAgentOpen(false)} onAddNode={addNode} />
 
       {/* ── Image Tool Modals ── */}
-      {activeImageTool === 'crop' && <CropTool imageUrl={undefined} onApply={(r) => { console.log('Crop:', r); setActiveImageTool(null); setToolMode(null); }} onClose={() => { setActiveImageTool(null); setToolMode(null); }} />}
-      {activeImageTool === 'inpaint' && <InpaintTool imageUrl={undefined} onApply={(r) => { console.log('Inpaint:', r); setActiveImageTool(null); setToolMode(null); }} onClose={() => { setActiveImageTool(null); setToolMode(null); }} />}
-      {activeImageTool === 'relight' && <RelightTool imageUrl={undefined} onApply={(r) => { console.log('Relight:', r); setActiveImageTool(null); setToolMode(null); }} onClose={() => { setActiveImageTool(null); setToolMode(null); }} />}
-      {activeImageTool === 'multiAngle' && <MultiAngleTool imageUrl={undefined} onApply={(r) => { console.log('MultiAngle:', r); setActiveImageTool(null); setToolMode(null); }} onClose={() => { setActiveImageTool(null); setToolMode(null); }} />}
+      {(() => {
+        const store = useCanvasStore.getState();
+        const toolNode = activeToolNodeId ? store.nodes.get(activeToolNodeId) : null;
+        const imgUrl = (toolNode?.meta?.gen as any)?.imageUrl || undefined;
+        const closeTool = () => { setActiveImageTool(null); setActiveToolNodeId(null); setToolMode(null); };
+        const applyTool = async (result: Record<string, unknown>) => {
+          const node = activeToolNodeId ? store.nodes.get(activeToolNodeId) : null;
+          if (!node) return;
+          const gen = (node.meta?.gen || {}) as Record<string, unknown>;
+          const nTitle = (node.title || 'IMAGE') + '';
+          const nX = (node.pos?.x || 0) + (node.size?.w || 380) + 60;
+          const nY = (node.pos?.y || 0);
+          const newId = addNode('image.generate', { x: nX, y: nY }, nTitle + ' ' + (result.tool || 'edit'));
+          store.updateNode(newId, {
+            meta: { gen: { ...gen, prompt: gen.prompt || '', imageUrl: result.imageUrl || imgUrl, resultAssetIds: result.imageUrl ? [result.imageUrl] : [] } },
+          });
+          if (result.imageUrl) {
+            addEdge({ nodeId: activeToolNodeId!, portId: 'image-out' }, { nodeId: newId, portId: 'image-in' }, 'asset.image' as any);
+            store.triggerSync();
+            store.setSelectedNodes([newId]);
+          }
+          closeTool();
+        };
+        return (
+          <>
+            {activeImageTool === 'inpaint' && <InpaintTool imageUrl={imgUrl} onApply={async (r) => {
+              const rObj = r as Record<string,unknown>;
+              const prompt = (rObj.prompt as string) || 'inpaint repair restore';
+              const action = (rObj.action as string) || 'replace-mask';
+              const fullPrompt = `Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. ${prompt}`;
+              try {
+                const maskUrl = (rObj.maskUrl as string) || undefined;
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl, maskImage: maskUrl } as any);
+                applyTool({ ...rObj, tool: 'inpaint', imageUrl: result.result.assetUrls?.[0] });
+              } catch(e) { closeTool(); }
+            }} onClose={closeTool} />}
+            {activeImageTool === 'relight' && <RelightTool imageUrl={imgUrl} onApply={async (r) => {
+              const rObj = r as Record<string,unknown>;
+              const horizAngle = rObj.horizAngle || 45;
+              const vertAngle = rObj.vertAngle || 45;
+              const distance = rObj.distance || 60;
+              const colorTemp = rObj.colorTemp || 'neutral';
+              const userPrompt = (rObj.prompt as string) || '';
+              const ctemp = colorTemp === 'warm' ? 'warm' : colorTemp === 'cool' ? 'cool' : 'neutral';
+              const fullPrompt = userPrompt || `relight: horizontal ${horizAngle}°, vertical ${vertAngle}°, distance ${distance}%, ${ctemp} tone`;
+              try {
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl } as any);
+                applyTool({ ...rObj, tool: 'relight', imageUrl: result.result.assetUrls?.[0] });
+              } catch(e) { closeTool(); }
+            }} onClose={closeTool} />}
+            {activeImageTool === 'multiAngle' && <MultiAngleTool imageUrl={imgUrl} onApply={async (r) => {
+              const { angles, count } = r as any;
+              const angleList = (angles || ['front']).join(', ');
+              const prompt = `generate ${count || 1} views from angles: ${angleList}, maintain subject consistency`;
+              try {
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: prompt, referenceImage: imgUrl } as any);
+                applyTool({ ...(r as Record<string,unknown>), tool: 'multiAngle', imageUrl: result.result.assetUrls?.[0] });
+              } catch(e) { closeTool(); }
+            }} onClose={closeTool} />}
+          </>
+        );
+      })()}
 
     </div>
   );

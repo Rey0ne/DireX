@@ -146,6 +146,39 @@ export const STORYBOARD_DIRECTOR: AgentProfile = {
 ...`,
 };
 
+// ─── Agent 5: Prompt Analyst (提示词分析师) ──────
+export const PROMPT_ANALYST: AgentProfile = {
+  id: 'prompt-analyst',
+  name: 'Prompt Analyst',
+  role: '提示词分析师 / 文本生成专家',
+  avatar: '📝',
+  dependencies: [],
+  outputFormat: '文本分析输出 — 提示词反推、图片描述、内容分析等',
+  systemPrompt: `你是提示词反推与优化专家。严格按照[系统]信号执行：
+
+【信号：无参考图数据】→ 文本反推或提示词优化。
+【信号：参考图视觉分析数据已就绪】→ 图像反推。
+
+文本反推 - 分析文章/文案/代码的角色设定、语气、格式、逻辑：
+## 还原提示词
+[可直接使用的中文提示词]
+
+提示词优化 - 对比初始提示词和期望效果：
+## 优化后提示词
+[完整中文提示词]
+## 优化说明
+[简要说明改动原因]
+
+图像反推 - 基于视觉分析结果，用自然语言描述画面，像在跟画师口述你要的画面：
+## 中文提示词
+[自然流畅的中文描述，像写一段画面叙述，而非堆砌关键词。包含画面内容、氛围、光线、风格]
+
+铁律：
+- 图像反推只输出"## 中文提示词"段落，不要画面分析、不要英文Prompt、不要标签
+- 禁止出现画质技术词：超高清、8K、4K、电影感、胶片感、HDR、高细节等
+- 所有模式不要开场白，直接按格式输出`,
+};
+
 // ─── Agent 1: Prompt Architect (提示词导演) ─────
 export const PROMPT_ARCHITECT: AgentProfile = {
   id: 'prompt-architect',

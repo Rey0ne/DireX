@@ -1,6 +1,6 @@
 /* === VideoGenerateNode — TapNow-style video generation === */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
@@ -21,9 +21,10 @@ interface VideoGenNodeData {
   isPickMode?: boolean;
   isPickTarget?: boolean;
   hasConnections?: boolean;
-  hasConnections?: boolean;
+  styleImageUrl?: string | null;
   onChange?: (patch: Partial<VideoGenMeta>) => void;
   onGenerate?: () => void;
+  onOpenTool?: (toolName: string) => void;
 }
 
 const MODEL_OPTIONS = [
@@ -35,8 +36,9 @@ const DURATION_OPTIONS = ['3s', '5s', '8s', '10s'];
 
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
+  const panelRef = useRef<HTMLDivElement>(null);
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention((data as any).refUrls, data.styleImageUrl);
-  const [hovered, setHovered] = useState(false);
+  const [hovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [currentModel, setCurrentModel] = useState(gen.model || 'Kling 2.1');
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '5s');
@@ -60,7 +62,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
+            left: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -69,7 +71,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
             border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
-            right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
+            right: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
           }}
@@ -84,10 +86,10 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           opacity: selected ? 1 : 0, pointerEvents: selected ? 'auto' : 'none',
           transition: `opacity var(--tap-dur-fast) var(--tap-ease)`,
         }}>
-          <ToolBtn icon="⊞" label="裁切" onClick={() => {}} />
-          <ToolBtn icon="⊿" label="多角度" onClick={() => {}} />
-          <ToolBtn icon="◐" label="重绘" onClick={() => {}} />
-          <ToolBtn icon="✦" label="打光" onClick={() => {}} />
+          <ToolBtn icon="crop-svg" label="裁切" onClick={() => data.onOpenTool?.('crop')} />
+          <ToolBtn icon="⊿" label="多角度" onClick={() => data.onOpenTool?.('multiAngle')} />
+          <ToolBtn icon="◐" label="重绘" onClick={() => data.onOpenTool?.('inpaint')} />
+          <ToolBtn icon="relight-svg" label="打光" onClick={() => data.onOpenTool?.('relight')} />
         </div>
 
         {/* Video Card */}
@@ -124,13 +126,13 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
       {/* Bottom panel (absolute, no hitbox impact) */}
       {selected && !data.multiSelect && (
-        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 'var(--tap-node-width)', marginTop: '10px', zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
+        <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 'var(--tap-node-width)', marginTop: '10px', zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
           <div style={{padding:'8px 12px 0'}}><RefStrip nodeId={id} refUrls={(data as any).refUrls} /></div>
           <textarea value={prompt} onChange={e => { const v=e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart||0); }}
             onPointerDownCapture={e => { e.stopPropagation() }} onMouseDownCapture={e => { e.stopPropagation() }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-            placeholder="描述你想要生成的视频… (Enter 发送)" maxLength={2000} rows={4}
+            placeholder=""maxLength={2000} rows={4}
             style={{ width: '100%', background: 'transparent', border: 'none', padding: '12px 14px', fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative' }}>
@@ -151,7 +153,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             {DURATION_OPTIONS.map(d => (
               <InlineChip key={d} label={d} active={currentDuration === d} onClick={() => { setCurrentDuration(d); patch('duration', d); }} />
             ))}
-{showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:120,left:'50vw',transform:'translateX(-50%)',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setPrompt(insertMention(m,prompt));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}<div style={{ flex: 1 }} />
+{showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:panelRef.current?window.innerHeight-panelRef.current.getBoundingClientRect().top+4:200,left:panelRef.current?panelRef.current.getBoundingClientRect().left:'25vw',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setPrompt(insertMention(m,prompt));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}<div style={{ flex: 1 }} />
             <button onClick={handleGenerate} style={{ width: '28px', height: '28px', borderRadius: '50%', background: prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)', color: prompt.trim() ? '#fff' : 'var(--tap-text-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px', cursor: 'pointer', border: 'none', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}>↑</button>
           </div>
@@ -164,8 +166,21 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
 function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string; active?: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
+  const fg = active || hover ? 'var(--tap-text-1)' : 'var(--tap-text-2)';
   return <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} title={label}
-    style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: active || hover ? 'var(--tap-text-1)' : 'var(--tap-text-2)', background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>{icon}</button>;
+    style={{ width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: fg, background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent', border: 'none', cursor: 'pointer', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>
+    {icon === 'crop-svg' ? (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+        <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+      </svg>
+    ) : icon === 'relight-svg' ? (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.1">
+        <circle cx="12" cy="13" r="7" />
+        <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
+      </svg>
+    ) : icon}
+  </button>;
 }
 
 function InlineChip({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {

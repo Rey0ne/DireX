@@ -114,6 +114,36 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
   }
 }
 
+// ─── Text analysis (single Agent, fast) ──
+export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
+  const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/text` : '/api/agent/text';
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getSharedApiKey()}`,
+      },
+      body: JSON.stringify(req),
+    });
+
+    if (!response.ok) {
+      return {
+        compiled: { en: '', cn: '', negative: '', debug: [] },
+        result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
+      };
+    }
+
+    return await response.json() as AgentGenerateResult;
+  } catch (err) {
+    return {
+      compiled: { en: '', cn: '', negative: '', debug: [] },
+      result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) },
+    };
+  }
+}
+
 // ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
 function getSharedApiKey(): string {
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';

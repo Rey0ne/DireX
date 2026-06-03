@@ -922,6 +922,149 @@
       ],
       "cost": 0.1,
       "durationMs": 60632
+    },
+    {
+      "id": "37b9310b-af3e-4472-8203-29a18e428c5d",
+      "timestamp": "2026-06-02T14:41:08.183Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic, hyper-realistic wide shot of a colossal, ancient rusted gear half-buried in a misty, overgrown forest at twilight. The scene is a \"Forgotten Mechanical Garden.\" A lone explorer, a tiny silhouette in a dark, wind-swept cloak, stands at the edge of the gear, looking down. A dramatic shaft of god rays (volumetric lighting) pierces through the canopy of twisted metal branches, illuminating the rusted orange and dark green textures of the gear and swirling mist. The atmosphere is sacred, eerie, and full of silent tension. In the deep shadows on the gear's surface, faint patches of bioluminescent cyan moss pulse with a subtle, organic light. Color palette: Rust Orange, Dark Green, Electric Cyan. Cinematic lighting with high contrast, inspired by Denis Villeneuve’s sense of scale and Roger Deakins’ natural light. Shot on ARRI Alexa 65 with Panavision anamorphic lenses, shallow depth of field, 8K resolution, film grain.",
+      "compiledPrompt": "A cinematic, hyper-realistic wide shot of a colossal, ancient rusted gear half-buried in a misty, overgrown forest at twilight. The scene is a \"Forgotten Mechanical Garden.\" A lone explorer, a tiny silhouette in a dark, wind-swept cloak, stands at the edge of the gear, looking down. A dramatic shaft of god rays (volumetric lighting) pierces through the canopy of twisted metal branches, illuminating the rusted orange and dark green textures of the gear and swirling mist. The atmosphere is sacred, eerie, and full of silent tension. In the deep shadows on the gear's surface, faint patches of bioluminescent cyan moss pulse with a subtle, organic light. Color palette: Rust Orange, Dark Green, Electric Cyan. Cinematic lighting with high contrast, inspired by Denis Villeneuve’s sense of scale and Roger Deakins’ natural light. Shot on ARRI Alexa 65 with Panavision anamorphic lenses, shallow depth of field, 8K resolution, film grain.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1780411264886-ldble7jmiqh.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 67148
+    },
+    {
+      "id": "f27055e1-f5ab-41fb-90ca-4910223d4d71",
+      "timestamp": "2026-06-02T14:42:28.145Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic, ultra-wide shot of a lone astronaut standing on the desolate, rust-colored surface of Mars, their back to the camera. The astronaut’s white, slightly worn spacesuit reflects the faint glow of a distant, blue-and-white Earth hanging in the deep purple twilight sky. The composition is inspired by Denis Villeneuve’s sense of scale and isolation, with the tiny figure placed in the lower left third of the frame, emphasizing the vast, empty landscape. The lighting is a mix of cold, blue motivated light from Earth and a warm, red ambient bounce from the Martian soil, creating a high-contrast, low-saturation mood. The ground is covered in fine, wind-sculpted dust and scattered, sharp-edged rocks. The atmosphere is one of profound solitude and quiet contemplation. The image should feel like a single, static frame from a slow-paced, meditative film, with a shallow depth of field that keeps the astronaut sharp while the background fades into a soft, volumetric haze of dust and twilight.",
+      "compiledPrompt": "A cinematic, ultra-wide shot of a lone astronaut standing on the desolate, rust-colored surface of Mars, their back to the camera. The astronaut’s white, slightly worn spacesuit reflects the faint glow of a distant, blue-and-white Earth hanging in the deep purple twilight sky. The composition is inspired by Denis Villeneuve’s sense of scale and isolation, with the tiny figure placed in the lower left third of the frame, emphasizing the vast, empty landscape. The lighting is a mix of cold, blue motivated light from Earth and a warm, red ambient bounce from the Martian soil, creating a high-contrast, low-saturation mood. The ground is covered in fine, wind-sculpted dust and scattered, sharp-edged rocks. The atmosphere is one of profound solitude and quiet contemplation. The image should feel like a single, static frame from a slow-paced, meditative film, with a shallow depth of field that keeps the astronaut sharp while the background fades into a soft, volumetric haze of dust and twilight.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/5adb1e4243a96df5249df0064b4c8bae_6044d1b6ed2c4a6099f28cf03f6aa0a5.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 144915
+    },
+    {
+      "id": "fcd12df1-ffe9-4878-8d59-59112d2d3dde",
+      "timestamp": "2026-06-02T14:46:35.319Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic, cyberpunk-noir establishing shot of a futuristic city at dusk. The atmosphere is thick with volumetric fog and light rain, creating a sense of oppressive solitude. The color palette is dominated by cold, desaturated teal and slate gray, punctuated by the sickly neon magenta and amber glow of holographic advertisements. The scene is captured with an anamorphic lens, producing strong lens flares and a shallow depth of field. The mood is one of melancholic isolation, reminiscent of Blade Runner and Ghost in the Shell. High contrast, gritty texture, cinematic lighting.",
+      "compiledPrompt": "A cinematic, cyberpunk-noir establishing shot of a futuristic city at dusk. The atmosphere is thick with volumetric fog and light rain, creating a sense of oppressive solitude. The color palette is dominated by cold, desaturated teal and slate gray, punctuated by the sickly neon magenta and amber glow of holographic advertisements. The scene is captured with an anamorphic lens, producing strong lens flares and a shallow depth of field. The mood is one of melancholic isolation, reminiscent of Blade Runner and Ghost in the Shell. High contrast, gritty texture, cinematic lighting.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/126879_0/800/600",
+        "https://picsum.photos/seed/126879_1/800/600",
+        "https://picsum.photos/seed/126879_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 6616
+    },
+    {
+      "id": "5e73a216-74e0-4c0e-8a6d-1abea6740a83",
+      "timestamp": "2026-06-02T14:49:15.141Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic, hyper-detailed establishing shot of a vast, dimly lit cathedral-like interior in a post-human era. The architecture is a fusion of organic, rusted metal vines and massive, brushed steel heat sinks, forming a symmetrical, womb-like chamber. At the very center, a single, irregular, translucent amber crystal, resembling a petrified egg or a giant piece of amber, floats silently. An extremely faint, pulsating teal-blue energy core glows from within the crystal's cracks, like a sleeping heartbeat. The scene is shrouded in deep indigo and dark teal shadows, with a single, god-ray-like beam of warm amber light illuminating the central crystal from above. The atmosphere is one of profound stillness, mystery, and sacred anticipation. The composition is perfectly symmetrical, emphasizing the scale and the solitude of the artifact. The camera is static, using an ultra-wide angle lens to capture the immense scale, with a very shallow depth of field, blurring the edges of the frame. The texture of the rusted metal is rough and flaking, while the crystal is smooth and cool to the touch. The overall mood is a blend of Denis Villeneuve's sense of monolithic scale and Roger Deakins' mastery of naturalistic, motivated lighting.",
+      "compiledPrompt": "A cinematic, hyper-detailed establishing shot of a vast, dimly lit cathedral-like interior in a post-human era. The architecture is a fusion of organic, rusted metal vines and massive, brushed steel heat sinks, forming a symmetrical, womb-like chamber. At the very center, a single, irregular, translucent amber crystal, resembling a petrified egg or a giant piece of amber, floats silently. An extremely faint, pulsating teal-blue energy core glows from within the crystal's cracks, like a sleeping heartbeat. The scene is shrouded in deep indigo and dark teal shadows, with a single, god-ray-like beam of warm amber light illuminating the central crystal from above. The atmosphere is one of profound stillness, mystery, and sacred anticipation. The composition is perfectly symmetrical, emphasizing the scale and the solitude of the artifact. The camera is static, using an ultra-wide angle lens to capture the immense scale, with a very shallow depth of field, blurring the edges of the frame. The texture of the rusted metal is rough and flaking, while the crystal is smooth and cool to the touch. The overall mood is a blend of Denis Villeneuve's sense of monolithic scale and Roger Deakins' mastery of naturalistic, motivated lighting.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 169316,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "8228f759-135d-4012-9b7d-af50453052d8",
+      "timestamp": "2026-06-02T14:51:20.839Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic medium shot of a lone explorer in a rain-drenched, dystopian cyberpunk city. The protagonist, wearing a worn焦橙色 (burnt orange) tactical jacket with a high collar, stands on the edge of a rusted metal platform. His back is to the camera, head slightly tilted, observing the abyss below. Raindrops bead on his jacket. He wears a tactical headset with a single, glowing electric-blue indicator light. The lighting is dramatic: a cold, blue and purple neon rim light from the city below sharply outlines his silhouette and the texture of his wet jacket, while his face remains in deep shadow. The background is a deep, foggy chasm filled with towering, pipe-ridden skyscrapers and flickering holographic advertisements. The atmosphere is one of isolation, tension, and mystery. Shot on a Panavision Millennium XL2 with a 50mm anamorphic lens at T2.8, creating a shallow depth of field that blurs the distant city lights into bokeh. The color palette is dominated by cool blues and purples, contrasted by the single warm orange of the jacket. The composition is rule of thirds, with the subject placed slightly off-center left, creating a sense of anticipation and leading the eye into the void he is observing.",
+      "compiledPrompt": "A cinematic medium shot of a lone explorer in a rain-drenched, dystopian cyberpunk city. The protagonist, wearing a worn焦橙色 (burnt orange) tactical jacket with a high collar, stands on the edge of a rusted metal platform. His back is to the camera, head slightly tilted, observing the abyss below. Raindrops bead on his jacket. He wears a tactical headset with a single, glowing electric-blue indicator light. The lighting is dramatic: a cold, blue and purple neon rim light from the city below sharply outlines his silhouette and the texture of his wet jacket, while his face remains in deep shadow. The background is a deep, foggy chasm filled with towering, pipe-ridden skyscrapers and flickering holographic advertisements. The atmosphere is one of isolation, tension, and mystery. Shot on a Panavision Millennium XL2 with a 50mm anamorphic lens at T2.8, creating a shallow depth of field that blurs the distant city lights into bokeh. The color palette is dominated by cool blues and purples, contrasted by the single warm orange of the jacket. The composition is rule of thirds, with the subject placed slightly off-center left, creating a sense of anticipation and leading the eye into the void he is observing.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1780411879866-jsxmdqu3a8.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 59668
+    },
+    {
+      "id": "1f463c77-9248-4bc9-9f6c-74dee20b05b2",
+      "timestamp": "2026-06-02T14:55:21.573Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic, photorealistic medium shot of a young woman in her late 20s, standing on a small balcony of a high-rise apartment in a futuristic East Asian megacity. It is a rainy night, May 27, 2026, 23:35:17. She is wearing a dark gray trench coat, her hair slightly wet from the mist. She is holding a smartphone in her right hand, the screen glowing softly, illuminating her silhouette. The background is a sprawling cityscape with neon lights and flying vehicles, all out of focus (shallow depth of field). The mood is contemplative, lonely, and melancholic. The camera is static, capturing the moment with a sense of stillness and isolation. The lighting is a mix of cool blue and warm orange neon, with a single cold white key light from the phone screen. The composition is centered, with the subject occupying the lower third of the frame, creating a sense of scale and solitude. The visual style is inspired by Denis Villeneuve’s minimalism and Roger Deakins’ naturalistic lighting. The image should feel like a frame from a slow-paced, atmospheric sci-fi drama.",
+      "compiledPrompt": "A cinematic, photorealistic medium shot of a young woman in her late 20s, standing on a small balcony of a high-rise apartment in a futuristic East Asian megacity. It is a rainy night, May 27, 2026, 23:35:17. She is wearing a dark gray trench coat, her hair slightly wet from the mist. She is holding a smartphone in her right hand, the screen glowing softly, illuminating her silhouette. The background is a sprawling cityscape with neon lights and flying vehicles, all out of focus (shallow depth of field). The mood is contemplative, lonely, and melancholic. The camera is static, capturing the moment with a sense of stillness and isolation. The lighting is a mix of cool blue and warm orange neon, with a single cold white key light from the phone screen. The composition is centered, with the subject occupying the lower third of the frame, creating a sense of scale and solitude. The visual style is inspired by Denis Villeneuve’s minimalism and Roger Deakins’ naturalistic lighting. The image should feel like a frame from a slow-paced, atmospheric sci-fi drama.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 173787,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "832bde87-7e32-4ebe-9b38-d86d25fe52dd",
+      "timestamp": "2026-06-02T15:01:05.584Z",
+      "providerId": "gpt-image2",
+      "prompt": "A cinematic establishing shot of a futuristic cyberpunk city at dusk, looking down a rain-slicked asphalt road that recedes into the distance. The sky is a gradient of deep violet and indigo, transitioning into night. On both sides, towering skyscrapers are covered in glowing neon signs in pink, cyan, and magenta, creating volumetric light and god rays that cut through the mist. A solitary figure in a long black trench coat stands in the foreground, back to the camera, their silhouette sharply outlined by the city’s edge light. The wet ground reflects the neon glow in long, distorted streaks, with patches of oil creating rainbow iridescence. In the background, a massive holographic advertisement flickers above the skyline. The atmosphere is moody, melancholic, and highly detailed. Photorealistic, 8k resolution, cinematic lighting, low angle looking up, symmetrical composition, steam rising from vents, East Asian cityscape elements, rain droplets on lens, shallow depth of field focusing on the figure’s silhouette.",
+      "compiledPrompt": "A cinematic establishing shot of a futuristic cyberpunk city at dusk, looking down a rain-slicked asphalt road that recedes into the distance. The sky is a gradient of deep violet and indigo, transitioning into night. On both sides, towering skyscrapers are covered in glowing neon signs in pink, cyan, and magenta, creating volumetric light and god rays that cut through the mist. A solitary figure in a long black trench coat stands in the foreground, back to the camera, their silhouette sharply outlined by the city’s edge light. The wet ground reflects the neon glow in long, distorted streaks, with patches of oil creating rainbow iridescence. In the background, a massive holographic advertisement flickers above the skyline. The atmosphere is moody, melancholic, and highly detailed. Photorealistic, 8k resolution, cinematic lighting, low angle looking up, symmetrical composition, steam rising from vents, East Asian cityscape elements, rain droplets on lens, shallow depth of field focusing on the figure’s silhouette.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1780412461802-nxqc69hmq1o.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 68096
+    },
+    {
+      "id": "751f45c0-d1e8-433b-8957-5523a4c9d2e6",
+      "timestamp": "2026-06-02T17:36:40.971Z",
+      "providerId": "nano-banana",
+      "prompt": "A cinematic close-up shot of a fluffy blue and white cat lying on a beige linen sofa in a warm, sunlit living room. The cat has a distinctive grey-blue vest-like pattern on its white fur, making it look like it's wearing a little waistcoat. It is playing with a light grey chunky wool ball. Backlit by golden hour sunlight streaming through a window at 4pm, creating strong volumetric light beams and visible dust particles in the air. Extremely shallow depth of field, focus on the cat's amber eyes and its soft paw reaching for the ball. Shot on ARRI Mini, 50mm lens, f/1.2 aperture. Warm color palette: golden amber, oatmeal beige, soft grey-blue. Film grain, subtle chromatic aberration. Cozy, intimate, photorealistic. The cat looks adorable and fluffy, every strand of fur is backlit and glowing.",
+      "compiledPrompt": "A cinematic close-up shot of a fluffy blue and white cat lying on a beige linen sofa in a warm, sunlit living room. The cat has a distinctive grey-blue vest-like pattern on its white fur, making it look like it's wearing a little waistcoat. It is playing with a light grey chunky wool ball. Backlit by golden hour sunlight streaming through a window at 4pm, creating strong volumetric light beams and visible dust particles in the air. Extremely shallow depth of field, focus on the cat's amber eyes and its soft paw reaching for the ball. Shot on ARRI Mini, 50mm lens, f/1.2 aperture. Warm color palette: golden amber, oatmeal beige, soft grey-blue. Film grain, subtle chromatic aberration. Cozy, intimate, photorealistic. The cat looks adorable and fluffy, every strand of fur is backlit and glowing.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1780421799195-q7dqfoajmxs.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 108793
+    },
+    {
+      "id": "f006f4d5-4415-4146-a9dd-a0f48af0eb8e",
+      "timestamp": "2026-06-03T11:04:01.942Z",
+      "providerId": "nano-banana",
+      "prompt": "A cinematic visual narrative of photo restoration, divided into 6 sequential shots. Shot 1: Extreme close-up of an old photograph's corner with visible crease and fading, warm nostalgic sepia tones, dust particles floating in a single beam of warm light, paper texture visible, shallow depth of field. Shot 2: A glowing banana-shaped stylus emitting soft cool white light enters frame from upper right, hovering 2cm above the crease, semi-transparent material with internal particle flow, contrast between cool repair light and warm background. Shot 3: Microscopic view of pixel blocks as semi-transparent colored squares, broken bridge at crease, liquid-like energy flowing from stylus tip precisely filling gaps, colors transitioning from desaturated to vibrant. Shot 4: Wide shot of restored photograph, stains erased like eraser marks, colors injected with life spreading outward, child's face becoming clear, background sea blue and sky clouds restored to vibrancy. Shot 5: Close-up of child's clear face after restoration, bright smile, clear eyes, golden accent light on cheek highlighting rebirth moment. Shot 6: Long shot of restored photo placed in vintage wooden frame, \"nano-banana\" logo and text \"inpaint repair restore\" appearing elegantly, soft diffused light, dust particles floating, atmosphere shifting from nostalgic to satisfying. Cinematic lighting: Rembrandt-inspired single source warm key light for nostalgic scenes, cool motivated lighting for repair tool, golden hour accent for rebirth. Color palette: desaturated warm sepia (faded memory warm) transitioning to vibrant natural colors, cool white (nano repair light) as contrast, golden (life injection point) as emphasis. Camera: ARRI Alexa 35 with Cooke S4/i primes, 50mm macro for ECU, 35mm for CU, 24mm for wide shots. Film grain added, subtle chromatic aberration at edges. Aspect ratio 16:9. Motion: slow push-in for shot 1, static for shots 2 and 5, dolly for shot 3, crane down for shot 4, pull back for shot 6. Atmospheric haze, volumetric light beams, dust motes.",
+      "compiledPrompt": "A cinematic visual narrative of photo restoration, divided into 6 sequential shots. Shot 1: Extreme close-up of an old photograph's corner with visible crease and fading, warm nostalgic sepia tones, dust particles floating in a single beam of warm light, paper texture visible, shallow depth of field. Shot 2: A glowing banana-shaped stylus emitting soft cool white light enters frame from upper right, hovering 2cm above the crease, semi-transparent material with internal particle flow, contrast between cool repair light and warm background. Shot 3: Microscopic view of pixel blocks as semi-transparent colored squares, broken bridge at crease, liquid-like energy flowing from stylus tip precisely filling gaps, colors transitioning from desaturated to vibrant. Shot 4: Wide shot of restored photograph, stains erased like eraser marks, colors injected with life spreading outward, child's face becoming clear, background sea blue and sky clouds restored to vibrancy. Shot 5: Close-up of child's clear face after restoration, bright smile, clear eyes, golden accent light on cheek highlighting rebirth moment. Shot 6: Long shot of restored photo placed in vintage wooden frame, \"nano-banana\" logo and text \"inpaint repair restore\" appearing elegantly, soft diffused light, dust particles floating, atmosphere shifting from nostalgic to satisfying. Cinematic lighting: Rembrandt-inspired single source warm key light for nostalgic scenes, cool motivated lighting for repair tool, golden hour accent for rebirth. Color palette: desaturated warm sepia (faded memory warm) transitioning to vibrant natural colors, cool white (nano repair light) as contrast, golden (life injection point) as emphasis. Camera: ARRI Alexa 35 with Cooke S4/i primes, 50mm macro for ECU, 35mm for CU, 24mm for wide shots. Film grain added, subtle chromatic aberration at edges. Aspect ratio 16:9. Motion: slow push-in for shot 1, static for shots 2 and 5, dolly for shot 3, crane down for shot 4, pull back for shot 6. Atmospheric haze, volumetric light beams, dust motes.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/34309896cf1b6b2b3a1103c32df344c7_1780484638424.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 43427
+    },
+    {
+      "id": "e6345949-ab99-477d-b21a-b535714eb1e2",
+      "timestamp": "2026-06-03T11:33:50.195Z",
+      "providerId": "nano-banana",
+      "prompt": "A high-quality photograph of a living room sofa corner. In the left area, a plump, yellow-orange tabby cat is lying down in a relaxed “loaf” position. Its body is curled, paws tucked under, head slightly raised. The cat’s eyes are half-closed, lazy, and its gaze is fixed on a small ball resting on the sofa to the right. The cat’s fur is soft and fluffy, with visible tiger stripes. The sofa fabric has a natural, slight depression under the cat’s weight, creating soft shadows. The lighting is warm and natural, coming from the upper left, casting gentle highlights on the cat’s back and the ball. The overall atmosphere is quiet, cozy, and tranquil. The ball in the right area remains unchanged, maintaining its original color and texture.",
+      "compiledPrompt": "A high-quality photograph of a living room sofa corner. In the left area, a plump, yellow-orange tabby cat is lying down in a relaxed “loaf” position. Its body is curled, paws tucked under, head slightly raised. The cat’s eyes are half-closed, lazy, and its gaze is fixed on a small ball resting on the sofa to the right. The cat’s fur is soft and fluffy, with visible tiger stripes. The sofa fabric has a natural, slight depression under the cat’s weight, creating soft shadows. The lighting is warm and natural, coming from the upper left, casting gentle highlights on the cat’s back and the ball. The overall atmosphere is quiet, cozy, and tranquil. The ball in the right area remains unchanged, maintaining its original color and texture.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/9354f2b92ae3677148ae80f7f2c6b5a9_1780486426547.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 45270
+    },
+    {
+      "id": "9d2b876e-36d3-49bc-ae5b-a6a9378856b5",
+      "timestamp": "2026-06-03T18:01:04.528Z",
+      "providerId": "gpt-image2",
+      "prompt": "`A hyper-realistic, cinematic photograph of an empty traditional European living room, captured from a strictly frontal, perfectly symmetrical perspective. The walls are entirely clad in rich, dark chocolate brown wood paneling, with deep, visible grain. Above, an ornate white decorative molding traces the ceiling. Large, tall windows are partially veiled by heavy, dark forest green velvet curtains. Soft, diffused natural light streams in from the left, casting a single, warm pool of light on the center of the floor, which is covered in a muted, earth-toned woven carpet with visible texture. The rest of the room is enveloped in deep, warm shadows that retain detail. The atmosphere is one of profound stillness, nostalgia, and scholarly solitude. No furniture, people, or decor are present, making the architecture and light the sole subjects. The style is pure Dark Academia, evoking a classic European library. Photorealistic, with a subtle vignette and a shallow depth of field that keeps the entire room in sharp focus, mimicking a large format camera. The color palette is dominated by deep chocolate brown, forest green, and warm ivory.`",
+      "compiledPrompt": "`A hyper-realistic, cinematic photograph of an empty traditional European living room, captured from a strictly frontal, perfectly symmetrical perspective. The walls are entirely clad in rich, dark chocolate brown wood paneling, with deep, visible grain. Above, an ornate white decorative molding traces the ceiling. Large, tall windows are partially veiled by heavy, dark forest green velvet curtains. Soft, diffused natural light streams in from the left, casting a single, warm pool of light on the center of the floor, which is covered in a muted, earth-toned woven carpet with visible texture. The rest of the room is enveloped in deep, warm shadows that retain detail. The atmosphere is one of profound stillness, nostalgia, and scholarly solitude. No furniture, people, or decor are present, making the architecture and light the sole subjects. The style is pure Dark Academia, evoking a classic European library. Photorealistic, with a subtle vignette and a shallow depth of field that keeps the entire room in sharp focus, mimicking a large format camera. The color palette is dominated by deep chocolate brown, forest green, and warm ivory.`",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/d89aefcf0bcc038714cab0b83dc8075d_08cfcf367ae445fc9245b2256e10e722.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 56346
     }
   ]
 }
