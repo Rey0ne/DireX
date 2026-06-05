@@ -385,10 +385,15 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   rawText: (meta.prompt as string) || '',
                   aspect: meta.aspect as string | undefined,
                   resolution: meta.resolution as string || '2K',
-                  referenceImage: meta.imageUrl as string | undefined,
+                  referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
                   referenceUrls: refUrls,
                   referencePrompts: refPrompts,
                   styleImageUrl: meta.styleImageUrl as string | undefined,
+                  seed: meta.seed as number | undefined,
+                  negativePrompt: meta.negativePrompt as string | undefined,
+                  duration: meta.duration as string | undefined,
+                  firstFrameUrl: meta.firstFrameUrl as string | undefined,
+                  lastFrameUrl: meta.lastFrameUrl as string | undefined,
                 } as any);
 
             const result = agentResult.result;
@@ -398,7 +403,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               const compiledCn = agentResult.compiled?.cn || '';
               const genPatch: Record<string, unknown> = { compiledPrompt: compiledEn, compiledPromptCn: compiledCn };
               if (result.assetUrls.length > 0) {
-                Object.assign(genPatch, { imageUrl: result.assetUrls[0], resultAssetIds: result.assetUrls });
+                const isVideo = n.type === 'video.generate';
+                const urlField = isVideo ? 'videoUrl' : 'imageUrl';
+                Object.assign(genPatch, { [urlField]: result.assetUrls[0], resultAssetIds: result.assetUrls });
               }
               store.updateNode(n.id, {
                 meta: { ...node!.meta, gen: { ...meta, ...genPatch } },

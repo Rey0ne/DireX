@@ -16,7 +16,6 @@ const MENU_ACTIONS: CreateMenuAction[] = [
   { type: 'image.generate', icon: '🖼️', label: '图片生成', sub: '文生图、图生图、风格复刻', badge: 'I' },
   { type: 'video.generate', icon: '🎥', label: '视频生成', sub: '文生视频、图生视频', badge: 'V' },
   { type: 'audio.generate', icon: '🎵', label: '音频生成', sub: '音乐、音效、配音', badge: 'U' },
-  { type: 'image.editor', icon: '✏️', label: '图片编辑器', sub: '裁切/重绘/打光/多角度', badge: 'E' },
   { type: 'world.3d', icon: '🧊', label: '3D 世界', sub: '3D模型与场景搭建', badge: '3D' },
 ];
 
@@ -58,11 +57,11 @@ export function CreateMenu({ x, y, onSelect, onClose }: CreateMenuProps) {
 }
 
 // ─── ConnectCreateMenu (port drag → blank) ─────────
-const CONNECT_ACTIONS: CreateMenuAction[] = [
-  { type: 'image.generate', icon: '🖼️', label: '图片生成', sub: '', badge: 'I' },
-  { type: 'video.generate', icon: '🎥', label: '视频生成', sub: '', badge: 'V' },
-  { type: 'audio.generate', icon: '🎵', label: '音频生成', sub: '', badge: 'U' },
-  { type: 'shot', icon: '🎬', label: '镜头节点', sub: '', badge: 'N' },
+const CONNECT_ACTIONS: { type: string; icon: string; label: string }[] = [
+  { type: 'image.generate', icon: 'img', label: '图片' },
+  { type: 'video.generate', icon: 'vid', label: '视频' },
+  { type: 'audio.generate', icon: 'aud', label: '音频' },
+  { type: 'shot', icon: 'txt', label: '文本' },
 ];
 
 interface ConnectCreateMenuProps {
@@ -74,31 +73,29 @@ interface ConnectCreateMenuProps {
 }
 
 export function ConnectCreateMenu({ x, y, onSelect, onClose }: ConnectCreateMenuProps) {
-  const menuW = 240, menuH = 260;
+  const menuW = 150;
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
   const left = x + menuW > vw ? x - menuW : x;
-  const top = y + menuH > vh ? y - menuH : y;
+  const top = y - 200;
 
   return (
     <>
-      <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }}
-        style={{ position: 'fixed', inset: 0, zIndex: 99998 }} />
-      <Panel onClick={e => e.stopPropagation()}
-        style={{
-          position: 'fixed', left, top, zIndex: 99999, width: menuW,
-          padding: 'var(--tap-space-2)', display: 'flex', flexDirection: 'column', gap: '2px',
-          userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)',
-        }}>
-        <div style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)', padding: '6px 12px 2px', fontWeight: 600 }}>
-          连接到新节点…
-        </div>
-        <Divider />
-        {CONNECT_ACTIONS.map(item => (
-          <MenuItem key={item.type} icon={item.icon} label={item.label} shortcut={item.badge}
-            onClick={() => onSelect(item.type)} />
+      <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }} style={{ position: 'fixed', inset: 0, zIndex: 99998 }} />
+      <div onClick={e => e.stopPropagation()}
+        style={{ position: 'fixed', left, top, zIndex: 99999, width: menuW, padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px', userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)', background: 'rgba(23, 23, 23, 0.96)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px' }}>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', padding: '4px 8px 6px', fontWeight: 500 }}>连接到新节点</div>
+        {CONNECT_ACTIONS.map((item, i) => (
+          <div key={item.type}
+            onClick={() => onSelect(item.type)}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--tap-text-2)', transition: `all var(--tap-dur-fast) var(--tap-ease)`, borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}>
+            <span style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><MiniIcon type={item.icon} /></span>
+            <span style={{ fontSize: '12px', fontWeight: 500 }}>{item.label}</span>
+          </div>
         ))}
-      </Panel>
+      </div>
     </>
   );
 }
@@ -110,7 +107,6 @@ const DOUBLE_CLICK_ACTIONS: CreateMenuAction[] = [
   { type: 'audio.generate', icon: 'aud', label: '音频', sub: '' },
   { type: 'shot', icon: 'txt', label: '文本', sub: '' },
   { type: 'world.3d', icon: '3d', label: '3D 世界', sub: '' },
-  { type: 'image.editor', icon: 'edt', label: '图片编辑器', sub: '' },
 ];
 
 function MiniIcon({ type }: { type: string }) {

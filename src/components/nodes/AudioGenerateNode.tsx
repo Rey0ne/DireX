@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 
@@ -44,6 +44,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '60s');
   const [currentStyle, setCurrentStyle] = useState(gen.style || '');
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const zoom = useStore(s => s.transform[2]);
 
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
@@ -115,7 +116,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
 
       {/* Bottom panel (absolute, no hitbox impact) */}
       {selected && !data.multiSelect && (
-        <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: '300px', marginTop: '10px', zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
+        <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: '300px', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
           <div style={{padding:'8px 12px 0'}}><RefStrip nodeId={id} refUrls={(data as any).refUrls} /></div>
           <textarea value={prompt} onChange={e => { const v=e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart||0); }}

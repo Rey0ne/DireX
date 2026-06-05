@@ -141,8 +141,9 @@ app.post('/api/agent/compile', async (req: Request, res: Response) => {
 app.post('/api/agent/text', async (req: Request, res: Response) => {
   const body = req.body;
   const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
+  const hasRefs = (body.referenceUrls?.length || 0) > 0;
   console.log('[text-api] Request: rawText=' + (userPrompt || '').slice(0, 80) + ' refUrls=' + (body.referenceUrls?.length || 0) + ' refPrompts=' + (body.referencePrompts?.length || 0));
-  if (!userPrompt) { res.status(400).json({ error: 'Missing prompt' }); return; }
+  if (!userPrompt && !hasRefs) { res.status(400).json({ error: 'Missing prompt' }); return; }
 
   try {
     const pipelineResult = await runTextPipeline({

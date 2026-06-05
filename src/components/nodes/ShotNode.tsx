@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 
@@ -44,7 +44,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
+  const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
 
@@ -53,7 +55,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   }, [data]);
 
   const handleGenerate = () => {
-    if (genRunningRef.current || !prompt.trim()) return;
+    if (genRunningRef.current) return;
+    // Allow empty prompt when reference images are connected (reverse-prompt mode)
+    if (!prompt.trim() && (!(data as any).refUrls || (data as any).refUrls.length === 0)) return;
     genRunningRef.current = true;
     setGenRunning(true);
     patch('prompt', prompt);
@@ -193,9 +197,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             position: 'absolute',
             top: '100%',
             left: '50%',
-            transform: 'translateX(-50%)',
+            transform: `translateX(-50%) scale(${1.5/zoom})`,
+            transformOrigin: 'top center',
             width: '280px',
-            marginTop: '10px',
+            marginTop: `${10/zoom}px`,
             zIndex: 50,
             animation: 'tap-fade-in 50ms var(--tap-ease)',
           }}>
@@ -205,7 +210,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '8px 12px 0' }}><RefStrip nodeId={id} refUrls={data.refUrls} /></div>
+            <div style={{ padding: '8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <RefStrip nodeId={id} refUrls={data.refUrls} />
+              <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
+                style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+              >{expanded ? '↥' : '↧'}</span>
+            </div>
             <textarea
               value={prompt}
               onChange={e => {
@@ -223,7 +235,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               }}
               placeholder="输入需求或场景描述…"
               maxLength={5000}
-              rows={4}
+              rows={expanded ? 8 : 4}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',

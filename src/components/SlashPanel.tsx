@@ -32,7 +32,6 @@ export function SlashPanel({ onSelect, onCommand, onClose }: SlashPanelProps) {
   const commands: Command[] = [
     { id: 'shot', icon: '🎬', title: '新建镜头节点', desc: '结构化分镜描述，景别/运镜/打光', shortcut: 'N', action: () => onSelect('shot') },
     { id: 'image.generate', icon: '🖼️', title: '新建图片生成节点', desc: '文生图、图生图、风格复刻', shortcut: 'I', action: () => onSelect('image.generate') },
-    { id: 'image.editor', icon: '✏️', title: '新建图片编辑器', desc: '裁切/擦除/打光/多角度', badge: 'Stage 2', action: () => onSelect('image.editor') },
     { id: 'compile', icon: '🔮', title: '编译镜头 → Prompt', desc: '将 shot 结构化字段编译为提示词', action: () => onCommand('compile') },
     { id: 'crop', icon: '✂️', title: '裁切工具', desc: 'PS-like 裁切模式', action: () => onCommand('crop') },
     { id: 'inpaint', icon: '🖌️', title: '擦除/重绘', desc: '涂抹遮罩后重绘', action: () => onCommand('inpaint') },

@@ -500,16 +500,25 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* ── Floating Toolbar (portal, no flash) ── */}
-        {createPortal(
+        {/* ── Upload bar (portal) — shown when no image */}
+        {selected && !data.multiSelect && cardRect && !data.imageUrl && createPortal(
+        <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
+          style={{ position: 'fixed', left: cardRect.left + cardRect.width / 2, top: cardRect.top - 8, transform: 'translateX(-50%) translateY(-100%)', zIndex: 9998, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 20px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}>
+          <span style={{ fontSize: '16px' }}>↑</span>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
+        </div>,
+        document.body
+        )}
+        {/* ── Floating Toolbar (portal) — shown when has image */}
+        {selected && !data.multiSelect && cardRect && data.imageUrl && createPortal(
         <div style={{
           position: 'fixed',
           left: cardRect ? cardRect.left + cardRect.width / 2 : -9999,
           top: cardRect ? cardRect.top - 40 : -9999,
           transform: 'translateX(-50%) translateY(-100%)',
           zIndex: 9998,
-          opacity: selected && !data.multiSelect && cardRect ? 1 : 0,
-          pointerEvents: selected && !data.multiSelect && cardRect ? 'auto' : 'none',
+          opacity: 1,
+          pointerEvents: 'auto',
           transition: 'opacity 0.1s',
           display: 'flex',
           alignItems: 'center',
@@ -788,19 +797,20 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         document.body
       );})()}
 
-      {/* ── Bottom Prompt Panel (portal to document.body, zero impact on node) ── */}
-      {selected && !data.multiSelect && cardRect && createPortal(
+      {/* ── Bottom Prompt Panel (inline — scales with zoom) ── */}
+      {selected && !data.multiSelect && (
         <div
           onContextMenu={e => e.stopPropagation()}
           onDoubleClick={e => e.stopPropagation()}
           style={{
-          position: 'fixed',
-          left: cardRect.left + cardRect.width / 2,
-          top: cardRect.bottom + 10 * zoom,
-          marginLeft: '-380px',
-          width: '760px',
-          maxWidth: 'calc(100vw - 120px)',
-          zIndex: 9999,
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: `translateX(-50%) scale(${1.5/zoom})`,
+          transformOrigin: 'top center',
+          width: 'var(--tap-node-width)',
+          marginTop: `${10/zoom}px`,
+          zIndex: 50,
           display: 'flex',
           flexDirection: 'column',
         }}>
@@ -1183,8 +1193,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
       </div>
     </div>

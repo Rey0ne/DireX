@@ -36,13 +36,16 @@ export interface PipelineResult {
   totalDurationMs: number;
 }
 
-const VISION_ANALYSIS_PROMPT = `Analyze this image in precise detail. Your analysis will be used by creative AI agents, so accuracy is critical. Identify and describe:
-1. TEXT (OCR): Transcribe ALL visible text exactly. Note font style, size, color, position.
-2. ICONS & UI ELEMENTS: Describe every icon, button, logo, symbol. Note shape, color, style.
-3. GRAPHICS & CHARTS: Describe graphs, diagrams, data visualizations, illustrations. Note type, structure, data shown.
-4. COMPOSITION: Overall layout, spatial relationships, color palette, visual hierarchy.
+const VISION_ANALYSIS_PROMPT = `Analyze this image in detail for use as a creative reference. Describe:
+1. SUBJECT: What is the main subject? People, objects, scene type. Describe appearance, pose, expression.
+2. STYLE: Artistic style (photorealistic, illustration, 3D render, sketch, etc.). Color palette and mood.
+3. LIGHTING: Light direction (front/side/back/top), quality (hard/soft), color temperature, shadows.
+4. COMPOSITION: Camera angle, framing, depth of field, focal point, perspective.
+5. MATERIALS: Surface qualities (glossy/matte/rough/metallic/translucent), fabric, wood grain, stone, glass, metal, skin, cloth, plastic. Note weathering, wear, reflections, imperfections.
+6. DETAILS: Patterns, background elements, fine ornaments, repeating motifs.
+7. TEXT: Any visible text - transcribe exactly.
 
-Be specific and factual. Do not interpret creatively — describe what you literally see.`;
+Be thorough and specific. This analysis will guide AI image generation.`;
 
 async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
   if (url.startsWith('data:')) {
@@ -104,12 +107,12 @@ async function runAgent(
   let refBlock = '';
   if (context.referenceUrls && context.referenceUrls.length > 0) {
     if (context.referenceAnalysis && context.referenceAnalysis.length > 0) {
-      refBlock = '\n\n[参考图片分析 — Gemini 3.1 Pro Vision 识别结果]\n';
+      refBlock = '\n\n[参考图片视觉分析结果]\n';
       context.referenceUrls.forEach((_url, i) => {
         const analysis = context.referenceAnalysis[i] || '[No analysis]';
         refBlock += '\n### 参考图' + (i + 1) + '\n' + analysis + '\n';
       });
-      refBlock += '\n请严格依据以上视觉分析结果来理解每张参考图。';
+      refBlock += '\n请参考以上视觉分析结果，理解每张参考图的内容、风格、光线和构图，并在生成新图像时融合这些元素。';
     } else {
       refBlock = '\n\n[参考图片 — 以下是这些图片生成时的原始Prompt]\n';
       context.referenceUrls.forEach((url, i) => {
@@ -219,14 +222,10 @@ export async function runTextPipeline(context: PipelineContext): Promise<TextPip
     // Check if all vision analyses failed
     const allFailed = results.every(r => r.includes('[Unable to fetch image]') || r.includes('[Vision analysis failed]'));
     if (allFailed) {
-      console.log('[text-pipeline] All vision analyses failed, skipping Agent');
-      return {
-        textOutput: '失败请重新提交',
-        trace,
-        totalDurationMs: Date.now() - t0,
-      };
+      console.log("[text-pipeline] All vision analyses failed, falling back to text-only");
+    } else {
+      context.referenceAnalysis = results.filter(function(r) { return !r.includes("[Unable to fetch image]") && !r.includes("[Vision analysis failed]"); });
     }
-    context.referenceAnalysis = results;
     console.log('[text-pipeline] Vision analysis complete');
   }
 
@@ -234,12 +233,7 @@ export async function runTextPipeline(context: PipelineContext): Promise<TextPip
   const hasUsableRefs = (context.referenceAnalysis && context.referenceAnalysis.length > 0) ||
                         (context.referencePrompts && context.referencePrompts.length > 0);
   if (context.referenceUrls && context.referenceUrls.length > 0 && !hasUsableRefs) {
-    console.log('[text-pipeline] No usable reference data (no vision, no prompts)');
-    return {
-      textOutput: '失败请重新提交',
-      trace,
-      totalDurationMs: Date.now() - t0,
-    };
+    console.log("[text-pipeline] No vision or prompts, using user text input only");
   }
 
   // Determine if we have usable image data
