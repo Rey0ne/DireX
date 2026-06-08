@@ -10,7 +10,9 @@ export type NodeType =
   | 'image.editor'
   | 'video.generate'
   | 'audio.generate'
-  | 'world.3d';
+  | 'world.3d'
+  | 'scene.3d'
+  | 'scene.3d.babylon';
 
 export interface Port {
   id: string;

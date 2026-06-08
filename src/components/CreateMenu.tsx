@@ -16,7 +16,9 @@ const MENU_ACTIONS: CreateMenuAction[] = [
   { type: 'image.generate', icon: '🖼️', label: '图片生成', sub: '文生图、图生图、风格复刻', badge: 'I' },
   { type: 'video.generate', icon: '🎥', label: '视频生成', sub: '文生视频、图生视频', badge: 'V' },
   { type: 'audio.generate', icon: '🎵', label: '音频生成', sub: '音乐、音效、配音', badge: 'U' },
-  { type: 'world.3d', icon: '🧊', label: '3D 世界', sub: '3D模型与场景搭建', badge: '3D' },
+  { type: 'world.3d', icon: '🧊', label: '3D 世界', sub: 'UE5虚拟拍摄', badge: '3D' },
+  { type: 'scene.3d', icon: '🎬', label: '3D 场景', sub: '轻量场景搭建+虚拟摄像', badge: 'NEW' },
+  { type: 'scene.3d.babylon', icon: '🧪', label: '3D 场景(Babylon)', sub: 'Babylon引擎测试', badge: 'TEST' },
 ];
 
 // ─── CreateMenu (right-click) ─────────────────────
