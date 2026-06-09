@@ -5,7 +5,7 @@ const SHARED_KEY = process.env.SHARED_API_KEY || 'tapnow-dev-key';
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   // Skip auth for health check
-  if (!req.path.startsWith('/api/') || req.path === '/api/health' || req.path === '/api/download' || req.path === '/api/proxy-image' || req.path.startsWith('/admin') || req.path === '/api/kie-callback') return next();
+  if (!req.path.startsWith('/api/') || req.path === '/api/health' || req.path === '/api/download' || req.path === '/api/proxy-image' || req.path === '/api/last-compiled' || req.path.startsWith('/admin') || req.path === '/api/kie-callback') return next();
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -127,22 +127,61 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     '1K': '1024x1024', '2K': '1792x1024', '4K': '2048x2048', '1080P': '1920x1080',
   };
 
+  const isNanoBanana = req.providerId === 'nano-banana';
+  const isI2I = mode === 'image-to-image';
+
   const body: Record<string, unknown> = {
     model,
     input: {
       prompt: req.prompt,
       aspect_ratio: req.aspect || '1:1',
       resolution: resolution,
-      output_format: 'png',
     },
   };
 
+  // output_format: only supported by nano-banana-pro
+  if (isNanoBanana) (body.input as any).output_format = 'png';
+
   if (req.negativePrompt) (body.input as any).negative_prompt = req.negativePrompt;
-  if (req.referenceImage) (body.input as any).reference_image = req.referenceImage;
+
+  // Reference images: parameter name and limit differ per model
+  // - gpt-image-2-image-to-image → input_urls (max 16)
+  // - nano-banana-pro → image_input (max 8)
+  // - gpt-image-2-text-to-image → no reference support
+  if (isI2I || isNanoBanana) {
+    const maxRefs = isNanoBanana ? 8 : 16;
+    const refParam = isNanoBanana ? 'image_input' : 'input_urls';
+    const allRefs: string[] = [];
+    console.log('[kie] DEBUG req.referenceUrls:', req.referenceUrls?.length || 0, 'samples:', req.referenceUrls?.map(u => typeof u === 'string' ? u.slice(0, 60) : typeof u).join(' | '));
+    if (req.referenceUrls?.length) allRefs.push(...req.referenceUrls);
+    if (req.referenceImage) allRefs.push(req.referenceImage); // don't skip — include ALL refs
+    if (req.styleImageUrl && (req.styleImageUrl.startsWith('http://') || req.styleImageUrl.startsWith('https://'))) {
+      allRefs.push(req.styleImageUrl);
+    }
+    const validRefs = allRefs.filter(u => u && (u.startsWith('http://') || u.startsWith('https://')));
+    if (validRefs.length > maxRefs) {
+      console.warn(`[kie] Truncating ${validRefs.length} refs to ${maxRefs} (${model} limit)`);
+      validRefs.length = maxRefs;
+    }
+    if (validRefs.length > 0) {
+      (body.input as any)[refParam] = validRefs;
+      console.log(`[kie] ${model}: ${validRefs.length}/${maxRefs} ${refParam}`);
+    }
+    // Update debug with filter results
+    if ((globalThis as any).__lastKieReq) {
+      (globalThis as any).__lastKieReq.allRefs_before = allRefs.length;
+      (globalThis as any).__lastKieReq.validRefs_after = validRefs.length;
+      (globalThis as any).__lastKieReq.refUrls_sample = (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u));
+    }
+  }
+
   if (req.maskImage) (body.input as any).mask_image = req.maskImage;
 
   const startTime = Date.now();
   const submitUrl = `${BASE_URL}/jobs/createTask`;
+  // Save last Kie request for debugging
+  const inputUrls = (body.input as any).input_urls || (body.input as any).image_input || [];
+  (globalThis as any).__lastKieReq = { model: body.model, input_urls_count: inputUrls.length, input_urls_sample: inputUrls.slice(0, 5).map((u: string) => (typeof u === 'string' ? u.slice(0, 80) : String(u))), prompt_len: (body.input as any).prompt?.length || 0, url: submitUrl, refUrls_in: req.referenceUrls?.length || 0, refUrls_sample: (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u)), refImg_in: req.referenceImage ? 1 : 0, allRefs_before_filter: allRefs.length, validRefs_after_filter: validRefs.length };
   console.log(`[kie] Submit: ${req.providerId}/${mode}/${resolution} → ${submitUrl} model=${model}`);
 
   try {

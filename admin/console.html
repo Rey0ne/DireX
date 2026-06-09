@@ -39,16 +39,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button onclick="sw('keys')" id="tb-keys" class="on">🔑 Keys</button>
   <button onclick="sw('agent')" id="tb-agent">🤖 Agent</button>
   <button onclick="sw('logs')" id="tb-logs">📋 日志</button>
+  <button onclick="sw('net')" id="tb-net">🌐 网络</button>
 </div>
 <div class="ct">
   <div class="pn on" id="keys"></div>
   <div class="pn" id="agent"></div>
   <div class="pn" id="logs"></div>
+  <div class="pn" id="net"></div>
 </div>
 <div class="sb"><span id="ss"><span class="dot off"></span>...</span><span>localhost:3001</span></div>
 
 <script>
-var TOKEN='tapnow-dev-key', keys=[], cfg=null, logs=[], editKey=null;
+var TOKEN='viewlab-dev-key', keys=[], cfg=null, logs=[], editKey=null;
 var LABELS={HTTP_PROXY:'HTTP 代理地址',KIE_BASE_URL:'Kie.ai 基础 URL',KIE_API_URL:'Kie.ai 提交 URL', KIE_API_KEY:'Kie.ai API Key',DEEPSEEK_API_KEY:'DeepSeek V4 官方',GEMINI_API_KEY:'Gemini 3 Pro 官方'};
 var MDLS=['nano-banana','gpt-image2','kling-video','seedance-2'];
 var STY={literal:'直译',cinematic:'电影感',technical:'技术',literary:'文学'};
@@ -66,6 +68,7 @@ function sw(t){
   if(t==='keys') LK();
   if(t==='agent') LC();
   if(t==='logs') LL();
+  if(t==='net') LN();
 }
 
 // ─── Keys ────────────────────────────────────
@@ -163,6 +166,42 @@ function RL(){
     var u=l.assetUrls&&l.assetUrls[0]?l.assetUrls[0]:'';
     return'<div class="log"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:500;color:var(--t2)">'+E(l.providerId)+'</span><span style="font-size:10px;color:var(--t4)">'+s+'</span><span style="color:'+(l.status==='succeeded'?'var(--s)':'var(--e)')+'">'+(l.status==='succeeded'?'✓':'✕')+'</span></div><div style="color:var(--t3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+E(l.prompt||'').slice(0,80)+'</div>'+(u?'<div style="font-size:10px;color:var(--t4);margin-bottom:4px;word-break:break-all">🖼 '+E(u)+'</div>':'')+'<div style="display:flex;gap:12px;color:var(--t4);font-size:10px"><span>'+new Date(l.timestamp).toLocaleString()+'</span><span>'+l.durationMs+'ms</span><span>$'+(l.cost||0).toFixed(3)+'</span></div></div>';
   }).join('')
+}
+
+// ─── Network Logging ─────────────────────────
+var netLogs=[],MAX_NET=80;
+// Intercept global fetch to capture all request/response pairs
+(function(){
+  var _fetch=window.fetch;
+  window.fetch=function(url,opts){
+    var t0=Date.now(), reqM=(opts&&opts.method)||'GET', reqU=typeof url==='string'?url:url.url, reqH=opts&&opts.headers||{}, reqB=opts&&opts.body||null;
+    return _fetch.apply(this,arguments).then(function(r){
+      var c=r.clone();
+      return c.text().then(function(body){
+        var entry={id:netLogs.length,time:new Date().toISOString(),method:reqM,url:reqU,status:r.status,duration:Date.now()-t0,reqBody:reqB,resBody:body,resType:c.headers.get('content-type')||'',resLen:body.length};
+        netLogs.unshift(entry);if(netLogs.length>MAX_NET)netLogs.length=MAX_NET;
+        // Auto-refresh network tab if visible
+        var netEl=document.getElementById('net');if(netEl&&netEl.classList.contains('on'))LN();
+        return r;
+      });
+    }).catch(function(err){
+      var entry={id:netLogs.length,time:new Date().toISOString(),method:reqM,url:reqU,status:0,duration:Date.now()-t0,reqBody:reqB,resBody:String(err),resType:'error',resLen:0,error:true};
+      netLogs.unshift(entry);if(netLogs.length>MAX_NET)netLogs.length=MAX_NET;
+      throw err;
+    });
+  };
+})();
+function LN(){
+  var el=document.getElementById('net');
+  if(!netLogs.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t4)">暂无请求 — 操作其他标签页后会在这里看到所有 API 请求</div>';return}
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;color:var(--t3)">最近 '+Math.min(netLogs.length,MAX_NET)+' 条请求 (自动刷新)</span><button class="btn" onclick="netLogs=[];LN()">清空</button></div>'+netLogs.map(function(e){
+    var sc=e.status,scC=sc>=200&&sc<300?'var(--s)':sc>=400?'var(--e)':sc>0?'var(--w)':'var(--e)';
+    var mC=e.method==='GET'?'var(--s)':e.method==='POST'?'var(--w)':e.method==='PUT'?'#4da6ff':e.method==='DELETE'?'var(--e)':'var(--t3)';
+    var bodyPreview='';try{var pj=JSON.parse(e.resBody);bodyPreview=JSON.stringify(pj,null,2);}catch(_){bodyPreview=E(e.resBody).slice(0,2000);}
+    var reqPreview='';if(e.reqBody){try{var rj=JSON.parse(e.reqBody);reqPreview=JSON.stringify(rj,null,2);}catch(_){reqPreview=E(e.reqBody).slice(0,1000);}}
+    var eid='net-'+e.id;
+    return'<div class="log" style="cursor:pointer" onclick="var d=document.getElementById(\''+eid+'\');d.style.display=d.style.display==\'none\'?\'\':\'none\'"><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:'+mC+';font-size:11px;width:38px">'+e.method+'</span><span style="color:'+scC+';font-size:11px;width:28px">'+e.status+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2);font-size:11px">'+E(e.url)+'</span><span style="color:var(--t4);font-size:10px;flex-shrink:0">'+e.duration+'ms</span><span style="color:var(--t4);font-size:9px;flex-shrink:0">'+(e.resLen>1024?(e.resLen/1024).toFixed(1)+'KB':e.resLen+'B')+'</span></div><div style="display:none;margin-top:8px" id="'+eid+'" onclick="event.stopPropagation()"><div style="display:flex;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--t3)">响应数据</span><button class="btn" style="font-size:9px;padding:2px 6px" onclick="var t=document.getElementById(\''+eid+'-res\');navigator.clipboard.writeText(t.textContent)">📋 复制</button></div><pre id="'+eid+'-res" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:11px;color:var(--t2);overflow-x:auto;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;font-family:monospace">'+bodyPreview+'</pre>'+(reqPreview?'<div style="margin-top:6px"><span style="font-size:10px;color:var(--t3)">请求体</span><pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:11px;color:var(--t3);overflow-x:auto;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:monospace">'+reqPreview+'</pre></div>':'')+'</div></div>';
+  }).join('');
 }
 
 // ─── Init ─────────────────────────────────────

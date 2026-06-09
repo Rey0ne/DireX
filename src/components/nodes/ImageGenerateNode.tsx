@@ -446,10 +446,10 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const handleDownload = () => {
     if (!data.imageUrl) return;
     // Proxy through backend to force download (cross-origin URLs won't download directly)
-    const downloadUrl = `/api/download?url=${encodeURIComponent(data.imageUrl)}`;
+    const isData = data.imageUrl.startsWith('data:');
     const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `tapnow-${Date.now()}.png`;
+    a.href = isData ? data.imageUrl : `/api/download?url=${encodeURIComponent(data.imageUrl)}`;
+    a.download = `viewlab-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -479,7 +479,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper — handles position relative to card, not full node */}
       <div style={{ position: 'relative' }}>
-        <NodeLabel initial="IMAGE" />
+        <NodeLabel nodeId={id} initial={useCanvasStore(s => s.nodes.get(id)?.title) || 'IMAGE'} />
         {/* Ports — centered on both sides, close to node */}
         <Handle type="target" position={Position.Left} id="image-in"
           style={{
@@ -806,9 +806,10 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           position: 'absolute',
           top: '100%',
           left: '50%',
-          transform: `translateX(-50%) scale(${1.5/zoom})`,
+          transform: 'translateX(-50%)',
           transformOrigin: 'top center',
-          width: 'var(--tap-node-width)',
+          width: `${380/zoom}px`,
+          fontSize: `${14/zoom}px`,
           marginTop: `${10/zoom}px`,
           zIndex: 50,
           display: 'flex',
@@ -819,6 +820,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
             {data.refUrls && data.refUrls.map((uri, i) => (
               <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
                 <img src={uri} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+                {/* Number badge — used in prompt as #1, #2, ... */}
+                <div style={{ position: 'absolute', top: -5, left: -5, width: 15, height: 15, borderRadius: '50%', background: 'var(--tap-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 600, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>#{i + 1}</div>
                 <span onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -846,10 +849,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 >x</span>
               </div>
             ))}
-            {/* Style image thumbnail */}
-            {styleImgUrl && (
+            {/* Style image thumbnail — also gets a number slot */}
+            {styleImgUrl && (() => {
+              const styleNum = (data.refUrls?.length || 0) + 1;
+              return (
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <img src={styleImgUrl} alt="风格参考" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1.5px solid rgba(200,160,100,0.4)' }} />
+                <div style={{ position: 'absolute', top: -5, left: -5, width: 15, height: 15, borderRadius: '50%', background: 'rgba(200,160,100,0.85)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 600, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>#{styleNum}</div>
                 <span
                   onClick={e => {
                     e.stopPropagation();
@@ -869,35 +875,66 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 >x</span>
                 <div style={{ position: 'absolute', bottom: -2, left: -2, fontSize: '8px', color: 'rgba(200,160,100,0.8)', background: 'rgba(0,0,0,0.6)', borderRadius: '2px', padding: '0 3px', lineHeight: '12px' }}>风格</div>
               </div>
-            )}
-            {(!data.refUrls || data.refUrls.length < 20) && (
-              <div
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  useCanvasStore.getState().setPendingConnection(id);
-                }}
-                onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                title="点击后在画布中选择一个节点来建立连线"
-                style={{
-                  width: 40, height: 40, borderRadius: 6,
-                  border: '1px dashed rgba(255,255,255,0.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0,
-                  cursor: 'pointer',
-                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                  e.currentTarget.style.color = 'var(--tap-text-2)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-                  e.currentTarget.style.color = 'var(--tap-text-4)';
-                }}
-              >+</div>
-            )}
+            );})()}
+            {/* Slot counter + add button */}
+            {(() => {
+              const KIE_MAX = 16;
+              const refCount = (data.refUrls?.length || 0) + (styleImgUrl ? 1 : 0);
+              const slotsLeft = KIE_MAX - refCount;
+              const isFull = slotsLeft <= 0;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {/* Counter badge */}
+                  {refCount > 0 && (
+                    <span style={{
+                      fontSize: '10px', fontWeight: 500, color: isFull ? 'var(--tap-warning)' : 'var(--tap-text-4)',
+                      padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)',
+                      whiteSpace: 'nowrap',
+                    }}>{refCount}/{KIE_MAX}</span>
+                  )}
+                  {!isFull && (
+                    <div
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        useCanvasStore.getState().setPendingConnection(id);
+                      }}
+                      onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                      onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                      title={`点击选择参考图节点 (剩余 ${slotsLeft} 个槽位)`}
+                      style={{
+                        width: 36, height: 36, borderRadius: 6,
+                        border: '1px dashed rgba(255,255,255,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0,
+                        cursor: 'pointer',
+                        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                        e.currentTarget.style.color = 'var(--tap-text-2)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                        e.currentTarget.style.color = 'var(--tap-text-4)';
+                      }}
+                    >+</div>
+                  )}
+                  {isFull && (
+                    <div
+                      title="参考图槽位已满 (16/16)"
+                      style={{
+                        width: 36, height: 36, borderRadius: 6,
+                        border: '1px dashed rgba(255,100,80,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'rgba(255,100,80,0.3)', fontSize: 16, flexShrink: 0,
+                        cursor: 'not-allowed',
+                      }}
+                    >⊘</div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Unified input panel — textarea wrapping all controls */}
@@ -934,12 +971,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 }}
                 onPointerDownCapture={e => { e.stopPropagation() }}
                 onMouseDownCapture={e => { e.stopPropagation() }}
+                ref={el => { if (el) { el.onwheel = (e) => { e.stopPropagation(); }; } }}
                 onKeyDown={e => {
                   if (showAtMention && e.key === 'Escape') { setShowAtMention(false); return; }
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
                 }}
                 placeholder=""
-                maxLength={2000}
+                maxLength={5000}
                 rows={expanded ? 16 : 4}
                 style={{
                   width: '100%',
@@ -965,7 +1003,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   display: 'flex', flexDirection: 'column', gap: '4px',
                   boxShadow: 'var(--tap-shadow-lg)',
                 }}>
-                  <div style={{ fontSize:'10px',color:'var(--tap-text-4)',padding:'2px 6px' }}>选择参考图 (权重按顺序)</div>
+                  <div style={{ fontSize:'10px',color:'var(--tap-text-4)',padding:'2px 6px' }}>选择参考图 — 在 prompt 中用 #编号 指定每张图的用途</div>
                   {atMentions.map((m, i) => (
                     <div key={i}
                       onClick={() => {
@@ -1018,13 +1056,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               >
                 {expanded ? '∧' : '∨'}
               </button>
-              {prompt.length > 1500 && (
+              {prompt.length > 4500 && (
                 <div style={{
                   position: 'absolute', bottom: '8px', right: '12px',
                   fontSize: 'var(--tap-fs-xs)',
-                  color: prompt.length > 1900 ? 'var(--tap-danger)' : 'var(--tap-text-4)',
+                  color: prompt.length > 4900 ? 'var(--tap-danger)' : 'var(--tap-text-4)',
                 }}>
-                  {prompt.length}/2000
+                  {prompt.length}/5000
                 </div>
               )}
             </div>
@@ -1203,12 +1241,20 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 export const ImageGenerateNode = memo(ImageGenerateNodeInner);
 
 // ─── Editable node label ──────────────────────────
-function NodeLabel({ initial }: { initial: string }) {
+function NodeLabel({ nodeId, initial }: { nodeId: string; initial: string }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(initial);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== initial) {
+      useCanvasStore.getState().updateNode(nodeId, { title: trimmed });
+    }
+  };
 
   if (editing) {
     return (
@@ -1216,8 +1262,8 @@ function NodeLabel({ initial }: { initial: string }) {
         ref={inputRef}
         value={value}
         onChange={e => setValue(e.target.value)}
-        onBlur={() => setEditing(false)}
-        onKeyDown={e => { if (e.key === 'Enter') setEditing(false); }}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
         onPointerDown={e => e.stopPropagation()}
         style={{
           position: 'absolute', top: '-20px', left: '4px', zIndex: 10,

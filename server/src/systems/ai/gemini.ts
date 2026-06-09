@@ -7,7 +7,7 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 2);
 }
 
-const MAX_INPUT_TOKENS = 800_000; // well under DeepSeek's ~1M token context window
+const MAX_INPUT_TOKENS = 32_000; // practical limit for most LLMs (DeepSeek 64K, Gemini 32K)
 
 function truncateContent(text: string, maxTokens: number): string {
   // 2 chars ≈ 1 token (conservative), so maxChars = maxTokens * 2
@@ -17,7 +17,61 @@ function truncateContent(text: string, maxTokens: number): string {
   return text.slice(0, half) + '\n...[content truncated to fit context window]...\n' + text.slice(-half);
 }
 
-// ─── Text LLM (DeepSeek Official → Kie.ai fallback) ──
+// ─── GPT-5 Text (Kie.ai) ──────────────────────
+export async function gpt5Chat(
+  systemPrompt: string,
+  userContent: string,
+  maxTokens: number = 1600,
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' = 'high'
+): Promise<string | null> {
+  const kieKey = process.env.KIE_API_KEY;
+  if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
+
+  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+  try {
+    const input = `${systemPrompt}\n\n${userContent}`;
+    const body: any = {
+      model: 'gpt-5.5',
+      input,
+      stream: false,
+      reasoning: { effort: reasoningEffort },
+      max_tokens: maxTokens,
+    };
+
+    const opts: any = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey },
+      body: JSON.stringify(body),
+    };
+    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+
+    const url = 'https://api.kie.ai/codex/v1/responses';
+    console.log(`[gpt5] Calling ${url} effort=${reasoningEffort}`);
+    const resp = await fetch(url, opts);
+    if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
+
+    const data = await resp.json();
+    // GPT-5 response: { output: [{ content: [...] }], usage: {...}, status: "..." }
+    const output = data.output || data.choices || [];
+    const content = output[0]?.content;
+    if (Array.isArray(content)) {
+      const text = content.map((c: any) => c.text || '').join('').trim();
+      if (text) { console.log('[gpt5]', text.slice(0, 80)); return text; }
+    } else if (typeof content === 'string') {
+      if (content.trim()) { console.log('[gpt5]', content.trim().slice(0, 80)); return content.trim(); }
+    }
+    // Fallback: try message.content string
+    const msgText = output[0]?.message?.content || data.choices?.[0]?.message?.content;
+    if (typeof msgText === 'string' && msgText.trim()) {
+      console.log('[gpt5]', msgText.trim().slice(0, 80));
+      return msgText.trim();
+    }
+    console.log('[gpt5] Unexpected response:', JSON.stringify(data).slice(0, 300));
+    return null;
+  } catch (err) { console.log('[gpt5] Failed:', String(err).slice(0, 100)); return null; }
+}
+
+// ─── Text LLM (Kie.ai Gemini preferred, DeepSeek fallback) ──
 export async function geminiChat(
   systemPrompt: string,
   userContent: string,
@@ -31,20 +85,48 @@ export async function geminiChat(
     userContent = truncateContent(userContent, availableTokens);
   }
 
-  // DeepSeek Official (cheapest, preferred for text)
+  // Kie.ai Gemini (preferred — works with proxy, fast)
+  const kieKey = process.env.KIE_API_KEY;
+  if (kieKey) {
+    const r = await callKieGemini(kieKey, systemPrompt, userContent, maxTokens);
+    if (r) return r;
+  }
+  // DeepSeek Official (fallback)
   const dsKey = process.env.DEEPSEEK_API_KEY;
   if (dsKey) {
     const r = await callDeepSeek(dsKey, systemPrompt, userContent, maxTokens);
     if (r) return r;
   }
-  // Kie.ai deepseek-chat (fallback)
-  const kieKey = process.env.KIE_API_KEY;
-  if (kieKey) {
-    const r = await callKieDeepSeek(kieKey, systemPrompt, userContent, maxTokens);
-    if (r) return r;
-  }
   console.log('[llm] No text LLM configured');
   return null;
+}
+
+// ─── Kie.ai Gemini text ───────────────────────
+async function callKieGemini(
+  apiKey: string, systemPrompt: string, userContent: string, maxTokens: number
+): Promise<string | null> {
+  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+  try {
+    const opts: any = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+        temperature: 0.5, max_tokens: maxTokens,
+      }),
+    };
+    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+    const resp = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', opts);
+    if (!resp.ok) { console.log('[kie-gemini] Error:', resp.status); return null; }
+    const data = await resp.json();
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (text) { console.log('[kie-gemini]', text.slice(0, 60)); return text; }
+    return null;
+  } catch (err) { console.log('[kie-gemini] Failed:', String(err).slice(0, 60)); return null; }
 }
 
 // ─── Vision LLM (Kie.ai Gemini — for image analysis) ──
@@ -71,7 +153,7 @@ export async function visionAnalyze(
             { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + imageBase64 } },
           ],
         }],
-        max_tokens: 500,
+        max_tokens: 800,
       }),
     };
     if (proxy) { opts.dispatcher = new ProxyAgent(proxy); }
@@ -97,6 +179,8 @@ async function callDeepSeek(
   apiKey: string, systemPrompt: string, userContent: string, maxTokens: number
 ): Promise<string | null> {
   try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
     const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
@@ -108,7 +192,9 @@ async function callDeepSeek(
         ],
         temperature: 0.5, max_tokens: maxTokens,
       }),
+      signal: ctrl.signal,
     });
+    clearTimeout(t);
     if (!resp.ok) { console.log('[deepseek] Error:', resp.status); return null; }
     const data = await resp.json();
     const text = data.choices?.[0]?.message?.content?.trim();

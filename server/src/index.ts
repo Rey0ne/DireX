@@ -9,7 +9,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, extractCharacterProfile, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -43,6 +43,28 @@ app.get('/api/proxy-image', async (req, res) => {
 
 app.use(authMiddleware);
 
+// ─── Image Analysis Cache ──────────────────────
+// Stores Gemini Vision analysis for every image URL
+const imageCache = new Map<string, string>(); // url → description
+let lastCompiled: any = null; // last compiled prompt for debugging
+
+// Analyze a single image and cache the result
+async function analyzeAndCache(url: string): Promise<string> {
+  if (imageCache.has(url)) return imageCache.get(url)!;
+  try {
+    const analyses = await analyzeReferenceImages([url]);
+    const desc = analyses[0] || '';
+    // Use full detailed analysis (materials, facial features, clothing, weathering, etc.)
+    const summary = desc.slice(0, 800);
+    imageCache.set(url, summary);
+    console.log('[vision-cache] Cached:', summary.slice(0, 60) + '... (' + summary.length + ' chars)');
+    return summary;
+  } catch (err) {
+    console.log('[vision-cache] Failed:', String(err).slice(0, 60));
+    return '';
+  }
+}
+
 // ─── Startup ──────────────────────────────────
 loadKeys(); // Restore persisted API keys
 
@@ -52,6 +74,32 @@ loadKeys(); // Restore persisted API keys
 
 // ─── Health ───────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// ─── Canvas Sync ─────────────────────────────
+let canvasState: any = { nodes: [], edges: [], updatedAt: '' };
+app.post('/api/canvas/sync', (req, res) => {
+  canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
+  const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
+  const imageUrls: string[] = [];
+  imgNodes.forEach((n: any) => {
+    const u = n.meta?.gen?.imageUrl || n.meta?.gen?.videoUrl;
+    if (u) imageUrls.push(u);
+  });
+  // Auto-analyze new images
+  imageUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
+  console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges, ${imageUrls.length} images`);
+  res.json({ ok: true, imagesAnalyzing: imageUrls.length });
+});
+app.get('/api/canvas/state', (_req, res) => {
+  const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
+  res.json({
+    totalNodes: canvasState.nodes.length,
+    totalEdges: canvasState.edges.length,
+    imageCount: imgNodes.length,
+    cachedImages: imageCache.size,
+    updatedAt: canvasState.updatedAt,
+  });
+});
 
 // ─── Keys ─────────────────────────────────────
 app.get('/api/keys', (_req, res) => {
@@ -102,6 +150,14 @@ app.put('/api/agent/config', (req, res) => {
   const patch: Record<string, unknown> = {};
   for (const k of allowed) if (k in req.body) patch[k] = (req.body as any)[k];
   res.json(updateProfile(patch));
+});
+
+// ─── Image Analysis ──────────────────────────
+app.post('/api/analyze-image', async (req: Request, res: Response) => {
+  const { url } = req.body;
+  if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
+  const desc = await analyzeAndCache(url);
+  res.json({ url, description: desc, cached: imageCache.has(url) });
 });
 
 // ─── Generate ─────────────────────────────────
@@ -193,28 +249,92 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
   let compiledPrompt = '';
   let agentTrace = [];
-  if (config.promptEnhancement) {
-    try {
-      const pipelineResult = await runAgentPipeline({
-        userInput: userPrompt, model: body.providerId, mode: body.mode,
-        referenceUrls: (body as any).referenceUrls,
-        referencePrompts: (body as any).referencePrompts,
-        aspect: body.aspect, resolution: body.resolution,
-      });
-      compiledPrompt = pipelineResult.modelPrompt || userPrompt;
-      agentTrace = pipelineResult.trace;
-    } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
+  // Skip agent pipeline if prompt is already English (no need to compile)
+  const isEnglish = /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
+  if (config.promptEnhancement && !isEnglish) {
+    const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
+    if (isI2I) {
+      // I2I: Vision analysis → direct assembly (NO text LLM compilation)
+      try {
+        const refUrls = (body as any).referenceUrls as string[] | undefined;
+        const refPrompts = (body as any).referencePrompts as string[] | undefined;
+        if (refUrls?.length) {
+          // Step 1: Vision analysis — describe what's ACTUALLY in each image
+          const charProfiles = await Promise.all(refUrls.map(u => extractCharacterProfile(u).catch(() => ({ hasPerson: false, description: '' }))));
+          const sceneAnalyses = await Promise.all(refUrls.map(u => analyzeAndCache(u).catch(() => '')));
+
+          // Step 2: Try GPT-5 compilation (reasoning=high) — fall back to direct assembly on failure
+          try {
+            const gpt5Result = await compileI2IWithGPT5(userPrompt, charProfiles, sceneAnalyses);
+            if (gpt5Result) {
+              compiledPrompt = gpt5Result;
+              console.log('[agent] I2I GPT-5 compiled, len=' + compiledPrompt.length);
+              compiledPrompt = 'GPT5_OK:' + compiledPrompt; // marker for debugging
+            } else {
+              throw new Error('GPT-5 returned null');
+            }
+          } catch (gpt5Err) {
+            // Fallback: simple prompt, character from images only
+            console.log('[agent] I2I GPT-5 failed, using simple prompt:', String(gpt5Err).slice(0, 60));
+            compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + userPrompt;
+          }
+        } else {
+          compiledPrompt = userPrompt;
+        }
+      } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = userPrompt; }
+    } else {
+      // T2I mode: full cinematic compilation
+      try {
+        const pipelineResult = await runAgentPipeline({
+          userInput: userPrompt, model: body.providerId, mode: body.mode,
+          referenceUrls: (body as any).referenceUrls,
+          referencePrompts: (body as any).referencePrompts,
+          aspect: body.aspect, resolution: body.resolution,
+        });
+        compiledPrompt = pipelineResult.modelPrompt || userPrompt;
+        agentTrace = pipelineResult.trace;
+      } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
+    }
   } else {
-    const compiled = await compilePrompt(body.shot, body.rawText, (body as any).referenceUrls);
-    compiledPrompt = compiled.en;
+    compiledPrompt = body.rawText || '';
+    // If reference images exist, analyze them with Gemini Vision and merge into prompt
+    const refUrls = (body as any).referenceUrls as string[] | undefined;
+    if (refUrls && refUrls.length > 0) {
+      // First, map each @mention to a reference URL by order of appearance
+      const orderedMentions: string[] = [];
+      const mentionPattern = /@([\S]+)(?:\s+[\S]+)*/g;
+      let mMatch: RegExpExecArray | null;
+      while ((mMatch = mentionPattern.exec(compiledPrompt)) !== null) {
+        if (!orderedMentions.includes(mMatch[0])) orderedMentions.push(mMatch[0]);
+      }
+      // Use cached analyses (or analyze on demand)
+      let summaries: string[] = []; try { const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)); const results = await Promise.race([Promise.all(refUrls.map(url => analyzeAndCache(url))), timeout]); summaries = results as string[]; } catch (err) { console.log("[agent] Vision cache lookup/analysis timed out, continuing without summaries"); summaries = refUrls.map(() => ""); }
+      // Replace each @mention with its mapped ref
+      orderedMentions.forEach((tag) => {
+        const i = orderedMentions.indexOf(tag);
+        const refIdx = Math.min(i, refUrls.length - 1);
+        const desc = summaries[refIdx] ? `: ${summaries[refIdx]}` : '';
+        compiledPrompt = compiledPrompt.split(tag).join(`[Ref ${refIdx + 1}${desc}]`);
+        });
+        if (compiledPrompt.length > 3500) compiledPrompt = compiledPrompt.slice(0, 3500);
+        console.log('[agent] Vision merged, prompt length:', compiledPrompt.length);
+    }
   }
-  console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 60));
+  // Safety: ensure compiledPrompt is never empty
+  if (!compiledPrompt || compiledPrompt.trim().length === 0) {
+    compiledPrompt = userPrompt || body.rawText || 'generate an image';
+    console.log('[agent] WARNING: compiledPrompt was empty, using fallback: ' + compiledPrompt.slice(0, 80));
+  }
+  console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
   const t0 = Date.now();
+  const i2iNegPrompt = body.mode === 'image-to-image'
+    ? 'blurry, low quality, distorted, deformed, watermark, text, logo, different face, face changed, beautified, younger, prettier, smoothed skin, photoshopped, airbrushed, idealized, doll-like, altered facial features, changed appearance, extra props, weapon, sword, gun, object not in prompt, hallucinated item, made-up accessory, extra person, extra animal, clutter, busy background, added elements, fabricated details'
+    : 'blurry, low quality, distorted, deformed, watermark, text, logo';
   const result: GenerateResult = await handler({
     providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
-    negativePrompt: 'blurry, low quality, distorted, deformed, watermark, text, logo',
+    negativePrompt: i2iNegPrompt,
     aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
-    referenceImage: body.referenceImage, maskImage: body.maskImage, styleImageUrl: body.styleImageUrl,
+    referenceImage: body.referenceImage, referenceUrls: (body as any).referenceUrls, maskImage: body.maskImage, styleImageUrl: body.styleImageUrl,
   });
   result.durationMs = Date.now() - t0;
   addLog({
@@ -223,9 +343,24 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     status: result.success ? 'succeeded' : 'failed',
     assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
   });
-  res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; }) }, result, agentTrace });
+  // Auto-cache generated images for future @mention use
+  if (result.success && result.assetUrls.length > 0) {
+    result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
+  }
+  const debugInfo = agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
+  // Add I2I debug: show compiledPrompt status
+  debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
+  // Save last compiled prompt for debugging
+  lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, gpt5: compiledPrompt.startsWith('GPT5_OK:') ? 'GPT-5 WORKED' : 'FALLBACK (GPT-5 failed)', time: new Date().toISOString() };
+  // Strip GPT5_OK marker before sending to Kie
+  if (compiledPrompt.startsWith('GPT5_OK:')) compiledPrompt = compiledPrompt.slice(8);
+  console.log('[agent] ===== COMPILED EN PROMPT =====');
+  console.log(compiledPrompt);
+  console.log('[agent] ===== END COMPILED PROMPT =====');
+  res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo }, result, agentTrace });
 });
 
+app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled || { en: '(no generation yet)' }, kieReq: (globalThis as any).__lastKieReq || null }));
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 
 // ─── Kie.ai Callback ──────────────────────────
