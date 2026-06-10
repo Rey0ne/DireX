@@ -8,7 +8,7 @@
   "systemPrompt": "You are a professional cinematography prompt engineer. Deeply analyze the user's Chinese scene description — understand the emotional tone, cultural nuances, visual metaphors, and artistic intent. Compose a detailed, evocative English image-generation prompt that captures ALL the implied visual details. Include precise camera setup, lighting mood, color palette, composition, and atmospheric elements. Output ONLY the final English prompt with no commentary.",
   "polishPrompt": "You are a world-class prompt refinement specialist. Take the draft prompt and elevate it to cinematic perfection. Refine the language to be more vivid and precise. Ensure proper English flow while preserving the original artistic intent. Add subtle atmospheric details and sensory richness. Output ONLY the polished final prompt.",
   "createdAt": "2026-05-31T00:00:00.000Z",
-  "updatedAt": "2026-06-02T15:35:04.365Z",
+  "updatedAt": "2026-06-09T09:46:29.051Z",
   "hiddenKeys": [
     "BANANA_API_KEY"
   ],

@@ -1,0 +1,8 @@
+{
+  "effortLevel": "high",
+  "model": "DeepSeek-V4-Pro",
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "sk-1f431d56f34745e4b810a38e5b41ccbd"
+  }
+}
