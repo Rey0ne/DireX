@@ -54,7 +54,21 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
       const tc = node.textContent || '';
       const atIdx = tc.lastIndexOf('@', off - 1);
       if (atIdx >= 0) {
-        node.textContent = tc.slice(0, atIdx) + tc.slice(off);
+        // Fix: use full text walk to avoid swallowing prompt across multiple nodes
+        let fullT = extractText(), cPos = 0, found = false;
+        const w2p = (p: Node) => { for (const n of Array.from(p.childNodes as NodeListOf<ChildNode>)) { if (found) return;
+          if (n === saved.startContainer) { cPos += saved.startOffset; found = true; return; }
+          if (n.nodeType === 3) cPos += (n.textContent||'').length;
+          else if (n.nodeType === 1) w2p(n); } };
+        w2p(el); const aI = fullT.lastIndexOf('@', cPos - 1);
+        if (aI >= 0) { let p0 = 0;
+          const mN = (p: Node) => { for (const n of Array.from(p.childNodes as NodeListOf<ChildNode>)) {
+            if (n.nodeType === 3) { const l = (n.textContent||'').length;
+              if (p0 <= aI && p0 + l >= aI) { const la = aI - p0, le = cPos - p0;
+                n.textContent = (n.textContent||'').slice(0, la) + (n.textContent||'').slice(le);
+                saved.setStart(n, la); saved.collapse(true); return true; }
+              p0 += l; } else if (n.nodeType === 1) { if (mN(n)) return true; } } return false; };
+          mN(el); const s = window.getSelection(); s?.removeAllRanges(); s?.addRange(saved); }
         saved.setStart(node, atIdx);
         saved.collapse(true);
         sel?.removeAllRanges();

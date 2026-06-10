@@ -116,6 +116,7 @@ export async function saveNow() {
         }
       });
 
+    try { const nodesData = nodes.map(n => ({ id: n.id, type: n.type, title: n.title, meta: n.meta })); const edgesData = edges.map(e => ({ id: e.id, from: e.from, to: e.to })); fetch('/api/canvas/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' }, body: JSON.stringify({ nodes: nodesData, edges: edgesData }) }).catch(() => {}); } catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
   } catch (err) {
     console.error('[persist] Save failed:', err);

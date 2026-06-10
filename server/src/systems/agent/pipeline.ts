@@ -36,7 +36,18 @@ export interface PipelineResult {
   totalDurationMs: number;
 }
 
-const VISION_ANALYSIS_PROMPT = `Describe this image concisely as a creative reference. Cover: 1) Subject & scene, 2) Artistic style & color, 3) Lighting & composition. Be brief — 2-3 sentences max.`;
+const VISION_ANALYSIS_PROMPT = `Analyze this image as a cinematography reference. Be thorough and objective — describe EXACTLY what you see, don't interpret or beautify.
+
+Describe in detail:
+1. CAMERA: angle (low/high/eye-level, specify degrees if apparent), shot size (extreme close-up to extreme wide), lens feel (wide, normal, telephoto compression), depth of field (shallow/deep, what's in focus)
+2. COMPOSITION: subject placement (rule of thirds, center, off-center), leading lines, framing elements, negative space, symmetry/asymmetry
+3. LIGHTING: key light direction & quality (hard/soft), fill light, rim/backlight, contrast ratio (high-key/low-key), practical lights visible
+4. COLOR: color temperature (warm/cool/neutral), dominant colors, color contrast, saturation level, any notable color grading
+5. SUBJECT: what/who is the main subject, their pose/stance, where they're looking, their relative size in frame
+6. ENVIRONMENT: setting description, foreground/midground/background elements, atmospheric conditions (fog, haze, dust, rain, snow)
+7. MOOD & STYLE: visual tone, genre references, any distinctive stylistic choices
+
+Output as structured paragraphs. Do NOT summarize in 2-3 sentences — include ALL observable details.`;
 
 async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
   if (url.startsWith('data:')) {
@@ -77,22 +88,74 @@ export async function analyzeReferenceImages(urls: string[]): Promise<string[]> 
 }
 
 // ─── Character Profile Extraction (I2I) ─────────
-const CHARACTER_EXTRACT_PROMPT = `Is there a person in this image? If YES, describe ONLY the person in detail:
+const CHARACTER_EXTRACT_PROMPT = `Analyze the person in this image with forensic detail. Be OBJECTIVE — describe what you actually see, not what you assume. If uncertain about any feature, say "unclear" rather than guessing.
 
-Face shape & bone structure (jawline, cheekbones, brow ridge)
-Eyes (shape, color, distance apart, eyelid type)
-Nose (bridge height, width, tip shape)
-Mouth (lip thickness, width, shape)
-Facial hair (mustache, beard, stubble — be explicit: NONE if absent)
-Distinguishing marks (moles, scars, tattoos — say NONE if absent)
-Age (approximate range)
-Ethnicity/appearance type (be specific about facial feature combinations, not just labels)
-Hair (color, length, texture, style)
-Body (build, height impression, shoulder width)
-Skin tone (be precise: pale, fair, tan, olive, brown, dark — with undertones)
-Clothing (each visible garment: type, color, fabric, fit, any logos/text)
+FACE & HEAD:
+- Face shape (oval, round, square, rectangular, heart, diamond, triangle) — describe the actual bone structure
+- Forehead (high/low, wide/narrow, smooth/lined)
+- Jawline (sharp/soft/angular/rounded, width)
+- Cheekbones (prominent/flat, high/low)
+- Brow ridge (prominent/subtle)
+- Chin (pointed/rounded/square/cleft, projection)
 
-If NO person, reply "NO_PERSON".`;
+EYES:
+- Shape (almond/round/hooded/monolid/deep-set/protruding)
+- Size relative to face
+- Distance apart (close-set/wide-set/average)
+- Color (blue/green/brown/hazel/grey — be specific)
+- Eyelashes (long/short, thick/sparse)
+- Eyebrows (thick/thin, straight/arched, color, distance from eyes)
+
+NOSE:
+- Bridge (high/low, wide/narrow, straight/hooked)
+- Tip (pointed/rounded/bulbous/upturned)
+- Nostrils (wide/narrow, visible/not)
+- Overall size relative to face
+
+MOUTH:
+- Lip thickness (thin/medium/full — upper vs lower)
+- Width (wide/narrow/average)
+- Cupid's bow (defined/subtle)
+- Corners (upturned/downturned/neutral)
+
+SKIN:
+- Tone (very pale/pale/fair/light tan/medium tan/olive/brown/dark — be specific)
+- Undertones (cool/pink, warm/golden, neutral, olive)
+- Texture (smooth/rough, visible pores, freckles, acne, scars)
+- Any distinguishing marks (moles, beauty marks, scars, birthmarks) — explicit location on face
+- Wrinkles or aging signs (forehead lines, crow's feet, nasolabial folds)
+
+HAIR:
+- Color (black/brown/blonde/red/grey/white — specify shade)
+- Length (buzz cut/short/medium/long — approximate in cm)
+- Texture (straight/wavy/curly/coily)
+- Style (describe the actual style seen)
+- Volume (thin/medium/thick)
+- Hairline (straight/receding/widow's peak)
+- Facial hair (clean shaven/stubble/light beard/full beard/mustache — describe exactly)
+
+AGE: approximate range (e.g., 25-30, 40-45, 60-65) based on visible indicators
+
+ETHNICITY/ANCESTRY: Describe the actual facial features you observe (e.g., "fair skin, high nasal bridge, deep-set round eyes, angular jaw, light brown wavy hair" rather than just labeling). Focus on the combination of features visible.
+
+BODY (if visible):
+- Build (slim/athletic/average/heavy — describe proportions)
+- Shoulders (broad/narrow/average)
+- Height appearance (short/average/tall — relative impression)
+- Posture (erect/slouched/relaxed/tense)
+
+CLOTHING (each visible garment, top to bottom):
+- Type (jacket, shirt, dress, etc.)
+- Color & pattern (be specific)
+- Fabric & texture
+- Fit (tight/regular/loose/oversized)
+- Neckline or collar style
+- Sleeves (long/short/none)
+- Any visible logos, text, graphics, badges, patches — describe exactly
+- Accessories (glasses, jewelry, watch, hat, scarf, belt, bag)
+
+If there is NO person in the image, reply ONLY "NO_PERSON".
+If there are MULTIPLE people, describe the most prominent/foreground person.`;
 
 export interface CharacterProfile {
   hasPerson: boolean;
@@ -291,38 +354,79 @@ ${refSummaries}
 // ─── I2I GPT-5 Compiler (reasoning.effort = high) ──
 const I2I_GPT5_SYSTEM = `你是 I2I 提示词编译专家。根据参考图的视觉分析，为图像生成模型编写精准的生成提示词。
 
-规则：
-1. 角色五官、发型、体型、肤色、种族 → 100% 由参考图决定，不在文本中描述
-2. 服装 → 由参考图决定，不在文本中描述
-3. 文本只描述：动作/姿态、表情、背景/场景、光影/色调、构图/镜头角度
-4. 用 "Character identity, facial features, hair, body type, skin tone, and clothing — see reference images exactly as shown." 来引用角色
-5. 禁止添加参考图中不存在的道具、武器、配饰、胡须、眼镜
-6. 禁止美化：不要更漂亮、更年轻、更精致
-7. 输出为一段连贯的英文提示词，不要格式标记`;
+参考图有两种类型：
+- 角色参考图(CHARACTER)：锁定人物身份 — 五官、发型、体型、肤色、种族、服装
+- 构图参考图(SCENE/COMPOSITION)：提取镜头角度、景别、姿态、光线、氛围
 
+规则：
+1. 角色五官、发型、体型、肤色、种族 → 100% 从角色参考图提取，不在文本中描述
+2. 服装 → 从角色参考图提取，不在文本中描述
+3. 镜头角度、景别、姿态、构图 → 从构图参考图提取，写入 prompt
+4. 光影、色调、氛围 → 从构图参考图提取，写入 prompt
+5. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充
+6. 用 "Character identity, facial features, hair, body type, skin tone, and clothing — see reference images exactly as shown." 来引用角色
+7. 禁止添加参考图中不存在的道具、武器、配饰、胡须、眼镜
+8. 禁止美化：不要更漂亮、更年轻、更精致
+9. 输出为一段连贯的英文提示词，不要格式标记`;
+
+// GPT-5.4 I2I prompt compiler — sends reference images DIRECTLY to GPT-5.4 for vision analysis + prompt compilation.
+// No separate Gemini Vision step needed; GPT-5.4 sees the actual images.
 export async function compileI2IWithGPT5(
   userInput: string,
-  charProfiles: CharacterProfile[],
-  sceneAnalyses: string[],
+  referenceUrls: string[],
 ): Promise<string | null> {
-  // Build context from vision data
-  const parts: string[] = [];
-  charProfiles.forEach((p, i) => {
-    if (p.hasPerson && p.description) {
-      parts.push(`Reference Image #${i + 1} — CHARACTER:\n${p.description}`);
-    }
-  });
-  sceneAnalyses.forEach((s, i) => {
-    if (s && !charProfiles[i]?.hasPerson) {
-      parts.push(`Reference Image #${i + 1} — SCENE/STYLE:\n${s.slice(0, 300)}`);
-    }
-  });
+  if (!referenceUrls.length) return null;
 
-  const context = parts.join('\n\n') || '[No vision analysis available]';
-  const userContent = `[VISION ANALYSIS]\n${context}\n\n[USER INSTRUCTION]\n${userInput}\n\nCompile a generation prompt. Character identity from reference images ONLY. Describe only: pose, expression, background, lighting, composition.`;
+  // Convert data: URLs to public HTTP URLs (GPT-5.4 needs accessible URLs)
+  const { uploadDataUrl } = await import('../ai/kie-provider.js');
+  const publicUrls: string[] = [];
+  for (const url of referenceUrls) {
+    if (url.startsWith('data:')) {
+      const uploaded = await uploadDataUrl(url);
+      if (uploaded) publicUrls.push(uploaded);
+      else console.log('[i2i-gpt5] Failed to upload data URL, skipping ref');
+    } else {
+      publicUrls.push(url);
+    }
+  }
+  if (!publicUrls.length) { console.log('[i2i-gpt5] No public URLs available'); return null; }
 
-  console.log('[i2i-gpt5] Starting compilation with GPT-5, ' + charProfiles.filter(p => p.hasPerson).length + ' char refs');
-  const result = await gpt5Chat(I2I_GPT5_SYSTEM, userContent, 2000, 'high');
+  // Extract @mention tags from user prompt to label images
+  const mentionTags: string[] = [];
+  const mentionRe = /@(\S+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = mentionRe.exec(userInput)) !== null) {
+    if (!mentionTags.includes(m[1])) mentionTags.push(m[1]);
+  }
+
+  // Build user message: text instruction + reference images
+  const userContent: any[] = [];
+  userContent.push({ type: 'input_text', text: '参考图说明：' });
+  publicUrls.forEach((url, i) => {
+    const tag = mentionTags[i] ? ` (@${mentionTags[i]})` : '';
+    userContent.push({ type: 'input_text', text: `[参考图 #${i + 1}${tag}]` });
+    userContent.push({ type: 'input_image', image_url: url });
+  });
+  userContent.push({ type: 'input_text', text: `
+用户指令: ${userInput}
+
+请按照以下规则编译英文生成提示词：
+1. 从角色参考图(@演员)中准确提取并描述：五官形状、眼睛颜色与形状、鼻梁高低与形状、嘴唇厚度、脸型、发型发色、肤色与底色、体型、年龄、服装款式与颜色面料。将这些特征明确写入prompt。
+2. 从构图参考图(@动作，机位)中准确提取并描述：镜头角度(仰拍/俯拍/平视)、景别(特写/中景/全景)、构图方式、主体站位、光线方向与质感。
+3. 光影、色调、氛围 → 从构图参考图提取并写入 prompt。
+4. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充。
+5. 禁止添加参考图中不存在的道具、配饰、武器、装饰物。
+6. 禁止美化：不要更漂亮、更年轻、更精致、更瘦、更白、更对称。
+7. 保持角色参考图中人物的原始五官、发型、服装不变 — 不要改变或替换。
+8. 输出为一段连贯的英文提示词，不要格式标记，不要用"Character identity..."占位符代替实际描述。` });
+
+  const messages = [
+    { role: 'system' as const, content: [{ type: 'input_text' as const, text: '你是 I2I 提示词编译专家。根据参考图，为图像生成模型编写精准的英文生成提示词。你直接看到参考图，所以你能准确描述图中的角色特征和构图信息。' }] },
+    { role: 'user' as const, content: userContent },
+  ];
+
+  console.log('[i2i-gpt5] GPT-5.4 analyzing ' + publicUrls.length + ' ref images directly');
+  const result = await gpt5Chat(messages, { effort: 'high' });
   if (result) {
     console.log('[i2i-gpt5] Compiled ' + result.length + ' chars');
     return result;

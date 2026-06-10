@@ -8,7 +8,8 @@ export interface GenerateRequest {
   negativePrompt?: string;
   aspect?: string;
   resolution?: string;
-  referenceImage?: string;  // base64 or URL for image-to-image
+  referenceImage?: string;  // base64 or URL for image-to-image (primary)
+  referenceUrls?: string[]; // multiple reference images
   maskImage?: string;       // base64 mask for inpainting
   styleImageUrl?: string;
   duration?: string;   // video: "5s", "8s", "10s"

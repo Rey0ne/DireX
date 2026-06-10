@@ -9,7 +9,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, extractCharacterProfile, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -254,29 +254,19 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
-      // I2I: Vision analysis → direct assembly (NO text LLM compilation)
+      // I2I: GPT-5.4 directly analyzes reference images + compiles prompt
       try {
         const refUrls = (body as any).referenceUrls as string[] | undefined;
-        const refPrompts = (body as any).referencePrompts as string[] | undefined;
         if (refUrls?.length) {
-          // Step 1: Vision analysis — describe what's ACTUALLY in each image
-          const charProfiles = await Promise.all(refUrls.map(u => extractCharacterProfile(u).catch(() => ({ hasPerson: false, description: '' }))));
-          const sceneAnalyses = await Promise.all(refUrls.map(u => analyzeAndCache(u).catch(() => '')));
-
-          // Step 2: Try GPT-5 compilation (reasoning=high) — fall back to direct assembly on failure
-          try {
-            const gpt5Result = await compileI2IWithGPT5(userPrompt, charProfiles, sceneAnalyses);
-            if (gpt5Result) {
-              compiledPrompt = gpt5Result;
-              console.log('[agent] I2I GPT-5 compiled, len=' + compiledPrompt.length);
-              compiledPrompt = 'GPT5_OK:' + compiledPrompt; // marker for debugging
-            } else {
-              throw new Error('GPT-5 returned null');
-            }
-          } catch (gpt5Err) {
-            // Fallback: simple prompt, character from images only
-            console.log('[agent] I2I GPT-5 failed, using simple prompt:', String(gpt5Err).slice(0, 60));
+          // GPT-5.4 sees the actual images — no separate Gemini Vision step needed
+          const gpt5Result = await compileI2IWithGPT5(userPrompt, refUrls);
+          if (gpt5Result) {
+            compiledPrompt = gpt5Result;
+            console.log('[agent] I2I GPT-5.4 compiled ' + gpt5Result.length + ' chars');
+          } else {
+            // Fallback: simple prefix if GPT-5.4 fails
             compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + userPrompt;
+            console.log('[agent] I2I GPT-5.4 failed, using fallback');
           }
         } else {
           compiledPrompt = userPrompt;
@@ -327,8 +317,9 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   }
   console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
   const t0 = Date.now();
+  // I2I negative prompt: NEVER mention face/identity terms — they confuse the model and break identity preservation
   const i2iNegPrompt = body.mode === 'image-to-image'
-    ? 'blurry, low quality, distorted, deformed, watermark, text, logo, different face, face changed, beautified, younger, prettier, smoothed skin, photoshopped, airbrushed, idealized, doll-like, altered facial features, changed appearance, extra props, weapon, sword, gun, object not in prompt, hallucinated item, made-up accessory, extra person, extra animal, clutter, busy background, added elements, fabricated details'
+    ? 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details'
     : 'blurry, low quality, distorted, deformed, watermark, text, logo';
   const result: GenerateResult = await handler({
     providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
@@ -348,12 +339,15 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
   }
   const debugInfo = agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
-  // Add I2I debug: show compiledPrompt status
+  // Add I2I debug: show compiledPrompt status + raw vision analysis
   debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
+  const rawVision = (globalThis as any).__lastI2IVision;
+  if (rawVision) {
+    debugInfo.push({field:'rawVision-charProfiles', contribution: JSON.stringify(rawVision.charProfiles).slice(0, 2000)});
+    debugInfo.push({field:'rawVision-sceneAnalyses', contribution: JSON.stringify(rawVision.sceneAnalyses).slice(0, 2000)});
+  }
   // Save last compiled prompt for debugging
-  lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, gpt5: compiledPrompt.startsWith('GPT5_OK:') ? 'GPT-5 WORKED' : 'FALLBACK (GPT-5 failed)', time: new Date().toISOString() };
-  // Strip GPT5_OK marker before sending to Kie
-  if (compiledPrompt.startsWith('GPT5_OK:')) compiledPrompt = compiledPrompt.slice(8);
+  lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, method: body.mode === 'image-to-image' ? 'i2i-direct' : (config.promptEnhancement ? 't2i-pipeline' : 'raw'), time: new Date().toISOString() };
   console.log('[agent] ===== COMPILED EN PROMPT =====');
   console.log(compiledPrompt);
   console.log('[agent] ===== END COMPILED PROMPT =====');

@@ -19,6 +19,37 @@ function kieFetch(url: string, options: RequestInit = {}): Promise<Response> {
   return fetch(url, options);
 }
 
+// ─── Upload data: URL to public http URL ─────────
+export async function uploadDataUrl(dataUrl: string): Promise<string | null> {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null;
+  try {
+    const mimeType = match[1];
+    const buffer = Buffer.from(match[2], 'base64');
+    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('jpeg') ? 'jpg' : 'webp';
+    const boundary = '----TapNow' + Date.now();
+    const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="ref.${ext}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
+    const footer = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="time"\r\n\r\n72h\r\n--${boundary}--\r\n`);
+    const body = Buffer.concat([header, buffer, footer]);
+
+    const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    const opts: any = {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+    };
+    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+
+    const resp = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', opts);
+    if (resp.ok) {
+      const url = (await resp.text()).trim();
+      if (url.startsWith('https://')) { console.log('[upload] →', url.slice(0, 60)); return url; }
+    }
+    console.log('[upload] Failed:', resp.status);
+    return null;
+  } catch(e) { console.log('[upload] Error:', String(e).slice(0, 60)); return null; }
+}
+
 // ─── Provider → Kie.ai model name ──────────────
 function getKieModel(req: GenerateRequest): string {
   const mode = req.mode || 'text-to-image';
@@ -144,35 +175,44 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
 
   if (req.negativePrompt) (body.input as any).negative_prompt = req.negativePrompt;
 
-  // Reference images: parameter name and limit differ per model
-  // - gpt-image-2-image-to-image → input_urls (max 16)
-  // - nano-banana-pro → image_input (max 8)
-  // - gpt-image-2-text-to-image → no reference support
-  if (isI2I || isNanoBanana) {
-    const maxRefs = isNanoBanana ? 8 : 16;
-    const refParam = isNanoBanana ? 'image_input' : 'input_urls';
-    const allRefs: string[] = [];
-    console.log('[kie] DEBUG req.referenceUrls:', req.referenceUrls?.length || 0, 'samples:', req.referenceUrls?.map(u => typeof u === 'string' ? u.slice(0, 60) : typeof u).join(' | '));
-    if (req.referenceUrls?.length) allRefs.push(...req.referenceUrls);
-    if (req.referenceImage) allRefs.push(req.referenceImage); // don't skip — include ALL refs
-    if (req.styleImageUrl && (req.styleImageUrl.startsWith('http://') || req.styleImageUrl.startsWith('https://'))) {
+  // Reference images — upload data: URLs to public hosting
+  const allRefs: string[] = [];
+  if (req.referenceUrls?.length) {
+    for (const u of req.referenceUrls) {
+      if (typeof u === 'string' && u.startsWith('data:')) {
+        const uploaded = await uploadDataUrl(u);
+        if (uploaded) allRefs.push(uploaded);
+      } else {
+        allRefs.push(u);
+      }
+    }
+  }
+  if (req.referenceImage) allRefs.push(req.referenceImage); // always include primary ref
+  if (req.styleImageUrl) {
+    if (req.styleImageUrl.startsWith('data:')) {
+      const uploaded = await uploadDataUrl(req.styleImageUrl);
+      if (uploaded) allRefs.push(uploaded);
+    } else {
       allRefs.push(req.styleImageUrl);
     }
-    const validRefs = allRefs.filter(u => u && (u.startsWith('http://') || u.startsWith('https://')));
-    if (validRefs.length > maxRefs) {
-      console.warn(`[kie] Truncating ${validRefs.length} refs to ${maxRefs} (${model} limit)`);
-      validRefs.length = maxRefs;
+  }
+  const validRefs = allRefs.filter(u => u && (u.startsWith('http://') || u.startsWith('https://')));
+  // Debug
+  (globalThis as any).__kieUpload = { total: allRefs.length, valid: validRefs.length, samples: allRefs.slice(0, 5).map((u: string) => u.slice(0, 60)) };
+  // Model-specific ref limits & parameter names (per Kie API docs)
+  const maxRefs = isNanoBanana ? 8 : 16;  // NanoBanana: max 8, GPT Image2: max 16
+  if (validRefs.length > maxRefs) {
+    console.warn(`[kie] Truncating ${validRefs.length} refs to ${maxRefs} (${req.providerId})`);
+    validRefs.length = maxRefs;
+  }
+  // Dispatch refs with model-specific parameter names
+  if (validRefs.length > 0) {
+    if (isNanoBanana) {
+      (body.input as any).image_input = validRefs;           // Nano Banana Pro: image_input
+    } else if (isI2I) {
+      (body.input as any).input_urls = validRefs;            // GPT Image2 I2I: input_urls
     }
-    if (validRefs.length > 0) {
-      (body.input as any)[refParam] = validRefs;
-      console.log(`[kie] ${model}: ${validRefs.length}/${maxRefs} ${refParam}`);
-    }
-    // Update debug with filter results
-    if ((globalThis as any).__lastKieReq) {
-      (globalThis as any).__lastKieReq.allRefs_before = allRefs.length;
-      (globalThis as any).__lastKieReq.validRefs_after = validRefs.length;
-      (globalThis as any).__lastKieReq.refUrls_sample = (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u));
-    }
+    console.log(`[kie] Refs: ${validRefs.length}/${maxRefs} → ${isNanoBanana ? 'image_input' : 'input_urls'}`);
   }
 
   if (req.maskImage) (body.input as any).mask_image = req.maskImage;
@@ -180,8 +220,8 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   const startTime = Date.now();
   const submitUrl = `${BASE_URL}/jobs/createTask`;
   // Save last Kie request for debugging
-  const inputUrls = (body.input as any).input_urls || (body.input as any).image_input || [];
-  (globalThis as any).__lastKieReq = { model: body.model, input_urls_count: inputUrls.length, input_urls_sample: inputUrls.slice(0, 5).map((u: string) => (typeof u === 'string' ? u.slice(0, 80) : String(u))), prompt_len: (body.input as any).prompt?.length || 0, url: submitUrl, refUrls_in: req.referenceUrls?.length || 0, refUrls_sample: (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u)), refImg_in: req.referenceImage ? 1 : 0, allRefs_before_filter: allRefs.length, validRefs_after_filter: validRefs.length };
+  const debugRefs = (body.input as any).input_urls || (body.input as any).image_input || [];
+  (globalThis as any).__lastKieReq = { model: body.model, refs_count: debugRefs.length, refs_sample: debugRefs.slice(0, 5).map((u: string) => (typeof u === 'string' ? u.slice(0, 80) : String(u))), prompt_len: (body.input as any).prompt?.length || 0, url: submitUrl, refUrls_in: req.referenceUrls?.length || 0, refUrls_sample: (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u)), refImg_in: req.referenceImage ? 1 : 0 };
   console.log(`[kie] Submit: ${req.providerId}/${mode}/${resolution} → ${submitUrl} model=${model}`);
 
   try {

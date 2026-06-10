@@ -17,56 +17,117 @@ function truncateContent(text: string, maxTokens: number): string {
   return text.slice(0, half) + '\n...[content truncated to fit context window]...\n' + text.slice(-half);
 }
 
-// ─── GPT-5 Text (Kie.ai) ──────────────────────
+// ─── GPT-5.4 Vision Chat (Kie.ai Codex Responses API) ──
+// Supports text + image_url input. Returns SSE streaming response.
+
+export interface Gpt5Message {
+  role: 'system' | 'user' | 'assistant' | 'developer' | 'tool';
+  content: Gpt5ContentItem[];
+}
+
+export interface Gpt5ContentItem {
+  type: 'input_text' | 'input_image' | 'input_file';
+  text?: string;
+  image_url?: string;
+  file_url?: string;
+}
+
 export async function gpt5Chat(
-  systemPrompt: string,
-  userContent: string,
-  maxTokens: number = 1600,
-  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' = 'high'
+  messages: Gpt5Message[],
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
 
   const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
   try {
-    const input = `${systemPrompt}\n\n${userContent}`;
     const body: any = {
-      model: 'gpt-5.5',
-      input,
+      model: 'gpt-5-4',
+      input: messages,
       stream: false,
-      reasoning: { effort: reasoningEffort },
-      max_tokens: maxTokens,
+      reasoning: { effort: opts?.effort || 'high' },
     };
+    if (opts?.stream !== undefined) body.stream = opts.stream;
 
-    const opts: any = {
+    const fetchOpts: any = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey },
       body: JSON.stringify(body),
     };
-    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+    if (proxy) fetchOpts.dispatcher = new ProxyAgent(proxy);
 
     const url = 'https://api.kie.ai/codex/v1/responses';
-    console.log(`[gpt5] Calling ${url} effort=${reasoningEffort}`);
-    const resp = await fetch(url, opts);
+    const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
+    console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
+    const resp = await fetch(url, fetchOpts);
     if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
 
-    const data = await resp.json();
-    // GPT-5 response: { output: [{ content: [...] }], usage: {...}, status: "..." }
-    const output = data.output || data.choices || [];
-    const content = output[0]?.content;
-    if (Array.isArray(content)) {
-      const text = content.map((c: any) => c.text || '').join('').trim();
-      if (text) { console.log('[gpt5]', text.slice(0, 80)); return text; }
-    } else if (typeof content === 'string') {
-      if (content.trim()) { console.log('[gpt5]', content.trim().slice(0, 80)); return content.trim(); }
+    const raw = await resp.text();
+
+    // Try JSON first (non-streaming or completed response)
+    if (raw.trim().startsWith('{')) {
+      try {
+        const data = JSON.parse(raw);
+        if (data.output && Array.isArray(data.output)) {
+          const texts: string[] = [];
+          for (const o of data.output) {
+            if (o.content && Array.isArray(o.content)) {
+              for (const c of o.content) {
+                if (c.text) texts.push(c.text);
+              }
+            }
+          }
+          const outputText = texts.join('').trim();
+          if (outputText) {
+            console.log('[gpt5] JSON output ' + outputText.length + ' chars, credits=' + (data.credits_consumed || '?') + ': ' + outputText.slice(0, 120));
+            return outputText;
+          }
+        }
+        if (data.status === 'failed' || data.error) {
+          const errMsg = data.error?.message || data.error?.type || JSON.stringify(data.error || data).slice(0, 200);
+          console.log('[gpt5] Error:', errMsg);
+          return null;
+        }
+      } catch { /* fall through to SSE parsing */ }
     }
-    // Fallback: try message.content string
-    const msgText = output[0]?.message?.content || data.choices?.[0]?.message?.content;
-    if (typeof msgText === 'string' && msgText.trim()) {
-      console.log('[gpt5]', msgText.trim().slice(0, 80));
-      return msgText.trim();
+
+    // Parse SSE (Server-Sent Events) response
+    const lines = raw.split('\n');
+    let outputText = '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const d = JSON.parse(line.slice(6));
+        if (d.type === 'response.output_text.delta' && d.delta) {
+          outputText += d.delta;
+        }
+        if (d.type === 'response.completed' && d.response?.output) {
+          for (const o of d.response.output) {
+            if (o.content && Array.isArray(o.content)) {
+              for (const c of o.content) {
+                if (c.text) outputText += c.text;
+              }
+            }
+          }
+        }
+        if (d.error) {
+          console.log('[gpt5] SSE error:', JSON.stringify(d.error).slice(0, 200));
+        }
+      } catch { /* skip */ }
     }
-    console.log('[gpt5] Unexpected response:', JSON.stringify(data).slice(0, 300));
+
+    outputText = outputText.trim();
+    if (outputText) {
+      // Deduplicate (SSE deltas + completed may overlap)
+      const half = Math.floor(outputText.length / 2);
+      if (half > 0 && outputText.slice(0, half) === outputText.slice(half)) {
+        outputText = outputText.slice(0, half);
+      }
+      console.log('[gpt5] SSE output ' + outputText.length + ' chars: ' + outputText.slice(0, 120));
+      return outputText;
+    }
+    console.log('[gpt5] Empty output, raw: ' + raw.slice(0, 300));
     return null;
   } catch (err) { console.log('[gpt5] Failed:', String(err).slice(0, 100)); return null; }
 }
@@ -153,7 +214,7 @@ export async function visionAnalyze(
             { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + imageBase64 } },
           ],
         }],
-        max_tokens: 800,
+        max_tokens: 2000,
       }),
     };
     if (proxy) { opts.dispatcher = new ProxyAgent(proxy); }
