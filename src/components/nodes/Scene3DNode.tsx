@@ -7,7 +7,7 @@ import{OrbitControls,Grid,TransformControls,useGLTF,useFBX,useTexture,useAnimati
 import{Sky}from'three/examples/jsm/objects/Sky';
 import{FBXLoader}from'three/examples/jsm/loaders/FBXLoader';
 import*as THREE from'three';
-const animMixers:THREE.AnimationMixer[]=[];let animTime=0;let animPlaying=false;let animSpeed=0.3;
+const animMixers:THREE.AnimationMixer[]=[];let animTime=0;let animPlaying=false;let animSpeed=0.7;
 import{useCanvasStore}from'../../store/useCanvasStore';
 
 // Types
