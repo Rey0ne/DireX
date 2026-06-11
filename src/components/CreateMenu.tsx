@@ -1,8 +1,6 @@
 /* === CreateMenu — node creation menus === */
 /* CreateMenu: right-click (list) | ConnectCreateMenu: port-drag (list) | DoubleClickMenu: dbl-click (grid) */
 
-import { Panel, MenuItem, Divider } from './shared';
-
 export interface CreateMenuAction {
   type: string;
   icon: string;
@@ -11,14 +9,12 @@ export interface CreateMenuAction {
   badge?: string;
 }
 
-const MENU_ACTIONS: CreateMenuAction[] = [
-  { type: 'shot', icon: '🎬', label: '镜头节点', sub: '结构化分镜，景别/运镜/打光', badge: 'N' },
-  { type: 'image.generate', icon: '🖼️', label: '图片生成', sub: '文生图、图生图、风格复刻', badge: 'I' },
-  { type: 'video.generate', icon: '🎥', label: '视频生成', sub: '文生视频、图生视频', badge: 'V' },
-  { type: 'audio.generate', icon: '🎵', label: '音频生成', sub: '音乐、音效、配音', badge: 'U' },
-  { type: 'world.3d', icon: '🧊', label: '3D 世界', sub: 'UE5虚拟拍摄', badge: '3D' },
-  { type: 'scene.3d', icon: '🎬', label: '3D 场景', sub: '轻量场景搭建+虚拟摄像', badge: 'NEW' },
-  { type: 'scene.3d.babylon', icon: '🧪', label: '3D 场景(Babylon)', sub: 'Babylon引擎测试', badge: 'TEST' },
+const MENU_ACTIONS: { type: string; icon: string; label: string }[] = [
+  { type: 'image.generate', icon: 'img', label: '图片生成' },
+  { type: 'video.generate', icon: 'vid', label: '视频生成' },
+  { type: 'audio.generate', icon: 'aud', label: '音频生成' },
+  { type: 'shot', icon: 'txt', label: '镜头节点' },
+  { type: 'scene.3d', icon: '3d', label: '3D 世界' },
 ];
 
 // ─── CreateMenu (right-click) ─────────────────────
@@ -29,7 +25,7 @@ interface CreateMenuProps {
 }
 
 export function CreateMenu({ x, y, onSelect, onClose }: CreateMenuProps) {
-  const menuW = 270, menuH = 360;
+  const menuW = 180, menuH = 240;
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
   const left = x + menuW > vw ? x - menuW : x;
@@ -39,21 +35,32 @@ export function CreateMenu({ x, y, onSelect, onClose }: CreateMenuProps) {
     <>
       <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }}
         style={{ position: 'fixed', inset: 0, zIndex: 99998 }} />
-      <Panel onClick={e => e.stopPropagation()}
+      <div onClick={e => e.stopPropagation()}
         style={{
           position: 'fixed', left, top, zIndex: 99999, width: menuW,
-          padding: 'var(--tap-space-2)', display: 'flex', flexDirection: 'column', gap: '2px',
+          padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px',
           userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)',
+          background: 'rgba(23, 23, 23, 0.96)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
         }}>
-        <div style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)', padding: '6px 12px 2px', fontWeight: 600 }}>
-          添加节点
-        </div>
-        <Divider />
         {MENU_ACTIONS.map(item => (
-          <MenuItem key={item.type} icon={item.icon} label={item.label} shortcut={item.badge}
-            onClick={() => onSelect(item.type)} />
+          <div key={item.type} onClick={() => onSelect(item.type)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 10px', borderRadius: '8px',
+              cursor: 'pointer', background: 'transparent',
+              fontSize: '13px', color: 'rgba(255,255,255,0.6)',
+              transition: 'all 0.12s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+          >
+            <MiniIcon type={item.icon} />
+            <span>{item.label}</span>
+          </div>
         ))}
-      </Panel>
+      </div>
     </>
   );
 }
@@ -103,12 +110,12 @@ export function ConnectCreateMenu({ x, y, onSelect, onClose }: ConnectCreateMenu
 }
 
 // ─── DoubleClickMenu (grid layout, different from right-click) ──
-const DOUBLE_CLICK_ACTIONS: CreateMenuAction[] = [
-  { type: 'image.generate', icon: 'img', label: '图片', sub: '' },
-  { type: 'video.generate', icon: 'vid', label: '视频', sub: '' },
-  { type: 'audio.generate', icon: 'aud', label: '音频', sub: '' },
-  { type: 'shot', icon: 'txt', label: '文本', sub: '' },
-  { type: 'world.3d', icon: '3d', label: '3D 世界', sub: '' },
+const DOUBLE_CLICK_ACTIONS: { type: string; icon: string; label: string }[] = [
+  { type: 'image.generate', icon: 'img', label: '图片' },
+  { type: 'video.generate', icon: 'vid', label: '视频' },
+  { type: 'audio.generate', icon: 'aud', label: '音频' },
+  { type: 'shot', icon: 'txt', label: '文本' },
+  { type: 'scene.3d', icon: '3d', label: '3D 世界' },
 ];
 
 function MiniIcon({ type }: { type: string }) {

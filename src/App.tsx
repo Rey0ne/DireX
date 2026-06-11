@@ -36,9 +36,7 @@ import { ShotNode } from './components/nodes/ShotNode';
 import { ImageGenerateNode } from './components/nodes/ImageGenerateNode';
 import { VideoGenerateNode } from './components/nodes/VideoGenerateNode';
 import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
-import { UE5Node } from './components/nodes/UE5Node';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
-import { Scene3DBabylonNode } from './components/nodes/Scene3DBabylonNode';
 
 // ─── Node type registry ──────────────────────────
 const nodeTypes: NodeTypes = {
@@ -47,9 +45,7 @@ const nodeTypes: NodeTypes = {
   'image.editor': ImageGenerateNode,
   'video.generate': VideoGenerateNode,
   'audio.generate': AudioGenerateNode,
-  'world.3d': UE5Node,
   'scene.3d': Scene3DNode,
-  'scene.3d.babylon': Scene3DBabylonNode,
 } as unknown as NodeTypes;
 
 // ─── Default meta ─────────────────────────────────
