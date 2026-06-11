@@ -118,6 +118,7 @@ export async function saveNow() {
 
     try { const stripDataUrls=(obj:any):any=>{if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(stripDataUrls);const c:any={};for(const k of Object.keys(obj)){const v=obj[k];if(typeof v==='string'&&v.startsWith('data:')&&v.length>1000){c[k]='';}else if(typeof v==='object'&&v!==null){c[k]=stripDataUrls(v);}else{c[k]=v;}}return c;};const nodesData=nodes.map(n=>({id:n.id,type:n.type,title:n.title,meta:stripDataUrls(n.meta)}));const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to}));fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:nodesData,edges:edgesData})}).catch(()=>{});} catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
+    getStorageUsage().then(u=>{if(u.pct>80)console.warn(`[persist] Storage: ${u.usedMB}MB / ${u.quotaMB}MB (${u.pct}%) — 接近上限`);});
   } catch (err) {
     console.error('[persist] Save failed:', err);
   }
@@ -177,6 +178,15 @@ export async function loadFromDB() {
     return false;
   }
 }
+
+// ─── Storage usage ────────────────────────────────
+export async function getStorageUsage(): Promise<{usedMB:number;quotaMB:number;pct:number}>{
+  try{const est=await navigator.storage?.estimate();const used=est?.usage||0;const quota=est?.quota||0;return{usedMB:Math.round(used/1024/1024*10)/10,quotaMB:Math.round(quota/1024/1024*10)/10,pct:quota>0?Math.round(used/quota*100):0};}catch{return{usedMB:0,quotaMB:0,pct:0};}
+}
+export async function clearAllData():Promise<void>{
+  try{await db.projects.clear();await db.canvases.clear();await db.nodes.clear();await db.edges.clear();await db.assets.clear();await db.jobs.clear();console.log('[persist] All data cleared');}catch(e){console.error('[persist] Clear failed:',e);}
+}
+if(typeof window!=='undefined'){(window as any).__direxStorage={getUsage:getStorageUsage,clearAll:clearAllData};}
 
 // ─── Auto-save subscriber ────────────────────────
 export function startAutoSave() {
