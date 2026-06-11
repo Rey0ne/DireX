@@ -228,11 +228,12 @@ function FullscreenEditor({objects,selectedId,setObjects,setSelectedId,onSnapsho
 
 const NODE_W=500,NODE_H=300;
 export function Scene3DNode({id,data,selected}:{id:string;data:{title?:string;isConnecting?:boolean;isConnectTarget?:boolean;multiSelect?:boolean;isPickMode?:boolean;isPickTarget?:boolean;onChange?:(p:Record<string,unknown>)=>void;};selected?:boolean;}){
-  const saved=useRef(false);
-  const[objects,setObjects]=useState<SceneObject[]>(()=>{try{const m=(data as any)?.meta?.scene3d;if(m?.objects)return m.objects;}catch{return[];}return[];});
-  const[selId,setSelId]=useState<string|null>(null);const[fs,setFs]=useState(false);const[gizmoMode,setGizmoMode]=useState<GizmoMode>('translate');const[rig,setRig]=useState<CameraRig|null>(()=>{try{const m=(data as any)?.meta?.scene3d;if(m?.rig)return m.rig;}catch{return null;}return null;});const ctr=useRef(objects.length||0);
-  useEffect(()=>{saved.current=true;},[]);
-  useEffect(()=>{if(!saved.current)return;const store=useCanvasStore.getState();store.updateNode(id,{meta:{...((data as any)?.meta||{}),scene3d:{objects,rig}}});},[objects,rig,id,data]);
+  const[objects,setObjects]=useState<SceneObject[]>([]);
+  const[loaded,setLoaded]=useState(false);
+  const[selId,setSelId]=useState<string|null>(null);const[fs,setFs]=useState(false);const[gizmoMode,setGizmoMode]=useState<GizmoMode>('translate');
+  const[rig,setRig]=useState<CameraRig|null>(null);const ctr=useRef(0);
+  useEffect(()=>{if(loaded)return;const store=useCanvasStore.getState();const node=store.nodes.get(id);const m=(node?.meta as any)?.scene3d;if(m?.objects){setObjects(m.objects);ctr.current=m.objects.length;}if(m?.rig)setRig(m.rig);setLoaded(true);},[id,loaded]);
+  useEffect(()=>{if(!loaded)return;const store=useCanvasStore.getState();store.updateNode(id,{meta:{...((data as any)?.meta||{}),scene3d:{objects,rig}}});},[objects,rig,id,loaded]);
   useEffect(()=>{initPoseRegistry();},[]);
   useEffect(()=>{const h=(e:Event)=>{const{id,position,rotation,scale}=(e as CustomEvent).detail as{id:string;position:Vec3;rotation?:Vec3;scale?:Vec3};const obj=objects.find(o=>o.id===id);const minY=obj&&(obj.type==='figure'||obj.type==='plane')?0:0.5;const p:Vec3=position[1]<minY?[position[0],minY,position[2]]:position;setObjects(prev=>prev.map(o=>o.id===id?{...o,position:p,rotation:rotation||o.rotation,scale:scale||o.scale}:o));};window.addEventListener('scene3d-object-moved',h);return()=>window.removeEventListener('scene3d-object-moved',h);},[objects]);
   const addObj=useCallback((type:SceneObject['type'])=>{ctr.current++;const y=type==='figure'||type==='plane'?0:0.5;const first=poseRegistry.size>0?poseRegistry.keys().next().value as string:'stand1';const obj:SceneObject={id:`o_${ctr.current}`,type,position:[0,y,0],rotation:[0,0,0],scale:[1,1,1],color:pickColor(),figurePose:type==='figure'?first:undefined,figureSrc:type==='figure'?poseRegistry.get(first)?.src:undefined};setObjects(prev=>[...prev,obj]);setSelId(obj.id);},[]);
