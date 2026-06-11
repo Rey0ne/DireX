@@ -3,7 +3,7 @@ import React,{useState,useCallback,useMemo,useRef,useEffect,Suspense}from'react'
 import{createPortal}from'react-dom';
 import{Handle,Position}from'@xyflow/react';
 import{Canvas,useThree,useFrame}from'@react-three/fiber';
-import{OrbitControls,Grid,TransformControls,useGLTF}from'@react-three/drei';
+import{OrbitControls,Grid,TransformControls,useGLTF,useTexture}from'@react-three/drei';
 import*as THREE from'three';
 import{useCanvasStore}from'../../store/useCanvasStore';
 
@@ -41,9 +41,10 @@ const LENSES:Record<string,{name:string;fov:number;maxAperture:number;minApertur
 };
 
 const mover=(el:THREE.Object3D,obj:SceneObject)=>{const p:Vec3=[el.position.x,el.position.y,el.position.z];const r:Vec3=[el.rotation.x,el.rotation.y,el.rotation.z];const s:Vec3=[el.scale.x,el.scale.y,el.scale.z];const fwd=new THREE.Vector3(0,0,-1);el.localToWorld(fwd);window.dispatchEvent(new CustomEvent('scene3d-object-moved',{detail:{id:obj.id,position:p,rotation:r,scale:s,forward:[fwd.x,fwd.y,fwd.z]as Vec3,objRef:el}}));};
+function SkyDome(){const tex=useTexture('/hdr/Image-1781136068104.png');tex.colorSpace=THREE.SRGBColorSpace;return<mesh><sphereGeometry args={[45,64,32]}/><meshBasicMaterial map={tex} side={THREE.BackSide}/></mesh>;}
 function SceneContent({objects,selectedId,onSelect,gizmoMode,rigActive,snapToTrack}:{objects:SceneObject[];selectedId:string|null;onSelect:(id:string|null)=>void;gizmoMode:GizmoMode;rigActive?:boolean;snapToTrack?:((p:THREE.Vector3)=>THREE.Vector3|null);}){
   const meshRefs=useRef<Map<string,THREE.Object3D>>(new Map());const orbitRef=useRef<any>(null);useEffect(()=>{const s=()=>{if(orbitRef.current)orbitRef.current.enabled=false;};const e=()=>{if(orbitRef.current)orbitRef.current.enabled=true;};window.addEventListener('gizmo-drag-start',s);window.addEventListener('gizmo-drag-end',e);return()=>{window.removeEventListener('gizmo-drag-start',s);window.removeEventListener('gizmo-drag-end',e);};},[]);
-  return(<><ambientLight intensity={0.12}/><directionalLight position={[8,12,5]} intensity={1.8} color="#ffe8d0"/><directionalLight position={[-3,2,-4]} intensity={0.5} color="#c8d8ff"/><hemisphereLight args={['#b1d0ff','#605040',0.3]}/><Grid position={[0,-0.01,0]} args={[20,20]} cellSize={1} cellThickness={0.5} cellColor="#aaaaaa" sectionSize={5} sectionThickness={1.5} sectionColor="#cccccc" fadeDistance={25} infiniteGrid/>
+  return(<><SkyDome/><ambientLight intensity={0.12}/><directionalLight position={[8,12,5]} intensity={1.8} color="#ffe8d0"/><directionalLight position={[-3,2,-4]} intensity={0.5} color="#c8d8ff"/><hemisphereLight args={['#b1d0ff','#605040',0.3]}/><Grid position={[0,-0.01,0]} args={[20,20]} cellSize={1} cellThickness={0.5} cellColor="#aaaaaa" sectionSize={5} sectionThickness={1.5} sectionColor="#cccccc" fadeDistance={25} infiniteGrid/>
     <mesh onClick={()=>onSelect(null)} position={[0,-0.02,0]} rotation={[-Math.PI/2,0,0]} visible={false}><planeGeometry args={[100,100]}/></mesh>
     {objects.map(obj=>{const sel=selectedId===obj.id;const bottomY=obj.type==='figure'||obj.type==='plane'?0:0.5;return(<group key={obj.id}>
       <group position={obj.position} rotation={obj.rotation} scale={obj.scale} ref={el=>{if(el){meshRefs.current.set(obj.id,el);if(obj.type==='camera'){const fwd=new THREE.Vector3(0,0,-1);el.localToWorld(fwd);window.dispatchEvent(new CustomEvent('cam-ready',{detail:{objRef:el,forward:[fwd.x,fwd.y,fwd.z]as Vec3}}));}}}} onClick={e=>{e.stopPropagation();onSelect(obj.id);}}>
