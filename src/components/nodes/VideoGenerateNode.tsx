@@ -237,8 +237,8 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', padding: '0 8px 4px' }}>{RESOLUTIONS.map(r => <span key={r} onClick={() => { setCurRes(r); patch('resolution', r); }} style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', textAlign: 'center', background: curRes === r ? 'var(--tap-hover)' : 'transparent', color: curRes === r ? 'var(--tap-text-1)' : 'var(--tap-text-3)' }}>{r}</span>)}</div>
                 <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 12px' }} />
                 <div onClick={() => { setMusicOn(!musicOn); patch('musicOn', !musicOn); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', cursor: 'pointer', fontSize: '11px' }}>
-                  <span style={{ color: 'var(--tap-text-2)' }}>🎵 背景音乐</span>
-                  <span style={{ width: '28px', height: '16px', borderRadius: '8px', background: musicOn ? 'var(--tap-accent)' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <span style={{ color: 'var(--tap-text-2)' }}>背景音乐</span>
+                  <span style={{ width: '28px', height: '16px', borderRadius: '8px', background: musicOn ? '#f80' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                     <span style={{ position: 'absolute', top: '2px', left: musicOn ? '14px' : '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
                   </span>
                 </div>
