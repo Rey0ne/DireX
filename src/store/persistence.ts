@@ -116,7 +116,7 @@ export async function saveNow() {
         }
       });
 
-    try { const stripDataUrls=(obj:any)=>{if(!obj)return obj;const c={...obj};if(c.figureSrc)c.figureSrc='';if(c.scene3d?.objects)c.scene3d.objects=c.scene3d.objects.map((o:any)=>({...o,figureSrc:''}));return c;};const nodesData=nodes.map(n=>({id:n.id,type:n.type,title:n.title,meta:stripDataUrls(n.meta)}));const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to}));fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:nodesData,edges:edgesData})}).catch(()=>{});} catch {}
+    try { const stripDataUrls=(obj:any):any=>{if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(stripDataUrls);const c:any={};for(const k of Object.keys(obj)){const v=obj[k];if(typeof v==='string'&&v.startsWith('data:')&&v.length>1000){c[k]='';}else if(typeof v==='object'&&v!==null){c[k]=stripDataUrls(v);}else{c[k]=v;}}return c;};const nodesData=nodes.map(n=>({id:n.id,type:n.type,title:n.title,meta:stripDataUrls(n.meta)}));const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to}));fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:nodesData,edges:edgesData})}).catch(()=>{});} catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
   } catch (err) {
     console.error('[persist] Save failed:', err);
