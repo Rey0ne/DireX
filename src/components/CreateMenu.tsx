@@ -1,6 +1,8 @@
 /* === CreateMenu — node creation menus === */
 /* CreateMenu: right-click (list) | ConnectCreateMenu: port-drag (list) | DoubleClickMenu: dbl-click (grid) */
 
+import { Panel } from './shared';
+
 export interface CreateMenuAction {
   type: string;
   icon: string;
