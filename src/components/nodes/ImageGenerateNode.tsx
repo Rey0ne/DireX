@@ -624,7 +624,11 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           overflow: 'hidden',
         }}>
           {data.imageUrl ? (
-            <img ref={imgRef} src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            (data as any).videoUrl ? (
+              <video ref={imgRef as any} src={(data as any).videoUrl} controls loop style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            ) : (
+              <img ref={imgRef} src={data.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            )
           ) : (
             <div style={{
               width: '48px', height: '48px', borderRadius: '12px',
