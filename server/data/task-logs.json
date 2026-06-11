@@ -3444,6 +3444,19 @@
       ],
       "cost": 0.1,
       "durationMs": 99617
+    },
+    {
+      "id": "89b3de01-9d72-4436-9583-02da6ef50415",
+      "timestamp": "2026-06-11T00:11:40.754Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional-grade 360-degree equirectangular HDR sky environment map, 8k resolution, seamless panoramic projection. Clear sunny daytime sky, deep natural cobalt blue gradient from zenith to horizon. 25% coverage of soft, voluminous white cumulus clouds, scattered naturally with organic variation, no repeating patterns, no tiling artifacts. Physically accurate atmospheric scattering, subtle horizon haze, high dynamic range lighting, clean and crisp air quality. The lighting is balanced and neutral, suitable for PBR environment lighting in 3D engines like Unreal Engine, Blender, and Octane. Full sky dome coverage, zenith to horizon, pure sky only, no ground, no landscape, no sun disk, no objects, no birds, no aircraft, photorealistic, cinematic lighting, ultra-high definition, sharp focus on cloud texture.",
+      "compiledPrompt": "> A professional-grade 360-degree equirectangular HDR sky environment map, 8k resolution, seamless panoramic projection. Clear sunny daytime sky, deep natural cobalt blue gradient from zenith to horizon. 25% coverage of soft, voluminous white cumulus clouds, scattered naturally with organic variation, no repeating patterns, no tiling artifacts. Physically accurate atmospheric scattering, subtle horizon haze, high dynamic range lighting, clean and crisp air quality. The lighting is balanced and neutral, suitable for PBR environment lighting in 3D engines like Unreal Engine, Blender, and Octane. Full sky dome coverage, zenith to horizon, pure sky only, no ground, no landscape, no sun disk, no objects, no birds, no aircraft, photorealistic, cinematic lighting, ultra-high definition, sharp focus on cloud texture.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/p/49a5d1edd5c4a0619b3fff738dd8bec3_1_1781136697_5036.png"
+      ],
+      "cost": 0.16,
+      "durationMs": 54522
     }
   ]
 }
