@@ -53,8 +53,7 @@ function ratioBoxSize(w: number, h: number) {
 
 const MODEL_OPTIONS = [
   { name: 'Nano Banana', badges: ['推荐'], maxRes: '4K', features: ['inpaint', 'multi-angle'] },
-  { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['t2i'] },
-  { name: 'GPT Image2 I2I', badges: [], maxRes: '4K', features: ['i2i'] },
+  { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['t2i', 'i2i'] },
 ];
 
 const RESOLUTION_OPTIONS = [

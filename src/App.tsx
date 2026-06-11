@@ -385,7 +385,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                 } as any)
               : await generateWithAgent({
                   providerId: mapModelNameToProviderId((meta.model as string) || 'GPT Image2'),
-                  mode: (meta.model as string || '').includes('I2I') ? 'image-to-image' : 'text-to-image',
+                  mode: (refUrls?.length || meta.imageUrl || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
                   rawText: (meta.prompt as string) || '',
                   aspect: meta.aspect as string | undefined,
                   resolution: meta.resolution as string || '2K',
