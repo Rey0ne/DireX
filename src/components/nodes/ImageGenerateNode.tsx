@@ -1186,16 +1186,16 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   <div style={{padding:'10px',display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',width:'160px'}}
                     ref={el=>{if(el)el.onwheel=e=>{e.preventDefault();setFilmIdx((p:number)=>e.deltaY>0?Math.min(p+1,FILM_STOCKS.length-1):Math.max(p-1,0))}}}>
                     <div style={{fontSize:'9px',color:'var(--tap-text-4)'}}>🎨 胶片风格</div>
-                    <div style={{opacity:0.15,transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
-                      <ColorBar colors={FILM_STOCKS[(filmIdx-1+FILM_STOCKS.length)%FILM_STOCKS.length].colors} width={120} height={12} />
+                    <div style={{height:'14px',width:'120px',display:'flex',justifyContent:'center'}}>
+                      {filmIdx > 0 && <ColorBar colors={FILM_STOCKS[filmIdx-1].colors} width={120} height={12} />}
                     </div>
-                    <div style={{transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
+                    <div style={{width:'120px',display:'flex',justifyContent:'center'}}>
                       <ColorBar colors={FILM_STOCKS[filmIdx].colors} width={120} height={20} />
                     </div>
                     <div style={{fontSize:'12px',color:'var(--tap-text-1)',fontWeight:600,textAlign:'center',width:'160px'}}>{FILM_STOCKS[filmIdx].name}</div>
                     <div style={{fontSize:'10px',color:'var(--tap-text-4)',textAlign:'center',width:'160px'}}>{FILM_STOCKS[filmIdx].desc}</div>
-                    <div style={{opacity:0.15,transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
-                      <ColorBar colors={FILM_STOCKS[(filmIdx+1)%FILM_STOCKS.length].colors} width={120} height={12} />
+                    <div style={{height:'14px',width:'120px',display:'flex',justifyContent:'center'}}>
+                      {filmIdx < FILM_STOCKS.length - 1 && <ColorBar colors={FILM_STOCKS[filmIdx+1].colors} width={120} height={12} />}
                     </div>
                   </div>
                 </PD2>
