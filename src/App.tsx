@@ -430,6 +430,12 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   fixedCamera: meta.fixedCamera as boolean | undefined,
                   generateAudio: meta.generateAudio as boolean | undefined,
                   webSearch: meta.webSearch as boolean | undefined,
+                  // Camera kit
+                  camera: meta.camera as string | undefined,
+                  lens: meta.lens as string | undefined,
+                  focalLength: meta.focalLength as string | undefined,
+                  aperture: meta.aperture as string | undefined,
+                  filmStock: meta.filmStock as string | undefined,
                 } as any);
 
             const result = agentResult.result;

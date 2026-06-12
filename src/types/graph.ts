@@ -165,6 +165,12 @@ export interface ImageGenMeta {
   seed?: number;
   styleImageUrl?: string;
   resultAssetIds: string[];
+  // Camera kit
+  camera?: string;
+  lens?: string;
+  focalLength?: string;
+  aperture?: string;
+  filmStock?: string;
 }
 
 // ─── Crop ──────────────────────────────────────

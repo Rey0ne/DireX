@@ -579,6 +579,15 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     genRunningRef.current = true;
     setGenRunning(true);
     patch('prompt', prompt);
+    patch('model', currentModel);
+    patch('aspect', currentAspect);
+    patch('resolution', currentResolution);
+    // Camera kit
+    patch('camera', CAMERAS[camIdx].name);
+    patch('lens', LENSES[lensIdx].name);
+    patch('focalLength', FOCALS[focalIdx]);
+    patch('aperture', APERTURES[apertureIdx].v);
+    patch('filmStock', FILM_STOCKS[filmIdx].name);
     // onGenerate is async but we fire-and-forget — button stays ⏳ until node remounts with imageUrl
     Promise.resolve(data.onGenerate?.()).finally(() => {
       genRunningRef.current = false;
@@ -1171,7 +1180,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'#fff',whiteSpace:'nowrap',maxWidth:'90px',overflow:'hidden',textOverflow:'ellipsis',transition:'all 0.2s'}}
                 onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
                 onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
-                📷 {CAMERAS[camIdx].name}
+                {CAMERAS[camIdx].name}
               </span>
               <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
               {/* Film stock trigger */}

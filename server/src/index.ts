@@ -262,20 +262,27 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   // Skip agent pipeline if prompt is already English (no need to compile)
   const isEnglish = /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
 
-  // ── Video models: simple polish only, no 4-agent pipeline, no Vision analysis ──
-  // Kling/Seedance natively analyze reference images/videos — no Gemini Vision needed
+  // Build camera kit spec string — inject BEFORE any AI compilation
+  const cam = (body as any).camera;
+  const lens = (body as any).lens;
+  const focal = (body as any).focalLength;
+  const apt = (body as any).aperture;
+  const film = (body as any).filmStock;
+  let camBlock = '';
+  if (cam || lens || focal || apt || film) {
+    const parts: string[] = [];
+    if (cam) parts.push(`Camera: ${cam}`);
+    if (lens) parts.push(`Lens: ${lens}`);
+    if (focal) parts.push(`Focal length: ${focal}`);
+    if (apt) parts.push(`Aperture: ${apt}`);
+    if (film) parts.push(`Film stock: ${film}`);
+    camBlock = '[' + parts.join(', ') + '] ';
+  }
+  const enrichedPrompt = camBlock ? camBlock + userPrompt : userPrompt;
+
+  // ── Video models: pass through as-is (Kling/Seedance are Chinese-native, no translation needed) ──
   if (isVideo) {
-    if (!isEnglish && config.promptEnhancement) {
-      // Simple Chinese → English polish (single call, no multi-agent pipeline)
-      const polishPrompt = `You are a video prompt translator. Translate and lightly polish the user's Chinese description into a cinematic English video generation prompt. Keep it concise (2-4 sentences). Include motion description, camera movement, lighting mood. Output ONLY the English prompt, no commentary.`;
-      try {
-        const polished = await geminiChat(polishPrompt, userPrompt, 600);
-        compiledPrompt = polished || userPrompt;
-        console.log('[agent] Video polish: ' + (polished ? polished.length + ' chars' : 'failed, using raw'));
-      } catch(e) { compiledPrompt = userPrompt; }
-    } else {
-      compiledPrompt = userPrompt; // English prompt: pass through as-is
-    }
+    compiledPrompt = enrichedPrompt;
   } else if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
@@ -284,24 +291,23 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
         const refUrls = (body as any).referenceUrls as string[] | undefined;
         if (refUrls?.length) {
           // GPT-5.4 sees the actual images — no separate Gemini Vision step needed
-          const gpt5Result = await compileI2IWithGPT5(userPrompt, refUrls);
+          const gpt5Result = await compileI2IWithGPT5(enrichedPrompt, refUrls);
           if (gpt5Result) {
             compiledPrompt = gpt5Result;
             console.log('[agent] I2I GPT-5.4 compiled ' + gpt5Result.length + ' chars');
           } else {
-            // Fallback: simple prefix if GPT-5.4 fails
-            compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + userPrompt;
+            compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + enrichedPrompt;
             console.log('[agent] I2I GPT-5.4 failed, using fallback');
           }
         } else {
-          compiledPrompt = userPrompt;
+          compiledPrompt = enrichedPrompt;
         }
-      } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = userPrompt; }
+      } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = enrichedPrompt; }
     } else {
       // T2I mode: full cinematic compilation
       try {
         const pipelineResult = await runAgentPipeline({
-          userInput: userPrompt, model: body.providerId, mode: body.mode,
+          userInput: enrichedPrompt, model: body.providerId, mode: body.mode,
           referenceUrls: (body as any).referenceUrls,
           referencePrompts: (body as any).referencePrompts,
           aspect: body.aspect, resolution: body.resolution,
@@ -311,7 +317,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
     }
   } else {
-    compiledPrompt = body.rawText || '';
+    compiledPrompt = enrichedPrompt;
     // If reference images exist, analyze them with Gemini Vision and merge into prompt
     const refUrls = (body as any).referenceUrls as string[] | undefined;
     if (refUrls && refUrls.length > 0) {
@@ -340,6 +346,11 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     compiledPrompt = userPrompt || body.rawText || 'generate an image';
     console.log('[agent] WARNING: compiledPrompt was empty, using fallback: ' + compiledPrompt.slice(0, 80));
   }
+  // Apply camera kit to compiledPrompt if not already in enrichedPrompt
+  if (camBlock && compiledPrompt && compiledPrompt !== enrichedPrompt) {
+    compiledPrompt = camBlock + compiledPrompt;
+  }
+
   console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
   const t0 = Date.now();
   // I2I negative prompt: NEVER mention face/identity terms — they confuse the model and break identity preservation

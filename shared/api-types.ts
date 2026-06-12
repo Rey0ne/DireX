@@ -132,6 +132,12 @@ export interface AgentGenerateRequest {
   firstFrameUrl?: string;
   lastFrameUrl?: string;
   referencePrompts?: string[];
+  // Camera kit
+  camera?: string;
+  lens?: string;
+  focalLength?: string;
+  aperture?: string;
+  filmStock?: string;
 }
 
 export interface AgentGenerateResult {

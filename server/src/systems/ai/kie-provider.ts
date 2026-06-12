@@ -100,11 +100,12 @@ function getApiKey(): string | undefined {
 // ─── Polling helper ────────────────────────────
 async function pollTask(taskId: string, apiKey: string, startTime: number): Promise<GenerateResult> {
   const pollUrl = `${BASE_URL}/jobs/recordInfo?taskId=${taskId}`;
-  const maxAttempts = 100; // ~5 minutes at 3s intervals
+  const maxAttempts = 5; // 5 checks over 10 minutes
+  const intervalMs = 120000; // 2 minutes between checks
   console.log(`[kie] Polling ${taskId}...`);
 
   for (let i = 0; i < maxAttempts; i++) {
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, intervalMs));
 
     try {
       const resp = await kieFetch(pollUrl, {

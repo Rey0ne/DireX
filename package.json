@@ -14,11 +14,14 @@
   },
   "dependencies": {
     "@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5": "^1.4.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@xyflow/react": "^12.10.2",
     "dexie": "^4.4.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "reactflow": "^11.11.4",
+    "three": "^0.184.0",
     "tldraw": "^5.0.1",
     "uuid": "^14.0.0",
     "zustand": "^5.0.13"

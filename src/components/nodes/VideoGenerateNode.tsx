@@ -223,7 +223,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
       {selected && !data.multiSelect && (
         <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: 'var(--tap-node-width)', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'visible' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
 
           {/* ── Ref thumbnails row ── */}
           <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
@@ -256,7 +256,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             onPointerDownCapture={e => e.stopPropagation()} onMouseDownCapture={e => e.stopPropagation()}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
             placeholder="" maxLength={2500} rows={expanded ? 12 : 3}
-            style={{ width: expanded ? '150%' : '100%', background: 'transparent', border: 'none', padding: '10px 14px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, marginLeft: expanded ? '-25%' : '0', boxSizing: 'border-box' }} />
+            style={{ width: '100%', background: 'transparent', border: 'none', padding: expanded ? '16px 20px' : '10px 14px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }} />
 
           {/* ── Controls row: Model | Mode | Duration | Aspect·Res | Count | Send ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '4px 6px 8px' }}>

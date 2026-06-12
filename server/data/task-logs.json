@@ -4564,6 +4564,119 @@
       ],
       "cost": 0.1,
       "durationMs": 60297
+    },
+    {
+      "id": "f7143158-fe4d-43d2-a701-ddc5b7baa8be",
+      "timestamp": "2026-06-12T14:54:37.076Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] A rugged Caucasian man in his late 30s to early 40s, muscular and sinewy with broad shoulders, defined arms and back, light skin with a weathered pink-beige undertone, numerous scars and scratches across his face, shoulders, chest, and back, medium-length dark brown wet hair pushed back and hanging in uneven strands, a long angular face with pronounced cheekbones, a strong square jaw, deep-set narrow pale blue-gray eyes, a high straight nose bridge, and thin to medium lips, keeping his exact rough features unchanged, is half-crouched and half-prone with his back to the camera, slightly turned in profile toward the distance, gripping an ornate finely crafted bow, preparing to lead a wolf pack in an ambush on a distant herd of elk. He remains shirtless exactly as in the reference, wearing the same worn dark charcoal-black leather trousers with fur panels around the hips and sides, heavy distressing, rugged texture, and black lace-up boots. The scene is a cold snowy conifer forest clearing, matching the composition of the reference image: eye-level to slightly low camera placed among the wolves, a medium-wide cinematic shot with blurred wolves dominating the left and right foreground, the man and several wolves crouched low in the midground, and the elk herd small in the far background along a snowy path between frost-covered trees. The wolves beside him are also half-crouched and ready to spring, all facing the elk. Use natural winter overcast light, soft diffuse illumination, cold blue-gray tones, misty atmospheric depth, subtle backlit snow haze, shallow depth of field, strong foreground framing, tense predatory mood, realistic fur and snow texture, cinematic realism, no extra accessories, no altered costume, no beautification.",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] A rugged Caucasian man in his late 30s to early 40s, muscular and sinewy with broad shoulders, defined arms and back, light skin with a weathered pink-beige undertone, numerous scars and scratches across his face, shoulders, chest, and back, medium-length dark brown wet hair pushed back and hanging in uneven strands, a long angular face with pronounced cheekbones, a strong square jaw, deep-set narrow pale blue-gray eyes, a high straight nose bridge, and thin to medium lips, keeping his exact rough features unchanged, is half-crouched and half-prone with his back to the camera, slightly turned in profile toward the distance, gripping an ornate finely crafted bow, preparing to lead a wolf pack in an ambush on a distant herd of elk. He remains shirtless exactly as in the reference, wearing the same worn dark charcoal-black leather trousers with fur panels around the hips and sides, heavy distressing, rugged texture, and black lace-up boots. The scene is a cold snowy conifer forest clearing, matching the composition of the reference image: eye-level to slightly low camera placed among the wolves, a medium-wide cinematic shot with blurred wolves dominating the left and right foreground, the man and several wolves crouched low in the midground, and the elk herd small in the far background along a snowy path between frost-covered trees. The wolves beside him are also half-crouched and ready to spring, all facing the elk. Use natural winter overcast light, soft diffuse illumination, cold blue-gray tones, misty atmospheric depth, subtle backlit snow haze, shallow depth of field, strong foreground framing, tense predatory mood, realistic fur and snow texture, cinematic realism, no extra accessories, no altered costume, no beautification.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/9310c47a9f0f89140acfe3febc42879b_e76f9c71548c47ad930f10a839645ac2.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 228247
+    },
+    {
+      "id": "166d242f-c2e4-4292-adf3-4103e8293e9f",
+      "timestamp": "2026-06-12T15:00:25.236Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Panavision C-series, Focal length: 35mm, Aperture: f/4, Film stock: Technicolor] A rugged adult man in his late 30s to early 40s with the exact facial structure from the reference: a long angular face, pronounced cheekbones, strong jaw, deep-set narrow blue-gray eyes under a heavy brow, a high straight narrow nose, thin to medium lips, pale weathered skin with a cool pink undertone, multiple visible scars across his face, neck, chest, shoulders, and back, wet dark brown hair pushed back in messy strands, lean but heavily muscular athletic build, shirtless, wearing the same distressed dark charcoal-black leather pants with worn texture, side studs, and rough dark fur at the waist, plus the same black battered lace-up combat boots. Place him inside the snowy forest scene, half crouched and half prone with his back to the camera, facing the distant elk herd, gripping an ornate finely crafted bow in one hand, leading several wolves that are also half crouched and ready to attack. Compose it from a low eye-level cinematic wide shot from behind, matching the reference scene: large blurred wolves framing the left and right foreground, the man and one or two wolves in the midground on a snow-covered path, the elk herd small and distant in the center background between dense conifer trees. Use a naturalistic winter atmosphere with cold blue-gray tones, soft diffuse overcast daylight, faint backlight from the open clearing ahead, atmospheric haze, shallow depth of field, soft snow detail, breath-like frostiness in the air, tense predatory silence, realistic textures, grounded proportions, no beautification, keep his original face, hair, body, scars, clothing, and rugged harsh realism unchanged.",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Panavision C-series, Focal length: 35mm, Aperture: f/4, Film stock: Technicolor] A rugged adult man in his late 30s to early 40s with the exact facial structure from the reference: a long angular face, pronounced cheekbones, strong jaw, deep-set narrow blue-gray eyes under a heavy brow, a high straight narrow nose, thin to medium lips, pale weathered skin with a cool pink undertone, multiple visible scars across his face, neck, chest, shoulders, and back, wet dark brown hair pushed back in messy strands, lean but heavily muscular athletic build, shirtless, wearing the same distressed dark charcoal-black leather pants with worn texture, side studs, and rough dark fur at the waist, plus the same black battered lace-up combat boots. Place him inside the snowy forest scene, half crouched and half prone with his back to the camera, facing the distant elk herd, gripping an ornate finely crafted bow in one hand, leading several wolves that are also half crouched and ready to attack. Compose it from a low eye-level cinematic wide shot from behind, matching the reference scene: large blurred wolves framing the left and right foreground, the man and one or two wolves in the midground on a snow-covered path, the elk herd small and distant in the center background between dense conifer trees. Use a naturalistic winter atmosphere with cold blue-gray tones, soft diffuse overcast daylight, faint backlight from the open clearing ahead, atmospheric haze, shallow depth of field, soft snow detail, breath-like frostiness in the air, tense predatory silence, realistic textures, grounded proportions, no beautification, keep his original face, hair, body, scars, clothing, and rugged harsh realism unchanged.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/34f251fb4a68d134cb78d96fd79ea01d_6b186678c8ea433caf052b4bf6e68ee2.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 174835
+    },
+    {
+      "id": "3aeda1de-61c4-4ca7-b66e-688d9a903180",
+      "timestamp": "2026-06-12T15:00:39.498Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Red V-Raptor, Lens: Zeiss Ultra Prime, Focal length: 14mm, Aperture: f/1.4, Film stock: Kodak 500T] A cinematic low eye-level over-the-shoulder wide shot in a snowy conifer forest, composed like a predator’s point of view through a wolf pack: large blurred wolves frame the left foreground and right foreground, several half-prone wolves crouch in the snow around a man in the midground, and a distant elk herd stands in a pale clearing at the center background. The man keeps the exact appearance of the reference actor: a rugged Caucasian male around 35 to 45, tall, lean and heavily muscular, broad shoulders, defined chest and arms, scarred torso and back, light skin with a cold pink-beige undertone, angular long face, high cheekbones, strong square jaw, deep-set narrow light blue-gray eyes, a high straight narrow nose with a pronounced bridge, thin to medium lips, wet dark brown hair slicked back in messy strands. He is shirtless, wearing the same worn black leather trousers with dark fur trim at the waist and sides, weathered texture, and black lace-up combat boots, no added accessories. He is half-crouched and half-prone in the snow with his back to the camera, body turned toward the distant elk herd, holding an ornate bow in his hand, poised to lead the wolves into an ambush; the wolves beside him mirror his low stalking posture, tense and ready to attack. Cold blue-gray winter grading, soft diffused overcast daylight, faint backlight from the open snowy clearing ahead, subtle mist, frosted branches, deep snow, cinematic atmosphere, realistic fur detail, shallow depth of field, strong foreground blur, quiet predatory tension, highly photorealistic.",
+      "compiledPrompt": "[Camera: Red V-Raptor, Lens: Zeiss Ultra Prime, Focal length: 14mm, Aperture: f/1.4, Film stock: Kodak 500T] A cinematic low eye-level over-the-shoulder wide shot in a snowy conifer forest, composed like a predator’s point of view through a wolf pack: large blurred wolves frame the left foreground and right foreground, several half-prone wolves crouch in the snow around a man in the midground, and a distant elk herd stands in a pale clearing at the center background. The man keeps the exact appearance of the reference actor: a rugged Caucasian male around 35 to 45, tall, lean and heavily muscular, broad shoulders, defined chest and arms, scarred torso and back, light skin with a cold pink-beige undertone, angular long face, high cheekbones, strong square jaw, deep-set narrow light blue-gray eyes, a high straight narrow nose with a pronounced bridge, thin to medium lips, wet dark brown hair slicked back in messy strands. He is shirtless, wearing the same worn black leather trousers with dark fur trim at the waist and sides, weathered texture, and black lace-up combat boots, no added accessories. He is half-crouched and half-prone in the snow with his back to the camera, body turned toward the distant elk herd, holding an ornate bow in his hand, poised to lead the wolves into an ambush; the wolves beside him mirror his low stalking posture, tense and ready to attack. Cold blue-gray winter grading, soft diffused overcast daylight, faint backlight from the open snowy clearing ahead, subtle mist, frosted branches, deep snow, cinematic atmosphere, realistic fur detail, shallow depth of field, strong foreground blur, quiet predatory tension, highly photorealistic.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781276434272-lx4il4y3ia.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 103206
+    },
+    {
+      "id": "fc778fdd-5ea5-483c-8d00-3d172ec36f6e",
+      "timestamp": "2026-06-12T15:29:24.142Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 709,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "2d5d4778-69f3-422d-a32b-925febee31b1",
+      "timestamp": "2026-06-12T15:42:24.300Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 350582,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "7610cfbe-fcf6-43e5-b13d-1d50756ade58",
+      "timestamp": "2026-06-12T16:00:18.399Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 342237,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "964d1f89-5925-46d9-8f12-999facdb9efb",
+      "timestamp": "2026-06-12T16:09:58.991Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/6547d907cdecf560e3f330cead1d92e8_1781280593_4f0l5p7q.mp4"
+      ],
+      "cost": 6.15,
+      "durationMs": 339658
+    },
+    {
+      "id": "584677ba-4f41-4cfd-9f2b-ce2a9a2dad46",
+      "timestamp": "2026-06-12T16:15:05.425Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-3秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，4-7秒放下手时已经变换到1980年的美国街头了，她继续唱歌，期间边走边跳着又酷又性感的舞蹈，7-12同样的运镜之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 346072,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "d5844059-bdeb-4156-8cd6-7b2c7aacd778",
+      "timestamp": "2026-06-12T16:28:09.035Z",
+      "providerId": "seedance-2",
+      "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-6秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，她一边歌唱一边跳着性感的舞蹈，7-12秒放下手之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，她表情紧张，但是很轻松，一边对着镜头歌唱，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "compiledPrompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-6秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，她一边歌唱一边跳着性感的舞蹈，7-12秒放下手之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，她表情紧张，但是很轻松，一边对着镜头歌唱，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/seedance/1781281645749-fn40cmzyd4.mp4"
+      ],
+      "cost": 6.15,
+      "durationMs": 307591
     }
   ]
 }
