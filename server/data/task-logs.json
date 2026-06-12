@@ -3481,6 +3481,39 @@
       "cost": 0,
       "durationMs": 2030,
       "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "e83876fd-736d-4e75-a0af-aa4f8547ceba",
+      "timestamp": "2026-06-12T04:34:51.295Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking in a park",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 405,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "2c96c769-e3bc-47cf-b9e1-22bd00b5fab8",
+      "timestamp": "2026-06-12T04:41:58.656Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking in a park",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 409,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "0fadc35b-c3cc-4b9b-8c0f-e26aa8f70fe0",
+      "timestamp": "2026-06-12T04:46:55.071Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 396,
+      "error": "Kie.ai: No taskId"
     }
   ]
 }

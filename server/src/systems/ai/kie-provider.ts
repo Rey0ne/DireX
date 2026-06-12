@@ -59,7 +59,7 @@ function getKieModel(req: GenerateRequest): string {
       return mode === 'image-to-image'
         ? 'gpt-image-2-image-to-image'
         : 'gpt-image-2-text-to-image';
-    case 'kling-video': return 'kling-3.0/video';
+    case 'kling-video': return 'kling-3.0/motion-control';
     case 'seedance-2':  return 'bytedance/seedance-2';
     default: return req.providerId;
   }
@@ -161,7 +161,15 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   const isNanoBanana = req.providerId === 'nano-banana';
   const isI2I = mode === 'image-to-image';
 
-  const body: Record<string, unknown> = {
+  const isVideo = req.providerId === 'kling-video' || req.providerId === 'seedance-2';
+  const body: Record<string, unknown> = isVideo ? {
+    model,
+    input: {
+      prompt: req.prompt || '',
+      input_urls: [] as string[],
+      video_urls: [] as string[],
+    },
+  } : {
     model,
     input: {
       prompt: req.prompt,
@@ -169,6 +177,12 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       resolution: resolution,
     },
   };
+
+  // Video: set mode, callBackUrl and input-level params
+  if (isVideo) {
+    (body.input as any).mode = resolution === '1080P' ? 'pro' : 'std';
+    (body as any).callBackUrl = '';
+  }
 
   // output_format: only supported by nano-banana-pro
   if (isNanoBanana) (body.input as any).output_format = 'png';
@@ -209,6 +223,8 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   if (validRefs.length > 0) {
     if (isNanoBanana) {
       (body.input as any).image_input = validRefs;           // Nano Banana Pro: image_input
+    } else if (isVideo) {
+      (body.input as any).input_urls = validRefs;            // Kling/Seedance: input_urls (images)
     } else if (isI2I) {
       (body.input as any).input_urls = validRefs;            // GPT Image2 I2I: input_urls
     }
