@@ -707,7 +707,6 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       }
       if (e.key === 'b' || e.key === 'B') { handleToolSelect('inpaint'); return; }
       if (e.key === 'l' || e.key === 'L') { handleToolSelect('relight'); return; }
-      if (e.key === 'a' || e.key === 'A') { handleToolSelect('multiAngle'); return; }
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         const vp = useCanvasStore.getState().viewport;
