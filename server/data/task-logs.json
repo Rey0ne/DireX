@@ -3457,6 +3457,30 @@
       ],
       "cost": 0.16,
       "durationMs": 54522
+    },
+    {
+      "id": "e5f88a17-4fab-4d74-803c-4430ea55205d",
+      "timestamp": "2026-06-12T04:15:55.389Z",
+      "providerId": "seedance-2",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的性感韩国女明星，穿着时尚性感，科技感十足，并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具魅惑暧昧的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的性感韩国女明星，穿着时尚性感，科技感十足，并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具魅惑暧昧的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1990,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "49dcfd51-278b-421a-93f3-ef3447c84d71",
+      "timestamp": "2026-06-12T04:17:49.727Z",
+      "providerId": "seedance-2",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的性感韩国女明星，穿着时尚性感，科技感十足，并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具魅惑暧昧的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的性感韩国女明星，穿着时尚性感，科技感十足，并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具魅惑暧昧的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 2030,
+      "error": "Kie.ai: No taskId"
     }
   ]
 }

@@ -516,7 +516,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
   const handleMenuSelect = useCallback((nodeType: string) => {
     if (!menu) return;
-    addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d', { x: menu.flowX, y: menu.flowY });
+    addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'scene.3d', { x: menu.flowX, y: menu.flowY });
     setMenu(null);
   }, [menu, addNode]);
 
