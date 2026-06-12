@@ -18,9 +18,14 @@ export function useMention(refUrls?: string[], styleImageUrl?: string | null) {
       const store = useCanvasStore.getState();
       refUrls.forEach(url => {
         store.nodes.forEach(node => {
-          const imgUrl = (node.meta?.gen as any)?.imageUrl;
-          if (imgUrl === url && !list.find(m => m.url === url)) {
-            list.push({ name: node.title || 'IMAGE', url });
+          const gen = (node.meta?.gen as any) || {};
+          const imgUrl = gen.imageUrl;
+          const vidUrl = gen.videoUrl;
+          const fullRefs = gen.fullRefs as Record<string,string|null>|undefined;
+          const match = imgUrl === url || vidUrl === url ||
+            (fullRefs && Object.values(fullRefs).some(v => v === url));
+          if (match && !list.find(m => m.url === url)) {
+            list.push({ name: node.title || 'REF', url });
           }
         });
       });

@@ -17,12 +17,12 @@ export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
       display: 'flex', gap: '6px', overflowX: 'auto',
       paddingBottom: '6px', minHeight: 44, alignItems: 'center',
     }}>
-      {refUrls && refUrls.map((uri, i) => (
-        <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-          <img src={uri} alt="" style={{
-            width: 40, height: 40, borderRadius: 6,
-            objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)',
-          }} />
+      {refUrls && refUrls.map((uri, i) => {
+        const isVid = uri.startsWith('data:video/') || uri.endsWith('.mp4') || uri.endsWith('.webm');
+        return (<div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+          {isVid
+            ? <video src={uri} muted preload="metadata" style={{width:40,height:40,borderRadius:6,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)',pointerEvents:'none'}}/>
+            : <img src={uri} alt="" style={{width:40,height:40,borderRadius:6,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)'}}/>}
           <span onClick={e => {
             e.stopPropagation(); e.preventDefault();
             const store = useCanvasStore.getState();
@@ -46,8 +46,8 @@ export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
               fontSize: 9, cursor: 'pointer', lineHeight: 1,
             }}
           >x</span>
-        </div>
-      ))}
+        </div>);
+      })}
 
       {/* Style thumbnail */}
       {styleImageUrl && (

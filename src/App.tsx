@@ -293,13 +293,32 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     syncTickRef.current = currentTick;
     // Pre-compute refUrls map (O(N+E) instead of O(N*E))
     const refUrlsMap = new Map<string, string[]>();
-    nodeList.forEach(n => refUrlsMap.set(n.id, []));
+    const videoRefsMap = new Map<string, string[]>();
+    nodeList.forEach(n => {refUrlsMap.set(n.id, []);videoRefsMap.set(n.id, []);});
     edgeList.forEach(e => {
       const src = nodeList.find(sn => sn.id === e.from.nodeId);
-      const u = (src?.meta?.gen as any)?.imageUrl;
-      if (u) {
+      const imgUrl = (src?.meta?.gen as any)?.imageUrl;
+      const vidUrl = (src?.meta?.gen as any)?.videoUrl;
+      const fullRefs = (src?.meta?.gen as any)?.fullRefs as Record<string,string|null>|undefined;
+      if (imgUrl) {
         const arr = refUrlsMap.get(e.to.nodeId);
-        if (arr && !arr.includes(u)) arr.push(u);
+        if (arr && !arr.includes(imgUrl)) arr.push(imgUrl);
+      }
+      if (vidUrl) {
+        const arr = videoRefsMap.get(e.to.nodeId);
+        if (arr && !arr.includes(vidUrl)) arr.push(vidUrl);
+      }
+      if (fullRefs) {
+        Object.entries(fullRefs).forEach(([k,v])=>{
+          if (!v) return;
+          if (k==='video-motion') {
+            const arr=videoRefsMap.get(e.to.nodeId);
+            if (arr&&!arr.includes(v)) arr.push(v);
+          } else {
+            const arr=refUrlsMap.get(e.to.nodeId);
+            if (arr&&!arr.includes(v)) arr.push(v);
+          }
+        });
       }
     });
 
@@ -322,7 +341,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           isPickMode: pendingConn !== null,
           isPickTarget: n.id === pendingConn,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
-          refUrls: refUrlsMap.get(n.id)?.slice(0, 20) || [],
+          refUrls: [...(refUrlsMap.get(n.id)||[]),...(videoRefsMap.get(n.id)||[])].slice(0,20),
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) {
@@ -347,11 +366,25 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
             // Collect reference URLs from edges (same logic as data.refUrls)
             const edgeRefUrls: string[] = [];
+            const edgeVideoUrls: string[] = [];
             edgeList.forEach(e => {
               if (e.to.nodeId === n.id) {
                 const src = nodeList.find(sn => sn.id === e.from.nodeId);
-                const u = (src?.meta?.gen as any)?.imageUrl;
-                if (u && !edgeRefUrls.includes(u)) edgeRefUrls.push(u);
+                const imgUrl = (src?.meta?.gen as any)?.imageUrl;
+                const vidUrl = (src?.meta?.gen as any)?.videoUrl;
+                const fullRefs = (src?.meta?.gen as any)?.fullRefs as Record<string,string|null>|undefined;
+                if (imgUrl && !edgeRefUrls.includes(imgUrl)) edgeRefUrls.push(imgUrl);
+                if (vidUrl && !edgeVideoUrls.includes(vidUrl)) edgeVideoUrls.push(vidUrl);
+                if (fullRefs) {
+                  Object.entries(fullRefs).forEach(([k,v])=>{
+                    if (!v) return;
+                    if (k==='video-motion') {
+                      if (!edgeVideoUrls.includes(v)) edgeVideoUrls.push(v);
+                    } else {
+                      if (!edgeRefUrls.includes(v)) edgeRefUrls.push(v);
+                    }
+                  });
+                }
               }
             });
             const refUrls = edgeRefUrls.length > 0 ? edgeRefUrls : (meta.referenceUrls as string[] | undefined);
@@ -370,7 +403,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
             // ── Route: TEXT node → fast text pipeline, others → full image pipeline ──
             const isTextNode = n.type === 'shot';
-            console.log('[onGenerate] nodeType:', n.type, 'isTextNode:', isTextNode, 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length);
+            console.log('[onGenerate] nodeType:', n.type, 'isTextNode:', isTextNode, 'refUrls:', refUrls?.length, 'videoUrls:', edgeVideoUrls?.length, 'refPrompts:', refPrompts?.length);
             const agentResult = isTextNode
               ? await analyzeText({
                   providerId: 'text',
@@ -394,6 +427,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   duration: meta.duration as string | undefined,
                   firstFrameUrl: meta.firstFrameUrl as string | undefined,
                   lastFrameUrl: meta.lastFrameUrl as string | undefined,
+                  videoUrls: edgeVideoUrls.length>0 ? edgeVideoUrls : (()=>{const fr=meta.fullRefs as Record<string,string|null>|undefined;if(!fr)return;const v=fr['video-motion'];return v?[v]:undefined;})(),
                 } as any);
 
             const result = agentResult.result;

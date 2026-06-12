@@ -43,11 +43,6 @@ const REF_MODES = [
   { id: 'full-ref', label: '全能参考', desc: '图片·视频·音频·文本自由组合' },
 ];
 
-const FULL_REF_TYPES = [
-  { id: 'image-style', label: '图片定风格', desc: '上传一张图，AI精准还原角色外貌、服装和画面风格', icon: '🖼️', accept: 'image/*' },
-  { id: 'video-motion', label: '视频定动作', desc: '参考一段视频，复刻复杂动作、运镜和创意特效', icon: '🎬', accept: 'video/*' },
-  { id: 'audio-rhythm', label: '音频定节奏', desc: '提供音频，生成匹配画面节奏和氛围，可对口型', icon: '🎵', accept: 'audio/*' },
-];
 
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
@@ -92,6 +87,12 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
     r.onload = () => {
       const url = r.result as string;
       if (refType) { const u = { ...fullRefs, [refType]: url }; setFullRefs(u); patch('fullRefs', u); }
+      else if (refMode === 'full-ref') {
+        const ext=file.name.split('.').pop()?.toLowerCase()||'';
+        const isVid=ext==='mp4'||ext==='webm'||ext==='mov';
+        const refKey=isVid?'video-motion':'image-style';
+        const u = { ...fullRefs, [refKey]: url }; setFullRefs(u); patch('fullRefs', u);
+      }
       else if (refMode === 'first') { setFirstFrame(url); patch('firstFrameUrl', url); }
       else if (refMode === 'first-last') {
         if (!firstFrame) { setFirstFrame(url); patch('firstFrameUrl', url); }
@@ -142,7 +143,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: 'var(--tap-panel)', boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
-              <video src={data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <div style={{ textAlign: 'center', opacity: 0.25 }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><polygon points="5,3 19,12 5,21" /></svg>
@@ -159,37 +160,13 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px 0', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
             <RefStrip nodeId={id} refUrls={data.refUrls} />
-            {/* Full-ref mode: show 3 upload slots */}
-            {refMode === 'full-ref' ? (
-              FULL_REF_TYPES.map(t => (
-                <div key={t.id} onClick={() => uploadRef.current?.click()}
-                  data-ref-type={t.id}
-                  title={t.desc}
-                  style={{ width: '40px', height: '40px', borderRadius: '6px', border: fullRefs[t.id] ? '1px solid rgba(100,255,180,0.3)' : '1px dashed rgba(255,255,255,0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, gap: '1px', background: fullRefs[t.id] ? 'rgba(100,255,180,0.06)' : 'transparent', overflow: 'hidden', position: 'relative' }}>
-                  {fullRefs[t.id] ? (
-                    <>
-                      {(t.id === 'audio-rhythm') ? (
-                        <span style={{ fontSize: '16px' }}>🎵</span>
-                      ) : (
-                        <img src={fullRefs[t.id]!} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
-                      )}
-                      <span style={{ fontSize: '8px', color: 'rgba(100,255,180,0.8)', zIndex: 1, background: 'rgba(0,0,0,0.6)', padding: '0 3px', borderRadius: '2px' }}>✓</span>
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ fontSize: '12px' }}>{t.icon}</span>
-                      <span style={{ fontSize: '7px', color: 'var(--tap-text-4)' }}>{t.label.slice(0,2)}</span>
-                    </>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div onClick={() => uploadRef.current?.click()} title="上传本地文件"
-                style={{ width: '40px', height: '40px', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '11px', color: 'var(--tap-text-4)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-              >本地</div>
-            )}
+            {refMode==='full-ref'&&Object.entries(fullRefs).filter(([,v])=>v).map(([k,v])=>(<div key={k} title={k} style={{width:40,height:40,borderRadius:6,overflow:'hidden',flexShrink:0}}>{k==='video-motion'?<video src={v!} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<img src={v!} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>))}
+            {/* Upload: single unified ref slot */}
+            <div onClick={() => uploadRef.current?.click()} title="上传参考素材"
+              style={{ width: '40px', height: '40px', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '11px', color: 'var(--tap-text-4)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+            >素材</div>
             <div style={{ flex: 1 }} />
             <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
               style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}

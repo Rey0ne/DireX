@@ -22,7 +22,10 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*', methods: ['GET','POST','P
 app.use(express.json({ limit: '50mb' }));
 // ─── Public routes (no auth needed) ──────────
 // Image proxy — loaded via <img> tag, can't send auth headers
-app.get('/api/proxy-image', async (req, res) => {
+app.get('/api/proxy-image', async (req, res) => proxyAsset(req, res));
+app.get('/api/proxy-video', async (req, res) => proxyAsset(req, res));
+
+async function proxyAsset(req: Request, res: Response) {
   const url = req.query.url as string;
   if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
   try {
@@ -39,7 +42,7 @@ app.get('/api/proxy-image', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
-});
+}
 
 app.use(authMiddleware);
 
@@ -326,6 +329,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     negativePrompt: i2iNegPrompt,
     aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
     referenceImage: body.referenceImage, referenceUrls: (body as any).referenceUrls, maskImage: body.maskImage, styleImageUrl: body.styleImageUrl,
+    videoUrls: (body as any).videoUrls, duration: (body as any).duration,
   });
   result.durationMs = Date.now() - t0;
   addLog({

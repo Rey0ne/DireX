@@ -3514,6 +3514,460 @@
       "cost": 0,
       "durationMs": 396,
       "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "436ed2c7-bdd0-44da-9d8c-55828994da38",
+      "timestamp": "2026-06-12T04:50:16.491Z",
+      "providerId": "gpt-image2",
+      "prompt": "Ultra realistic Korean female idol, age 20-24, extreme close-up beauty portrait, centered composition, looking directly at camera, small refined face, V-line jaw, smooth porcelain skin, realistic skin texture, large almond-shaped eyes, subtle double eyelids, long eyelashes, elegant straight nose bridge, delicate nose tip, soft full lips, natural pink lip color, youthful and sophisticated beauty, top-tier K-pop visual center, clean natural makeup, glossy lips, soft blush, detailed eyebrows, silky dark brown hair neatly framing face, symmetrical facial features, photorealistic beauty photography.\n\nPure white seamless background, isolated subject, no shadows, no environment, studio cutout style, catalog photography, front-facing portrait, neutral expression, face occupies 80 percent of frame, identity reference image, character design reference, ultra sharp focus, 85mm lens, RAW photo, 8k, masterpiece.\n\nNegative Prompt:\nbackground objects, scenery, studio setup visible, dramatic lighting, colored background, accessories covering face, sunglasses, hat, cartoon, anime, illustration, low quality, blurry, asymmetrical face, distorted eyes, duplicate features, watermark, text",
+      "compiledPrompt": "Ultra realistic Korean female idol, age 20-24, extreme close-up beauty portrait, centered composition, looking directly at camera, small refined face, V-line jaw, smooth porcelain skin, realistic skin texture, large almond-shaped eyes, subtle double eyelids, long eyelashes, elegant straight nose bridge, delicate nose tip, soft full lips, natural pink lip color, youthful and sophisticated beauty, top-tier K-pop visual center, clean natural makeup, glossy lips, soft blush, detailed eyebrows, silky dark brown hair neatly framing face, symmetrical facial features, photorealistic beauty photography.\n\nPure white seamless background, isolated subject, no shadows, no environment, studio cutout style, catalog photography, front-facing portrait, neutral expression, face occupies 80 percent of frame, identity reference image, character design reference, ultra sharp focus, 85mm lens, RAW photo, 8k, masterpiece.\n\nNegative Prompt:\nbackground objects, scenery, studio setup visible, dramatic lighting, colored background, accessories covering face, sunglasses, hat, cartoon, anime, illustration, low quality, blurry, asymmetrical face, distorted eyes, duplicate features, watermark, text",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781239811071-wa2u9jff92q.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 95498
+    },
+    {
+      "id": "23190776-6cf3-4f37-adba-f61f703dcc79",
+      "timestamp": "2026-06-12T04:54:21.760Z",
+      "providerId": "gpt-image2",
+      "prompt": "Create a full body Korean female idol character turnaround sheet based on the reference face, preserving her original facial features and hairstyle: young adult Korean woman, soft oval face with a gentle jawline, fair skin with a neutral-warm undertone and natural pink blush, large almond-round dark gray-brown eyes with subtle double eyelids, straight natural brows, a slim straight nose with a low-to-medium bridge and a small rounded tip, medium lips with a slightly fuller lower lip and soft glossy pink color, a tiny beauty mark on one cheek, long dark brown hair with a slightly off-center middle part, smooth and straight with soft bends toward the ends, professional idol styling. Show three equal-scale full-body views side by side in one image: front view, left side view, back view, standing in a neutral A-pose, fashion model proportions, slim athletic body, consistent head shape, facial structure, hairline, hair volume, and natural realistic proportions across all three views. Dress her in a luxury modern K-pop concert outfit in a black and silver palette: short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments, thigh-high fashion boots, and refined stage styling, with realistic fabric folds, detailed stitching, photorealistic materials, and highly detailed clothing construction, suitable as a production-ready costume reference. Orthographic presentation, eye-level camera, full-body framing, symmetrical centered composition, clean front-side-back layout, pure white seamless background, no shadows, no environment, no props, soft diffused frontal studio lighting, high-key clean tone, no perspective distortion, 8k, masterpiece, character turnaround sheet, 3D modeling reference, game character design sheet, costume design board. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor.",
+      "compiledPrompt": "Create a full body Korean female idol character turnaround sheet based on the reference face, preserving her original facial features and hairstyle: young adult Korean woman, soft oval face with a gentle jawline, fair skin with a neutral-warm undertone and natural pink blush, large almond-round dark gray-brown eyes with subtle double eyelids, straight natural brows, a slim straight nose with a low-to-medium bridge and a small rounded tip, medium lips with a slightly fuller lower lip and soft glossy pink color, a tiny beauty mark on one cheek, long dark brown hair with a slightly off-center middle part, smooth and straight with soft bends toward the ends, professional idol styling. Show three equal-scale full-body views side by side in one image: front view, left side view, back view, standing in a neutral A-pose, fashion model proportions, slim athletic body, consistent head shape, facial structure, hairline, hair volume, and natural realistic proportions across all three views. Dress her in a luxury modern K-pop concert outfit in a black and silver palette: short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments, thigh-high fashion boots, and refined stage styling, with realistic fabric folds, detailed stitching, photorealistic materials, and highly detailed clothing construction, suitable as a production-ready costume reference. Orthographic presentation, eye-level camera, full-body framing, symmetrical centered composition, clean front-side-back layout, pure white seamless background, no shadows, no environment, no props, soft diffused frontal studio lighting, high-key clean tone, no perspective distortion, 8k, masterpiece, character turnaround sheet, 3D modeling reference, game character design sheet, costume design board. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 155690,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "16e8b87a-bdce-40ff-b15c-2ea1737fe081",
+      "timestamp": "2026-06-12T04:57:03.702Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1781240222102-3kt94yysx1m.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 26564
+    },
+    {
+      "id": "f458f4e8-a83a-45ae-80bb-cf73b64dcbad",
+      "timestamp": "2026-06-12T04:57:11.665Z",
+      "providerId": "nano-banana",
+      "prompt": "connection test cat",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/1781240229954-o1ez6m4wppn.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 32769
+    },
+    {
+      "id": "e0466e21-2776-4477-8e0a-a03743b0dbbd",
+      "timestamp": "2026-06-12T04:57:42.673Z",
+      "providerId": "nano-banana",
+      "prompt": "a cute orange cat on a windowsill",
+      "compiledPrompt": "a cute orange cat on a windowsill",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/62e51253d28660eb54992ea1b49824ed_1781240260636.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 33175
+    },
+    {
+      "id": "a0db15cf-f6d8-4512-bee6-4ca3e1f4378d",
+      "timestamp": "2026-06-12T05:01:11.714Z",
+      "providerId": "gpt-image2",
+      "prompt": "Full body Korean female idol character turnaround sheet, three full-body views displayed side by side in a single image, front view, left side view, back view, standing in a neutral A-pose, fashion model proportions, slim athletic body, eye-level orthographic presentation, straight-on camera, symmetrical centered composition, production-ready 3D modeling reference and game character design sheet, pure white seamless background, no shadows, no environment, soft even studio lighting with clean diffused frontal illumination, neutral high-key tone, crisp photorealistic detail. Preserve the face from the reference image: a young Korean woman in her early 20s with a soft oval face, smooth jawline, fair skin with a light neutral-warm peach undertone, large almond-shaped gray-brown eyes, clear double eyelids, soft straight brows, a straight medium-low nose bridge with a small rounded nose tip, medium lips with a slightly fuller lower lip and natural pink gloss, subtle blush, and a small beauty mark on her right cheek. Keep her hairstyle consistent with the reference: long dark brown hair, smooth and glossy, slightly off-center middle part, face-framing front sections, gentle natural wave through the lengths, no added hair accessories. Dress her in a luxury K-pop concert outfit designed as a modern stage costume in a black and silver color palette: a short fitted cropped jacket with metallic embroidery, premium leather textures, crystal embellishments, high-waisted performance shorts, decorative belt details, thigh-high fashion boots, elegant minimal stage accessories only as part of the costume design, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, front-side-back layout, costume design board quality, masterpiece, 8k. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor",
+      "compiledPrompt": "Full body Korean female idol character turnaround sheet, three full-body views displayed side by side in a single image, front view, left side view, back view, standing in a neutral A-pose, fashion model proportions, slim athletic body, eye-level orthographic presentation, straight-on camera, symmetrical centered composition, production-ready 3D modeling reference and game character design sheet, pure white seamless background, no shadows, no environment, soft even studio lighting with clean diffused frontal illumination, neutral high-key tone, crisp photorealistic detail. Preserve the face from the reference image: a young Korean woman in her early 20s with a soft oval face, smooth jawline, fair skin with a light neutral-warm peach undertone, large almond-shaped gray-brown eyes, clear double eyelids, soft straight brows, a straight medium-low nose bridge with a small rounded nose tip, medium lips with a slightly fuller lower lip and natural pink gloss, subtle blush, and a small beauty mark on her right cheek. Keep her hairstyle consistent with the reference: long dark brown hair, smooth and glossy, slightly off-center middle part, face-framing front sections, gentle natural wave through the lengths, no added hair accessories. Dress her in a luxury K-pop concert outfit designed as a modern stage costume in a black and silver color palette: a short fitted cropped jacket with metallic embroidery, premium leather textures, crystal embellishments, high-waisted performance shorts, decorative belt details, thigh-high fashion boots, elegant minimal stage accessories only as part of the costume design, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, front-side-back layout, costume design board quality, masterpiece, 8k. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 151174,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "78924efd-b74a-4a60-aa2b-0603131e4927",
+      "timestamp": "2026-06-12T05:01:32.933Z",
+      "providerId": "gpt-image2",
+      "prompt": "Full body Korean female idol character turnaround sheet based on the reference face, adult woman with a slim athletic body and fashion model proportions, three full-body views shown side by side in a single image: front view, left side view, back view, standing in a neutral A-pose, orthographic presentation, eye-level camera, centered symmetrical composition, full-body framing, pure white seamless background, no shadows, no environment. Preserve the original facial features from the reference: soft oval face with a narrow chin, fair skin with a neutral-peach undertone and natural pink blush, smooth complexion, large almond-shaped gray-brown eyes with soft double eyelids and subtle eyeliner, straight natural brows, a slim nose with a low-to-medium straight bridge and a softly rounded tip, medium-full glossy pink lips with a fuller lower lip, and a small beauty mark on the right cheek. Keep the original hairstyle: long dark brown hair, slightly off-center part, smooth and straight at the crown with soft loose waves through the lengths, framing the face naturally. Professional idol styling, calm neutral expression. Dress her in a luxury K-pop concert outfit in a black and silver palette: short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments, thigh-high fashion boots, elegant stage accessories, modern stage costume, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, production-ready costume reference, costume design board, 3D modeling reference, game character design sheet, masterpiece, 8k. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor.",
+      "compiledPrompt": "Full body Korean female idol character turnaround sheet based on the reference face, adult woman with a slim athletic body and fashion model proportions, three full-body views shown side by side in a single image: front view, left side view, back view, standing in a neutral A-pose, orthographic presentation, eye-level camera, centered symmetrical composition, full-body framing, pure white seamless background, no shadows, no environment. Preserve the original facial features from the reference: soft oval face with a narrow chin, fair skin with a neutral-peach undertone and natural pink blush, smooth complexion, large almond-shaped gray-brown eyes with soft double eyelids and subtle eyeliner, straight natural brows, a slim nose with a low-to-medium straight bridge and a softly rounded tip, medium-full glossy pink lips with a fuller lower lip, and a small beauty mark on the right cheek. Keep the original hairstyle: long dark brown hair, slightly off-center part, smooth and straight at the crown with soft loose waves through the lengths, framing the face naturally. Professional idol styling, calm neutral expression. Dress her in a luxury K-pop concert outfit in a black and silver palette: short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments, thigh-high fashion boots, elegant stage accessories, modern stage costume, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, production-ready costume reference, costume design board, 3D modeling reference, game character design sheet, masterpiece, 8k. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 140357,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "1ae428bc-0350-4a39-8c9b-661a79d85b37",
+      "timestamp": "2026-06-12T05:06:59.432Z",
+      "providerId": "gpt-image2",
+      "prompt": "Use the face and hair from the reference image exactly: a young Korean woman in her early 20s with a soft oval face, gentle jawline, fair skin with a neutral-warm undertone, smooth natural complexion, a small beauty mark on her right cheek, large almond-shaped gray-brown eyes with soft double eyelids and natural lashes, straight softly arched brows, a straight medium-low nose bridge with a small rounded tip, medium-full glossy pink lips with a subtle cupid’s bow, long dark brown hair with a clean center part and smooth loose lengths framing the face; create a full body Korean female idol character turnaround sheet with three views shown side by side in a single image, front view, left side view, back view, all matching the same identity, standing in a neutral A-pose, fashion model proportions, slim athletic body, orthographic presentation, eye-level camera, full-body framing, symmetrical centered composition, production-ready 3D modeling and game character design reference sheet, pure white seamless background, no shadows, no environment, soft even studio lighting, low-contrast clean commercial reference look, luxury modern K-pop concert outfit in black and silver, short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments integrated into the costume, thigh-high fashion boots, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, professional idol styling, costume design board quality, front side back layout, 8k, masterpiece. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor, headpiece, handheld props, jewelry not shown in reference, asymmetrical layout.",
+      "compiledPrompt": "Use the face and hair from the reference image exactly: a young Korean woman in her early 20s with a soft oval face, gentle jawline, fair skin with a neutral-warm undertone, smooth natural complexion, a small beauty mark on her right cheek, large almond-shaped gray-brown eyes with soft double eyelids and natural lashes, straight softly arched brows, a straight medium-low nose bridge with a small rounded tip, medium-full glossy pink lips with a subtle cupid’s bow, long dark brown hair with a clean center part and smooth loose lengths framing the face; create a full body Korean female idol character turnaround sheet with three views shown side by side in a single image, front view, left side view, back view, all matching the same identity, standing in a neutral A-pose, fashion model proportions, slim athletic body, orthographic presentation, eye-level camera, full-body framing, symmetrical centered composition, production-ready 3D modeling and game character design reference sheet, pure white seamless background, no shadows, no environment, soft even studio lighting, low-contrast clean commercial reference look, luxury modern K-pop concert outfit in black and silver, short fitted cropped jacket with metallic embroidery, high-waisted performance shorts, decorative belt details, premium leather textures, crystal embellishments integrated into the costume, thigh-high fashion boots, realistic fabric folds, detailed stitching, highly detailed clothing construction, photorealistic materials, professional idol styling, costume design board quality, front side back layout, 8k, masterpiece. Negative prompt: dynamic pose, dancing pose, perspective view, angled camera, environment, stage background, colored background, extra limbs, duplicate character, cropped body, anime style, cartoon style, blurry details, exaggerated proportions, weapon, fantasy armor, headpiece, handheld props, jewelry not shown in reference, asymmetrical layout.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781240814796-obkzy4qiebc.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 202710
+    },
+    {
+      "id": "19f0461a-e26c-4317-b548-96131c9b1283",
+      "timestamp": "2026-06-12T05:29:14.265Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park on a sunny day",
+      "compiledPrompt": "a person walking through a park on a sunny day",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4490,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "e3b8218e-dfc8-47e7-a6db-99f46a70f908",
+      "timestamp": "2026-06-12T05:29:32.408Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park",
+      "compiledPrompt": "a person walking through a park",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 621,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "401ee66e-373a-444e-befa-987421e2d2bf",
+      "timestamp": "2026-06-12T05:30:17.446Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park on a sunny day",
+      "compiledPrompt": "a person walking through a park on a sunny day",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 3843,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "5ab5aef7-0304-48a0-a1aa-78145f264175",
+      "timestamp": "2026-06-12T05:30:58.412Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park on a sunny day",
+      "compiledPrompt": "a person walking through a park on a sunny day",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 3341,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "afeed70f-cab4-4274-a505-5bc03f918332",
+      "timestamp": "2026-06-12T05:31:12.704Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park on a sunny day",
+      "compiledPrompt": "a person walking through a park on a sunny day",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1004,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "f3bff480-2614-46de-ae8e-169ba45c1a70",
+      "timestamp": "2026-06-12T05:31:26.190Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking",
+      "compiledPrompt": "a person walking",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1066,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "5d9e437e-e846-4f23-9859-f8781151c3f5",
+      "timestamp": "2026-06-12T05:32:06.070Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 6346,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "e4f917d6-07ae-4d44-8913-f320ce13f262",
+      "timestamp": "2026-06-12T05:35:22.481Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 2238,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "5330978e-b798-4554-b0c2-f498f1e6c5fc",
+      "timestamp": "2026-06-12T05:39:43.335Z",
+      "providerId": "gpt-image2",
+      "prompt": "replace the character with a Korean actress",
+      "compiledPrompt": "replace the character with a Korean actress",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781242780838-v6iqo85pojm.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 82717
+    },
+    {
+      "id": "adc10f24-3e53-4087-87cc-156a4e756205",
+      "timestamp": "2026-06-12T05:48:37.655Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 8166,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "89c75eb6-98e1-4397-a9f7-1b55b5268745",
+      "timestamp": "2026-06-12T05:52:51.622Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 9278,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "ed3a3d17-e281-4ffa-9de9-37cb1797e992",
+      "timestamp": "2026-06-12T05:54:10.129Z",
+      "providerId": "kling-video",
+      "prompt": "a person walking through a park",
+      "compiledPrompt": "a person walking through a park",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 651,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "ec1a6092-e0e2-4bfc-8266-377e084689bb",
+      "timestamp": "2026-06-12T06:04:12.879Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4106,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "9d775617-7e1c-4e1f-baca-e427face756c",
+      "timestamp": "2026-06-12T06:12:25.085Z",
+      "providerId": "kling-video",
+      "prompt": "person walking",
+      "compiledPrompt": "person walking",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 358655,
+      "error": "Kie.ai: Task timed out"
+    },
+    {
+      "id": "9b972c26-c7ed-49d5-965e-49b7b10c759c",
+      "timestamp": "2026-06-12T06:13:56.866Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@DireX 24 T2.8 中的角色替换为一位年轻的韩国女明星@image.generate 并将环境替换为夜间城市高楼天台的边缘，水晶舞台，聚光灯聚焦在女孩身上，伴随着极具女团风格的音乐",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4539,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "058e1d15-6f7a-4f10-b7fb-1434e2c78512",
+      "timestamp": "2026-06-12T06:17:54.455Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean woman with a soft oval face, fair skin with a neutral-warm undertone, large dark brown almond-shaped eyes, a straight medium-low nose bridge with a neat small tip, medium-full natural lips, and long dark brown wavy hair parted at the center, slender build and long legs, wearing the exact same outfit as the reference: a black cropped military-style jacket in a smooth leather-like fabric with dense silver embroidered floral patterns on the chest, sleeves, collar, cuffs, and back, a black inner top, high-waisted black fitted shorts, a wide black belt with silver studs and a large silver buckle, silver waist chains on both hips, and black thigh-high platform heeled boots in matte leather, posed in a rear three-quarter view matching the composition reference, medium shot, eye-level to slightly low camera angle, the body turned away with the upper torso angled to the right, one arm extending forward into the foreground, centered slightly left in frame, with a clean open spatial composition and visible depth behind her, set on the edge of a nighttime city skyscraper rooftop transformed into a crystal stage, surrounded by distant high-rise lights, glossy translucent crystal flooring, intense spotlight beams focused directly on the girl from above and slightly front-side, sharp stage contrast against the dark urban background, cool night atmosphere with luminous highlights and reflective surfaces, the mood of a powerful K-pop girl group performance, realistic proportions, detailed fabric texture, no extra accessories or props.",
+      "compiledPrompt": "A young Korean woman with a soft oval face, fair skin with a neutral-warm undertone, large dark brown almond-shaped eyes, a straight medium-low nose bridge with a neat small tip, medium-full natural lips, and long dark brown wavy hair parted at the center, slender build and long legs, wearing the exact same outfit as the reference: a black cropped military-style jacket in a smooth leather-like fabric with dense silver embroidered floral patterns on the chest, sleeves, collar, cuffs, and back, a black inner top, high-waisted black fitted shorts, a wide black belt with silver studs and a large silver buckle, silver waist chains on both hips, and black thigh-high platform heeled boots in matte leather, posed in a rear three-quarter view matching the composition reference, medium shot, eye-level to slightly low camera angle, the body turned away with the upper torso angled to the right, one arm extending forward into the foreground, centered slightly left in frame, with a clean open spatial composition and visible depth behind her, set on the edge of a nighttime city skyscraper rooftop transformed into a crystal stage, surrounded by distant high-rise lights, glossy translucent crystal flooring, intense spotlight beams focused directly on the girl from above and slightly front-side, sharp stage contrast against the dark urban background, cool night atmosphere with luminous highlights and reflective surfaces, the mood of a powerful K-pop girl group performance, realistic proportions, detailed fabric texture, no extra accessories or props.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1559,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "3101326b-8632-481d-99d6-55eec8ebd335",
+      "timestamp": "2026-06-12T06:26:00.556Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean woman in her early 20s with a slim build and long legs, fair skin with a neutral undertone, an oval face with a soft jawline and small chin, dark brown almond-shaped eyes, a straight medium-height narrow nose bridge, and small to medium lips with a slightly fuller lower lip, long dark brown to near-black hair parted in the center and falling in loose soft waves past her chest and down her back. She keeps the exact outfit from the reference: a fitted black cropped military-style jacket in a leather-like fabric with a high stand collar, long sleeves, and intricate silver floral embroidery along the front, shoulders, collar, cuffs, sleeves, hem, and back, a black cropped inner top, black high-waisted leather short shorts, a black studded belt with a large silver buckle, silver hip chains, and black thigh-high platform high-heel boots, with no extra accessories or props. Place her at the edge of a nighttime city skyscraper rooftop on a crystal stage floor, surrounded by distant illuminated high-rise buildings, with intense spotlights converging on her and the atmosphere of powerful K-pop girl-group performance music. Match the composition of the pose reference: eye-level to slightly low-angle camera, medium shot framing, rear-left three-quarter view, the subject slightly right of center, torso turned away from the camera, one arm extending toward the left side of the frame, open space and a broad horizon behind her. Use crisp spotlight illumination, soft city ambient glow, clean controlled highlights on the black leather and silver embroidery, realistic shadow falloff, and a sleek high-contrast night performance mood.",
+      "compiledPrompt": "A young Korean woman in her early 20s with a slim build and long legs, fair skin with a neutral undertone, an oval face with a soft jawline and small chin, dark brown almond-shaped eyes, a straight medium-height narrow nose bridge, and small to medium lips with a slightly fuller lower lip, long dark brown to near-black hair parted in the center and falling in loose soft waves past her chest and down her back. She keeps the exact outfit from the reference: a fitted black cropped military-style jacket in a leather-like fabric with a high stand collar, long sleeves, and intricate silver floral embroidery along the front, shoulders, collar, cuffs, sleeves, hem, and back, a black cropped inner top, black high-waisted leather short shorts, a black studded belt with a large silver buckle, silver hip chains, and black thigh-high platform high-heel boots, with no extra accessories or props. Place her at the edge of a nighttime city skyscraper rooftop on a crystal stage floor, surrounded by distant illuminated high-rise buildings, with intense spotlights converging on her and the atmosphere of powerful K-pop girl-group performance music. Match the composition of the pose reference: eye-level to slightly low-angle camera, medium shot framing, rear-left three-quarter view, the subject slightly right of center, torso turned away from the camera, one arm extending toward the left side of the frame, open space and a broad horizon behind her. Use crisp spotlight illumination, soft city ambient glow, clean controlled highlights on the black leather and silver embroidery, realistic shadow falloff, and a sleek high-contrast night performance mood.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1396,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "89a30a1a-db37-4522-bce0-f7e2ee1e842f",
+      "timestamp": "2026-06-12T06:29:09.332Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean woman with the exact facial structure and styling of the reference: soft oval face, fair skin with a neutral-cool undertone, straight dark brown to black hair worn long and loose with a center part and gentle waves, dark brown almond-shaped eyes, a slim medium-height nose bridge with a neat narrow tip, natural medium-full lips, a slim youthful body and long legs, wearing the same outfit unchanged: a fitted black cropped military-style jacket in smooth leather-like fabric with dense silver floral embroidery along the front, sleeves, cuffs, collar, and back, a black inner top, high-waisted black leather shorts with a wide black belt and large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; placed in a dynamic three-quarter back view based on the pose reference, standing near the edge of a nighttime city skyscraper rooftop on a crystal stage, one arm extending forward into the foreground, body slightly twisted, captured at eye level with a medium-full shot and spacious composition with visible environment around her, strong spotlight focused on the girl from above and slightly front-side, creating glossy highlights on the leather outfit and crystal floor, with the surrounding rooftop and distant high-rise skyline falling into darker ambient night tones, clean modern urban atmosphere, subtle concert energy as if intense girl-group music is filling the scene, cinematic realism, sharp details, polished textures, dramatic but controlled lighting, no extra props, no added accessories, no outfit changes",
+      "compiledPrompt": "A young Korean woman with the exact facial structure and styling of the reference: soft oval face, fair skin with a neutral-cool undertone, straight dark brown to black hair worn long and loose with a center part and gentle waves, dark brown almond-shaped eyes, a slim medium-height nose bridge with a neat narrow tip, natural medium-full lips, a slim youthful body and long legs, wearing the same outfit unchanged: a fitted black cropped military-style jacket in smooth leather-like fabric with dense silver floral embroidery along the front, sleeves, cuffs, collar, and back, a black inner top, high-waisted black leather shorts with a wide black belt and large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; placed in a dynamic three-quarter back view based on the pose reference, standing near the edge of a nighttime city skyscraper rooftop on a crystal stage, one arm extending forward into the foreground, body slightly twisted, captured at eye level with a medium-full shot and spacious composition with visible environment around her, strong spotlight focused on the girl from above and slightly front-side, creating glossy highlights on the leather outfit and crystal floor, with the surrounding rooftop and distant high-rise skyline falling into darker ambient night tones, clean modern urban atmosphere, subtle concert energy as if intense girl-group music is filling the scene, cinematic realism, sharp details, polished textures, dramatic but controlled lighting, no extra props, no added accessories, no outfit changes",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1277,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "abfda667-44f3-4c4b-8e1d-b7d9d9a2baf7",
+      "timestamp": "2026-06-12T06:33:05.096Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean female celebrity with a slim, long-legged build and fair skin with a neutral-warm undertone, an oval face, straight dark eyebrows, large dark brown almond-shaped eyes, a straight medium-height nose bridge with a softly defined tip, and moderately full natural pink lips, wearing her long dark brown to near-black hair loose with a clean center part and soft waves falling past the shoulders, dressed exactly as in the reference: a black cropped military-style jacket in a smooth leather-like fabric with dense silver embroidered floral patterns on the chest, sleeves, collar, cuffs, and back, a black inner top, high-waisted black fitted shorts in a leather-like material, a wide black belt with a large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; pose and frame her from a right-rear three-quarter view matching the action reference, upper body twisted slightly, one arm extending toward the left foreground, captured at eye level with a 24mm lens, medium shot, subject positioned slightly right of center, with open negative space around her; place her on the edge of a nighttime city skyscraper rooftop transformed into a crystal stage, transparent reflective floor facets catching light, distant high-rise windows glowing below and behind, a strong focused spotlight isolating the girl while cooler ambient city light surrounds her, crisp concert-style lighting with glossy highlights on the outfit and soft falloff into the background, energetic high-end girl-group performance atmosphere implied through stage presence and lighting, cinematic, realistic, detailed, no extra accessories or props beyond the original outfit.",
+      "compiledPrompt": "A young Korean female celebrity with a slim, long-legged build and fair skin with a neutral-warm undertone, an oval face, straight dark eyebrows, large dark brown almond-shaped eyes, a straight medium-height nose bridge with a softly defined tip, and moderately full natural pink lips, wearing her long dark brown to near-black hair loose with a clean center part and soft waves falling past the shoulders, dressed exactly as in the reference: a black cropped military-style jacket in a smooth leather-like fabric with dense silver embroidered floral patterns on the chest, sleeves, collar, cuffs, and back, a black inner top, high-waisted black fitted shorts in a leather-like material, a wide black belt with a large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; pose and frame her from a right-rear three-quarter view matching the action reference, upper body twisted slightly, one arm extending toward the left foreground, captured at eye level with a 24mm lens, medium shot, subject positioned slightly right of center, with open negative space around her; place her on the edge of a nighttime city skyscraper rooftop transformed into a crystal stage, transparent reflective floor facets catching light, distant high-rise windows glowing below and behind, a strong focused spotlight isolating the girl while cooler ambient city light surrounds her, crisp concert-style lighting with glossy highlights on the outfit and soft falloff into the background, energetic high-end girl-group performance atmosphere implied through stage presence and lighting, cinematic, realistic, detailed, no extra accessories or props beyond the original outfit.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1361,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "c19bc069-6375-4663-89f8-b6c1514682c0",
+      "timestamp": "2026-06-12T06:36:01.797Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean female celebrity with the same original facial features and styling as the reference: an oval face, fair skin with a neutral-to-warm undertone, straight dark eyebrows, dark brown almond-shaped eyes with a soft, calm gaze, a slim medium-height nose bridge with a neat narrow tip, medium-small lips with a softly defined shape, and long dark brown to near-black wavy hair parted at the center, falling past the shoulders. She has a slim, long-legged physique and appears to be in her early twenties. Keep the exact outfit unchanged: a fitted black cropped military-style jacket in a smooth leather-like fabric, richly decorated with intricate silver embroidery along the chest, shoulders, sleeves, collar, cuffs, and back, worn over a black inner top; black high-waisted short shorts in a matte leather-like material with a studded belt, a large silver buckle, and silver side chains; black thigh-high platform heeled boots in matching leather. Full-body shot, eye-level camera, 24mm lens, T2.8, centered composition, the subject standing upright near the edge of a nighttime city skyscraper rooftop on a crystal stage, arms relaxed naturally at her sides, facing the camera, with the rooftop edge and distant urban skyline behind her. Strong spotlight focused directly on the girl from above and slightly front-facing, creating crisp highlights on the black leather and silver embroidery, with soft falloff into the surrounding night, subtle reflections shimmering across the crystal stage, and a polished concert-performance atmosphere that suggests powerful K-pop girl group music. High detail, realistic proportions, clean full-body framing, dramatic but controlled stage lighting, cool night city ambience, no extra props, no outfit changes, no added accessories.",
+      "compiledPrompt": "A young Korean female celebrity with the same original facial features and styling as the reference: an oval face, fair skin with a neutral-to-warm undertone, straight dark eyebrows, dark brown almond-shaped eyes with a soft, calm gaze, a slim medium-height nose bridge with a neat narrow tip, medium-small lips with a softly defined shape, and long dark brown to near-black wavy hair parted at the center, falling past the shoulders. She has a slim, long-legged physique and appears to be in her early twenties. Keep the exact outfit unchanged: a fitted black cropped military-style jacket in a smooth leather-like fabric, richly decorated with intricate silver embroidery along the chest, shoulders, sleeves, collar, cuffs, and back, worn over a black inner top; black high-waisted short shorts in a matte leather-like material with a studded belt, a large silver buckle, and silver side chains; black thigh-high platform heeled boots in matching leather. Full-body shot, eye-level camera, 24mm lens, T2.8, centered composition, the subject standing upright near the edge of a nighttime city skyscraper rooftop on a crystal stage, arms relaxed naturally at her sides, facing the camera, with the rooftop edge and distant urban skyline behind her. Strong spotlight focused directly on the girl from above and slightly front-facing, creating crisp highlights on the black leather and silver embroidery, with soft falloff into the surrounding night, subtle reflections shimmering across the crystal stage, and a polished concert-performance atmosphere that suggests powerful K-pop girl group music. High detail, realistic proportions, clean full-body framing, dramatic but controlled stage lighting, cool night city ambience, no extra props, no outfit changes, no added accessories.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 489,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "520c2afb-8bcc-4b67-b345-27472d7b3474",
+      "timestamp": "2026-06-12T06:38:42.442Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean female star with a soft oval face, fair skin with a neutral-warm undertone, large dark brown almond-shaped eyes, a straight medium-height nose bridge with a softly rounded tip, medium lips, and long dark brown hair parted near the center and falling in loose soft waves, slim build, wearing the exact outfit from the reference: a black cropped military-style leather jacket densely decorated with silver floral embroidery along the collar, front panels, sleeves, cuffs, and back, a black cropped inner top, high-waisted black leather shorts, a black studded belt with a large ornate silver buckle, silver hip chains, and black thigh-high platform high-heel boots, no extra props or accessories. Rear three-quarter medium shot at eye level, wide 24mm cinematic framing at T2.8, the girl positioned slightly right of center near the edge of a nighttime city skyscraper rooftop, torso turned away from camera with the upper body slightly twisted and one arm extended toward frame left, broad negative space and a clean open horizon behind her, standing on a crystal stage. A concentrated spotlight isolates her against the night, with crisp highlights on the leather and embroidery, subtle reflections across the crystal floor, cool city light glow from the surrounding high-rises, polished cinematic contrast, and the charged atmosphere of a powerful K-pop girl-group performance.",
+      "compiledPrompt": "A young Korean female star with a soft oval face, fair skin with a neutral-warm undertone, large dark brown almond-shaped eyes, a straight medium-height nose bridge with a softly rounded tip, medium lips, and long dark brown hair parted near the center and falling in loose soft waves, slim build, wearing the exact outfit from the reference: a black cropped military-style leather jacket densely decorated with silver floral embroidery along the collar, front panels, sleeves, cuffs, and back, a black cropped inner top, high-waisted black leather shorts, a black studded belt with a large ornate silver buckle, silver hip chains, and black thigh-high platform high-heel boots, no extra props or accessories. Rear three-quarter medium shot at eye level, wide 24mm cinematic framing at T2.8, the girl positioned slightly right of center near the edge of a nighttime city skyscraper rooftop, torso turned away from camera with the upper body slightly twisted and one arm extended toward frame left, broad negative space and a clean open horizon behind her, standing on a crystal stage. A concentrated spotlight isolates her against the night, with crisp highlights on the leather and embroidery, subtle reflections across the crystal floor, cool city light glow from the surrounding high-rises, polished cinematic contrast, and the charged atmosphere of a powerful K-pop girl-group performance.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 6395,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "b83afea8-48a8-4f1c-94f8-974c9ab6970d",
+      "timestamp": "2026-06-12T06:41:38.954Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean woman in her early 20s with a slim, tall build and long legs, fair skin with a neutral-cool undertone, an oval face with a soft tapered jawline, dark brown almond-shaped eyes, straight brows, a slim straight nose with a moderate bridge, and medium lips with a softly defined cupid's bow and a slightly fuller lower lip, long dark brown to near-black hair parted at the center and falling in loose soft waves past her chest, wearing the exact same outfit from the reference: a fitted black cropped military-style jacket with a stand collar, ornate silver floral embroidery across the front, sleeves, shoulders, collar, cuffs, and back, silver trim and stud detailing along the edges, a black inner top barely visible beneath, high-waisted black fitted leather shorts with a subtle sheen, a wide black belt with a large silver buckle, silver studs and draped chain details at the hips, and black thigh-high leather platform boots with very high block heels; place her in the pose and camera setup of the action reference, shown from a rear three-quarter view with her back and shoulder line dominant, body angled away from the camera near the rooftop edge, one arm extending outward in the same directional gesture, medium shot, eye-level to slightly low angle, clean centered composition with the subject occupying the foreground, the camera positioned close behind her; replace the plain environment with the edge of a nighttime city skyscraper rooftop, a crystal stage surface beneath her reflecting light, distant high-rise buildings and urban lights below, dramatic concert-style spotlights focused tightly on the girl, crisp glossy highlights on the jacket, shorts, and boots, cool night air, high contrast lighting, a polished K-pop girl group performance atmosphere, energetic stage presence implied through pose and lighting, cinematic realism, detailed fabric texture, detailed embroidery, reflective crystal floor, sharp focus.",
+      "compiledPrompt": "A young Korean woman in her early 20s with a slim, tall build and long legs, fair skin with a neutral-cool undertone, an oval face with a soft tapered jawline, dark brown almond-shaped eyes, straight brows, a slim straight nose with a moderate bridge, and medium lips with a softly defined cupid's bow and a slightly fuller lower lip, long dark brown to near-black hair parted at the center and falling in loose soft waves past her chest, wearing the exact same outfit from the reference: a fitted black cropped military-style jacket with a stand collar, ornate silver floral embroidery across the front, sleeves, shoulders, collar, cuffs, and back, silver trim and stud detailing along the edges, a black inner top barely visible beneath, high-waisted black fitted leather shorts with a subtle sheen, a wide black belt with a large silver buckle, silver studs and draped chain details at the hips, and black thigh-high leather platform boots with very high block heels; place her in the pose and camera setup of the action reference, shown from a rear three-quarter view with her back and shoulder line dominant, body angled away from the camera near the rooftop edge, one arm extending outward in the same directional gesture, medium shot, eye-level to slightly low angle, clean centered composition with the subject occupying the foreground, the camera positioned close behind her; replace the plain environment with the edge of a nighttime city skyscraper rooftop, a crystal stage surface beneath her reflecting light, distant high-rise buildings and urban lights below, dramatic concert-style spotlights focused tightly on the girl, crisp glossy highlights on the jacket, shorts, and boots, cool night air, high contrast lighting, a polished K-pop girl group performance atmosphere, energetic stage presence implied through pose and lighting, cinematic realism, detailed fabric texture, detailed embroidery, reflective crystal floor, sharp focus.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 2943,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "9fcc7a8e-5063-4a6e-80dd-b56995ee8784",
+      "timestamp": "2026-06-12T06:47:00.777Z",
+      "providerId": "kling-video",
+      "prompt": "A young Korean woman in her early 20s with a slim, long-legged build and fair skin with a neutral-cool undertone, soft oval face, straight dark eyebrows, large dark brown almond-shaped eyes, a small to medium nose with a smooth straight bridge and softly rounded tip, naturally defined medium-full lips, and long dark brown to black wavy hair parted at the center, wearing the exact same outfit as the reference: a fitted black cropped jacket in a leather-like fabric with heavy silver floral embroidery on the front, sleeves, collar, cuffs, and back, a black cropped inner top, high-waisted black leather shorts, a black belt with a large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; full-body shot, rear three-quarter view from slightly above eye level to eye level, the subject positioned near the center-right of the frame at the edge of a nighttime city skyscraper rooftop, standing on a crystal stage with one arm extending outward in a girl-group performance pose, torso subtly twisted, cinematic spotlight focused directly on her body, crisp highlight on her shoulders and hair, cool night ambient light from the city skyline, glossy reflections on the crystal floor, distant high-rise buildings and urban lights below, polished performance atmosphere with strong K-pop girl group concert energy, clean composition, dramatic but controlled lighting, realistic proportions, highly detailed fabric texture and embroidery, photorealistic.",
+      "compiledPrompt": "A young Korean woman in her early 20s with a slim, long-legged build and fair skin with a neutral-cool undertone, soft oval face, straight dark eyebrows, large dark brown almond-shaped eyes, a small to medium nose with a smooth straight bridge and softly rounded tip, naturally defined medium-full lips, and long dark brown to black wavy hair parted at the center, wearing the exact same outfit as the reference: a fitted black cropped jacket in a leather-like fabric with heavy silver floral embroidery on the front, sleeves, collar, cuffs, and back, a black cropped inner top, high-waisted black leather shorts, a black belt with a large silver buckle, silver chain details at the hips, and black thigh-high platform heeled boots; full-body shot, rear three-quarter view from slightly above eye level to eye level, the subject positioned near the center-right of the frame at the edge of a nighttime city skyscraper rooftop, standing on a crystal stage with one arm extending outward in a girl-group performance pose, torso subtly twisted, cinematic spotlight focused directly on her body, crisp highlight on her shoulders and hair, cool night ambient light from the city skyline, glossy reflections on the crystal floor, distant high-rise buildings and urban lights below, polished performance atmosphere with strong K-pop girl group concert energy, clean composition, dramatic but controlled lighting, realistic proportions, highly detailed fabric texture and embroidery, photorealistic.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 230132,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "0895e319-d58c-4380-a022-ee78a33badae",
+      "timestamp": "2026-06-12T07:15:06.039Z",
+      "providerId": "kling-video",
+      "prompt": "A full-body studio turnaround of a young East Asian woman in her early 20s, shown in three evenly spaced views on a clean white seamless background: front view on the left, right-side profile in the center, and back view on the right, photographed at eye level with a neutral, catalog-style fashion presentation, full-body framing with the boots fully visible and generous white space around each figure. She has the exact facial features of the reference portrait: a soft oval face with a slightly narrow jaw, straight dark brows, large gray-brown almond-shaped eyes with clear irises and subtle eyeliner, a slim straight nose with a low-to-medium bridge and small rounded tip, medium-full pink lips with a defined cupid's bow, smooth fair skin with a neutral-to-warm undertone and natural pink flush on the cheeks, and long dark brown hair parted near the center, falling in loose soft waves past the shoulders. Keep her proportions slim and leggy with a naturally narrow waist, modest curves, and long legs, not exaggerated. She wears a fitted black cropped military-style jacket in a leather-like or satin-matte fabric, richly decorated with silver floral embroidery and silver trim along the collar, placket, hem, shoulders, cuffs, and sleeves, over a black inner top. Pair it with high-waisted black short shorts in a fitted leather-like material, a black belt with silver studs and a large ornate silver buckle, and silver chain details hanging at the hips. She also wears black over-the-knee platform heeled boots with a smooth fitted shaft and very high block heels. Expression neutral and calm, posture upright with arms relaxed straight at the sides. Lighting is bright, soft, and highly even from the front and above, creating minimal shadows, crisp clothing detail, and a clean high-key commercial studio look. No props, no jewelry beyond the visible belt and chain details, no extra accessories, no background elements other than the plain white studio backdrop.",
+      "compiledPrompt": "A full-body studio turnaround of a young East Asian woman in her early 20s, shown in three evenly spaced views on a clean white seamless background: front view on the left, right-side profile in the center, and back view on the right, photographed at eye level with a neutral, catalog-style fashion presentation, full-body framing with the boots fully visible and generous white space around each figure. She has the exact facial features of the reference portrait: a soft oval face with a slightly narrow jaw, straight dark brows, large gray-brown almond-shaped eyes with clear irises and subtle eyeliner, a slim straight nose with a low-to-medium bridge and small rounded tip, medium-full pink lips with a defined cupid's bow, smooth fair skin with a neutral-to-warm undertone and natural pink flush on the cheeks, and long dark brown hair parted near the center, falling in loose soft waves past the shoulders. Keep her proportions slim and leggy with a naturally narrow waist, modest curves, and long legs, not exaggerated. She wears a fitted black cropped military-style jacket in a leather-like or satin-matte fabric, richly decorated with silver floral embroidery and silver trim along the collar, placket, hem, shoulders, cuffs, and sleeves, over a black inner top. Pair it with high-waisted black short shorts in a fitted leather-like material, a black belt with silver studs and a large ornate silver buckle, and silver chain details hanging at the hips. She also wears black over-the-knee platform heeled boots with a smooth fitted shaft and very high block heels. Expression neutral and calm, posture upright with arms relaxed straight at the sides. Lighting is bright, soft, and highly even from the front and above, creating minimal shadows, crisp clothing detail, and a clean high-key commercial studio look. No props, no jewelry beyond the visible belt and chain details, no extra accessories, no background elements other than the plain white studio backdrop.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 239411,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "7cddf83a-70c5-435e-ac02-f2a853b46c25",
+      "timestamp": "2026-06-12T07:17:28.727Z",
+      "providerId": "seedance-2",
+      "prompt": "a fashion model walking on a runway",
+      "compiledPrompt": "a fashion model walking on a runway",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/708857_0/800/600",
+        "https://picsum.photos/seed/708857_1/800/600",
+        "https://picsum.photos/seed/708857_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 895
+    },
+    {
+      "id": "4be14c57-5383-4a14-b3e3-26c614353a57",
+      "timestamp": "2026-06-12T07:17:29.579Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://picsum.photos/seed/115808_0/800/600",
+        "https://picsum.photos/seed/115808_1/800/600",
+        "https://picsum.photos/seed/115808_2/800/600"
+      ],
+      "cost": 0.03,
+      "durationMs": 3015
+    },
+    {
+      "id": "4a6907ac-ef69-4506-9442-5c1c2c1c280c",
+      "timestamp": "2026-06-12T07:24:40.808Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 232711,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "b44a4813-f796-4798-a503-ef139a856381",
+      "timestamp": "2026-06-12T07:29:33.036Z",
+      "providerId": "kling-video",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 189207,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "4f222937-cc61-4177-aa60-900a2686ea52",
+      "timestamp": "2026-06-12T07:32:46.694Z",
+      "providerId": "seedance-2",
+      "prompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/seedance/1781249562496-r2s8e6vpcq9.mp4"
+      ],
+      "cost": 2.05,
+      "durationMs": 168926
     }
   ]
 }

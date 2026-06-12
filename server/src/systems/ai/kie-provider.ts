@@ -3,50 +3,78 @@
 
 import type { GenerateRequest, GenerateResult } from '../../../../shared/api-types.js';
 import { stubGenerate } from './stub.js';
-import { ProxyAgent } from 'undici';
+import { execSync } from 'child_process';
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 const BASE_URL = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
 
 // Create fetch with proxy support — reads env dynamically
 function kieFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy;
-  if (proxy) {
-    console.log(`[kie] Using proxy: ${proxy}`);
-    const agent = new ProxyAgent(proxy);
-    return fetch(url, { ...options, dispatcher: agent });
-  }
-  console.log(`[kie] No proxy configured`);
+  // Use system-level proxy — undici ProxyAgent unreliable with local proxies
   return fetch(url, options);
 }
 
 // ─── Upload data: URL to public http URL ─────────
-export async function uploadDataUrl(dataUrl: string): Promise<string | null> {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) return null;
+async function webmToMp4DataUrl(webmDataUrl: string): Promise<string | null> {
+  const b64Idx = webmDataUrl.indexOf(';base64,');
+  if (b64Idx < 0) return null;
   try {
-    const mimeType = match[1];
-    const buffer = Buffer.from(match[2], 'base64');
-    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('jpeg') ? 'jpg' : 'webp';
+    const dir = join(tmpdir(), 'tapnow-convert');
+    mkdirSync(dir, { recursive: true });
+    const webmPath = join(dir, `input_${Date.now()}.webm`);
+    const mp4Path = join(dir, `output_${Date.now()}.mp4`);
+    writeFileSync(webmPath, Buffer.from(webmDataUrl.slice(b64Idx + 8), 'base64'));
+    execSync(`ffmpeg -y -i "${webmPath}" -c:v libx264 -preset fast -crf 28 -an "${mp4Path}"`, { timeout: 30000, stdio: 'pipe' });
+    const mp4Buf = readFileSync(mp4Path);
+    const mp4DataUrl = `data:video/mp4;base64,${mp4Buf.toString('base64')}`;
+    try { unlinkSync(webmPath); unlinkSync(mp4Path); } catch {}
+    return mp4DataUrl;
+  } catch (e) {
+    console.log('[convert] webm→mp4 failed:', String(e).slice(0, 80));
+    return null;
+  }
+}
+
+export async function uploadDataUrl(dataUrl: string): Promise<string | null> {
+  const b64Idx = dataUrl.indexOf(';base64,');
+  if (b64Idx < 0) return null;
+  const mimeType = dataUrl.slice(5, b64Idx).split(';')[0];  // 'data:' prefix removed
+  const b64Data = dataUrl.slice(b64Idx + 8);
+  try {
+    const buffer = Buffer.from(b64Data, 'base64');
+    const ext = mimeType.includes('png')?'png':mimeType.includes('jpeg')||mimeType.includes('jpg')?'jpg':mimeType.includes('webm')?'webm':mimeType.includes('mp4')?'mp4':'webp';
     const boundary = '----TapNow' + Date.now();
     const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="ref.${ext}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
     const footer = Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="time"\r\n\r\n72h\r\n--${boundary}--\r\n`);
     const body = Buffer.concat([header, buffer, footer]);
 
     const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 60000);
     const opts: any = {
       method: 'POST',
       headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
       body,
+      signal: controller.signal,
     };
-    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+    // Don't use proxy for file uploads (catbox)
 
-    const resp = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', opts);
-    if (resp.ok) {
-      const url = (await resp.text()).trim();
-      if (url.startsWith('https://')) { console.log('[upload] →', url.slice(0, 60)); return url; }
+    try {
+      const resp = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', opts);
+      clearTimeout(t);
+      if (resp.ok) {
+        const url = (await resp.text()).trim();
+        if (url.startsWith('https://')) { console.log('[upload] →', url.slice(0, 60)); return url; }
+      }
+      console.log('[upload] Failed: HTTP', resp.status);
+      return null;
+    } catch (e: any) {
+      clearTimeout(t);
+      console.log('[upload] Error:', e.message?.slice(0, 80) || String(e).slice(0, 80));
+      return null;
     }
-    console.log('[upload] Failed:', resp.status);
-    return null;
   } catch(e) { console.log('[upload] Error:', String(e).slice(0, 60)); return null; }
 }
 
@@ -72,7 +100,7 @@ function getApiKey(): string | undefined {
 // ─── Polling helper ────────────────────────────
 async function pollTask(taskId: string, apiKey: string, startTime: number): Promise<GenerateResult> {
   const pollUrl = `${BASE_URL}/jobs/recordInfo?taskId=${taskId}`;
-  const maxAttempts = 40; // ~2 minutes at 3s intervals
+  const maxAttempts = 100; // ~5 minutes at 3s intervals
   console.log(`[kie] Polling ${taskId}...`);
 
   for (let i = 0; i < maxAttempts; i++) {
@@ -91,6 +119,9 @@ async function pollTask(taskId: string, apiKey: string, startTime: number): Prom
       const record = data.data || data;
       const state = record.state || record.status || record.task_status || '';
 
+      if (state === 'fail' || state === 'failed' || state === 'error') {
+        return { success: false, assetUrls: [], cost: 0, durationMs: Date.now() - startTime, seed: 0, error: 'Kie.ai: Generation failed' };
+      }
       if (state === 'succeeded' || state === 'completed' || state === 'success' || state === 'SUCCESS' || state === 'done') {
         console.log('[kie] DONE! Full record:', JSON.stringify(record).slice(0, 1000));
         // Parse resultJson or result for image URLs
@@ -161,13 +192,33 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   const isNanoBanana = req.providerId === 'nano-banana';
   const isI2I = mode === 'image-to-image';
 
+  // Upload video data URLs to hosting (same as images)
+  let processedVideoUrls: string[] = [];
+  if (req.videoUrls?.length) {
+    console.log('[kie] Processing ' + req.videoUrls.length + ' video URLs...');
+    for (const u of req.videoUrls) {
+      if (typeof u === 'string' && u.startsWith('data:')) {
+        const isWebm = u.startsWith('data:video/webm');
+        console.log('[kie] Video data URL: ' + u.slice(0,40) + '... isWebm=' + isWebm);
+        const toUpload = isWebm ? (await webmToMp4DataUrl(u)) || u : u;
+        if (isWebm && toUpload !== u) console.log('[kie] Converted webm→mp4, new size=' + (toUpload.length/1024/1024).toFixed(1) + 'MB');
+        else if (isWebm) console.log('[kie] webm→mp4 conversion failed, using original');
+        console.log('[kie] Uploading video (' + (toUpload.length/1024/1024).toFixed(1) + 'MB) type=' + toUpload.slice(5,30) + '...');
+        const uploaded = await uploadDataUrl(toUpload);
+        if (uploaded) { processedVideoUrls.push(uploaded); console.log('[kie] Video uploaded: ' + uploaded.slice(0,60)); }
+        else console.log('[kie] Video upload FAILED');
+      } else {
+        processedVideoUrls.push(u);
+      }
+    }
+  }
   const isVideo = req.providerId === 'kling-video' || req.providerId === 'seedance-2';
   const body: Record<string, unknown> = isVideo ? {
     model,
     input: {
       prompt: req.prompt || '',
-      input_urls: [] as string[],
-      video_urls: [] as string[],
+      input_urls: (req.referenceUrls || []) as string[],
+      video_urls: processedVideoUrls,
     },
   } : {
     model,
@@ -178,10 +229,9 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     },
   };
 
-  // Video: set mode, callBackUrl and input-level params
+  // Video: callBackUrl required per Kie API spec
   if (isVideo) {
-    (body.input as any).mode = resolution === '1080P' ? 'pro' : 'std';
-    (body as any).callBackUrl = '';
+    (body as any).callBackUrl = 'https://tapnow-callback.example.com/kie';
   }
 
   // output_format: only supported by nano-banana-pro
@@ -214,7 +264,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   // Debug
   (globalThis as any).__kieUpload = { total: allRefs.length, valid: validRefs.length, samples: allRefs.slice(0, 5).map((u: string) => u.slice(0, 60)) };
   // Model-specific ref limits & parameter names (per Kie API docs)
-  const maxRefs = isNanoBanana ? 8 : 16;  // NanoBanana: max 8, GPT Image2: max 16
+  const maxRefs = isVideo ? 1 : (isNanoBanana ? 8 : 16);  // Kling: max 1 input_url, others: 8-16
   if (validRefs.length > maxRefs) {
     console.warn(`[kie] Truncating ${validRefs.length} refs to ${maxRefs} (${req.providerId})`);
     validRefs.length = maxRefs;
@@ -238,6 +288,10 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   // Save last Kie request for debugging
   const debugRefs = (body.input as any).input_urls || (body.input as any).image_input || [];
   (globalThis as any).__lastKieReq = { model: body.model, refs_count: debugRefs.length, refs_sample: debugRefs.slice(0, 5).map((u: string) => (typeof u === 'string' ? u.slice(0, 80) : String(u))), prompt_len: (body.input as any).prompt?.length || 0, url: submitUrl, refUrls_in: req.referenceUrls?.length || 0, refUrls_sample: (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u)), refImg_in: req.referenceImage ? 1 : 0 };
+  if (isVideo) {
+    console.log(`[kie] video_urls: ${JSON.stringify(processedVideoUrls.slice(0,3))}`);
+    console.log(`[kie] input_urls: ${JSON.stringify(validRefs.slice(0,3))}`);
+  }
   console.log(`[kie] Submit: ${req.providerId}/${mode}/${resolution} → ${submitUrl} model=${model}`);
 
   try {

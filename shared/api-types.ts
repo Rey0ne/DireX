@@ -13,6 +13,7 @@ export interface GenerateRequest {
   maskImage?: string;       // base64 mask for inpainting
   styleImageUrl?: string;
   duration?: string;   // video: "5s", "8s", "10s"
+  videoUrls?: string[]; // video URLs for motion reference (Kling/Seedance)
   seed?: number;
 }
 
@@ -54,6 +55,7 @@ export function mapModelNameToProviderId(modelName: string): string {
     'GPT Image2 I2I': 'gpt-image2',
     // Video
     'Kling 2.1': 'kling-video',
+    'Kling 3.0': 'kling-video',
     'Seedance 2.0': 'seedance-2',
     // Legacy
     'Flux Pro': 'flux-pro',
@@ -105,6 +107,8 @@ export interface AgentGenerateRequest {
   maskImage?: string;       // base64 mask for inpainting
   referenceUrls?: string[];
   styleImageUrl?: string;
+  videoUrls?: string[];     // video URLs for motion reference (Kling/Seedance)
+  duration?: string;        // video duration: "5s", "8s", etc.
 }
 
 export interface AgentGenerateResult {
