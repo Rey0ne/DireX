@@ -37,6 +37,7 @@ import { ImageGenerateNode } from './components/nodes/ImageGenerateNode';
 import { VideoGenerateNode } from './components/nodes/VideoGenerateNode';
 import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
+import { ScissorEdge } from './components/edges/ScissorEdge';
 
 // ─── Node type registry ──────────────────────────
 const nodeTypes: NodeTypes = {
@@ -47,6 +48,28 @@ const nodeTypes: NodeTypes = {
   'audio.generate': AudioGenerateNode,
   'scene.3d': Scene3DNode,
 } as unknown as NodeTypes;
+
+const edgeTypes = { default: ScissorEdge };
+
+// ── Handle mapping per node type (auto-fix wrong handles) ──
+const NODE_HANDLES: Record<string, { out: string; in: string }> = {
+  'image.generate': { out: 'image-out', in: 'image-in' },
+  'image.editor': { out: 'image-out', in: 'image-in' },
+  'video.generate': { out: 'video-out', in: 'video-in' },
+  'audio.generate': { out: 'audio-out', in: 'audio-in' },
+  'shot': { out: 'shot-out', in: 'refs-in' },
+  'scene.3d': { out: 'scene-out', in: 'scene-in' },
+  'world.3d': { out: 'scene-out', in: 'scene-in' },
+};
+function fixEdgeHandles(edge: { from: { nodeId: string; portId: string }; to: { nodeId: string; portId: string } }, nodes: Map<string, string>) {
+  const st = nodes.get(edge.from.nodeId);
+  const tt = nodes.get(edge.to.nodeId);
+  const fromH = st ? NODE_HANDLES[st] : null;
+  const toH = tt ? NODE_HANDLES[tt] : null;
+  if (fromH && edge.from.portId !== fromH.out) edge.from.portId = fromH.out;
+  if (toH && edge.to.portId !== toH.in) edge.to.portId = toH.in;
+  return edge;
+}
 
 // ─── Default meta ─────────────────────────────────
 const defaultShotMeta = {
@@ -293,32 +316,13 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     syncTickRef.current = currentTick;
     // Pre-compute refUrls map (O(N+E) instead of O(N*E))
     const refUrlsMap = new Map<string, string[]>();
-    const videoRefsMap = new Map<string, string[]>();
-    nodeList.forEach(n => {refUrlsMap.set(n.id, []);videoRefsMap.set(n.id, []);});
+    nodeList.forEach(n => refUrlsMap.set(n.id, []));
     edgeList.forEach(e => {
       const src = nodeList.find(sn => sn.id === e.from.nodeId);
-      const imgUrl = (src?.meta?.gen as any)?.imageUrl;
-      const vidUrl = (src?.meta?.gen as any)?.videoUrl;
-      const fullRefs = (src?.meta?.gen as any)?.fullRefs as Record<string,string|null>|undefined;
-      if (imgUrl) {
+      const u = (src?.meta?.gen as any)?.imageUrl;
+      if (u) {
         const arr = refUrlsMap.get(e.to.nodeId);
-        if (arr && !arr.includes(imgUrl)) arr.push(imgUrl);
-      }
-      if (vidUrl) {
-        const arr = videoRefsMap.get(e.to.nodeId);
-        if (arr && !arr.includes(vidUrl)) arr.push(vidUrl);
-      }
-      if (fullRefs) {
-        Object.entries(fullRefs).forEach(([k,v])=>{
-          if (!v) return;
-          if (k==='video-motion') {
-            const arr=videoRefsMap.get(e.to.nodeId);
-            if (arr&&!arr.includes(v)) arr.push(v);
-          } else {
-            const arr=refUrlsMap.get(e.to.nodeId);
-            if (arr&&!arr.includes(v)) arr.push(v);
-          }
-        });
+        if (arr && !arr.includes(u)) arr.push(u);
       }
     });
 
@@ -341,7 +345,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           isPickMode: pendingConn !== null,
           isPickTarget: n.id === pendingConn,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
-          refUrls: [...(refUrlsMap.get(n.id)||[]),...(videoRefsMap.get(n.id)||[])].slice(0,20),
+          refUrls: refUrlsMap.get(n.id)?.slice(0, 20) || [],
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) {
@@ -370,24 +374,14 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
             edgeList.forEach(e => {
               if (e.to.nodeId === n.id) {
                 const src = nodeList.find(sn => sn.id === e.from.nodeId);
-                const imgUrl = (src?.meta?.gen as any)?.imageUrl;
-                const vidUrl = (src?.meta?.gen as any)?.videoUrl;
-                const fullRefs = (src?.meta?.gen as any)?.fullRefs as Record<string,string|null>|undefined;
-                if (imgUrl && !edgeRefUrls.includes(imgUrl)) edgeRefUrls.push(imgUrl);
-                if (vidUrl && !edgeVideoUrls.includes(vidUrl)) edgeVideoUrls.push(vidUrl);
-                if (fullRefs) {
-                  Object.entries(fullRefs).forEach(([k,v])=>{
-                    if (!v) return;
-                    if (k==='video-motion') {
-                      if (!edgeVideoUrls.includes(v)) edgeVideoUrls.push(v);
-                    } else {
-                      if (!edgeRefUrls.includes(v)) edgeRefUrls.push(v);
-                    }
-                  });
-                }
+                const u = (src?.meta?.gen as any)?.imageUrl;
+                const v = (src?.meta?.gen as any)?.videoUrl;
+                if (u && !edgeRefUrls.includes(u)) edgeRefUrls.push(u);
+                if (v && !edgeVideoUrls.includes(v)) edgeVideoUrls.push(v);
               }
             });
             const refUrls = edgeRefUrls.length > 0 ? edgeRefUrls : (meta.referenceUrls as string[] | undefined);
+            const videoUrls = edgeVideoUrls.length > 0 ? edgeVideoUrls : (meta.videoUrls as string[] | undefined);
             let refPrompts: string[] | undefined;
             if (refUrls && refUrls.length > 0) {
               refPrompts = [];
@@ -403,7 +397,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
             // ── Route: TEXT node → fast text pipeline, others → full image pipeline ──
             const isTextNode = n.type === 'shot';
-            console.log('[onGenerate] nodeType:', n.type, 'isTextNode:', isTextNode, 'refUrls:', refUrls?.length, 'videoUrls:', edgeVideoUrls?.length, 'refPrompts:', refPrompts?.length);
+            const actualModel = (meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2');
+            console.log('[onGenerate] nodeType:', n.type, 'model:', actualModel, 'providerId:', mapModelNameToProviderId(actualModel), 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length);
             const agentResult = isTextNode
               ? await analyzeText({
                   providerId: 'text',
@@ -413,8 +408,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   referencePrompts: refPrompts,
                 } as any)
               : await generateWithAgent({
-                  providerId: mapModelNameToProviderId((meta.model as string) || 'GPT Image2'),
-                  mode: (refUrls?.length || meta.imageUrl || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
+                  providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
+                  mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
                   rawText: (meta.prompt as string) || '',
                   aspect: meta.aspect as string | undefined,
                   resolution: meta.resolution as string || '2K',
@@ -425,9 +420,16 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   seed: meta.seed as number | undefined,
                   negativePrompt: meta.negativePrompt as string | undefined,
                   duration: meta.duration as string | undefined,
+                  videoUrls: videoUrls as string[] | undefined,
+                  // Model-specific params
+                  genMode: meta.genMode as string | undefined,
                   firstFrameUrl: meta.firstFrameUrl as string | undefined,
                   lastFrameUrl: meta.lastFrameUrl as string | undefined,
-                  videoUrls: edgeVideoUrls.length>0 ? edgeVideoUrls : (()=>{const fr=meta.fullRefs as Record<string,string|null>|undefined;if(!fr)return;const v=fr['video-motion'];return v?[v]:undefined;})(),
+                  characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
+                  keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
+                  fixedCamera: meta.fixedCamera as boolean | undefined,
+                  generateAudio: meta.generateAudio as boolean | undefined,
+                  webSearch: meta.webSearch as boolean | undefined,
                 } as any);
 
             const result = agentResult.result;
@@ -501,14 +503,18 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       }));
     });
 
+    const nodeTypeMap = new Map(nodeList.map(n => [n.id, n.type]));
     setRfEdges(prevEdges => {
       const newIds = new Set(edgeList.map(e => e.id));
-      return edgeList.map(e => ({
-        id: e.id, source: e.from.nodeId, target: e.to.nodeId,
-        sourceHandle: e.from.portId, targetHandle: e.to.portId,
+      return edgeList.map(e => {
+        const fixed = fixEdgeHandles(e, nodeTypeMap);
+        return {
+        id: fixed.id, source: fixed.from.nodeId, target: fixed.to.nodeId,
+        sourceHandle: fixed.from.portId, targetHandle: fixed.to.portId,
+        type: 'default',
         animated: false,
         style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
-      })).filter(e =>
+      }}).filter(e =>
         nodeList.some(n => n.id === e.source) && nodeList.some(n => n.id === e.target)
       );
     });
@@ -524,6 +530,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       data: { ...n.data, isConnecting, isConnectTarget: isConnecting && n.id === connectTargetId, multiSelect, isPickMode: pendingConnection !== null, isPickTarget: n.id === pendingConnection }
     })));
   }, [isConnecting, connectTargetId, multiSelect, pendingConnection, setRfNodes]);
+
 
   // ─── Sync crop state to ReactFlow nodes ──
   useEffect(() => {
@@ -574,14 +581,15 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     );
     useCanvasStore.getState().setSelectedNodes([connection.target]);
     const edgeList = Array.from(useCanvasStore.getState().edges.values());
-    setRfEdges(edgeList.map(e => ({
-      id: e.id,
-      source: e.from.nodeId,
-      target: e.to.nodeId,
-      sourceHandle: e.from.portId,
-      targetHandle: e.to.portId,
-      animated: false,
-      style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+    const nodeIds = new Set(Array.from(useCanvasStore.getState().nodes.values()).map(n => n.id));
+    setRfEdges(edgeList
+      .filter(e => nodeIds.has(e.from.nodeId) && nodeIds.has(e.to.nodeId))
+      .map(e => ({
+        id: e.id, type: 'default',
+        source: e.from.nodeId, target: e.to.nodeId,
+        sourceHandle: e.from.portId, targetHandle: e.to.portId,
+        animated: false,
+        style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
     })));
   }, [addEdge, setRfEdges]);
 
@@ -636,12 +644,16 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           'any'
         );
         // Sync ReactFlow edges immediately
-        const edgeList = Array.from(useCanvasStore.getState().edges.values());
-        setRfEdges(edgeList.map(e => ({
-          id: e.id, source: e.from.nodeId, target: e.to.nodeId,
-          sourceHandle: e.from.portId, targetHandle: e.to.portId,
-          animated: false,
-          style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+        const edgeList2 = Array.from(useCanvasStore.getState().edges.values());
+        const nodeIds2 = new Set(Array.from(store.nodes.values()).map(n => n.id));
+        setRfEdges(edgeList2
+          .filter(e => nodeIds2.has(e.from.nodeId) && nodeIds2.has(e.to.nodeId))
+          .map(e => ({
+            id: e.id, type: 'default',
+            source: e.from.nodeId, target: e.to.nodeId,
+            sourceHandle: e.from.portId, targetHandle: e.to.portId,
+            animated: false,
+            style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
         })));
         store.setSelectedNodes([targetId]);
       }
@@ -776,6 +788,8 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        edgeTypes={edgeTypes as any}
+        defaultEdgeOptions={{ type: 'default' }}
         onConnectStart={() => { setIsConnecting(true); setConnectTargetId(null); }}
         onConnectEnd={(event, connectionState) => {
           setIsConnecting(false);
@@ -945,12 +959,16 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               { nodeId: connectMenu.sourceNodeId, portId: connectMenu.sourcePortId },
               { nodeId: newId, portId: nodeType === 'shot' ? 'refs-in' : 'image-in' }, 'any'
             );
-            const edgeList = Array.from(useCanvasStore.getState().edges.values());
-            setRfEdges(edgeList.map(e => ({
-              id: e.id, source: e.from.nodeId, target: e.to.nodeId,
-              sourceHandle: e.from.portId, targetHandle: e.to.portId,
-              animated: false,
-              style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+            const edgeList3 = Array.from(useCanvasStore.getState().edges.values());
+            const nodeIds3 = new Set(Array.from(useCanvasStore.getState().nodes.values()).map(n => n.id));
+            setRfEdges(edgeList3
+              .filter(e => nodeIds3.has(e.from.nodeId) && nodeIds3.has(e.to.nodeId))
+              .map(e => ({
+                id: e.id, type: 'default',
+                source: e.from.nodeId, target: e.to.nodeId,
+                sourceHandle: e.from.portId, targetHandle: e.to.portId,
+                animated: false,
+                style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
             })));
             setConnectMenu(null);
           }}

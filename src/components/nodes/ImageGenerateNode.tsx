@@ -1,9 +1,9 @@
 /* === ImageGenerateNode — TapNow-style image generation === */
 /* Phase 2 refined: borderless tools, distant handles, fullscreen overlay */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useStore } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Panel } from '../shared';
 import type { ImageGenMeta, CropRect } from '../../types/graph';
@@ -62,7 +62,97 @@ const RESOLUTION_OPTIONS = [
   { label: '4K', desc: '2048×2048' },
 ];
 
-import { memo } from 'react';
+
+// ── Lens icon (black ring + glass lens) ──
+function LensIcon({ size }: { size: number }) {
+  const r = size / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+      <circle cx={r} cy={r} r={r-1} fill="rgba(30,30,35,0.9)" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
+      <ellipse cx={r*0.6} cy={r*0.55} rx={r*0.35} ry={r*0.25} fill="rgba(140,180,220,0.12)" transform={`rotate(-25 ${r*0.6} ${r*0.55})`}/>
+      <ellipse cx={r*1.3} cy={r*0.4} rx={r*0.15} ry={r*0.08} fill="rgba(255,255,255,0.15)" transform={`rotate(-25 ${r*1.3} ${r*0.4})`}/>
+    </svg>
+  );
+}
+
+// ── Color gradient bar ──
+function ColorBar({ colors, width, height }: { colors: string[]; width: number; height: number }) {
+  const stops = colors.map((c,i)=>`${c} ${(i/(colors.length-1))*100}%`).join(',');
+  return <div style={{width,height,borderRadius:'2px',background:`linear-gradient(to right,${stops})`,flexShrink:0}}/>;
+}
+
+// ── Iris aperture icon (metal blades) ──
+function IrisIcon({ blades, size }: { blades: number; size: number }) {
+  const r = size / 2, cx = r, cy = r;
+  // Draw overlapping metal blades forming an iris
+  const els: React.ReactNode[] = [];
+  for (let i = 0; i < blades; i++) {
+    const angle = (i / blades) * Math.PI * 2 - Math.PI / 2;
+    const innerR = r * 0.25 * (blades / 8); // smaller aperture = smaller hole
+    const outerR = r * 1.05;
+    const midR = (innerR + outerR) / 2;
+    const x1 = cx + Math.cos(angle) * innerR;
+    const y1 = cy + Math.sin(angle) * innerR;
+    const x2 = cx + Math.cos(angle) * outerR;
+    const y2 = cy + Math.sin(angle) * outerR;
+    els.push(<line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(200,200,210,0.7)" strokeWidth={1.8} strokeLinecap="round"/>);
+  }
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+      <circle cx={cx} cy={cy} r={r*0.9} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {els}
+      <circle cx={cx} cy={cy} r={r*0.22*(blades/8)} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.8"/>
+    </svg>
+  );
+}
+
+// ── Roller (single-item scroll picker) ──
+function Roller({ options, index, onChange }: { options: string[]; index: number; onChange: (i: number) => void }) {
+  const prev = () => onChange(index > 0 ? index - 1 : options.length - 1);
+  const next = () => onChange(index < options.length - 1 ? index + 1 : 0);
+  return (
+    <span style={{ display:'inline-flex',alignItems:'center',gap:'1px',userSelect:'none' }}>
+      <span onClick={prev} style={{ cursor:'pointer',fontSize:'7px',color:'var(--tap-text-4)',lineHeight:1,padding:'0 1px' }}
+        onMouseEnter={e=>{e.currentTarget.style.color='#fff'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▲</span>
+      <span style={{ fontSize:'8px',color:'#fff',fontWeight:500,minWidth:'28px',textAlign:'center' }}>{options[index]}</span>
+      <span onClick={next} style={{ cursor:'pointer',fontSize:'7px',color:'var(--tap-text-4)',lineHeight:1,padding:'0 1px' }}
+        onMouseEnter={e=>{e.currentTarget.style.color='#fff'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▼</span>
+    </span>
+  );
+}
+
+// ── DropBtn + Portal dropdown (matches VideoGenerateNode style) ──
+function ImgDropBtn({ label, open, setOpen, anchorRef, onRect, children }: {
+  label: string; open: boolean; setOpen: (v: boolean) => void;
+  anchorRef: React.RefObject<HTMLSpanElement | null>; onRect: (r: DOMRect | null) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <span ref={anchorRef} onClick={e => {
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
+        onRect(rect);
+        setOpen(!open);
+      }}
+        style={{ display:'inline-flex',alignItems:'center',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',background:open?'rgba(255,255,255,0.07)':'transparent',color:'#fff',border:'none',whiteSpace:'nowrap',transition:'all 0.2s' }}
+        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+        onMouseLeave={e=>{if(!open){e.currentTarget.style.background='transparent'}}}
+      >{label}</span>
+      {open && anchorRef.current && (
+        <PD2 onClose={() => setOpen(false)} anchorRect={anchorRef.current.getBoundingClientRect()}>{children}</PD2>
+      )}
+    </div>
+  );
+}
+
+function PD2({ children, onClose, anchorRect }: { children: React.ReactNode; onClose: () => void; anchorRect?: DOMRect | null }) {
+  const top = anchorRect ? anchorRect.bottom + 4 : '50%';
+  const left = anchorRect ? anchorRect.left : '50%';
+  return createPortal(<>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
+    <div style={{ position: 'fixed', top, left, minWidth: '320px', padding: 'var(--tap-space-2)', zIndex: 9999, background: 'var(--tap-panel)', border: '1px solid var(--tap-border)', borderRadius: 'var(--tap-r-lg)', boxShadow: 'var(--tap-shadow-lg)', backdropFilter: 'blur(var(--tap-blur))', animation: 'tap-fade-in 50ms var(--tap-ease)' }}>{children}</div>
+  </>, document.body);
+}
 
 function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
@@ -75,6 +165,60 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [currentResolution, setCurrentResolution] = useState(gen.resolution || '2K');
   const [showResolutionPicker, setShowResolutionPicker] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [imgCount, setImgCount] = useState(1);
+  const [showCountPicker, setShowCountPicker] = useState(false);
+  const countRef = useRef<HTMLSpanElement>(null);
+  const [countRect, setCountRect] = useState<DOMRect | null>(null);
+  // Camera kit picker — images: public/camera-kit/cam-<name>.jpg & lens-<name>.jpg
+  const KIT = '/camera-kit/';
+  const CAMERAS = [
+    { name:'Sony Venice',          sensor:'Full-Frame 6K', mount:'PL',         year:'2018', img:`${KIT}cam-sony-venice.png` },
+    { name:'Arri Alexa 35',        sensor:'S35 4.6K',      mount:'LPL',        year:'2022', img:`${KIT}cam-arri-alexa35.png` },
+    { name:'Arri Alexa 65',        sensor:'65mm 6.5K',     mount:'XPL',        year:'2015', img:`${KIT}cam-arri-alexa65.png` },
+    { name:'Red V-Raptor',         sensor:'VV 8K',         mount:'RF/PL',      year:'2021', img:`${KIT}cam-red-vraptor.png` },
+    { name:'Panavision DXL2',      sensor:'VV 8K',         mount:'PV',         year:'2018', img:`${KIT}cam-panavision-dxl2.png` },
+    { name:'Arricam LT',           sensor:'35mm Film',     mount:'PL',         year:'2001', img:`${KIT}cam-arricam-lt.png` },
+    { name:'ArriFlex 435',         sensor:'35mm Film',     mount:'PL',         year:'1995', img:`${KIT}cam-arriflex435.png` },
+{ name:'IMAX Film Camera',     sensor:'70mm Film',     mount:'IMAX',       year:'1976', img:`${KIT}cam-imax-film.png` },
+  ];
+  const LENSES = [
+    { name:'Zeiss Ultra Prime',    focal:'14-200mm',  aperture:'T1.9-T2.8',  year:'1999', img:`${KIT}lens-zeiss-ultraprime.png` },
+    { name:'Arri Signature',       focal:'12-280mm',  aperture:'T1.8-T2.8',  year:'2018', img:`${KIT}lens-arri-signature.png` },
+    { name:'Canon K-35',           focal:'18-300mm',  aperture:'T1.3-T2.0',  year:'1976', img:`${KIT}lens-canon-k35.png` },
+    { name:'Cooke S4',             focal:'12-300mm',  aperture:'T2.0-T2.8',  year:'1998', img:`${KIT}lens-cooke-s4.png` },
+    { name:'Cooke Panchro',        focal:'18-100mm',  aperture:'T2.2-T2.8',  year:'2012', img:`${KIT}lens-cooke-panchro.png` },
+    { name:'Cooke SF 1.8x',       focal:'25-450mm',  aperture:'T2.3-T4.5',  year:'2014', img:`${KIT}lens-cooke-sf.png` },
+    { name:'Helios 44-2',          focal:'58mm',      aperture:'T2.0',       year:'1958', img:`${KIT}lens-helios.png` },
+    { name:'Panavision C-series',  focal:'17-400mm',  aperture:'T2.0-T4.0',  year:'1970', img:`${KIT}lens-panavision-c.png` },
+    { name:'Panavision Primo',     focal:'17.5-150mm',aperture:'T1.9-T2.8',  year:'1995', img:`${KIT}lens-panavision-primo.png` },
+    { name:'Hawk Class X',         focal:'18-280mm',  aperture:'T2.2-T2.8',  year:'2012', img:`${KIT}lens-hawk-x.png` },
+  ];
+  const FOCALS = ['8mm','14mm','24mm','35mm','50mm','75mm','125mm'];
+  const APERTURES = [
+    { v:'f/1.4', blades:8, img:`${KIT}aperture-f1.4.png` },
+    { v:'f/4',   blades:6, img:`${KIT}aperture-f4.png` },
+    { v:'f/11',  blades:3, img:`${KIT}aperture-f11.png` },
+  ];
+  const FILM_STOCKS = [
+    { name:'Kodak 2383',  desc:'暖调影院', colors:['#0a0a10','#2c1a0a','#6b3a1a','#d4a44a','#e8d4b0','#f0e8d8','#e8c47c'], img:`${KIT}lut-kodak2383.png` },
+    { name:'Kodak 250D',  desc:'日光柔和', colors:['#0a0c10','#1a2a1a','#4a6a3a','#a4b48a','#d4d8c0','#e8e8d8','#d4b896'], img:`${KIT}lut-kodak250d.png` },
+    { name:'Kodak 500T',  desc:'钨丝青绿', colors:['#0a0c10','#0a1a2a','#1a3a5a','#5a8a9a','#8ab4c4','#b0d0d8','#8cb4c4'], img:`${KIT}lut-kodak500t.png` },
+    { name:'Ektachrome',  desc:'蓝绿高饱和', colors:['#0a0a10','#0a2a2a','#1a5a6a','#4a9aaa','#7eb8c8','#a0d0d8','#7eb8c8'], img:`${KIT}lut-ektachrome.png` },
+    { name:'Fuji Eterna', desc:'冷调清新',  colors:['#0a0c0a','#0a1a1a','#2a4a4a','#5a7a7a','#7ea8a0','#a0c0b8','#7ea8a0'], img:`${KIT}lut-fuji-eterna.png` },
+    { name:'Fuji Velvia', desc:'高饱和风光', colors:['#0a0a0a','#2a0a0a','#6a1a1a','#a43a1a','#c4643c','#d89060','#c4643c'], img:`${KIT}lut-fuji-velvia.png` },
+    { name:'Technicolor', desc:'经典三色带', colors:['#0a0808','#2a1a0a','#6a3a1a','#b46a2a','#d4a474','#e8c8a0','#d4a474'], img:`${KIT}lut-technicolor.png` },
+    { name:'Bleach Bypass',desc:'高反差金属', colors:['#080808','#1a1a1a','#4a4a4a','#7a7a7a','#a8a0a0','#c0b8b8','#a8a0a0'], img:`${KIT}lut-bleach.png` },
+    { name:'B&W Acros',   desc:'黑白经典',  colors:['#000000','#1a1a1a','#3a3a3a','#6a6a6a','#909090','#b0b0b0','#909090'], img:`${KIT}lut-acros.png` },
+  ];
+  const [camIdx, setCamIdx] = useState(0);
+  const [lensIdx, setLensIdx] = useState(3); // Cooke S4
+  const [focalIdx, setFocalIdx] = useState(4); // 50mm
+  const [apertureIdx, setApertureIdx] = useState(0); // f/1.4
+  const [filmIdx, setFilmIdx] = useState(0); // Kodak 2383
+  const [showCamPick, setShowCamPick] = useState(false);
+  const [showFilmPick, setShowFilmPick] = useState(false);
+  const camRef = useRef<HTMLSpanElement>(null);
+  const filmRef = useRef<HTMLSpanElement>(null);
 
   // @mention — reference connected nodes
   const [showAtMention, setShowAtMention] = useState(false);
@@ -83,7 +227,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [imgHeight, setImgHeight] = useState(220);
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
   const readyRef = useRef(false);
-  const zoom = useCanvasStore(s => s.viewport.zoom);
+  const zoom = useStore(s => s.transform[2]);
   // ─── Picker trigger refs (for portal positioning outside overflow:hidden) ──
   const modelChipRef = useRef<HTMLSpanElement>(null);
   const ratioChipRef = useRef<HTMLSpanElement>(null);
@@ -809,137 +953,14 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           position: 'absolute',
           top: '100%',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: `translateX(-50%) scale(${1.5/zoom})`,
           transformOrigin: 'top center',
-          width: `${380/zoom}px`,
-          fontSize: `${14/zoom}px`,
+          width: 'var(--tap-node-width)',
           marginTop: `${10/zoom}px`,
           zIndex: 50,
           display: 'flex',
           flexDirection: 'column',
         }}>
-          {/* Reference strip */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', minHeight: 44, alignItems: 'center' }}>
-            {data.refUrls && data.refUrls.map((uri, i) => (
-              <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                <img src={uri} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
-                {/* Number badge — used in prompt as #1, #2, ... */}
-                <div style={{ position: 'absolute', top: -5, left: -5, width: 15, height: 15, borderRadius: '50%', background: 'var(--tap-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 600, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>#{i + 1}</div>
-                <span onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  const store = useCanvasStore.getState();
-                  const toRemove: string[] = [];
-                  store.edges.forEach(edge => {
-                    if (edge.to.nodeId === id) {
-                      const src = store.nodes.get(edge.from.nodeId);
-                      if (src && (src.meta?.gen as any)?.imageUrl === uri) toRemove.push(edge.id);
-                    }
-                  });
-                  toRemove.forEach(eid => store.removeEdge(eid));
-                  // Keep node selected
-                  store.setSelectedNodes([id]);
-                }}
-                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                  onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                  style={{
-                    position: 'absolute', top: -4, right: -4,
-                    width: 14, height: 14, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, cursor: 'pointer', lineHeight: 1,
-                  }}
-                >x</span>
-              </div>
-            ))}
-            {/* Style image thumbnail — also gets a number slot */}
-            {styleImgUrl && (() => {
-              const styleNum = (data.refUrls?.length || 0) + 1;
-              return (
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <img src={styleImgUrl} alt="风格参考" style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', border: '1.5px solid rgba(200,160,100,0.4)' }} />
-                <div style={{ position: 'absolute', top: -5, left: -5, width: 15, height: 15, borderRadius: '50%', background: 'rgba(200,160,100,0.85)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 600, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>#{styleNum}</div>
-                <span
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setStyleImgUrl(null);
-                    data.onChange?.({ styleImageUrl: null } as any);
-                  }}
-                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                  onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                  style={{
-                    position: 'absolute', top: -4, right: -4,
-                    width: 14, height: 14, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, cursor: 'pointer', lineHeight: 1,
-                  }}
-                >x</span>
-                <div style={{ position: 'absolute', bottom: -2, left: -2, fontSize: '8px', color: 'rgba(200,160,100,0.8)', background: 'rgba(0,0,0,0.6)', borderRadius: '2px', padding: '0 3px', lineHeight: '12px' }}>风格</div>
-              </div>
-            );})()}
-            {/* Slot counter + add button */}
-            {(() => {
-              const KIE_MAX = 16;
-              const refCount = (data.refUrls?.length || 0) + (styleImgUrl ? 1 : 0);
-              const slotsLeft = KIE_MAX - refCount;
-              const isFull = slotsLeft <= 0;
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  {/* Counter badge */}
-                  {refCount > 0 && (
-                    <span style={{
-                      fontSize: '10px', fontWeight: 500, color: isFull ? 'var(--tap-warning)' : 'var(--tap-text-4)',
-                      padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)',
-                      whiteSpace: 'nowrap',
-                    }}>{refCount}/{KIE_MAX}</span>
-                  )}
-                  {!isFull && (
-                    <div
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        useCanvasStore.getState().setPendingConnection(id);
-                      }}
-                      onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                      onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                      title={`点击选择参考图节点 (剩余 ${slotsLeft} 个槽位)`}
-                      style={{
-                        width: 36, height: 36, borderRadius: 6,
-                        border: '1px dashed rgba(255,255,255,0.12)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0,
-                        cursor: 'pointer',
-                        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                        e.currentTarget.style.color = 'var(--tap-text-2)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-                        e.currentTarget.style.color = 'var(--tap-text-4)';
-                      }}
-                    >+</div>
-                  )}
-                  {isFull && (
-                    <div
-                      title="参考图槽位已满 (16/16)"
-                      style={{
-                        width: 36, height: 36, borderRadius: 6,
-                        border: '1px dashed rgba(255,100,80,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'rgba(255,100,80,0.3)', fontSize: 16, flexShrink: 0,
-                        cursor: 'not-allowed',
-                      }}
-                    >⊘</div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-
           {/* Unified input panel — textarea wrapping all controls */}
           <div style={{
             background: 'rgba(255,255,255,0.03)',
@@ -947,6 +968,54 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
             borderRadius: 'var(--tap-r-xl)',
             pointerEvents: 'auto',
           }}>
+            {/* Reference strip — inside panel */}
+            <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', padding: '6px 8px 0', minHeight: 32, alignItems: 'center' }}>
+              {/* Upload + — left */}
+              {(!data.refUrls || data.refUrls.length === 0) && !styleImgUrl && (
+                <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
+                  style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+                >＋</div>
+              )}
+              {data.refUrls && data.refUrls.map((uri, i) => (
+                <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                  <img src={uri} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <span onClick={e => {
+                    e.stopPropagation(); e.preventDefault();
+                    const store = useCanvasStore.getState();
+                    const toRemove: string[] = [];
+                    store.edges.forEach(edge => {
+                      if (edge.to.nodeId === id) {
+                        const src = store.nodes.get(edge.from.nodeId);
+                        if (src && (src.meta?.gen as any)?.imageUrl === uri) toRemove.push(edge.id);
+                      }
+                    });
+                    toRemove.forEach(eid => store.removeEdge(eid));
+                    store.setSelectedNodes([id]);
+                  }}
+                    onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'pointer', lineHeight: 1 }}
+                  >x</span>
+                </div>
+              ))}
+              {styleImgUrl && (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <img src={styleImgUrl} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', border: '1.5px solid rgba(200,160,100,0.4)' }} />
+                  <span onClick={e => { e.stopPropagation(); e.preventDefault(); setStyleImgUrl(null); data.onChange?.({ styleImageUrl: null } as any); }}
+                    onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'pointer', lineHeight: 1 }}
+                  >x</span>
+                </div>
+              )}
+              <div style={{ flex: 1 }} />
+              <span onClick={() => setExpanded(!expanded)}
+                style={{ fontSize: '10px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '1px 4px', flexShrink: 0 }}
+              >{expanded ? '∧' : '∨'}</span>
+            </div>
+
             {/* Textarea */}
             <div style={{ position: 'relative' }}>
               <textarea
@@ -984,12 +1053,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 rows={expanded ? 16 : 4}
                 style={{
                   width: '100%',
+                  marginLeft: '0',
                   background: 'transparent',
                   border: 'none',
                   borderRadius: 'var(--tap-r-xl) var(--tap-r-xl) 0 0',
-                  padding: '12px 14px',
+                  padding: '10px 14px',
                   paddingRight: '40px',
-                  fontSize: 'var(--tap-fs-body)',
+                  fontSize: '8px',
                   color: 'var(--tap-text-1)',
                   resize: 'none',
                   outline: 'none',
@@ -1038,27 +1108,6 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 </div>
               )}
 
-              {/* Expand/collapse */}
-              <button
-                onClick={() => setExpanded(!expanded)}
-                title={expanded ? '收起' : '展开'}
-                style={{
-                  position: 'absolute',
-                  top: '10px', right: '10px',
-                  width: '24px', height: '24px',
-                  borderRadius: '4px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px',
-                  color: 'var(--tap-text-4)',
-                  background: 'transparent',
-                  border: 'none', cursor: 'pointer',
-                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-              >
-                {expanded ? '∧' : '∨'}
-              </button>
               {prompt.length > 4500 && (
                 <div style={{
                   position: 'absolute', bottom: '8px', right: '12px',
@@ -1070,168 +1119,157 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               )}
             </div>
 
-            {/* Bottom bar: model | ratio | style | send — all inline */}
+            {/* Bottom bar — matches VideoGenerateNode */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 12px',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              flexWrap: 'wrap',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px',
+              padding: '4px 8px 8px',
             }}>
-              {/* Model picker */}
-              <div style={{ position: 'relative' }}>
-                <span ref={modelChipRef} style={{ display: 'inline-flex' }}>
-                  <InlineChip
-                    label={currentModel}
-                    active={showModelPicker}
-                    onClick={() => { setShowModelPicker(!showModelPicker); setShowRatioPicker(false); }}
-                  />
-                </span>
-                {showModelPicker && (
-                  <PickerDropdown onClose={() => setShowModelPicker(false)} anchorRect={modelChipRect}>
-                    {MODEL_OPTIONS.map(m => (
-                      <div key={m.name}
-                        onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
-                        style={dropdownItemStyle(currentModel === m.name)}
-                        onMouseEnter={e => { if (currentModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
-                        onMouseLeave={e => { if (currentModel !== m.name) e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <span>{m.name}</span>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          {m.badges.map(b => (
-                            <span key={b} style={badgeStyle}>{b}</span>
-                          ))}
-                          <span style={{ fontSize: '10px', color: 'var(--tap-text-3)' }}>{m.maxRes}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </PickerDropdown>
-                )}
-              </div>
+              <ImgDropBtn label={currentModel} open={showModelPicker} setOpen={(v) => { setShowModelPicker(v); setShowRatioPicker(false); }} anchorRef={modelChipRef} onRect={setModelChipRect}>
+                {MODEL_OPTIONS.map(m => (
+                  <div key={m.name} onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
+                    style={{ display:'flex',justifyContent:'space-between',alignItems:'center',height:'32px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:currentModel===m.name?'var(--tap-hover)':'transparent',fontSize:'11px' }}
+                    onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='var(--tap-hover)'}}
+                    onMouseLeave={e=>{if(currentModel!==m.name)e.currentTarget.style.background='transparent'}}>
+                    <span>{m.name}</span>
+                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
+                  </div>))}
+              </ImgDropBtn>
+              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
 
-              {/* Ratio picker */}
-              <div style={{ position: 'relative' }}>
-                <span ref={ratioChipRef} style={{ display: 'inline-flex' }}>
-                  <InlineChip
-                    label={currentAspect}
-                    active={showRatioPicker}
-                    onClick={() => { setShowRatioPicker(!showRatioPicker); setShowModelPicker(false); }}
-                  />
-                </span>
-                {showRatioPicker && (
-                  <PickerDropdown onClose={() => setShowRatioPicker(false)} anchorRect={ratioChipRect}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', padding: '6px' }}>
-                      {ASPECT_OPTIONS.map(r => (
-                        <div key={r.label}
-                          onClick={() => { setCurrentAspect(r.label); patch('aspect', r.label); setShowRatioPicker(false); }}
-                          style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                            padding: '8px 6px', borderRadius: 'var(--tap-r-md)',
-                            cursor: 'pointer',
-                            background: currentAspect === r.label ? 'var(--tap-hover)' : 'transparent',
-                          }}
-                          onMouseEnter={e => { if (currentAspect !== r.label) e.currentTarget.style.background = 'var(--tap-hover)'; }}
-                          onMouseLeave={e => { if (currentAspect !== r.label) e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <div style={{
-                            ...ratioBoxSize(r.w, r.h),
-                            border: '1.5px solid var(--tap-text-2)',
-                            borderRadius: '2px',
-                          }} />
-                          <span style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-1)' }}>{r.label}</span>
+              {/* Aspect + Resolution — combined */}
+              <ImgDropBtn label={`${currentAspect}·${currentResolution}`} open={showRatioPicker} setOpen={setShowRatioPicker} anchorRef={ratioChipRef} onRect={setRatioChipRect}>
+                <div style={{padding:'2px 0'}}>
+                  <div style={{fontSize:'9px',color:'var(--tap-text-4)',padding:'1px 10px'}}>画幅比例</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px',padding:'0 8px',marginBottom:'6px'}}>
+                    {ASPECT_OPTIONS.map(a=>{
+                      const B=20,s=Math.min(B/a.w,B/a.h);
+                      const pw=Math.round(a.w*s),ph=Math.round(a.h*s);
+                      const active=currentAspect===a.label;
+                      return <div key={a.label} onClick={()=>{setCurrentAspect(a.label);patch('aspect',a.label);setShowRatioPicker(false)}}
+                        style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 6px',borderRadius:'4px',cursor:'pointer',background:active?'var(--tap-hover)':'transparent',border:active?'1px solid rgba(255,255,255,0.1)':'1px solid transparent'}}>
+                        <div style={{width:B,height:B,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(74,158,255,0.06)':'transparent'}}/>
                         </div>
-                      ))}
+                        <span style={{fontSize:'10px',color:active?'var(--tap-text-1)':'var(--tap-text-3)',fontWeight:active?600:400}}>{a.label}</span>
+                      </div>;
+                    })}
+                  </div>
+                  <div style={{height:'1px',background:'var(--tap-divider)',margin:'0 10px'}}/>
+                  <div style={{fontSize:'9px',color:'var(--tap-text-4)',padding:'3px 10px 1px'}}>分辨率</div>
+                  <div style={{display:'flex',gap:'2px',padding:'0 6px 3px'}}>
+                    {RESOLUTION_OPTIONS.map(r=>(
+                      <span key={r.label} onClick={()=>{setCurrentResolution(r.label);patch('resolution',r.label)}}
+                        style={{flex:1,padding:'3px 5px',borderRadius:'3px',fontSize:'10px',cursor:'pointer',textAlign:'center',background:currentResolution===r.label?'var(--tap-hover)':'transparent',color:currentResolution===r.label?'var(--tap-text-1)':'var(--tap-text-3)'}}>{r.label}</span>
+                    ))}
+                  </div>
+                </div>
+              </ImgDropBtn>
+
+              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              {/* Lens trigger */}
+              <span ref={camRef} onClick={e=>{const r=(e.target as HTMLElement).getBoundingClientRect();setShowCamPick(!showCamPick)}}
+                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'#fff',whiteSpace:'nowrap',maxWidth:'90px',overflow:'hidden',textOverflow:'ellipsis',transition:'all 0.2s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                📷 {CAMERAS[camIdx].name}
+              </span>
+              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              {/* Film stock trigger */}
+              <span ref={filmRef} onClick={e=>{const r=(e.target as HTMLElement).getBoundingClientRect();setShowFilmPick(!showFilmPick)}}
+                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'#fff',whiteSpace:'nowrap',transition:'all 0.2s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                <ColorBar colors={FILM_STOCKS[filmIdx].colors} width={36} height={10} /> {FILM_STOCKS[filmIdx].name}
+              </span>
+              {showFilmPick && filmRef.current && (
+                <PD2 onClose={()=>setShowFilmPick(false)} anchorRect={filmRef.current.getBoundingClientRect()}>
+                  <div style={{padding:'10px',display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',width:'160px'}}
+                    ref={el=>{if(el)el.onwheel=e=>{e.preventDefault();setFilmIdx((p:number)=>e.deltaY>0?Math.min(p+1,FILM_STOCKS.length-1):Math.max(p-1,0))}}}>
+                    <div style={{fontSize:'9px',color:'var(--tap-text-4)'}}>🎨 胶片风格</div>
+                    <div style={{opacity:0.15,transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
+                      <ColorBar colors={FILM_STOCKS[(filmIdx-1+FILM_STOCKS.length)%FILM_STOCKS.length].colors} width={120} height={12} />
                     </div>
-                  </PickerDropdown>
-                )}
-              </div>
-
-              {/* Resolution picker (1K/2K/4K) */}
-              <div style={{ position: 'relative' }}>
-                <span ref={resolutionChipRef} style={{ display: 'inline-flex' }}>
-                  <InlineChip
-                    label={currentResolution}
-                    active={showResolutionPicker}
-                    onClick={() => { setShowResolutionPicker(!showResolutionPicker); setShowModelPicker(false); setShowRatioPicker(false); }}
-                  />
-                </span>
-                {showResolutionPicker && (
-                  <PickerDropdown onClose={() => setShowResolutionPicker(false)} anchorRect={resolutionChipRect}>
-                    {RESOLUTION_OPTIONS.map(r => (
-                      <div key={r.label}
-                        onClick={() => { setCurrentResolution(r.label); patch('resolution', r.label); setShowResolutionPicker(false); }}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          height: '38px', padding: '0 12px', borderRadius: 'var(--tap-r-md)',
-                          cursor: 'pointer',
-                          background: currentResolution === r.label ? 'var(--tap-hover)' : 'transparent',
-                          color: 'var(--tap-text-1)', fontSize: 'var(--tap-fs-body)',
-                        }}
-                        onMouseEnter={e => { if (currentResolution !== r.label) e.currentTarget.style.background = 'var(--tap-hover)'; }}
-                        onMouseLeave={e => { if (currentResolution !== r.label) e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <span style={{ fontWeight: 500 }}>{r.label}</span>
-                        <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)' }}>{r.desc}</span>
+                    <div style={{transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
+                      <ColorBar colors={FILM_STOCKS[filmIdx].colors} width={120} height={20} />
+                    </div>
+                    <div style={{fontSize:'12px',color:'var(--tap-text-1)',fontWeight:600,textAlign:'center',width:'160px'}}>{FILM_STOCKS[filmIdx].name}</div>
+                    <div style={{fontSize:'10px',color:'var(--tap-text-4)',textAlign:'center',width:'160px'}}>{FILM_STOCKS[filmIdx].desc}</div>
+                    <div style={{opacity:0.15,transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',width:'120px',display:'flex',justifyContent:'center'}}>
+                      <ColorBar colors={FILM_STOCKS[(filmIdx+1)%FILM_STOCKS.length].colors} width={120} height={12} />
+                    </div>
+                  </div>
+                </PD2>
+              )}
+              {showCamPick && camRef.current && (
+                <PD2 onClose={()=>setShowCamPick(false)} anchorRect={camRef.current.getBoundingClientRect()}>
+                  <div ref={el=>{if(el){const cols=[
+                      { idx:camIdx, setIdx:setCamIdx, len:CAMERAS.length },
+                      { idx:lensIdx, setIdx:setLensIdx, len:LENSES.length },
+                      { idx:focalIdx, setIdx:setFocalIdx, len:FOCALS.length },
+                      { idx:apertureIdx, setIdx:setApertureIdx, len:APERTURES.length },
+                    ];el.onwheel=e=>{e.preventDefault();const ci=parseInt((e.target as HTMLElement).closest('[data-ci]')?.getAttribute('data-ci')||'-1');if(ci>=0){const c=cols[ci];c.setIdx((p:number)=>e.deltaY>0?Math.min(p+1,c.len-1):Math.max(p-1,0))}}}}}
+                    style={{padding:'30px 16px 16px',display:'flex',alignItems:'stretch',position:'relative'}}>
+                    <div style={{position:'absolute',top:'8px',left:'16px',fontSize:'18px',color:'#fff',fontWeight:700}}>相机设置</div>
+                    {[
+                      { idx:camIdx, setIdx:setCamIdx, items:CAMERAS.map(c=>({img:c.img,line1:c.name,line2:`${c.sensor}`})) },
+                      { idx:lensIdx, setIdx:setLensIdx, items:LENSES.map(l=>({img:l.img,line1:l.name,line2:`${l.focal}·${l.aperture}`})) },
+                      { idx:focalIdx, setIdx:setFocalIdx, items:FOCALS.map(f=>({txt:f})) },
+                      { idx:apertureIdx, setIdx:setApertureIdx, items:APERTURES.map(a=>({img:a.img,line1:a.v,blades:a.blades})) },
+                    ].map((col,ci,arr)=>(
+                      <React.Fragment key={ci}>
+                        <div data-ci={ci} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'3px',height:'68px'}}>
+                          {col.idx > 0 ? <>
+                            <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>▲</span>
+                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                              {(()=>{const it=col.items[col.idx-1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'#fff'}}>{it.txt}</span>;return null})()}
+                            </div>
+                          </> : <div style={{width:'60px'}} />}
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                          <span style={{fontSize:'14px',color:'rgba(255,255,255,0.25)'}}>◂</span>
+                          <div style={{width:'96px',height:'64px',borderRadius:'12px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:'0 0 16px rgba(255,255,255,0.03)',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'}}>
+                            {(()=>{const it=col.items[col.idx] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.target as HTMLImageElement).style.display='none'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={40}/>;if(it.txt)return <span style={{fontSize:'24px',fontWeight:700,color:'#fff'}}>{it.txt}</span>;return null})()}
+                          </div>
+                          <span style={{fontSize:'14px',color:'rgba(255,255,255,0.25)'}}>▸</span>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:'3px',height:'68px'}}>
+                          {col.idx < col.items.length - 1 ? <>
+                            <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>▼</span>
+                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid rgba(255,255,255,0.04)'}}>
+                              {(()=>{const it=col.items[col.idx+1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'#fff'}}>{it.txt}</span>;return null})()}
+                            </div>
+                          </> : <div style={{width:'60px'}} />}
+                        </div>
+                        <div style={{fontSize:'12px',color:'var(--tap-text-1)',fontWeight:600,textAlign:'center',width:'100px',lineHeight:1.2,marginTop:'6px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(col.items[col.idx] as any).line1}</div>
                       </div>
+                      {ci < arr.length - 1 && <span style={{width:'1px',height:'180px',background:'rgba(255,255,255,0.06)',flexShrink:0,alignSelf:'center'}} />}
+                      </React.Fragment>
                     ))}
-                  </PickerDropdown>
-                )}
+                  </div>
+                </PD2>
+              )}
+              {/* Count + Send group */}
+              <ImgDropBtn label={`×${imgCount}`} open={showCountPicker} setOpen={setShowCountPicker} anchorRef={countRef} onRect={setCountRect}>
+                {[1,2,4].map(c=>(
+                  <div key={c} onClick={()=>{setImgCount(c);setShowCountPicker(false)}}
+                    style={{height:'28px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:imgCount===c?'var(--tap-hover)':'transparent',display:'flex',alignItems:'center',fontSize:'11px'}}
+                    onMouseEnter={e=>{if(imgCount!==c)e.currentTarget.style.background='var(--tap-hover)'}}
+                    onMouseLeave={e=>{if(imgCount!==c)e.currentTarget.style.background='transparent'}}>
+                    ×{c}
+                  </div>))}
+              </ImgDropBtn>
+              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+
+              {/* Send — glass pill */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 10px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.03)',flexShrink:0,paddingRight:'2px'}}>
+                <button onClick={handleGenerate} disabled={genRunning}
+                  style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#fff',color:genRunning?'#fff':'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
+                  onMouseEnter={e=>{if(!genRunning){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)'}}>
+                  {genRunning?'⏳':'↑'}
+                </button>
               </div>
-
-              {/* Style image upload — opens local file picker */}
-              <div style={{ position: 'relative' }}>
-                <span ref={styleChipRef} style={{ display: 'inline-flex' }}>
-                  <InlineChip
-                    label={styleImgUrl ? '风格 ✓' : '风格'}
-                    active={!!styleImgUrl}
-                    onClick={() => { styleFileRef.current?.click(); }}
-                  />
-                </span>
-                <input
-                  ref={styleFileRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const url = reader.result as string;
-                      setStyleImgUrl(url);
-                      data.onChange?.({ styleImageUrl: url } as any);
-                    };
-                    reader.readAsDataURL(file);
-                    // Reset so same file can be re-selected
-                    e.target.value = '';
-                  }}
-                />
-              </div>
-
-              {/* Spacer */}
-              <div style={{ flex: 1 }} />
-
-              {/* Send button — shows spinner when running */}
-              <button
-                onClick={handleGenerate}
-                disabled={genRunning}
-                title={genRunning ? '生成中...' : '发送'}
-                style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  background: genRunning ? 'var(--tap-warning)' : prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)',
-                  color: genRunning || prompt.trim() ? '#fff' : 'var(--tap-text-4)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, fontSize: genRunning ? '16px' : '13px',
-                  cursor: genRunning ? 'wait' : 'pointer',
-                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                  flexShrink: 0,
-                  border: 'none',
-                  animation: genRunning ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
-                }}
-                onMouseEnter={e => { if (!genRunning) e.currentTarget.style.transform = 'scale(1.12)'; }}
-                onMouseLeave={e => { if (!genRunning) e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                {genRunning ? '⏳' : '↑'}
-              </button>
             </div>
           </div>
         </div>

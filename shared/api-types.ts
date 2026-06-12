@@ -15,6 +15,17 @@ export interface GenerateRequest {
   duration?: string;   // video: "5s", "8s", "10s"
   videoUrls?: string[]; // video URLs for motion reference (Kling/Seedance)
   seed?: number;
+  // Kling-specific
+  characterOrientation?: 'image' | 'video';
+  keepOriginalSound?: boolean;
+  // Seedance-specific
+  fixedCamera?: boolean;
+  generateAudio?: boolean;
+  webSearch?: boolean;
+  // Ref mode
+  genMode?: string;  // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
 }
 
 export interface GenerateResult {
@@ -109,6 +120,18 @@ export interface AgentGenerateRequest {
   styleImageUrl?: string;
   videoUrls?: string[];     // video URLs for motion reference (Kling/Seedance)
   duration?: string;        // video duration: "5s", "8s", etc.
+  // Kling-specific
+  characterOrientation?: 'image' | 'video';
+  keepOriginalSound?: boolean;
+  // Seedance-specific
+  fixedCamera?: boolean;
+  generateAudio?: boolean;
+  webSearch?: boolean;
+  // Ref mode
+  genMode?: string;  // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  referencePrompts?: string[];
 }
 
 export interface AgentGenerateResult {

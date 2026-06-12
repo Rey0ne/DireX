@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
+import { readJSON, writeJSON } from './systems/db/store.js';
 import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
@@ -10,6 +11,7 @@ import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { geminiChat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -79,18 +81,21 @@ loadKeys(); // Restore persisted API keys
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ─── Canvas Sync ─────────────────────────────
-let canvasState: any = { nodes: [], edges: [], updatedAt: '' };
+const CANVAS_FILE = 'data/canvas-state.json';
+let canvasState: any = readJSON(CANVAS_FILE) || { nodes: [], edges: [], updatedAt: '' };
+console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
+
 app.post('/api/canvas/sync', (req, res) => {
   canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
+  writeJSON(CANVAS_FILE, canvasState);
   const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
   const imageUrls: string[] = [];
   imgNodes.forEach((n: any) => {
     const u = n.meta?.gen?.imageUrl || n.meta?.gen?.videoUrl;
     if (u) imageUrls.push(u);
   });
-  // Auto-analyze new images
   imageUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
-  console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges, ${imageUrls.length} images`);
+  console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
   res.json({ ok: true, imagesAnalyzing: imageUrls.length });
 });
 app.get('/api/canvas/state', (_req, res) => {
@@ -246,15 +251,32 @@ app.post('/api/agent/text', async (req: Request, res: Response) => {
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
+  console.log('[agent] providerId received:', body.providerId, 'model:', (body as any).model, 'mode:', body.mode);
   const handler = getProvider(body.providerId);
   if (!handler) { res.status(400).json({ error: 'Unknown provider: ' + body.providerId }); return; }
   const config = getProfile();
   const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
   let compiledPrompt = '';
   let agentTrace = [];
+  const isVideo = body.providerId === 'kling-video' || body.providerId === 'seedance-2';
   // Skip agent pipeline if prompt is already English (no need to compile)
   const isEnglish = /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
-  if (config.promptEnhancement && !isEnglish) {
+
+  // ── Video models: simple polish only, no 4-agent pipeline, no Vision analysis ──
+  // Kling/Seedance natively analyze reference images/videos — no Gemini Vision needed
+  if (isVideo) {
+    if (!isEnglish && config.promptEnhancement) {
+      // Simple Chinese → English polish (single call, no multi-agent pipeline)
+      const polishPrompt = `You are a video prompt translator. Translate and lightly polish the user's Chinese description into a cinematic English video generation prompt. Keep it concise (2-4 sentences). Include motion description, camera movement, lighting mood. Output ONLY the English prompt, no commentary.`;
+      try {
+        const polished = await geminiChat(polishPrompt, userPrompt, 600);
+        compiledPrompt = polished || userPrompt;
+        console.log('[agent] Video polish: ' + (polished ? polished.length + ' chars' : 'failed, using raw'));
+      } catch(e) { compiledPrompt = userPrompt; }
+    } else {
+      compiledPrompt = userPrompt; // English prompt: pass through as-is
+    }
+  } else if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
       // I2I: GPT-5.4 directly analyzes reference images + compiles prompt
@@ -330,6 +352,15 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
     referenceImage: body.referenceImage, referenceUrls: (body as any).referenceUrls, maskImage: body.maskImage, styleImageUrl: body.styleImageUrl,
     videoUrls: (body as any).videoUrls, duration: (body as any).duration,
+    // Model-specific params (Kling / Seedance)
+    genMode: (body as any).genMode,
+    firstFrameUrl: (body as any).firstFrameUrl,
+    lastFrameUrl: (body as any).lastFrameUrl,
+    characterOrientation: (body as any).characterOrientation,
+    keepOriginalSound: (body as any).keepOriginalSound,
+    fixedCamera: (body as any).fixedCamera,
+    generateAudio: (body as any).generateAudio,
+    webSearch: (body as any).webSearch,
   });
   result.durationMs = Date.now() - t0;
   addLog({
@@ -343,8 +374,12 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
   }
   const debugInfo = agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
-  // Add I2I debug: show compiledPrompt status + raw vision analysis
   debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
+  debugInfo.push({field:'providerId-received', contribution: body.providerId});
+  const kieReq = (globalThis as any).__lastKieReq;
+  const kieResp = (globalThis as any).__lastKieResp;
+  if (kieReq) debugInfo.push({field:'kie-req', contribution: JSON.stringify({model:kieReq.model,refs:kieReq.refs_count}).slice(0,300)});
+  if (kieResp) debugInfo.push({field:'kie-resp', contribution: JSON.stringify(kieResp).slice(0,1000)});
   const rawVision = (globalThis as any).__lastI2IVision;
   if (rawVision) {
     debugInfo.push({field:'rawVision-charProfiles', contribution: JSON.stringify(rawVision.charProfiles).slice(0, 2000)});

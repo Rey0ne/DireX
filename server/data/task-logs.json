@@ -3968,6 +3968,602 @@
       ],
       "cost": 2.05,
       "durationMs": 168926
+    },
+    {
+      "id": "2342ab67-85d1-4467-896f-7c184f876d02",
+      "timestamp": "2026-06-12T08:20:36.827Z",
+      "providerId": "kling-video",
+      "prompt": "A woman dances gracefully under a cherry blossom tree, petals gently falling around her. Golden sunlight filters through the branches, casting a warm, dreamy glow. The camera slowly orbits her, capturing the soft breeze and the serene, romantic atmosphere.",
+      "compiledPrompt": "A woman dances gracefully under a cherry blossom tree, petals gently falling around her. Golden sunlight filters through the branches, casting a warm, dreamy glow. The camera slowly orbits her, capturing the soft breeze and the serene, romantic atmosphere.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1847,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "d063ffbf-a4d0-4e69-ad6f-7bcc233117e1",
+      "timestamp": "2026-06-12T08:20:47.087Z",
+      "providerId": "kling-video",
+      "prompt": "A cinematic close-up of a young woman with elegant features, her face softly illuminated by the warm, golden glow of flickering candlelight. She gazes dreamily into the distance as delicate, translucent flower petals drift slowly through the air around her. The camera performs a gentle, slow-motion push-in, capturing the ethereal atmosphere and soft-focus bokeh background.",
+      "compiledPrompt": "A cinematic close-up of a young woman with elegant features, her face softly illuminated by the warm, golden glow of flickering candlelight. She gazes dreamily into the distance as delicate, translucent flower petals drift slowly through the air around her. The camera performs a gentle, slow-motion push-in, capturing the ethereal atmosphere and soft-focus bokeh background.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 640,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "abeddcc6-7434-4f7e-a753-acba15c2f451",
+      "timestamp": "2026-06-12T08:22:11.243Z",
+      "providerId": "kling-video",
+      "prompt": "A cinematic close-up of a graceful woman in a traditional hanfu, her flowing silk sleeves swaying gently in the breeze. Soft, ethereal sunlight filters through cherry blossom petals falling around her, creating a dreamy, romantic atmosphere. The camera slowly pans around her with a smooth, shallow depth of field, highlighting the delicate textures of her attire.",
+      "compiledPrompt": "A cinematic close-up of a graceful woman in a traditional hanfu, her flowing silk sleeves swaying gently in the breeze. Soft, ethereal sunlight filters through cherry blossom petals falling around her, creating a dreamy, romantic atmosphere. The camera slowly pans around her with a smooth, shallow depth of field, highlighting the delicate textures of her attire.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 668,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "8b16ed4b-fcf8-4391-89d4-e7b075923069",
+      "timestamp": "2026-06-12T08:23:28.594Z",
+      "providerId": "kling-video",
+      "prompt": "A cinematic close-up of a young woman with a gentle expression, surrounded by soft, ethereal cherry blossoms drifting in the air. The lighting is warm and golden, creating a dreamy, romantic atmosphere. The camera slowly pans in, capturing the delicate petals swirling around her as she looks gracefully into the distance.",
+      "compiledPrompt": "A cinematic close-up of a young woman with a gentle expression, surrounded by soft, ethereal cherry blossoms drifting in the air. The lighting is warm and golden, creating a dreamy, romantic atmosphere. The camera slowly pans in, capturing the delicate petals swirling around her as she looks gracefully into the distance.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/k/6d7cef6412b3d52bc37a8cb6d7682e2f_1_1781252603_9377.mp4"
+      ],
+      "cost": 0.7,
+      "durationMs": 49197
+    },
+    {
+      "id": "608fe024-1d5f-4772-8801-9626028c07b0",
+      "timestamp": "2026-06-12T08:42:00.573Z",
+      "providerId": "seedance-2",
+      "prompt": "A cinematic close-up of a luxurious perfume bottle resting on a sleek, reflective marble surface at night. Soft, golden ambient light glints off the glass edges, while a slow, smooth camera pan reveals the elegant silhouette. The atmosphere is sophisticated and mysterious, with a subtle bokeh effect on the dark, blurred background.",
+      "compiledPrompt": "A cinematic close-up of a luxurious perfume bottle resting on a sleek, reflective marble surface at night. Soft, golden ambient light glints off the glass edges, while a slow, smooth camera pan reveals the elegant silhouette. The atmosphere is sophisticated and mysterious, with a subtle bokeh effect on the dark, blurred background.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/7acd32d10f45fe0bc35c31266159715b_1781253718_fuu7ytn8.mp4"
+      ],
+      "cost": 2.05,
+      "durationMs": 223197
+    },
+    {
+      "id": "fbeaee5a-0e52-46ef-9482-86990d0337d4",
+      "timestamp": "2026-06-12T12:40:12.524Z",
+      "providerId": "kling-video",
+      "prompt": "A high-precision, left-side orthographic studio render of a Sony Venice 2 cinema camera. The camera is presented in a perfect side profile with ultra-sharp focus, showcasing intricate textures of brushed metal and carbon fiber, visible ports, and modular mounting points. Isolated on a clean, solid white background with no shadows, reflections, or perspective distortion, captured in 8k resolution for technical catalog accuracy.",
+      "compiledPrompt": "A high-precision, left-side orthographic studio render of a Sony Venice 2 cinema camera. The camera is presented in a perfect side profile with ultra-sharp focus, showcasing intricate textures of brushed metal and carbon fiber, visible ports, and modular mounting points. Isolated on a clean, solid white background with no shadows, reflections, or perspective distortion, captured in 8k resolution for technical catalog accuracy.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 659,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "37e70a64-baf8-4bc1-9e8d-2a32c5c7506e",
+      "timestamp": "2026-06-12T12:42:42.029Z",
+      "providerId": "kling-video",
+      "prompt": "A professional Sony Venice 2 digital cinema camera in a strict left-side orthographic profile. The modular body features highly detailed metal and carbon fiber textures, with visible ports, buttons, and mounting points rendered in sharp, technical clarity. Isolated on a clean, solid background with no shadows, reflections, or perspective distortion, presented as a high-fidelity industrial design catalog asset.",
+      "compiledPrompt": "A professional Sony Venice 2 digital cinema camera in a strict left-side orthographic profile. The modular body features highly detailed metal and carbon fiber textures, with visible ports, buttons, and mounting points rendered in sharp, technical clarity. Isolated on a clean, solid background with no shadows, reflections, or perspective distortion, presented as a high-fidelity industrial design catalog asset.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 881,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "6980ff04-a2f8-418b-892f-3bce505f9049",
+      "timestamp": "2026-06-12T12:44:29.558Z",
+      "providerId": "kling-video",
+      "prompt": "A hyper-realistic, orthographic left-side profile of a Sony Venice 2 cinema camera. The industrial design features precise textures of brushed metal and carbon fiber, showcasing every port, button, and mounting point in sharp, high-contrast detail. Isolated on a solid, clean background with no shadows, reflections, or perspective distortion, presented as a professional technical catalog asset.",
+      "compiledPrompt": "A hyper-realistic, orthographic left-side profile of a Sony Venice 2 cinema camera. The industrial design features precise textures of brushed metal and carbon fiber, showcasing every port, button, and mounting point in sharp, high-contrast detail. Isolated on a solid, clean background with no shadows, reflections, or perspective distortion, presented as a professional technical catalog asset.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 921,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "cad0e700-68e8-49d4-b26e-50b8194fbfda",
+      "timestamp": "2026-06-12T12:47:27.470Z",
+      "providerId": "kling-video",
+      "prompt": "A professional Sony Venice 2 cinema camera in a strict left-side orthographic profile view. The camera features highly detailed industrial textures, including brushed metal and carbon fiber, with visible ports, buttons, and mounting points. Isolated on a solid white background, the shot is captured with zero perspective distortion, sharp focus, and uniform studio lighting to ensure technical accuracy for a catalog-style presentation.",
+      "compiledPrompt": "A professional Sony Venice 2 cinema camera in a strict left-side orthographic profile view. The camera features highly detailed industrial textures, including brushed metal and carbon fiber, with visible ports, buttons, and mounting points. Isolated on a solid white background, the shot is captured with zero perspective distortion, sharp focus, and uniform studio lighting to ensure technical accuracy for a catalog-style presentation.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1414,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "090f4fd1-3faf-4c05-9673-8b9d4c6802aa",
+      "timestamp": "2026-06-12T12:49:20.058Z",
+      "providerId": "kling-video",
+      "prompt": "A professional studio product render of a Sony Venice 2 cinema camera in a strict left-side orthographic profile. The modular body features highly detailed metal and carbon fiber textures with precise industrial accuracy, showcasing all ports, buttons, and mounting points. The shot is captured in ultra-sharp 8k resolution against a clean, transparent-ready background with zero perspective distortion, shadows, or environmental clutter.",
+      "compiledPrompt": "A professional studio product render of a Sony Venice 2 cinema camera in a strict left-side orthographic profile. The modular body features highly detailed metal and carbon fiber textures with precise industrial accuracy, showcasing all ports, buttons, and mounting points. The shot is captured in ultra-sharp 8k resolution against a clean, transparent-ready background with zero perspective distortion, shadows, or environmental clutter.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 937,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "df3c5ac7-98ce-4657-a3c9-f17447c42bec",
+      "timestamp": "2026-06-12T12:49:50.906Z",
+      "providerId": "kling-video",
+      "prompt": "A high-precision, ultra-realistic side profile of a Sony Venice 2 cinema camera, captured in a strict orthographic view. The camera features intricate industrial details including visible ports, buttons, and a mix of textured metal and carbon fiber materials. Isolated on a solid, clean background with no shadows, reflections, or perspective distortion, presented as a sharp, high-fidelity technical catalog asset.",
+      "compiledPrompt": "A high-precision, ultra-realistic side profile of a Sony Venice 2 cinema camera, captured in a strict orthographic view. The camera features intricate industrial details including visible ports, buttons, and a mix of textured metal and carbon fiber materials. Isolated on a solid, clean background with no shadows, reflections, or perspective distortion, presented as a sharp, high-fidelity technical catalog asset.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 2957,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "6b79ea59-df6b-485d-8e81-a52786976ba4",
+      "timestamp": "2026-06-12T12:59:41.615Z",
+      "providerId": "kling-video",
+      "prompt": "A studio-grade, orthographic left-side profile of a Sony Venice 2 cinema camera, captured in ultra-sharp 8k resolution. The design features precise industrial detailing, visible ports, carbon fiber textures, and matte metallic finishes, presented against a clean, solid white background. The composition is perfectly centered and flat, rendered with technical accuracy and zero perspective distortion for a professional catalog asset.",
+      "compiledPrompt": "A studio-grade, orthographic left-side profile of a Sony Venice 2 cinema camera, captured in ultra-sharp 8k resolution. The design features precise industrial detailing, visible ports, carbon fiber textures, and matte metallic finishes, presented against a clean, solid white background. The composition is perfectly centered and flat, rendered with technical accuracy and zero perspective distortion for a professional catalog asset.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 3123,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "f5b1b8f1-2f22-4b8e-adc7-7a341ce3cb7d",
+      "timestamp": "2026-06-12T12:59:52.366Z",
+      "providerId": "kling-video",
+      "prompt": "A professional Sony Venice 2 digital cinema camera captured in a strict left-side orthographic profile. The industrial design features high-fidelity textures of brushed metal and carbon fiber, with clearly defined ports, vents, and mounting points. Isolated on a solid white background, the shot maintains perfect technical accuracy with zero perspective distortion, sharp focus, and uniform studio lighting for a catalog-grade product presentation.",
+      "compiledPrompt": "A professional Sony Venice 2 digital cinema camera captured in a strict left-side orthographic profile. The industrial design features high-fidelity textures of brushed metal and carbon fiber, with clearly defined ports, vents, and mounting points. Isolated on a solid white background, the shot maintains perfect technical accuracy with zero perspective distortion, sharp focus, and uniform studio lighting for a catalog-grade product presentation.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 604,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "e6074f14-28e0-45d5-80dd-72794b6d0cbb",
+      "timestamp": "2026-06-12T13:00:57.514Z",
+      "providerId": "kling-video",
+      "prompt": "A high-precision, left-side orthographic studio render of a Sony Venice 2 cinema camera. The camera is presented in a flat, technical profile view with sharp, industrial detail on the PL mount, vents, and modular body buttons. Neutral, uniform lighting ensures zero shadows or reflections, set against a clean, solid white background for a professional catalog asset.",
+      "compiledPrompt": "A high-precision, left-side orthographic studio render of a Sony Venice 2 cinema camera. The camera is presented in a flat, technical profile view with sharp, industrial detail on the PL mount, vents, and modular body buttons. Neutral, uniform lighting ensures zero shadows or reflections, set against a clean, solid white background for a professional catalog asset.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 836,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "0c4567a7-3511-4bab-8c24-051672d66e8c",
+      "timestamp": "2026-06-12T13:03:39.603Z",
+      "providerId": "kling-video",
+      "prompt": "A high-fidelity, ultra-realistic product render of a Sony Venice 2 cinema camera in a strict left-side orthographic profile. The design features intricate textures of brushed metal and carbon fiber, with precise detailing on all ports, buttons, and mounting points. Isolated on a clean, solid white background with no shadows, reflections, or perspective distortion, captured in sharp 8k resolution for a professional technical catalog presentation.",
+      "compiledPrompt": "A high-fidelity, ultra-realistic product render of a Sony Venice 2 cinema camera in a strict left-side orthographic profile. The design features intricate textures of brushed metal and carbon fiber, with precise detailing on all ports, buttons, and mounting points. Isolated on a clean, solid white background with no shadows, reflections, or perspective distortion, captured in sharp 8k resolution for a professional technical catalog presentation.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 663,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "cd787b2c-6a58-4b19-8e8d-6db678af5959",
+      "timestamp": "2026-06-12T13:05:49.366Z",
+      "providerId": "kling-video",
+      "prompt": "A strict left-side orthographic profile of a Sony Venice 2 cinema camera, captured with industrial precision. The camera features highly detailed matte metal and carbon fiber textures, with all ports, buttons, and mounting points clearly visible. Presented as a sharp, high-resolution studio product asset on a clean, solid white background with no perspective distortion, shadows, or reflections.",
+      "compiledPrompt": "A strict left-side orthographic profile of a Sony Venice 2 cinema camera, captured with industrial precision. The camera features highly detailed matte metal and carbon fiber textures, with all ports, buttons, and mounting points clearly visible. Presented as a sharp, high-resolution studio product asset on a clean, solid white background with no perspective distortion, shadows, or reflections.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 1425,
+      "error": "Kie.ai: No taskId"
+    },
+    {
+      "id": "652eb4a8-6946-4287-8154-0a096567db2e",
+      "timestamp": "2026-06-12T13:12:38.342Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional, ultra-realistic product studio render of a Sony Venice 2 cinema camera, strict left-side orthographic profile view, perfect side-on orientation. The camera is centered and occupies 85% of the frame. The image is a clean PNG-style cutout asset with a solid white background (for easy masking). No perspective distortion, no lens flare, no depth of field, no blur. Industrial design accuracy, visible detailed ports, cooling vents, modular mounting points, and precise body contours. Photorealistic materials, high-fidelity brushed metal texture, detailed carbon fiber weave, anodized aluminum finish. Technical reference image, catalog presentation style, ultra-sharp focus, 8k resolution, neutral flat studio lighting, zero shadows, zero reflections, no environment.",
+      "compiledPrompt": "> A professional, ultra-realistic product studio render of a Sony Venice 2 cinema camera, strict left-side orthographic profile view, perfect side-on orientation. The camera is centered and occupies 85% of the frame. The image is a clean PNG-style cutout asset with a solid white background (for easy masking). No perspective distortion, no lens flare, no depth of field, no blur. Industrial design accuracy, visible detailed ports, cooling vents, modular mounting points, and precise body contours. Photorealistic materials, high-fidelity brushed metal texture, detailed carbon fiber weave, anodized aluminum finish. Technical reference image, catalog presentation style, ultra-sharp focus, 8k resolution, neutral flat studio lighting, zero shadows, zero reflections, no environment.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/4f5439a02774886160a926b111029950_2dd31899a2be4140b04d895fddc2dd32.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 111719
+    },
+    {
+      "id": "9d27f989-a824-4206-9fb0-56fc9c47b15b",
+      "timestamp": "2026-06-12T13:14:52.916Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography of an ARRI Alexa 35 cinema camera, strict left-side orthographic profile view, flat and perfectly centered composition. The camera body is rendered with extreme industrial design accuracy, showcasing visible ports, cooling vents, physical buttons, and precise mounting points. Materials include high-fidelity brushed magnesium alloy, detailed carbon fiber texture, and technical matte black finish. Ultra-sharp focus, 8k resolution, photorealistic, technical catalog asset. Isolated on a pure white background, perfectly transparent background, PNG cutout style. No perspective distortion, no depth of field, no shadows, no reflections, no environment, no floor, no studio lighting, uniform flat lighting, clean professional equipment rendering.",
+      "compiledPrompt": "> A professional studio product photography of an ARRI Alexa 35 cinema camera, strict left-side orthographic profile view, flat and perfectly centered composition. The camera body is rendered with extreme industrial design accuracy, showcasing visible ports, cooling vents, physical buttons, and precise mounting points. Materials include high-fidelity brushed magnesium alloy, detailed carbon fiber texture, and technical matte black finish. Ultra-sharp focus, 8k resolution, photorealistic, technical catalog asset. Isolated on a pure white background, perfectly transparent background, PNG cutout style. No perspective distortion, no depth of field, no shadows, no reflections, no environment, no floor, no studio lighting, uniform flat lighting, clean professional equipment rendering.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/3715cfbd4493d993b46fd9505ed8c580_a5cff67ca1e44a3bac98bdb1d8e5af84.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 58486
+    },
+    {
+      "id": "087538fe-b9a2-482b-99e5-95ca1c06a251",
+      "timestamp": "2026-06-12T13:16:44.645Z",
+      "providerId": "gpt-image2",
+      "prompt": "A professional RED V-Raptor cinema camera, compact cube body, industrial design, strict left side orthographic view, perfect side profile, 2D technical reference image. High-end cinema equipment. Visible ports, vents, buttons, mounting points, and body contours. Photorealistic materials, detailed matte metal texture, detailed carbon fiber weave texture. 8k resolution, ultra-sharp focus, studio product rendering, catalog presentation. Isolated on a pure white background, flat studio lighting, no perspective distortion, no depth of field, no shadows, no reflections, object centered and occupying 85 percent of the frame, clean cutout asset, industrial design accuracy, correct proportions.",
+      "compiledPrompt": "A professional RED V-Raptor cinema camera, compact cube body, industrial design, strict left side orthographic view, perfect side profile, 2D technical reference image. High-end cinema equipment. Visible ports, vents, buttons, mounting points, and body contours. Photorealistic materials, detailed matte metal texture, detailed carbon fiber weave texture. 8k resolution, ultra-sharp focus, studio product rendering, catalog presentation. Isolated on a pure white background, flat studio lighting, no perspective distortion, no depth of field, no shadows, no reflections, object centered and occupying 85 percent of the frame, clean cutout asset, industrial design accuracy, correct proportions.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270201181-fvb40abzudp.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 91956
+    },
+    {
+      "id": "71f4ae8e-b82a-44c5-a2e6-8462580636cb",
+      "timestamp": "2026-06-12T13:17:22.360Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional, ultra-realistic product render of an ARRI Alexa 65 cinema camera, strict left side orthographic view, perfect side profile. The camera is isolated on a pure transparent background, PNG cutout asset style. No environment, no floor, no shadows, no reflections. Zero perspective distortion, technical flat projection. Industrial design accuracy, correct proportions, visible ports, vents, buttons, mounting points, and body contours. Photorealistic materials, high-fidelity metal texture, detailed carbon fiber texture. Professional film production equipment, centered composition, object occupies 85 percent of frame. Catalog presentation, technical reference image, ultra-sharp focus, studio product rendering, 8k resolution, highly detailed, masterpiece, neutral flat lighting, even illumination across the entire camera body.",
+      "compiledPrompt": "> A professional, ultra-realistic product render of an ARRI Alexa 65 cinema camera, strict left side orthographic view, perfect side profile. The camera is isolated on a pure transparent background, PNG cutout asset style. No environment, no floor, no shadows, no reflections. Zero perspective distortion, technical flat projection. Industrial design accuracy, correct proportions, visible ports, vents, buttons, mounting points, and body contours. Photorealistic materials, high-fidelity metal texture, detailed carbon fiber texture. Professional film production equipment, centered composition, object occupies 85 percent of frame. Catalog presentation, technical reference image, ultra-sharp focus, studio product rendering, 8k resolution, highly detailed, masterpiece, neutral flat lighting, even illumination across the entire camera body.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/b11e80dfbc3af65e4ea046148a7d3d3c_7ec0d17ef77546cda6d40ece2dd8b19e.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 146572
+    },
+    {
+      "id": "6ed943b6-9206-4560-81bd-e60b632e21fb",
+      "timestamp": "2026-06-12T13:17:29.320Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product rendering of a Panavision DXL2 cinema camera, strict left-side orthographic view, perfect side profile, centered composition, the camera occupies 85 percent of the frame. Industrial design accuracy, correct proportions, visible ports, vents, buttons, mounting points, and complex body contours. Photorealistic materials, detailed brushed metal texture, high-end carbon fiber weave texture, professional film production equipment. Technical reference image style, ultra-sharp focus, 8k resolution, highly detailed, masterpiece. Clean, flat, neutral lighting, no environment, no floor, no shadows, no reflections, isolated on a solid white background for easy cutout, PNG asset style.",
+      "compiledPrompt": "> A professional studio product rendering of a Panavision DXL2 cinema camera, strict left-side orthographic view, perfect side profile, centered composition, the camera occupies 85 percent of the frame. Industrial design accuracy, correct proportions, visible ports, vents, buttons, mounting points, and complex body contours. Photorealistic materials, detailed brushed metal texture, high-end carbon fiber weave texture, professional film production equipment. Technical reference image style, ultra-sharp focus, 8k resolution, highly detailed, masterpiece. Clean, flat, neutral lighting, no environment, no floor, no shadows, no reflections, isolated on a solid white background for easy cutout, PNG asset style.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270245168-aup4a9spmrg.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 76872
+    },
+    {
+      "id": "eee19d3b-9920-4e17-851a-ec05e556685c",
+      "timestamp": "2026-06-12T13:17:40.504Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography shot of an ARRICAM LT 35mm motion picture film camera, strict left side orthographic profile view. The camera is perfectly centered, capturing the full body including the film magazine and mechanical components. Industrial design accuracy, correct proportions, no perspective distortion, flat projection. Highly detailed photorealistic materials, including brushed metal, matte black carbon fiber, and intricate mechanical textures. Visible ports, vents, buttons, and mounting points. Isolated on a pure white background, PNG cutout asset style. Even, shadowless, flat studio lighting. 8k resolution, ultra-sharp focus, technical reference image, masterclass industrial product rendering, minimal aesthetic, clean lines, high-fidelity engineering visualization.",
+      "compiledPrompt": "> A professional studio product photography shot of an ARRICAM LT 35mm motion picture film camera, strict left side orthographic profile view. The camera is perfectly centered, capturing the full body including the film magazine and mechanical components. Industrial design accuracy, correct proportions, no perspective distortion, flat projection. Highly detailed photorealistic materials, including brushed metal, matte black carbon fiber, and intricate mechanical textures. Visible ports, vents, buttons, and mounting points. Isolated on a pure white background, PNG cutout asset style. Even, shadowless, flat studio lighting. 8k resolution, ultra-sharp focus, technical reference image, masterclass industrial product rendering, minimal aesthetic, clean lines, high-fidelity engineering visualization.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/28f508895d28f10511a9640bb66b9ceb_fecd8d8cfd864ab789f1b1e372b16e07.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 71107
+    },
+    {
+      "id": "a0899717-ba0a-4b3e-81e0-95121292f5da",
+      "timestamp": "2026-06-12T13:17:53.603Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography of an ARRIFLEX 435 35mm motion picture camera, strict left-side orthographic profile view, perfect side-on orientation. The camera is isolated on a pure white background, designed for easy cutout. High-end industrial design, ultra-realistic metallic textures, matte black finish with detailed carbon fiber elements, visible mechanical ports, control buttons, film magazine, and precise mounting points. Sharp focus across the entire object, 8k resolution, technical catalog style, flat studio lighting, zero perspective distortion, no floor, no shadows, no reflections, no depth of field, clean sharp edges, professional film production equipment, centered composition, 85% frame coverage.",
+      "compiledPrompt": "> A professional studio product photography of an ARRIFLEX 435 35mm motion picture camera, strict left-side orthographic profile view, perfect side-on orientation. The camera is isolated on a pure white background, designed for easy cutout. High-end industrial design, ultra-realistic metallic textures, matte black finish with detailed carbon fiber elements, visible mechanical ports, control buttons, film magazine, and precise mounting points. Sharp focus across the entire object, 8k resolution, technical catalog style, flat studio lighting, zero perspective distortion, no floor, no shadows, no reflections, no depth of field, clean sharp edges, professional film production equipment, centered composition, 85% frame coverage.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/3ac1acacb05c0179ae285b32047825dd_71ca50d2b59847aba880a8515600ba21.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 62783
+    },
+    {
+      "id": "50be3228-a38d-483c-b4e0-123c54cdb305",
+      "timestamp": "2026-06-12T13:18:27.118Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional IMAX 65mm motion picture film camera, strict left side orthographic view, perfect side profile. Industrial design masterpiece, massive film magazine, intricate mechanical engineering, visible ports, vents, buttons, and mounting points. Photorealistic materials, brushed aluminum, matte black carbon fiber texture, precise metallic finish. 8k resolution, ultra-sharp focus, studio product rendering, catalog presentation style. Isolated on a pure white background, PNG cutout asset style, centered composition, object occupies 85% of frame. No perspective distortion, flat lighting, neutral studio illumination, technical reference quality, highly detailed, industrial precision.",
+      "compiledPrompt": "> A professional IMAX 65mm motion picture film camera, strict left side orthographic view, perfect side profile. Industrial design masterpiece, massive film magazine, intricate mechanical engineering, visible ports, vents, buttons, and mounting points. Photorealistic materials, brushed aluminum, matte black carbon fiber texture, precise metallic finish. 8k resolution, ultra-sharp focus, studio product rendering, catalog presentation style. Isolated on a pure white background, PNG cutout asset style, centered composition, object occupies 85% of frame. No perspective distortion, flat lighting, neutral studio illumination, technical reference quality, highly detailed, industrial precision.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270303025-mocdn4qsge.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 77563
+    },
+    {
+      "id": "6d0bbc77-7378-4add-940f-af7e1b436078",
+      "timestamp": "2026-06-12T13:26:31.019Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product rendering of a Zeiss Ultra Prime cinema lens, strict left-side orthographic view, perfect side profile. The lens features iconic blue Zeiss markings, clearly visible focus ring, iris ring, and precise focal length engravings. Industrial design accuracy, photorealistic glass elements with subtle multi-layer coating, high-detail matte black metal housing. Neutral flat lighting, no shadows, no reflections, no perspective distortion, no environment. Isolated on a solid white background, high-resolution 8k, ultra-sharp focus, technical reference asset, clean lines, symmetrical composition, masterpiece, professional cinema optics design.",
+      "compiledPrompt": "> A professional studio product rendering of a Zeiss Ultra Prime cinema lens, strict left-side orthographic view, perfect side profile. The lens features iconic blue Zeiss markings, clearly visible focus ring, iris ring, and precise focal length engravings. Industrial design accuracy, photorealistic glass elements with subtle multi-layer coating, high-detail matte black metal housing. Neutral flat lighting, no shadows, no reflections, no perspective distortion, no environment. Isolated on a solid white background, high-resolution 8k, ultra-sharp focus, technical reference asset, clean lines, symmetrical composition, masterpiece, professional cinema optics design.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270788608-ip9u0eydo4q.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 75591
+    },
+    {
+      "id": "eba79c31-1996-49d8-b287-233868d5e0fa",
+      "timestamp": "2026-06-12T13:26:39.857Z",
+      "providerId": "gpt-image2",
+      "prompt": "A professional high-end cinema lens, ARRI Signature Prime, strict left-side orthographic view, perfect side profile. Industrial design masterpiece, ultra-realistic metal housing with precise mechanical engravings, visible focus ring with detailed knurling, visible iris ring, clear focal markings. Photorealistic glass elements with subtle multi-layer coating reflections, sharp edges, high-precision manufacturing. Studio product rendering, flat uniform lighting, zero perspective distortion, 8k resolution, clean and sharp, isolated on a solid white background for easy cutout, professional technical asset, neutral lighting, no shadows, no environment, no depth of field, sharp focus across the entire lens body.",
+      "compiledPrompt": "A professional high-end cinema lens, ARRI Signature Prime, strict left-side orthographic view, perfect side profile. Industrial design masterpiece, ultra-realistic metal housing with precise mechanical engravings, visible focus ring with detailed knurling, visible iris ring, clear focal markings. Photorealistic glass elements with subtle multi-layer coating reflections, sharp edges, high-precision manufacturing. Studio product rendering, flat uniform lighting, zero perspective distortion, 8k resolution, clean and sharp, isolated on a solid white background for easy cutout, professional technical asset, neutral lighting, no shadows, no environment, no depth of field, sharp focus across the entire lens body.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/667317b52dd1777f82abf7e8bf220883_e8e4af3ae5a84be498577a4f7085c12f.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 62956
+    },
+    {
+      "id": "c55b63a3-a27a-4197-b544-9eb5fa8b1754",
+      "timestamp": "2026-06-12T13:27:03.955Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography of a vintage Canon K-35 cinema lens, strict left-side orthographic view, perfect side profile. The lens is isolated on a solid white background, high-contrast cutout asset. Visible detailed focus ring, iris ring, and precise focal markings with accurate engravings. Industrial design accuracy, photorealistic glass elements with subtle vintage lens coating, detailed brushed metal housing. Centered composition, zero perspective distortion, flat lighting, no environment, no shadows, no reflections, 8k resolution, ultra-sharp focus, technical reference image, clean industrial aesthetic.",
+      "compiledPrompt": "> A professional studio product photography of a vintage Canon K-35 cinema lens, strict left-side orthographic view, perfect side profile. The lens is isolated on a solid white background, high-contrast cutout asset. Visible detailed focus ring, iris ring, and precise focal markings with accurate engravings. Industrial design accuracy, photorealistic glass elements with subtle vintage lens coating, detailed brushed metal housing. Centered composition, zero perspective distortion, flat lighting, no environment, no shadows, no reflections, 8k resolution, ultra-sharp focus, technical reference image, clean industrial aesthetic.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/ca2fe6358ad2a0021da802fb1315896f_951c69a7e05e456087194529ec240a83.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 55426
+    },
+    {
+      "id": "d10c80bc-b576-4e6f-8550-03afc653f932",
+      "timestamp": "2026-06-12T13:27:46.112Z",
+      "providerId": "gpt-image2",
+      "prompt": "A high-end professional Cooke S4 cinema prime lens, strict left-side orthographic view, perfect side profile. Industrial product design, detailed metallic housing, visible focus ring, visible iris ring, precise focal markings with accurate engravings. Photorealistic glass elements with subtle multi-layer coating, ultra-sharp focus across the entire lens body. Neutral studio lighting, flat lighting, no shadows, no reflections, no perspective distortion. Isolated on a pure transparent background, PNG cutout asset style, 8k resolution, technical reference image, masterpiece, clean lines, high-precision manufacturing aesthetic.",
+      "compiledPrompt": "A high-end professional Cooke S4 cinema prime lens, strict left-side orthographic view, perfect side profile. Industrial product design, detailed metallic housing, visible focus ring, visible iris ring, precise focal markings with accurate engravings. Photorealistic glass elements with subtle multi-layer coating, ultra-sharp focus across the entire lens body. Neutral studio lighting, flat lighting, no shadows, no reflections, no perspective distortion. Isolated on a pure transparent background, PNG cutout asset style, 8k resolution, technical reference image, masterpiece, clean lines, high-precision manufacturing aesthetic.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/9f101e54cf37bcb897bf64fc02133006_02bdbac6c791489e8366c329ceb478bb.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 69629
+    },
+    {
+      "id": "67da4c7a-3129-466f-a4fd-e1e0945eb3e1",
+      "timestamp": "2026-06-12T13:28:14.364Z",
+      "providerId": "gpt-image2",
+      "prompt": "A photorealistic, ultra-sharp, 8k resolution product reference image of a Cooke Panchro vintage cinema lens. Strict left side orthographic view, perfect side profile. Centered composition, no perspective distortion. The lens is isolated on a transparent background as a PNG cutout asset. The metal housing is detailed with industrial design accuracy, featuring a visible focus ring with accurate engravings, a visible iris ring with precise focal markings, and photorealistic glass elements with vintage lens coatings. The lens is illuminated by a soft, uniform top light that creates no shadows or reflections. Studio product rendering, masterpiece quality. No environment, no camera attached.",
+      "compiledPrompt": "A photorealistic, ultra-sharp, 8k resolution product reference image of a Cooke Panchro vintage cinema lens. Strict left side orthographic view, perfect side profile. Centered composition, no perspective distortion. The lens is isolated on a transparent background as a PNG cutout asset. The metal housing is detailed with industrial design accuracy, featuring a visible focus ring with accurate engravings, a visible iris ring with precise focal markings, and photorealistic glass elements with vintage lens coatings. The lens is illuminated by a soft, uniform top light that creates no shadows or reflections. Studio product rendering, masterpiece quality. No environment, no camera attached.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/60b32af20357e86493802682e62ce465_0867ae7e6d9c43038e7cc106ad0b8f4f.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 60504
+    },
+    {
+      "id": "0ebd3b4b-23ad-4d37-a1c5-37ee4221e272",
+      "timestamp": "2026-06-12T13:28:46.126Z",
+      "providerId": "gpt-image2",
+      "prompt": "Professional product photography of a Cooke SF cinema lens, strict left-side orthographic view, perfect side profile, centered composition, no perspective distortion. The lens features highly detailed industrial metal housing, visible precision focus ring, iris ring, and crisp focal markings with accurate engravings. Photorealistic glass elements with special flare lens coating, ultra-sharp focus, 8k resolution, technical reference image, studio product rendering. Isolated on a solid white background, flat lighting, no shadows, no reflections, no environment, clean cutout asset, high-end cinema optics aesthetic.",
+      "compiledPrompt": "Professional product photography of a Cooke SF cinema lens, strict left-side orthographic view, perfect side profile, centered composition, no perspective distortion. The lens features highly detailed industrial metal housing, visible precision focus ring, iris ring, and crisp focal markings with accurate engravings. Photorealistic glass elements with special flare lens coating, ultra-sharp focus, 8k resolution, technical reference image, studio product rendering. Isolated on a solid white background, flat lighting, no shadows, no reflections, no environment, clean cutout asset, high-end cinema optics aesthetic.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270920512-u0k94jtf6ce.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 67964
+    },
+    {
+      "id": "2eb01191-cee3-4a4f-a683-5b61eb2261dc",
+      "timestamp": "2026-06-12T13:29:38.407Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography of a Panavision C-Series anamorphic cinema lens, strict left side orthographic view, perfect side profile. The lens features a rugged, detailed black metal housing with visible, highly accurate focus rings, iris rings, and precise focal markings. Photorealistic glass elements with subtle, high-quality lens coating textures. Industrial design accuracy, technical reference image. Isolated on a solid white background, flat studio lighting, no shadows, no reflections, no perspective distortion, ultra-sharp focus, 8k resolution, masterpiece, clean lines, professional cinema optics, industrial asset, PNG style cutout.",
+      "compiledPrompt": "> A professional studio product photography of a Panavision C-Series anamorphic cinema lens, strict left side orthographic view, perfect side profile. The lens features a rugged, detailed black metal housing with visible, highly accurate focus rings, iris rings, and precise focal markings. Photorealistic glass elements with subtle, high-quality lens coating textures. Industrial design accuracy, technical reference image. Isolated on a solid white background, flat studio lighting, no shadows, no reflections, no perspective distortion, ultra-sharp focus, 8k resolution, masterpiece, clean lines, professional cinema optics, industrial asset, PNG style cutout.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/146dd0a287167d5760b4a97766f02389_86fdc9af652e41abba25add43d1e0629.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 57959
+    },
+    {
+      "id": "b8e3e563-7e66-4d66-aff1-f1ba29401dbb",
+      "timestamp": "2026-06-12T13:29:44.798Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product photography of a Helios vintage cinema lens, strict left-side orthographic view, perfect side profile. The lens features a classic Soviet-era metal housing with visible knurled focus ring, iris ring, and precise focal markings. Ultra-realistic cinema optics, photorealistic glass elements with subtle multi-coated sheen. Industrial design accuracy, sharp engravings. Centered composition, zero perspective distortion, flat studio lighting, high-key lighting, ultra-sharp focus, 8k resolution, masterpiece. Isolated on a solid pure white background, no environment, no shadows, no reflections, clean cut-out style, technical asset reference, industrial design rendering.",
+      "compiledPrompt": "> A professional studio product photography of a Helios vintage cinema lens, strict left-side orthographic view, perfect side profile. The lens features a classic Soviet-era metal housing with visible knurled focus ring, iris ring, and precise focal markings. Ultra-realistic cinema optics, photorealistic glass elements with subtle multi-coated sheen. Industrial design accuracy, sharp engravings. Centered composition, zero perspective distortion, flat studio lighting, high-key lighting, ultra-sharp focus, 8k resolution, masterpiece. Isolated on a solid pure white background, no environment, no shadows, no reflections, clean cut-out style, technical asset reference, industrial design rendering.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781270980212-4azn69hz3cr.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 98212
+    },
+    {
+      "id": "81ad4de2-3d1d-429c-8d2a-827035eddf01",
+      "timestamp": "2026-06-12T13:30:14.932Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional Panavision Primo cinema prime lens, strict left-side orthographic view, perfect side profile. Industrial design photography, centered composition, zero perspective distortion, flat studio lighting, neutral white background. Extremely detailed metal housing, precision-machined focus ring, iris ring, and crisp white focal markings. Photorealistic glass elements with subtle multi-layer coating reflections. 8k resolution, ultra-sharp focus, technical reference asset, clean lines, high-end cinema optics, industrial engineering aesthetic, masterpiece, isolated product rendering.",
+      "compiledPrompt": "> A professional Panavision Primo cinema prime lens, strict left-side orthographic view, perfect side profile. Industrial design photography, centered composition, zero perspective distortion, flat studio lighting, neutral white background. Extremely detailed metal housing, precision-machined focus ring, iris ring, and crisp white focal markings. Photorealistic glass elements with subtle multi-layer coating reflections. 8k resolution, ultra-sharp focus, technical reference asset, clean lines, high-end cinema optics, industrial engineering aesthetic, masterpiece, isolated product rendering.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/3ef2fe0b3b65effadd23f6741e4f066b_b542aaeeec444bffb486920649c3dcae.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 62140
+    },
+    {
+      "id": "fedc3625-0dfe-488f-af43-fa4cb9d7638d",
+      "timestamp": "2026-06-12T13:31:40.334Z",
+      "providerId": "gpt-image2",
+      "prompt": "> A professional studio product shot of a Hawk Class X anamorphic cinema lens, strict left-side orthographic profile view, flat 2D projection, industrial design accuracy. The lens features highly detailed knurled focus rings, precise iris rings, and crisp white focal markings. Photorealistic glass elements with subtle, neutral internal refraction. Material is matte black anodized aluminum with metallic silver accents. Centered composition, zero perspective distortion, zero depth of field, sharp focus across the entire object. Isolated on a solid pure white background for easy cutout. Professional lighting, soft even illumination, no shadows, no reflections, no environment, no camera body, no tripod, 8k resolution, hyper-realistic, technical reference asset.",
+      "compiledPrompt": "> A professional studio product shot of a Hawk Class X anamorphic cinema lens, strict left-side orthographic profile view, flat 2D projection, industrial design accuracy. The lens features highly detailed knurled focus rings, precise iris rings, and crisp white focal markings. Photorealistic glass elements with subtle, neutral internal refraction. Material is matte black anodized aluminum with metallic silver accents. Centered composition, zero perspective distortion, zero depth of field, sharp focus across the entire object. Isolated on a solid pure white background for easy cutout. Professional lighting, soft even illumination, no shadows, no reflections, no environment, no camera body, no tripod, 8k resolution, hyper-realistic, technical reference asset.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/gpt-image-2-kie/1781271098524-2cyoroo5wzl.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 122030
+    },
+    {
+      "id": "d6a4b05e-4acb-47f4-bf14-44b23cb0ff89",
+      "timestamp": "2026-06-12T13:42:08.225Z",
+      "providerId": "gpt-image2",
+      "prompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nMedium aperture opening.\nf/4 aperture.\nBalanced iris opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "compiledPrompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nMedium aperture opening.\nf/4 aperture.\nBalanced iris opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 4197,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "26f552bf-fb54-4383-8abc-80d1094306c2",
+      "timestamp": "2026-06-12T13:42:28.039Z",
+      "providerId": "gpt-image2",
+      "prompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nWide open aperture.\n\nf/1.4 aperture opening.\n\nLarge circular opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "compiledPrompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nWide open aperture.\n\nf/1.4 aperture opening.\n\nLarge circular opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/30b09d6f4b9e45553b384b800ee06441_4533345e2f9a4d3195593e97ce4fc541.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 56319
+    },
+    {
+      "id": "5c435b85-e75c-4b24-b3ed-9298f91861bf",
+      "timestamp": "2026-06-12T13:43:43.624Z",
+      "providerId": "gpt-image2",
+      "prompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nSmall aperture opening.\nf/11 aperture.\nTight iris opening.\nClearly visible aperture blades.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "compiledPrompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nSmall aperture opening.\nf/11 aperture.\nTight iris opening.\nClearly visible aperture blades.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/bc06e9ac938b3c86f50a7e9bd24dd862_76e2f161991c4f01b19c471198d1309c.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 57246
+    },
+    {
+      "id": "b528a547-162f-4f42-9cd5-8d8888a44b16",
+      "timestamp": "2026-06-12T13:44:49.299Z",
+      "providerId": "gpt-image2",
+      "prompt": "Kodak Vision Color Print Film 2383,\nmotion picture print stock,\nwarm cinematic color reproduction\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Kodak Vision Color Print Film 2383,\nmotion picture print stock,\nwarm cinematic color reproduction\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/84776712c4400d7695a9fc7f54d45a28_23f6e6f8e84948a8b7e08815914a7992.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 60136
+    },
+    {
+      "id": "60fc8c0b-100c-439a-a3d6-d0ba7430967e",
+      "timestamp": "2026-06-12T13:45:02.369Z",
+      "providerId": "gpt-image2",
+      "prompt": "Kodak Vision3 250D,\ndaylight balanced film stock,\nfine grain emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Kodak Vision3 250D,\ndaylight balanced film stock,\nfine grain emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/543577194306b1c452356d43e3d2f71b_34ed425b0234428894428fc4f0382248.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 47285
+    },
+    {
+      "id": "74c4f4e0-b09d-4645-b483-90c951dd16ec",
+      "timestamp": "2026-06-12T13:45:44.571Z",
+      "providerId": "gpt-image2",
+      "prompt": "Kodak Vision3 500T,\ntungsten balanced film stock,\ncinematic grain structure\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Kodak Vision3 500T,\ntungsten balanced film stock,\ncinematic grain structure\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/54f88ccb911518df2a4ce9889f1b5c35_a272e366a1bd432cb3b4876e780154e6.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 65869
+    },
+    {
+      "id": "040badac-ba5a-40bd-bad5-6d97400daee2",
+      "timestamp": "2026-06-12T13:46:36.646Z",
+      "providerId": "gpt-image2",
+      "prompt": "Kodak Ektachrome slide film,\nrich color transparency film,\nhigh saturation emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Kodak Ektachrome slide film,\nrich color transparency film,\nhigh saturation emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/399578c00570b071220630112451ce3f_28ca703d2b1f457ba1b6e6afd16a9947.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 57986
+    },
+    {
+      "id": "c123f914-7483-4889-b8b3-1838ee7de0fe",
+      "timestamp": "2026-06-12T13:47:32.877Z",
+      "providerId": "gpt-image2",
+      "prompt": "Fuji Eterna motion picture film,\nsoft cinematic color palette,\nprofessional film stock\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Fuji Eterna motion picture film,\nsoft cinematic color palette,\nprofessional film stock\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/375a134fa5114bed701ad76625ea0d1c_3c451e3eeb974153b73387c992d9a31a.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 62433
+    },
+    {
+      "id": "b436a88f-c5d4-47a0-a993-da59f2a4e22a",
+      "timestamp": "2026-06-12T13:48:08.877Z",
+      "providerId": "gpt-image2",
+      "prompt": "Fuji Velvia transparency film,\nhigh saturation color film,\nlandscape photography classic film stock\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Fuji Velvia transparency film,\nhigh saturation color film,\nlandscape photography classic film stock\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/3bb1b27071bb06e4b9264c465c1abb39_9e3eb49efdc145489961696ac9e527d8.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 53861
+    },
+    {
+      "id": "559cc09d-2a01-486b-a8ec-737765a26bbe",
+      "timestamp": "2026-06-12T13:48:26.671Z",
+      "providerId": "gpt-image2",
+      "prompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nMedium aperture opening.\nf/4 aperture.\nBalanced iris opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "compiledPrompt": "Camera aperture diaphragm.\n\nFront view.\n\nPerfect centered composition.\n\nTransparent background.\n\nPNG cutout asset.\n\nOnly aperture blades visible.\n\nNo lens barrel.\n\nNo glass elements.\n\nNo camera parts.\n\nCircular aperture mechanism only.\n\nProfessional optical engineering illustration.\n\nRealistic black metal aperture blades.\n\nMedium aperture opening.\nf/4 aperture.\nBalanced iris opening.\n\nAccurate iris blade geometry.\n\nMechanical precision.\n\nTechnical reference image.\n\nOrthographic view.\n\nUltra clean presentation.\n\nHigh detail.\n\n8k.\n\nNegative Prompt:\n\nlens, camera, reflections, environment, shadow, perspective, text, labels, diagrams, numbers, hands, tripod, glass element, housing\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/80eb31512eb03ebfc791c62b32e34980_757ba6ebf5c1460a92fb44806febcc89.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 56795
+    },
+    {
+      "id": "9987c59e-a7af-472c-bc08-e9165edd34f4",
+      "timestamp": "2026-06-12T13:49:16.845Z",
+      "providerId": "gpt-image2",
+      "prompt": "Technicolor three-strip film element,\nthree synchronized film strips,\nhistorical motion picture process\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Technicolor three-strip film element,\nthree synchronized film strips,\nhistorical motion picture process\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/577bc0014e49a3dd7fda3616410f505e_0c1b96b6c30f4a6fa96f5a80b210df13.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 74390
+    },
+    {
+      "id": "562761d4-3e63-4984-b879-546ecbf43478",
+      "timestamp": "2026-06-12T13:50:28.643Z",
+      "providerId": "gpt-image2",
+      "prompt": "Bleach bypass processed film strip,\nhigh contrast film emulsion,\nsilver retention effect,\ndesaturated appearance\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Bleach bypass processed film strip,\nhigh contrast film emulsion,\nsilver retention effect,\ndesaturated appearance\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/4e568ed013649765b30d5fa2ac05c4ec_504810ffc54c404cb2f40adce69d0f89.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 58882
+    },
+    {
+      "id": "fb8b2e31-1c2d-4310-80c5-3d7c40aac56c",
+      "timestamp": "2026-06-12T13:51:01.203Z",
+      "providerId": "gpt-image2",
+      "prompt": "Fujifilm Neopan Acros II,\nblack and white film stock,\nfine grain monochrome emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "compiledPrompt": "Fujifilm Neopan Acros II,\nblack and white film stock,\nfine grain monochrome emulsion\n\nProfessional motion picture film stock.\n\n35mm film strip.\n\nFilm roll.\n\nTransparent background.\n\nPNG cutout asset.\n\nSingle isolated object.\n\nPhotorealistic.\n\nVisible perforations.\n\nVisible film emulsion.\n\nDetailed film texture.\n\nProduct reference image.\n\nMuseum catalog presentation.\n\nOrthographic view.\n\nCentered composition.\n\nTechnical reference image.\n\nNo environment.\n\nNo shadows.\n\nNo reflections.\n\nUltra high detail.\n\n8k.\n\nNegative Prompt:\n\ncamera, lens, projector, film box, human hand, environment, table, text overlay, watermark, cinematic scene, perspective distortion\n",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/ceb30fb7c71b6fbb915d1ca850ca1f8b_8ea5ddda974c451e9c9678e583d836df.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 60297
     }
   ]
 }

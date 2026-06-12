@@ -10,19 +10,17 @@ interface RefStripProps {
 }
 
 export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
-  const hasRoom = !refUrls || refUrls.length < 20;
-
   return (
     <div style={{
-      display: 'flex', gap: '6px', overflowX: 'auto',
-      paddingBottom: '6px', minHeight: 44, alignItems: 'center',
+      display: 'flex', gap: '4px', overflowX: 'hidden',
+      paddingBottom: '4px', minHeight: 30, alignItems: 'center',
     }}>
       {refUrls && refUrls.map((uri, i) => {
         const isVid = uri.startsWith('data:video/') || uri.endsWith('.mp4') || uri.endsWith('.webm');
         return (<div key={i} style={{ position: 'relative', flexShrink: 0 }}>
           {isVid
-            ? <video src={uri} muted preload="metadata" style={{width:40,height:40,borderRadius:6,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)',pointerEvents:'none'}}/>
-            : <img src={uri} alt="" style={{width:40,height:40,borderRadius:6,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)'}}/>}
+            ? <video src={uri} muted preload="metadata" style={{width:28,height:28,borderRadius:4,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)',pointerEvents:'none'}}/>
+            : <img src={uri} alt="" style={{width:28,height:28,borderRadius:4,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)'}}/>}
           <span onClick={e => {
             e.stopPropagation(); e.preventDefault();
             const store = useCanvasStore.getState();
@@ -53,38 +51,12 @@ export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
       {styleImageUrl && (
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <img src={styleImageUrl} alt="" style={{
-            width: 40, height: 40, borderRadius: 6,
+            width: 28, height: 28, borderRadius: 4,
             objectFit: 'cover', border: '1.5px solid rgba(200,160,100,0.4)',
           }} />
         </div>
       )}
 
-      {/* + pick button */}
-      {hasRoom && (
-        <div onClick={e => {
-          e.stopPropagation(); e.preventDefault();
-          useCanvasStore.getState().setPendingConnection(nodeId);
-        }}
-          onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-          onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-          title="点击后在画布中选择一个节点来建立连线"
-          style={{
-            width: 40, height: 40, borderRadius: 6,
-            border: '1px dashed rgba(255,255,255,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--tap-text-4)', fontSize: 16, flexShrink: 0,
-            cursor: 'pointer', transition: 'all var(--tap-dur-fast) var(--tap-ease)',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-            e.currentTarget.style.color = 'var(--tap-text-2)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-            e.currentTarget.style.color = 'var(--tap-text-4)';
-          }}
-        >+</div>
-      )}
     </div>
   );
 }

@@ -87,7 +87,7 @@ function getKieModel(req: GenerateRequest): string {
       return mode === 'image-to-image'
         ? 'gpt-image-2-image-to-image'
         : 'gpt-image-2-text-to-image';
-    case 'kling-video': return 'kling-3.0/motion-control';
+    case 'kling-video': return 'kling-3.0/video';
     case 'seedance-2':  return 'bytedance/seedance-2';
     default: return req.providerId;
   }
@@ -212,27 +212,67 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       }
     }
   }
-  const isVideo = req.providerId === 'kling-video' || req.providerId === 'seedance-2';
-  const body: Record<string, unknown> = isVideo ? {
-    model,
-    input: {
-      prompt: req.prompt || '',
-      input_urls: (req.referenceUrls || []) as string[],
-      video_urls: processedVideoUrls,
-    },
-  } : {
-    model,
-    input: {
-      prompt: req.prompt,
-      aspect_ratio: req.aspect || '1:1',
-      resolution: resolution,
-    },
+  const isKling = req.providerId === 'kling-video';
+  const isSeedance = req.providerId === 'seedance-2';
+  const isVideo = isKling || isSeedance;
+
+  // Build input params
+  const inputParams: Record<string, unknown> = {
+    prompt: req.prompt || '',
   };
 
-  // Video: callBackUrl required per Kie API spec
   if (isVideo) {
-    (body as any).callBackUrl = 'https://tapnow-callback.example.com/kie';
+    // Video models: Kling/Seedance natively analyze refs — pass directly
+    inputParams.aspect_ratio = req.aspect || '16:9';
+    if (req.referenceUrls?.length) {
+      inputParams.input_urls = req.referenceUrls;
+    }
+    if (req.referenceImage && !(req.referenceUrls || []).includes(req.referenceImage)) {
+      const urls = (inputParams.input_urls as string[]) || [];
+      urls.unshift(req.referenceImage);
+      inputParams.input_urls = urls;
+    }
+    if (processedVideoUrls.length) {
+      inputParams.video_urls = processedVideoUrls;
+    }
+  } else {
+    // Image models
+    inputParams.aspect_ratio = req.aspect || '1:1';
+    inputParams.resolution = resolution;
   }
+
+  // ── Kling-specific params ──
+  if (isKling) {
+    // mode: "std" or "pro" (not resolution — that's a different param)
+    inputParams.mode = 'std';
+    inputParams.duration = (req.duration || '5').replace('s', '');
+    inputParams.multi_shots = false;
+    inputParams.sound = req.generateAudio ?? false;
+    if (req.characterOrientation) {
+      inputParams.character_orientation = req.characterOrientation;
+    }
+    if (req.keepOriginalSound !== undefined) {
+      inputParams.keep_original_sound = req.keepOriginalSound;
+    }
+  }
+
+  // ── Seedance-specific params ──
+  if (isSeedance) {
+    if (req.duration) {
+      inputParams.duration = req.duration === 'auto' ? '-1' : req.duration.replace('s', '');
+    }
+    if (req.fixedCamera !== undefined) {
+      inputParams.fixed_camera = req.fixedCamera;
+    }
+    if (req.generateAudio !== undefined) {
+      inputParams.generate_audio = req.generateAudio;
+    }
+    if (req.webSearch !== undefined) {
+      inputParams.web_search = req.webSearch;
+    }
+  }
+
+  const body: Record<string, unknown> = { model, input: inputParams };
 
   // output_format: only supported by nano-banana-pro
   if (isNanoBanana) (body.input as any).output_format = 'png';
@@ -264,17 +304,16 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   // Debug
   (globalThis as any).__kieUpload = { total: allRefs.length, valid: validRefs.length, samples: allRefs.slice(0, 5).map((u: string) => u.slice(0, 60)) };
   // Model-specific ref limits & parameter names (per Kie API docs)
-  const maxRefs = isVideo ? 1 : (isNanoBanana ? 8 : 16);  // Kling: max 1 input_url, others: 8-16
+  const maxRefs = isNanoBanana ? 8 : 16;  // NanoBanana: max 8, others: max 16
   if (validRefs.length > maxRefs) {
     console.warn(`[kie] Truncating ${validRefs.length} refs to ${maxRefs} (${req.providerId})`);
     validRefs.length = maxRefs;
   }
   // Dispatch refs with model-specific parameter names
-  if (validRefs.length > 0) {
+  // Video refs are already set in inputParams above — skip for video
+  if (!isVideo && validRefs.length > 0) {
     if (isNanoBanana) {
       (body.input as any).image_input = validRefs;           // Nano Banana Pro: image_input
-    } else if (isVideo) {
-      (body.input as any).input_urls = validRefs;            // Kling/Seedance: input_urls (images)
     } else if (isI2I) {
       (body.input as any).input_urls = validRefs;            // GPT Image2 I2I: input_urls
     }
@@ -315,12 +354,18 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     }
 
     const data = await response.json();
-    console.log('[kie] Response:', JSON.stringify(data).slice(0, 300));
+    console.log('[kie] HTTP', response.status, 'Body:', JSON.stringify(data).slice(0, 500));
+    (globalThis as any).__lastKieResp = { status: response.status, body: data, model: body.model };
 
     // Kie.ai createTask returns: { code: 200, data: { taskId, recordId } }
-    const taskId = data.data?.taskId || data.data?.task_id || data.data?.id || '';
+    // Or: { taskId, recordId } directly, or { id } etc.
+    const taskId = data.data?.taskId || data.data?.task_id || data.data?.id
+      || data.data?.recordId
+      || data.taskId || data.task_id || data.id || data.recordId
+      || (typeof data.data === 'string' ? data.data : '')
+      || '';
     if (!taskId) {
-      console.error('[kie] No taskId in response:', JSON.stringify(data));
+      console.error('[kie] No taskId. Full response:', JSON.stringify(data).slice(0, 2000));
       return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: 'Kie.ai: No taskId' };
     }
 

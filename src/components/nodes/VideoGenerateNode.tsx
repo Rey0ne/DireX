@@ -1,4 +1,6 @@
-/* === VideoGenerateNode — video generation with ref modes === */
+/* === VideoGenerateNode — model-specific UI aligned with official API docs === */
+/* Kling 3.0: T2V / I2V / Motion Control (char_orientation, keep_sound)             */
+/* Seedance 2.0: T2V / I2V / First+Last / Multi-Ref (fixed_cam, audio, web_search)  */
 
 import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -9,9 +11,17 @@ import { useMention } from '../shared/useMention';
 interface VideoGenMeta {
   prompt: string; model: string; duration: string; resolution: string;
   aspect?: string; seed?: number; negativePrompt?: string;
-  refMode?: string;
+  genMode?: string;               // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
   firstFrameUrl?: string; lastFrameUrl?: string;
   multiFrames?: string[];
+  fullRefs?: Record<string, string | null>;  // {'image-style'|'video-motion'|'audio-rhythm'}
+  // Kling-specific
+  characterOrientation?: 'image' | 'video';
+  keepOriginalSound?: boolean;
+  // Seedance-specific
+  fixedCamera?: boolean;
+  generateAudio?: boolean;
+  webSearch?: boolean;
   resultAssetIds: string[];
 }
 
@@ -25,23 +35,39 @@ interface VideoGenNodeData {
   onGenerate?: () => void; onOpenTool?: (toolName: string) => void;
 }
 
-const MODELS = [{ name: 'Seedance 2.0', badges: ['热门'], maxDur: '16s' }, { name: 'Kling 3.0', badges: ['推荐'], maxDur: '10s' }];
-const DURATIONS = ['4s', '5s', '6s', '8s', '10s', '12s', '15s'];
-const ASPECTS = [
-  { label: '21:9', w: 21, h: 9 },
-  { label: '16:9', w: 16, h: 9 },
-  { label: '4:3', w: 4, h: 3 },
-  { label: '1:1', w: 1, h: 1 },
-  { label: '3:4', w: 3, h: 4 },
-  { label: '9:16', w: 9, h: 16 },
+const MODELS = [
+  { name: 'Kling 3.0', badges: ['推荐'], maxDur: '15s', provider: 'kling-video' },
+  { name: 'Seedance 2.0', badges: ['热门'], maxDur: '15s', provider: 'seedance-2' },
 ];
-const RESOLUTIONS = ['720P', '1080P'];
-const REF_MODES = [
-  { id: 'first', label: '首帧', desc: '上传一张起始画面' },
-  { id: 'first-last', label: '首尾帧', desc: '上传起始和结束画面' },
-  { id: 'smart-multi', label: '智能多帧', desc: '按序上传多张参考图' },
-  { id: 'full-ref', label: '全能参考', desc: '图片·视频·音频·文本自由组合' },
+
+// ── Per-model generation modes (matches official API capabilities) ──
+const KLING_MODES = [
+  { id: 't2v', label: '文生视频', desc: '纯文本提示词生成视频', icon: 'T' },
+  { id: 'i2v', label: '图生视频', desc: '上传一张首帧图片', icon: '🖼' },
+  { id: 'multi-ref', label: '全能参考', desc: '图+视频自由组合', icon: '⊞' },
 ];
+const SEEDANCE_MODES = [
+  { id: 't2v', label: '文生视频', desc: '纯文本提示词生成视频', icon: 'T' },
+  { id: 'i2v', label: '图生视频', desc: '上传一张首帧图片', icon: '🖼' },
+  { id: 'i2v-fl', label: '首尾帧', desc: '首帧+尾帧控制转场', icon: '⇢' },
+  { id: 'multi-ref', label: '多模态参考', desc: '图+视频+音频自由组合', icon: '⊞' },
+];
+
+// ── Unified aspect ratios ──
+const ALL_ASPECTS = ['1:1','2:3','3:2','3:4','4:3','16:9','9:16','21:9'];
+
+const ASPECT_RECTS: Record<string, { w: number; h: number }> = {
+  '1:1':{w:1,h:1},'2:3':{w:2,h:3},'3:2':{w:3,h:2},'3:4':{w:3,h:4},
+  '4:3':{w:4,h:3},'16:9':{w:16,h:9},'9:16':{w:9,h:16},'21:9':{w:21,h:9},
+};
+
+// ── Per-model durations ──
+const KLING_DURATIONS = ['3s','4s','5s','6s','7s','8s','9s','10s','11s','12s','13s','14s','15s'];
+const SEEDANCE_DURATIONS = ['4s','5s','6s','7s','8s','9s','10s','11s','12s','13s','14s','15s'];
+
+// ── Per-model resolutions ──
+const KLING_RESOLUTIONS = ['720P', '1080P'];
+const SEEDANCE_RESOLUTIONS = ['480P', '720P', '1080P'];
 
 
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
@@ -52,29 +78,63 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [curModel, setCurModel] = useState((gen.model && gen.model !== 'GPT Image2') ? gen.model : 'Seedance 2.0');
+  const [genMode, setGenMode] = useState(gen.genMode || (curModel === 'Kling 3.0' ? 'multi-ref' : 'i2v'));
   const [curDuration, setCurDuration] = useState(gen.duration || '5s');
   const [curAspect, setCurAspect] = useState(gen.aspect || '16:9');
   const [curRes, setCurRes] = useState(gen.resolution || '1080P');
-  const [refMode, setRefMode] = useState(gen.refMode || 'first');
+  // Refs
   const [firstFrame, setFirstFrame] = useState<string | null>(gen.firstFrameUrl || null);
   const [lastFrame, setLastFrame] = useState<string | null>(gen.lastFrameUrl || null);
-  const [multiFrames, setMultiFrames] = useState<string[]>(gen.multiFrames || []);
-  const [fullRefs, setFullRefs] = useState<Record<string, string | null>>({
+  const [multiFrames] = useState<string[]>(gen.multiFrames || []);
+  const [fullRefs, setFullRefs] = useState<Record<string, string | null>>(gen.fullRefs || {
     'image-style': null, 'video-motion': null, 'audio-rhythm': null,
   });
+  // UI
   const [genRunning, setGenRunning] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [musicOn, setMusicOn] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const zoom = useStore(s => s.transform[2]);
 
   const patch = useCallback((k: string, v: unknown) => { data.onChange?.({ [k]: v }); }, [data]);
 
+  // ── Derived values per model ──
+  const isKling = curModel === 'Kling 3.0';
+  const [count, setCount] = useState(1);
+  const [soundOn, setSoundOn] = useState(gen.keepOriginalSound ?? true);
+  const durations = isKling ? KLING_DURATIONS : SEEDANCE_DURATIONS;
+  const resolutions = isKling ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS;
+  const modes = isKling ? KLING_MODES : SEEDANCE_MODES;
+  // Sync genMode when switching models
+  const switchModel = useCallback((m: string) => {
+    setCurModel(m);
+    patch('model', m);
+    const defaultMode = 'multi-ref';
+    setGenMode(defaultMode);
+    patch('genMode', defaultMode);
+    if (!(newIsKling ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS).includes(curRes)) {
+      setCurRes('1080P');
+      patch('resolution', '1080P');
+    }
+  }, [curRes, patch]);
+
   const handleGenerate = () => {
     if (genRunning) return;
     setGenRunning(true);
-    const map: Record<string, unknown> = { prompt, model: curModel, duration: curDuration, resolution: curRes, aspect: curAspect, refMode, firstFrameUrl: firstFrame, lastFrameUrl: lastFrame, multiFrames };
+    const map: Record<string, unknown> = {
+      prompt, model: curModel, genMode, duration: curDuration,
+      resolution: curRes, aspect: curAspect,
+      firstFrameUrl: firstFrame, lastFrameUrl: lastFrame,
+      multiFrames, fullRefs,
+    };
+    // Kling-specific
+    if (isKling) {
+      map.characterOrientation = 'video';
+    } else {
+      map.fixedCamera = false;
+      map.generateAudio = true;
+      map.webSearch = false;
+    }
     Object.keys(map).forEach(k => patch(k, map[k]));
     Promise.resolve(data.onGenerate?.()).finally(() => setGenRunning(false));
   };
@@ -86,35 +146,41 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
     const refType = e.target.dataset.refType || '';
     r.onload = () => {
       const url = r.result as string;
-      if (refType) { const u = { ...fullRefs, [refType]: url }; setFullRefs(u); patch('fullRefs', u); }
-      else if (refMode === 'full-ref') {
-        const ext=file.name.split('.').pop()?.toLowerCase()||'';
-        const isVid=ext==='mp4'||ext==='webm'||ext==='mov';
-        const refKey=isVid?'video-motion':'image-style';
-        const u = { ...fullRefs, [refKey]: url }; setFullRefs(u); patch('fullRefs', u);
-      }
-      else if (refMode === 'first') { setFirstFrame(url); patch('firstFrameUrl', url); }
-      else if (refMode === 'first-last') {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const isVid = ext === 'mp4' || ext === 'webm' || ext === 'mov';
+      if (refType) {
+        const u = { ...fullRefs, [refType]: url };
+        setFullRefs(u); patch('fullRefs', u);
+      } else if (genMode === 'multi-ref') {
+        // Seedance multimodal: auto-detect image/video, store to fullRefs
+        const refKey = isVid ? 'video-motion' : 'image-style';
+        const u = { ...fullRefs, [refKey]: url };
+        setFullRefs(u); patch('fullRefs', u);
+      } else if (genMode === 'i2v') {
+        // Single first-frame image
+        setFirstFrame(url); patch('firstFrameUrl', url);
+      } else if (genMode === 'i2v-fl') {
         if (!firstFrame) { setFirstFrame(url); patch('firstFrameUrl', url); }
         else { setLastFrame(url); patch('lastFrameUrl', url); }
-      } else if (refMode === 'smart-multi') {
-        const u = [...multiFrames, url]; setMultiFrames(u); patch('multiFrames', u);
       }
     };
     r.readAsDataURL(file);
     e.target.value = '';
   };
 
-  const DropBtn = ({ v, picker }: { v: string; picker: string }) => (
+  const DropBtn = ({ v, picker }: { v: string; picker: string }) => {
+    const hov = open === picker;
+    return (
     <span onClick={e => {
       const rect = (e.target as HTMLElement).getBoundingClientRect();
       setAnchorRect(rect);
-      setOpen(open === picker ? null : picker);
+      setOpen(hov ? null : picker);
     }}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '4px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 500, cursor: 'pointer', background: open === picker ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)', color: 'var(--tap-text-1)', border: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap' }}>
-      {v} <span style={{ fontSize: '8px', opacity: 0.5 }}>▼</span>
-    </span>
-  );
+      style={{ display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 6px', borderRadius: '8px', fontSize: '8px', fontWeight: 500, cursor: 'pointer', background: hov ? 'rgba(255,255,255,0.07)' : 'transparent', color: '#fff', border: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+      onMouseLeave={e => { if (!hov) { e.currentTarget.style.background = 'transparent'; } }}
+    >{v}</span>
+  );};
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -123,7 +189,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         <Handle type="target" position={Position.Left} id="video-in" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%', left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="video-out" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%', right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* Toolbar area: upload bar (no content) or tools (has content) */}
+        {/* Toolbar: tools (has video) or upload (no video) */}
         {selected && (
           data.videoUrl ? (
             <div style={{ position: 'absolute', top: '-56px', left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '2px', padding: '4px', background: 'rgba(22,26,34,0.92)', borderRadius: '12px', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)' }}>
@@ -133,7 +199,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
               <ToolBtn icon="relight-svg" label="打光" onClick={() => data.onOpenTool?.('relight')} />
             </div>
           ) : (
-            <div onClick={() => uploadRef.current?.click()} style={{ position: 'absolute', top: '-56px', left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', borderBottomLeftRadius: '0', borderBottomRightRadius: '0' }}>
+            <div onClick={() => uploadRef.current?.click()} style={{ position: 'absolute', top: '-56px', left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer' }}>
               <span style={{ fontSize: '16px' }}>↑</span>
               <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
             </div>
@@ -157,86 +223,155 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
       {selected && !data.multiSelect && (
         <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: 'var(--tap-node-width)', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 12px 0', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'visible' }}>
+
+          {/* ── Ref thumbnails row ── */}
+          <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+            {/* Upload — top-left */}
+            {!(data.refUrls?.length) && !Object.values(fullRefs).some(v => v) && !firstFrame && (
+              <div onClick={() => uploadRef.current?.click()} title="上传参考素材"
+                style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)', marginLeft: '2px', marginTop: '2px' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+              >＋</div>
+            )}
             <RefStrip nodeId={id} refUrls={data.refUrls} />
-            {refMode==='full-ref'&&Object.entries(fullRefs).filter(([,v])=>v).map(([k,v])=>(<div key={k} title={k} style={{width:40,height:40,borderRadius:6,overflow:'hidden',flexShrink:0}}>{k==='video-motion'?<video src={v!} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<img src={v!} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}</div>))}
-            {/* Upload: single unified ref slot */}
-            <div onClick={() => uploadRef.current?.click()} title="上传参考素材"
-              style={{ width: '40px', height: '40px', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '11px', color: 'var(--tap-text-4)' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-            >素材</div>
+            {Object.entries(fullRefs).filter(([,v]) => v).map(([k, v]) => (
+              <div key={k} title={k} style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                {k === 'video-motion'
+                  ? <video src={v!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <img src={v!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              </div>
+            ))}
+            {genMode === 'i2v-fl' && firstFrame && <Thumb url={firstFrame} num={1} onRemove={() => { setFirstFrame(null); patch('firstFrameUrl', null); }} />}
+            {genMode === 'i2v-fl' && lastFrame && <Thumb url={lastFrame} num={2} onRemove={() => { setLastFrame(null); patch('lastFrameUrl', null); }} />}
             <div style={{ flex: 1 }} />
-            <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
-              style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-            >{expanded ? '↥' : '↧'}</span>
+            <span onClick={() => setExpanded(!expanded)}
+              style={{ fontSize: '10px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '1px 4px', flexShrink: 0 }}
+            >{expanded ? '∧' : '∨'}</span>
           </div>
-          <textarea value={prompt} onChange={e => { const v=e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart||0); }}
+
+          {/* ── Prompt textarea ── */}
+          <textarea value={prompt} onChange={e => { const v = e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart || 0); }}
             onPointerDownCapture={e => e.stopPropagation()} onMouseDownCapture={e => e.stopPropagation()}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-            placeholder="描述你想生成的视频内容…" maxLength={4000} rows={expanded ? 8 : 3}
-            style={{ width: '100%', background: 'transparent', border: 'none', padding: '8px 14px', fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
+            placeholder="" maxLength={2500} rows={expanded ? 12 : 3}
+            style={{ width: expanded ? '150%' : '100%', background: 'transparent', border: 'none', padding: '10px 14px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, marginLeft: expanded ? '-25%' : '0', boxSizing: 'border-box' }} />
 
-          {/* Single controls row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', flexWrap: 'wrap' }}>
-            {/* Model */}
+          {/* ── Controls row: Model | Mode | Duration | Aspect·Res | Count | Send ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '4px 6px 8px' }}>
+            {/* Model picker */}
             <div style={{ position: 'relative' }}><DropBtn v={curModel} picker="model" />
-              {open === 'model' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{MODELS.map(m => <div key={m.name} onClick={() => { setCurModel(m.name); patch('model', m.name); setOpen(null); }} style={{ display: 'flex', justifyContent: 'space-between', height: '36px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'var(--tap-hover)' : 'transparent' }} onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }} onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}><span>{m.name}</span><span style={{ fontSize: '10px', color: 'var(--tap-text-3)' }}>{m.maxDur}</span></div>)}</PD>}
+              {open === 'model' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{MODELS.map(m => (
+                <div key={m.name} onClick={() => { switchModel(m.name); setOpen(null); }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'var(--tap-hover)' : 'transparent' }}
+                  onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
+                  <span style={{ fontSize: '11px' }}>{m.name}</span>
+                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
+                </div>))}</PD>}
             </div>
 
+            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            {/* Mode picker */}
+            <div style={{ position: 'relative' }}><DropBtn v={modes.find(m => m.id === genMode)?.label || genMode} picker="mode" />
+              {open === 'mode' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{modes.map(m => (
+                <div key={m.id} onClick={() => { setGenMode(m.id); patch('genMode', m.id); setOpen(null); }}
+                  style={{ padding: '5px 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: genMode === m.id ? 'var(--tap-hover)' : 'transparent' }}
+                  onMouseEnter={e => { if (genMode !== m.id) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  onMouseLeave={e => { if (genMode !== m.id) e.currentTarget.style.background = 'transparent'; }}>
+                  <span style={{ fontSize: '11px', fontWeight: 500 }}>{m.label}</span>
+                  <span style={{ fontSize: '9px', color: 'var(--tap-text-3)', marginLeft: '4px' }}>{m.desc}</span>
+                </div>))}</PD>}
+            </div>
+
+            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
             {/* Duration */}
             <div style={{ position: 'relative' }}><DropBtn v={curDuration} picker="dur" />
-              {open === 'dur' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{DURATIONS.map(d => <div key={d} onClick={() => { setCurDuration(d); patch('duration', d); setOpen(null); }} style={{ height: '34px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curDuration === d ? 'var(--tap-hover)' : 'transparent', display: 'flex', alignItems: 'center' }} onMouseEnter={e => { if (curDuration !== d) e.currentTarget.style.background = 'var(--tap-hover)'; }} onMouseLeave={e => { if (curDuration !== d) e.currentTarget.style.background = 'transparent'; }}>{d}</div>)}</PD>}
+              {open === 'dur' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{durations.map(d => (
+                <div key={d} onClick={() => { setCurDuration(d); patch('duration', d); setOpen(null); }}
+                  style={{ height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curDuration === d ? 'var(--tap-hover)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px' }}
+                  onMouseEnter={e => { if (curDuration !== d) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  onMouseLeave={e => { if (curDuration !== d) e.currentTarget.style.background = 'transparent'; }}>
+                  {d}
+                </div>))}</PD>}
             </div>
 
-            {/* Aspect + Res */}
+            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            {/* Aspect + Resolution */}
             <div style={{ position: 'relative' }}><DropBtn v={`${curAspect}·${curRes}`} picker="fmt" />
-              {open === 'fmt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}><div style={{ padding: '4px 0' }}>
-                <div style={{ fontSize: '10px', color: 'var(--tap-text-4)', padding: '2px 12px' }}>画幅比例</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', padding: '0 12px', marginBottom: '8px' }}>{ASPECTS.map(a => {
-  const B = 36; // uniform box size
-  const s = Math.min(B / a.w, B / a.h);
-  const pw = a.w * s * 0.55, ph = a.h * s * 0.55;
-  return (
-  <div key={a.label} onClick={() => { setCurAspect(a.label); patch('aspect', a.label); }}
-    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '6px 4px', borderRadius: '6px', cursor: 'pointer', background: curAspect === a.label ? 'var(--tap-hover)' : 'transparent', border: curAspect === a.label ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent' }}>
-    <div style={{ width: B * 0.55, height: B * 0.55, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: pw, height: ph, border: '1.5px solid ' + (curAspect === a.label ? 'var(--tap-accent)' : 'rgba(255,255,255,0.25)'), borderRadius: '2px', background: curAspect === a.label ? 'rgba(74,158,255,0.08)' : 'transparent' }} />
-    </div>
-    <span style={{ fontSize: '10px', color: curAspect === a.label ? 'var(--tap-text-1)' : 'var(--tap-text-3)', fontWeight: curAspect === a.label ? 600 : 400 }}>{a.label}</span>
-  </div>
-)} )}</div>
-                <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 12px' }} />
-                <div style={{ fontSize: '10px', color: 'var(--tap-text-4)', padding: '4px 12px 2px' }}>分辨率</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', padding: '0 8px 4px' }}>{RESOLUTIONS.map(r => <span key={r} onClick={() => { setCurRes(r); patch('resolution', r); }} style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', textAlign: 'center', background: curRes === r ? 'var(--tap-hover)' : 'transparent', color: curRes === r ? 'var(--tap-text-1)' : 'var(--tap-text-3)' }}>{r}</span>)}</div>
-                <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 12px' }} />
-                <div onClick={() => { setMusicOn(!musicOn); patch('musicOn', !musicOn); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', cursor: 'pointer', fontSize: '11px' }}>
-                  <span style={{ color: 'var(--tap-text-2)' }}>背景音乐</span>
-                  <span style={{ width: '28px', height: '16px', borderRadius: '8px', background: musicOn ? '#f80' : 'rgba(255,255,255,0.15)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                    <span style={{ position: 'absolute', top: '2px', left: musicOn ? '14px' : '2px', width: '12px', height: '12px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+              {open === 'fmt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}><div style={{ padding: '2px 0' }}>
+                <div style={{ fontSize: '9px', color: 'var(--tap-text-4)', padding: '1px 10px' }}>画幅比例</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', padding: '0 8px', marginBottom: '6px' }}>
+                  {ALL_ASPECTS.map(a => {
+                    const ar = ASPECT_RECTS[a] || { w: 16, h: 9 };
+                    const B = 20, s = Math.min(B / ar.w, B / ar.h);
+                    const pw = Math.round(ar.w * s), ph = Math.round(ar.h * s);
+                    const active = curAspect === a;
+                    return (
+                      <div key={a} onClick={() => { setCurAspect(a); patch('aspect', a); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', background: active ? 'var(--tap-hover)' : 'transparent', border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent' }}>
+                        <div style={{ width: B, height: B, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(74,158,255,0.06)' : 'transparent' }} />
+                        </div>
+                        <span style={{ fontSize: '10px', color: active ? 'var(--tap-text-1)' : 'var(--tap-text-3)', fontWeight: active ? 600 : 400 }}>{a}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 10px' }} />
+                <div style={{ fontSize: '9px', color: 'var(--tap-text-4)', padding: '3px 10px 1px' }}>分辨率</div>
+                <div style={{ display: 'flex', gap: '2px', padding: '0 6px 3px' }}>{resolutions.map(r => (
+                  <span key={r} onClick={() => { setCurRes(r); patch('resolution', r); }}
+                    style={{ flex: 1, padding: '3px 5px', borderRadius: '3px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', background: curRes === r ? 'var(--tap-hover)' : 'transparent', color: curRes === r ? 'var(--tap-text-1)' : 'var(--tap-text-3)' }}>{r}</span>
+                ))}</div>
+                <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 10px' }} />
+                <div onClick={() => { setSoundOn(!soundOn); patch(isKling ? 'keepOriginalSound' : 'generateAudio', !soundOn); }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 10px', cursor: 'pointer', fontSize: '10px' }}>
+                  <span style={{ color: 'var(--tap-text-2)' }}>音乐</span>
+                  <span style={{ width: '24px', height: '14px', borderRadius: '7px', background: soundOn ? '#f80' : 'rgba(255,255,255,0.12)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                    <span style={{ position: 'absolute', top: '2px', left: soundOn ? '12px' : '2px', width: '10px', height: '10px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
                   </span>
                 </div>
               </div></PD>}
             </div>
 
-            {/* Ref mode */}
-            <div style={{ position: 'relative' }}><DropBtn v={REF_MODES.find(r => r.id === refMode)?.label || '首帧'} picker="ref" />
-              {open === 'ref' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{REF_MODES.map(r => <div key={r.id} onClick={() => { setRefMode(r.id); setOpen(null); }} style={{ padding: '8px 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: refMode === r.id ? 'var(--tap-hover)' : 'transparent' }} onMouseEnter={e => { if (refMode !== r.id) e.currentTarget.style.background = 'var(--tap-hover)'; }} onMouseLeave={e => { if (refMode !== r.id) e.currentTarget.style.background = 'transparent'; }}><div style={{ fontSize: 'var(--tap-fs-body)', fontWeight: 500 }}>{r.label}</div><div style={{ fontSize: '10px', color: 'var(--tap-text-3)' }}>{r.desc}</div></div>)}</PD>}
-            </div>
-
             <div style={{ flex: 1 }} />
-            <button onClick={handleGenerate} disabled={genRunning}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', background: genRunning ? 'var(--tap-warning)' : prompt.trim() ? 'var(--tap-accent)' : 'rgba(255,255,255,0.08)', color: genRunning || prompt.trim() ? '#fff' : 'var(--tap-text-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: genRunning ? '16px' : '13px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', animation: genRunning ? 'tap-pulse-glow 1.5s ease infinite' : 'none' }}
-            >{genRunning ? '⏳' : '↑'}</button>
+            {/* Count */}
+            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <div style={{ position: 'relative' }}><DropBtn v={`×${count}`} picker="cnt" />
+              {open === 'cnt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>
+                {[1, 2].map(c => (
+                  <div key={c} onClick={() => { setCount(c); setOpen(null); }}
+                    style={{ height: '28px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: count === c ? 'var(--tap-hover)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px', gap: '6px' }}
+                    onMouseEnter={e => { if (count !== c) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    onMouseLeave={e => { if (count !== c) e.currentTarget.style.background = 'transparent'; }}>
+                    ×{c}
+                  </div>))}
+              </PD>}
+            </div>
+            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            {/* Send */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '50px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 10px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.03)', flexShrink: 0, paddingRight: '2px' }}>
+              <button onClick={handleGenerate} disabled={genRunning}
+                style={{ width: '16px', height: '16px', borderRadius: '50%', background: genRunning ? 'var(--tap-warning)' : '#fff', color: genRunning ? '#fff' : '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: genRunning ? '8px' : '9px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
+              >{genRunning ? '⏳' : '↑'}</button>
+            </div>
           </div>
+
           <input ref={uploadRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleUpload} />
           {showMention && mentionList.length > 0 && createPortal(
-            <div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:panelRef.current?window.innerHeight-panelRef.current.getBoundingClientRect().top+4:200,left:panelRef.current?panelRef.current.getBoundingClientRect().left:'25vw',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}>
-              <div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>
-              {mentionList.map((m,i)=>(<div key={i} onClick={()=>{setPrompt(insertMention(m,prompt));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}
+            <div onMouseDown={e => e.preventDefault()} style={{ position: 'fixed', bottom: panelRef.current ? window.innerHeight - panelRef.current.getBoundingClientRect().top + 4 : 200, left: panelRef.current ? panelRef.current.getBoundingClientRect().left : '25vw', width: 360, background: 'var(--tap-panel)', border: '1px solid var(--tap-border)', borderRadius: 'var(--tap-r-lg)', padding: '8px', zIndex: 99999, maxHeight: '180px', overflowY: 'auto', boxShadow: 'var(--tap-shadow-lg)' }}>
+              <div style={{ fontSize: 10, color: 'var(--tap-text-4)', padding: '2px 6px' }}>选择参考图</div>
+              {mentionList.map((m, i) => (<div key={i} onClick={() => { setPrompt(insertMention(m, prompt)); setShowMention(false); }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 6, borderRadius: 'var(--tap-r-sm)', cursor: 'pointer', background: 'transparent' }}>
+                <img src={m.url} style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover' }} />
+                <div><div style={{ fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)', fontWeight: 500 }}>{m.name}</div></div>
+              </div>))}
             </div>, document.body)}
         </div>
         </div>
@@ -246,10 +381,10 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 }
 
 function Thumb({ url, num, onRemove }: { url: string; num?: number; onRemove: () => void }) {
-  return <div style={{ width: '26px', height: '26px', borderRadius: '4px', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+  return <div style={{ width: '22px', height: '22px', borderRadius: '3px', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
     <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-    {num && <span style={{ position: 'absolute', bottom: 0, left: 0, fontSize: '7px', color: '#fff', background: 'rgba(0,0,0,0.7)', padding: '0 2px' }}>{num}</span>}
-    <span onClick={e => { e.stopPropagation(); onRemove(); }} style={{ position: 'absolute', top: 0, right: 0, width: '12px', height: '12px', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.5)', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</span>
+    {num && <span style={{ position: 'absolute', bottom: 0, left: 0, fontSize: '6px', color: '#fff', background: 'rgba(0,0,0,0.7)', padding: '0 1px' }}>{num}</span>}
+    <span onClick={e => { e.stopPropagation(); onRemove(); }} style={{ position: 'absolute', top: 0, right: 0, width: '10px', height: '10px', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.4)', fontSize: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>✕</span>
   </div>;
 }
 
