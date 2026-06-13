@@ -718,6 +718,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         addNode('image.generate', { x: (window.innerWidth / 2 - vp.x) / vp.zoom - 190, y: (window.innerHeight / 2 - vp.y) / vp.zoom - 100 }, '图片生成');
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (document.querySelector('[data-3d-editor]')) return; // 3D editor is open, don't delete canvas nodes
         const ids = useCanvasStore.getState().selectedNodeIds;
         if (ids.length > 0) { ids.forEach(id => removeNode(id)); useCanvasStore.getState().setSelectedNodes([]); }
       }
