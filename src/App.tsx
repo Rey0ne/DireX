@@ -284,19 +284,16 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     const existing = Array.from(nodesMap.values());
     if (existing.length > 0) return;
 
-    loadFromDB().then(async (restored) => {
-      if (!restored) {
-        // Fresh canvas — no demo nodes, user starts from scratch
-      }
-      // 检查服务器是否有更丰富的画布（防止本地数据丢失）
+    (async () => {
+      // 优先从服务器恢复（防止本地数据丢失）
+      let fromServer = false;
       try {
         const resp = await fetch('/api/canvas');
         if (resp.ok) {
           const server = await resp.json();
           const serverNodes = server.nodes || [];
-          const localNodes = useCanvasStore.getState().nodes;
-          if (Array.isArray(serverNodes) && serverNodes.length > localNodes.size) {
-            console.log('[restore] Server has ' + serverNodes.length + ' nodes, local has ' + localNodes.size + ' — restoring from server');
+          if (Array.isArray(serverNodes) && serverNodes.length > 0) {
+            console.log('[restore] Loading ' + serverNodes.length + ' nodes from server');
             const nodeMap = new Map();
             for (const n of serverNodes) {
               nodeMap.set(n.id, n);
@@ -306,13 +303,21 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               edgeMap.set(e.id, e);
             }
             useCanvasStore.setState({ nodes: nodeMap, edges: edgeMap });
+            fromServer = true;
           }
         }
-      } catch (e) { /* server not available, use local */ }
-    });
+      } catch (e) { console.log('[restore] Server not available'); }
 
-    const cleanup = startAutoSave();
-    return cleanup;
+      // 服务器没数据才从本地加载
+      if (!fromServer) {
+        const restored = await loadFromDB();
+        if (!restored) {
+          // Fresh canvas
+        }
+      }
+
+      startAutoSave();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount — NOT when nodes change
 
