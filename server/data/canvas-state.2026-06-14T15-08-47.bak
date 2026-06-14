@@ -1440,7 +1440,7 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T13:44:47.461Z"
+      "updatedAt": "2026-06-14T14:58:19.754Z"
     },
     {
       "id": "node-1781442947974-1",
@@ -1595,7 +1595,7 @@
         }
       },
       "createdAt": "2026-06-14T13:15:47.974Z",
-      "updatedAt": "2026-06-14T13:44:48.239Z"
+      "updatedAt": "2026-06-14T14:58:21.620Z"
     },
     {
       "id": "img_1781444442578_0_0",
@@ -1610,7 +1610,7 @@
         "h": 200
       },
       "ports": [],
-      "status": "running",
+      "status": "failed",
       "meta": {
         "gen": {
           "prompt": "极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
@@ -1638,22 +1638,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:46:04.814Z"
+      "updatedAt": "2026-06-14T14:38:55.178Z"
     },
     {
       "id": "img_1781444442578_0_1",
       "type": "image.generate",
       "title": "MS #2",
       "pos": {
-        "x": 1535.6514934760705,
-        "y": 4304.852233001039
+        "x": 1255.243928671647,
+        "y": 4224.519254975989
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "succeeded",
       "meta": {
         "gen": {
           "prompt": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
@@ -1661,7 +1661,18 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "compiledPromptCn": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
+          ]
         },
         "shot": {
           "shotType": "MS",
@@ -1676,22 +1687,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T14:46:54.310Z"
     },
     {
       "id": "img_1781444442578_0_2",
       "type": "image.generate",
       "title": "CU #3",
       "pos": {
-        "x": 1875.6514934760705,
-        "y": 4304.852233001039
+        "x": 1729.6514934760705,
+        "y": 4218.852233001039
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "succeeded",
       "meta": {
         "gen": {
           "prompt": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
@@ -1699,7 +1710,18 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383",
+          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "compiledPromptCn": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
+          ]
         },
         "shot": {
           "shotType": "CU",
@@ -1714,22 +1736,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T14:54:25.346Z"
     },
     {
       "id": "img_1781444442578_0_3",
       "type": "image.generate",
       "title": "MS #4",
       "pos": {
-        "x": 2215.6514934760708,
-        "y": 4304.852233001039
+        "x": 2208.7593033460885,
+        "y": 4223.294649796249
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "succeeded",
       "meta": {
         "gen": {
           "prompt": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
@@ -1737,7 +1759,18 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383",
+          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+          "compiledPromptCn": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png"
+          ]
         },
         "shot": {
           "shotType": "MS",
@@ -1752,22 +1785,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T15:02:53.378Z"
     },
     {
       "id": "img_1781444442578_0_4",
       "type": "image.generate",
       "title": "MS #5",
       "pos": {
-        "x": 1195.6514934760705,
-        "y": 4704.852233001039
+        "x": 1285.2499651658393,
+        "y": 4502.681322521561
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "failed",
       "meta": {
         "gen": {
           "prompt": "女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
@@ -1775,7 +1808,12 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383"
         },
         "shot": {
           "shotType": "MS",
@@ -1790,22 +1828,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T15:06:16.822Z"
     },
     {
       "id": "img_1781444442578_0_5",
       "type": "image.generate",
       "title": "CU #6",
       "pos": {
-        "x": 1745.6514934760705,
-        "y": 4726.852233001039
+        "x": 1974.2424661204805,
+        "y": 4505.153450486613
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "running",
       "meta": {
         "gen": {
           "prompt": "悬崖边，满身血迹的女王眼神决绝，她颤抖着将脖子上的狼头吊坠摘下，与小贝拉原有的吊坠叠戴在一起。她深情地亲吻了小贝拉的额头，随后在黑狼群扑来的瞬间，用尽最后的力量将小贝拉抛向悬崖下方。夕阳的余晖洒在她们身上，形成一道悲壮的轮廓光，背景是深不见底的断崖，空气中弥漫着血腥与离别的气息。",
@@ -1813,7 +1851,12 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383"
         },
         "shot": {
           "shotType": "CU",
@@ -1828,9 +1871,9 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:45.420Z"
+      "updatedAt": "2026-06-14T15:06:17.982Z"
     }
   ],
   "edges": [],
-  "updatedAt": "2026-06-14T13:46:05.350Z"
+  "updatedAt": "2026-06-14T15:07:29.691Z"
 }

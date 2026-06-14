@@ -1440,7 +1440,7 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T13:44:47.461Z"
+      "updatedAt": "2026-06-14T14:58:19.754Z"
     },
     {
       "id": "node-1781442947974-1",
@@ -1595,7 +1595,7 @@
         }
       },
       "createdAt": "2026-06-14T13:15:47.974Z",
-      "updatedAt": "2026-06-14T13:51:43.824Z"
+      "updatedAt": "2026-06-14T14:58:21.620Z"
     },
     {
       "id": "img_1781444442578_0_0",
@@ -1638,22 +1638,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:49:50.889Z"
+      "updatedAt": "2026-06-14T14:38:55.178Z"
     },
     {
       "id": "img_1781444442578_0_1",
       "type": "image.generate",
       "title": "MS #2",
       "pos": {
-        "x": 1535.6514934760705,
-        "y": 4304.852233001039
+        "x": 1255.243928671647,
+        "y": 4224.519254975989
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "succeeded",
       "meta": {
         "gen": {
           "prompt": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
@@ -1661,7 +1661,18 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "compiledPromptCn": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
+          ]
         },
         "shot": {
           "shotType": "MS",
@@ -1676,22 +1687,22 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T14:46:54.310Z"
     },
     {
       "id": "img_1781444442578_0_2",
       "type": "image.generate",
       "title": "CU #3",
       "pos": {
-        "x": 1875.6514934760705,
-        "y": 4304.852233001039
+        "x": 1729.6514934760705,
+        "y": 4218.852233001039
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "idle",
+      "status": "succeeded",
       "meta": {
         "gen": {
           "prompt": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
@@ -1699,7 +1710,18 @@
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high"
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383",
+          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "compiledPromptCn": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
+          ]
         },
         "shot": {
           "shotType": "CU",
@@ -1714,7 +1736,7 @@
         }
       },
       "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T13:40:42.578Z"
+      "updatedAt": "2026-06-14T14:54:25.346Z"
     },
     {
       "id": "img_1781444442578_0_3",
@@ -1832,5 +1854,5 @@
     }
   ],
   "edges": [],
-  "updatedAt": "2026-06-14T13:51:44.375Z"
+  "updatedAt": "2026-06-14T14:58:28.884Z"
 }

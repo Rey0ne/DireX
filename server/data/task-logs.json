@@ -4751,6 +4751,31 @@
       ],
       "cost": 0.1,
       "durationMs": 243990
+    },
+    {
+      "id": "c9e2e52f-8e94-42e9-8954-d79182c6d986",
+      "timestamp": "2026-06-14T15:02:53.365Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242680
+    },
+    {
+      "id": "2c4501c9-6eab-4e1d-a927-d8e9d7e74244",
+      "timestamp": "2026-06-14T15:05:35.110Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 121421,
+      "error": "Kie.ai: Generation failed"
     }
   ]
 }

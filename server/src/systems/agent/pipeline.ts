@@ -660,6 +660,12 @@ export interface CharacterProfile {
 
 export interface ScriptAnalysisResult {
   scriptTitle: string;
+  visualBible?: {
+    colorPalette?: string;
+    lightingStyle?: string;
+    environment?: string;
+    characters?: Record<string, string>;
+  };
   scenes: SceneDef[];
   characterProfiles: Record<string, CharacterProfile>;
   trace: AgentResult[];
@@ -711,6 +717,7 @@ export async function runScriptPipeline(scriptText: string, visualStyle = ''): P
 
     return {
       scriptTitle: parsed.scriptTitle || '',
+      visualBible: parsed.visualBible || undefined,
       scenes: (parsed.scenes || []).map((s: any) => ({
         sceneNumber: s.sceneNumber || 1,
         sceneHeader: s.sceneHeader || '',
