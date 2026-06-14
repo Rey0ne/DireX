@@ -55,11 +55,9 @@ export async function compilePrompt(
     if (rawText) {
       const compiled: CompiledPrompt = { en: rawText, cn: rawText, negative: 'blurry, low quality', debug: [{ field:'raw', contribution: rawText }] };
       if (config.promptEnhancement) {
-        const ds = await geminiChat(config.systemPrompt, `Transform into a detailed English image prompt:${refHint}\n\n${rawText}`);
+        const ds = await geminiChat(config.systemPrompt, `Transform into a detailed English image prompt. Polish the output yourself — do NOT output a rough draft that needs further polishing.${refHint}\n\n${rawText}`);
         if (ds) { compiled.en = ds; compiled.debug.push({ field:'gemini', contribution:'compiled' }); }
         if (referenceUrls?.length) compiled.debug.push({ field:'refs', contribution: `${referenceUrls.length} images` });
-        const gm = await geminiChat(config.polishPrompt, `Polish:\n\n${compiled.en}`);
-        if (gm) { compiled.en = gm; compiled.debug.push({ field:'gemini', contribution:'polished' }); }
       }
       return compiled;
     }
@@ -73,12 +71,9 @@ export async function compilePrompt(
     const userContent = rawText || shot.intent_cn || compiled.cn;
     const debugInfo = compiled.debug.map(d => d.contribution).join(', ');
 
-    const ds = await geminiChat(config.systemPrompt, `Technical context: ${debugInfo}${refHint}\n\nScene: ${userContent}`);
+    const ds = await geminiChat(config.systemPrompt, `Technical context: ${debugInfo}${refHint}\n\nScene: ${userContent}\n\nProduce a polished, final English image prompt — do NOT output a draft that needs further polishing.`);
     if (ds) { compiled.en = ds; compiled.debug.push({ field:'gemini', contribution:'compiled' }); }
     if (referenceUrls?.length) compiled.debug.push({ field:'refs', contribution: `${referenceUrls.length} images` });
-
-    const gm = await geminiChat(config.polishPrompt, `Original: ${userContent}\n\nDraft: ${compiled.en}`);
-    if (gm) { compiled.en = gm; compiled.debug.push({ field:'gemini', contribution:'polished' }); }
 
     console.log(`[agent] Pipeline: ${compiled.debug.map(d => d.field).join(' → ')}`);
   }
