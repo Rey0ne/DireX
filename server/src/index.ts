@@ -104,10 +104,10 @@ app.get('/api/canvas', (_req, res) => {
 app.post('/api/canvas/sync', (req, res) => {
   const incoming = req.body.nodes || [];
   const current = canvasState.nodes || [];
-  // 保护：不接收比当前更少的节点（防止旧客户端覆盖服务器数据）
-  if (Array.isArray(incoming) && Array.isArray(current) && incoming.length < current.length) {
-    console.log(`[canvas] Sync blocked: incoming ${incoming.length} nodes < current ${current.length}`);
-    res.json({ ok: true, restored: true, nodeCount: current.length });
+  // 保护：拒绝空同步（防止意外清空），但允许删除操作
+  if (Array.isArray(incoming) && incoming.length === 0 && Array.isArray(current) && current.length > 10) {
+    console.log(`[canvas] Sync blocked: refusing to overwrite ${current.length} nodes with empty data`);
+    res.json({ ok: false, error: 'Refusing to wipe canvas' });
     return;
   }
   canvasState = { nodes: incoming, edges: req.body.edges || [], updatedAt: new Date().toISOString() };

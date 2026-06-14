@@ -107,14 +107,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 const nid = 'shot_' + Date.now() + '_' + si + '_' + shi;
                 canvasStore.addNode('shot', { x: baseX + col * 320, y: baseY + row * 380 }, shot.visualPrompt?.slice(0, 30) || 'Shot ' + shot.shotNumber);
                 canvasStore.updateNode(nid, {
+                  shot: {
+                    intent_cn: shot.visualPrompt,
+                    framing: shot.shotType,
+                    movement: shot.cameraMovement,
+                    lens: shot.angle,
+                    aperture: shot.aperture,
+                  },
                   meta: {
-                    shot: {
-                      intent_cn: shot.visualPrompt,
-                      framing: shot.shotType,
-                      movement: shot.cameraMovement,
-                      lens: shot.angle,
-                      aperture: shot.aperture,
-                    },
                     gen: {
                       prompt: shot.visualPrompt,
                       model: 'GPT Image2',
@@ -188,17 +188,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}>
           {/* Title */}
-          <input
+          <textarea
             value={data.title || ''}
             onChange={e => { data.onChange?.({ title: e.target.value }); }}
             placeholder="标题…"
             onPointerDownCapture={e => { e.stopPropagation() }}
             onMouseDownCapture={e => { e.stopPropagation() }}
+            rows={1}
             style={{
               fontSize: 'var(--tap-fs-h2)', fontWeight: 600,
               color: 'var(--tap-text-1)', background: 'transparent',
               border: 'none', outline: 'none', width: '100%',
+              resize: 'none', overflow: 'hidden', lineHeight: 1.4,
             }}
+            onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
           />
 
           {/* Content — Agent output area */}
@@ -238,8 +241,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   maxHeight: '200px', overflowY: 'auto',
                   fontSize: 'var(--tap-fs-body)',
                   color: 'var(--tap-text-1)', lineHeight: 1.8,
-                  whiteSpace: 'pre-wrap', userSelect: 'text',
-                  cursor: 'text',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word',
+                  userSelect: 'text', cursor: 'text',
                 }}>
                 {shot.intent_cn || (gen.compiledPromptCn as string) || (gen.compiledPrompt as string)}
               </div>
