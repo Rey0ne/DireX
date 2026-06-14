@@ -95,12 +95,17 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         if (json.scenes && json.scenes.length > 0) {
           const cx = canvasStore.nodes.get(id);
           if (cx) {
-            let yOff = (cx.pos?.y || 0) + 200;
-            const xOff = (cx.pos?.x || 0) + 340;
+            const COLS = 4; // 每行最多 4 个镜头
+            const baseX = (cx.pos?.x || 0) + 340;
+            const baseY = (cx.pos?.y || 0) + 200;
+            let globalIdx = 0;
             json.scenes.forEach((scene: any, si: number) => {
               scene.shots.forEach((shot: any, shi: number) => {
+                const row = Math.floor(globalIdx / COLS);
+                const col = globalIdx % COLS;
+                globalIdx++;
                 const nid = 'shot_' + Date.now() + '_' + si + '_' + shi;
-                canvasStore.addNode('shot', { x: xOff + shi * 320, y: yOff + si * 400 }, shot.visualPrompt?.slice(0, 30) || 'Shot ' + shot.shotNumber);
+                canvasStore.addNode('shot', { x: baseX + col * 320, y: baseY + row * 380 }, shot.visualPrompt?.slice(0, 30) || 'Shot ' + shot.shotNumber);
                 canvasStore.updateNode(nid, {
                   meta: {
                     shot: {
