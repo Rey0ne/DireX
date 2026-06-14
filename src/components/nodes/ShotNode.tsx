@@ -342,7 +342,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-                {scriptMode ? '剧本分镜分析' : 'Agent 自动路由'}
+                {scriptMode ? '📜 剧本 → 自动分镜' : '✏️ 文本分析'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setScriptMode(!scriptMode); setScriptResult(null); }}
@@ -354,7 +354,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   borderRadius: 'var(--tap-r-full)', padding: '3px 10px',
                   whiteSpace: 'nowrap',
                 }}
-              >{scriptMode ? '📜 剧本' : '分镜'}</button>
+              >{scriptMode ? '📜 剧本分析' : '✏️ 文本'}</button>
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',

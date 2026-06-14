@@ -487,10 +487,9 @@ async function runAgent(
     '\n\n请按照你的角色职责输出。';
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
-  const outTokens = profile.id === 'script-analyst' ? 8000 : 1500;
-  let output = await gpt5Chat(profile.systemPrompt, userMessage, 1500, 'high');
+  let output = await gpt5Chat(profile.systemPrompt, userMessage, { maxTokens });
   if (!output) {
-    output = await geminiChat(profile.systemPrompt, userMessage, outTokens);
+    output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
   }
   return {
     agentId: profile.id,

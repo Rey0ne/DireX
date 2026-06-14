@@ -34,7 +34,7 @@ export interface Gpt5ContentItem {
 
 export async function gpt5Chat(
   messages: Gpt5Message[],
-  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean },
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; maxTokens?: number },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
@@ -46,6 +46,7 @@ export async function gpt5Chat(
       input: messages,
       stream: false,
       reasoning: { effort: opts?.effort || 'high' },
+      max_output_tokens: opts?.maxTokens || 4000,
     };
     if (opts?.stream !== undefined) body.stream = opts.stream;
 
