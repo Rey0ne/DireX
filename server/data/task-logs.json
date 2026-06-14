@@ -4776,6 +4776,109 @@
       "cost": 0,
       "durationMs": 121421,
       "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "442466cf-d7c7-4732-9633-dece03435edb",
+      "timestamp": "2026-06-14T15:26:20.819Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 75mm, Aperture: f/1.4, Film stock: Kodak 500T] 布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 75mm, Aperture: f/1.4, Film stock: Kodak 500T] 布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/e80c9791c018630bbcc4e6d7f1dac271_a0902e12a6d243548403c97aa759d189.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121838
+    },
+    {
+      "id": "12e40c0b-be34-4b69-92bc-012c02c12b05",
+      "timestamp": "2026-06-14T15:28:22.244Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 121357,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "8bada03f-2fe5-4251-bff9-eea6a9e6d4b4",
+      "timestamp": "2026-06-14T15:28:30.586Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/8a9a082b723d3fa0b2c7513fced488fa_68c61fb6391b4109b3957fdae22df35b.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 244298
+    },
+    {
+      "id": "674b2f83-7eea-42b2-bddc-e9ae53b6dbcb",
+      "timestamp": "2026-06-14T15:28:30.914Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/6eac8942278e9d824ea446dfc99e58b1_8fef5613e3e742149e7861438bee4863.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242263
+    },
+    {
+      "id": "a46c228e-4d74-4b6e-8c47-27b0bf1d2649",
+      "timestamp": "2026-06-14T15:28:31.266Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 室内公寓客厅，光线昏暗，空气中漂浮着细微尘埃。前景桌面上放置着一个镶银边的相框，照片中辛德瑞拉戴着狼头吊坠微笑。背景沙发上，莱斯特与布蕾克正处于纠缠状态，布蕾克背对镜头，豹纹裙摆凌乱。室内光线由窗外透入的冷光与室内暖黄台灯构成，营造出一种压抑且堕落的氛围。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 室内公寓客厅，光线昏暗，空气中漂浮着细微尘埃。前景桌面上放置着一个镶银边的相框，照片中辛德瑞拉戴着狼头吊坠微笑。背景沙发上，莱斯特与布蕾克正处于纠缠状态，布蕾克背对镜头，豹纹裙摆凌乱。室内光线由窗外透入的冷光与室内暖黄台灯构成，营造出一种压抑且堕落的氛围。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/0451b30c930dd31fd285639c4911eca0_c8e15080182b4f6d874fa5d04f2124cc.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 363231
+    },
+    {
+      "id": "f5154795-a746-49d7-8413-636d3dd0f841",
+      "timestamp": "2026-06-14T15:28:51.079Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/26b8b10448f8a415c8edae97e7679a6a_45eaf9b545764c8291d912a63b8b7a1e.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242982
+    },
+    {
+      "id": "024f3e47-598c-4191-bc3e-e3b9e51699a1",
+      "timestamp": "2026-06-14T15:29:11.784Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/59a6f3785c422f5ec4feba49debc1391_aa146c5d0f3244fab28b11f803ccd4e0.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 243014
+    },
+    {
+      "id": "3298fa88-5f18-4fcc-88d1-770e860619c6",
+      "timestamp": "2026-06-14T15:43:06.608Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/a1e8747a56570749b3154d126e4a1a9a_45290b86d77948fdb7cab6f33a54f387.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 122213
     }
   ]
 }

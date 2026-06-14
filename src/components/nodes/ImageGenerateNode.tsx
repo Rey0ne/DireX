@@ -159,6 +159,8 @@ const _genLocks = new Map<string, boolean>();
 
 function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
+  // 合并连线参考图和本地上传图
+  const allRefs = [...(allRefs || []), ...((gen as any).referenceUrls || [])];
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showRatioPicker, setShowRatioPicker] = useState(false);
@@ -260,9 +262,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   // Build @mention list from connected refUrls
   const getMentionList = useCallback(() => {
     const list: {name: string; url: string}[] = [];
-    if (data.refUrls) {
+    if (allRefs) {
       const store = useCanvasStore.getState();
-      data.refUrls.forEach(url => {
+      allRefs.forEach(url => {
         store.nodes.forEach(node => {
           const imgUrl = (node.meta?.gen as any)?.imageUrl;
           if (imgUrl === url && !list.find(m => m.url === url)) {
@@ -273,7 +275,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     }
     if (styleImgUrl) list.push({ name: '风格参考', url: styleImgUrl });
     return list;
-  }, [data.refUrls, styleImgUrl]);
+  }, [allRefs, styleImgUrl]);
 
   // Capture trigger rect when picker opens — portal renders outside overflow
   useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
@@ -659,7 +661,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
         {/* ── Upload bar (portal) — shown when no image */}
         {selected && !data.multiSelect && cardRect && !data.imageUrl && createPortal(
-        <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
+        <div onClick={() => { const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true; inp.onchange=async()=>{ const files=inp.files; if(!files?.length)return; const refs: string[] = []; for(let i=0;i<Math.min(files.length,20);i++){ const f=files[i]; const u=await new Promise<string>(r=>{ const reader=new FileReader(); reader.onload=()=>r(reader.result as string); reader.readAsDataURL(f); }); refs.push(u); } const cur=(data.referenceUrls as string[])||[]; data.onChange?.({ referenceUrls: [...cur, ...refs] } as any); }; inp.click(); }}
           style={{ position: 'fixed', left: cardRect.left + cardRect.width / 2, top: cardRect.top - 8, transform: 'translateX(-50%) translateY(-100%)', zIndex: 9998, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 20px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}>
           <span style={{ fontSize: '16px' }}>↑</span>
           <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
@@ -985,14 +987,14 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
             {/* Reference strip — inside panel */}
             <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', padding: '6px 8px 0', minHeight: 32, alignItems: 'center' }}>
               {/* Upload + — left */}
-              {(!data.refUrls || data.refUrls.length === 0) && !styleImgUrl && (
+              {(!allRefs || allRefs.length === 0) && !styleImgUrl && (
                 <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
                   style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
                 >＋</div>
               )}
-              {data.refUrls && data.refUrls.map((uri, i) => (
+              {allRefs && allRefs.map((uri, i) => (
                 <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
                   <img src={uri} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
                   <span onClick={e => {
