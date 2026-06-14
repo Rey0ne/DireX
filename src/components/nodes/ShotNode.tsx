@@ -115,30 +115,32 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 const row = Math.floor(globalIdx / COLS);
                 const col = globalIdx % COLS;
                 globalIdx++;
-                const nid = 'shot_' + Date.now() + '_' + si + '_' + shi;
-                canvasStore.addNode('shot', { x: baseX + col * 320, y: baseY + row * 380 }, shot.visualPrompt?.slice(0, 30) || 'Shot ' + shot.shotNumber);
-                canvasStore.updateNode(nid, {
+                const label = shot.shotType + ' #' + shot.shotNumber;
+                const nid = 'img_' + Date.now() + '_' + si + '_' + shi;
+                canvasStore.addNode('image.generate', { x: baseX + col * 340, y: baseY + row * 400 }, label);
+                const metaData = {
+                  gen: {
+                    prompt: shot.visualPrompt,
+                    videoPrompt: shot.videoPrompt || '',
+                    model: 'GPT Image2',
+                    aspect: '16:9',
+                    resolution: '2K',
+                    quality: 'high',
+                  },
                   shot: {
-                    intent_cn: shot.visualPrompt,
-                    framing: shot.shotType,
-                    movement: shot.cameraMovement,
-                    lens: shot.angle,
+                    shotType: shot.shotType,
+                    cameraMovement: shot.cameraMovement,
+                    angle: shot.angle,
                     aperture: shot.aperture,
-                    key: shot.writerIntent || '',
+                    writerIntent: shot.writerIntent || '',
                     lighting: shot.lighting || '',
                     composition: shot.composition || '',
                     blocking: shot.blocking || '',
-                    mood: shot.role || '',
+                    role: shot.role || '',
                   },
-                  meta: {
-                    gen: {
-                      prompt: shot.visualPrompt,
-                      videoPrompt: shot.videoPrompt || '',
-                      model: 'GPT Image2',
-                      aspect: '16:9',
-                    },
-                  },
-                });
+                };
+                // Ensure addNode finishes before updateNode
+                setTimeout(() => canvasStore.updateNode(nid, { meta: metaData }), 0);
               });
             });
             canvasStore.triggerSync();

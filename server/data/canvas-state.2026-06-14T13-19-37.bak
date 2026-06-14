@@ -1440,201 +1440,27 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:21:48.519Z"
+      "updatedAt": "2026-06-14T13:11:20.180Z"
     },
     {
-      "id": "node-1781438752961-1",
+      "id": "node-1781442947974-1",
       "type": "shot",
       "title": "shot",
       "pos": {
-        "x": 100,
-        "y": 2380
+        "x": 1219.6514934760705,
+        "y": 4126.852233001039
       },
       "size": {
-        "w": 300,
-        "h": 200
+        "w": 380,
+        "h": 420
       },
       "ports": [],
       "status": "idle",
-      "meta": {
-        "gen": {
-          "scriptResult": {
-            "success": true,
-            "scriptTitle": "狼族公主：辛德瑞拉的觉醒",
-            "scenes": [
-              {
-                "sceneNumber": 1,
-                "sceneHeader": "1·1 苍茫雪原",
-                "location": "雪原",
-                "timeOfDay": "日",
-                "shots": [
-                  {
-                    "shotNumber": 1,
-                    "shotType": "ELS",
-                    "cameraMovement": "Truck",
-                    "duration": 6,
-                    "angle": "EyeLevel",
-                    "aperture": 11,
-                    "role": "establishing",
-                    "visualPrompt": "广阔无垠的雪原，狂风卷着冰雪呼啸，两队人马在染血的雪地上对峙，地面散落着数具插满利箭的狼尸，氛围肃杀压抑。"
-                  },
-                  {
-                    "shotNumber": 2,
-                    "shotType": "MS",
-                    "cameraMovement": "PushIn",
-                    "duration": 4,
-                    "angle": "LowAngle",
-                    "aperture": 4,
-                    "role": "villain",
-                    "visualPrompt": "卡迪亚赤裸上身，皮肤布满伤疤，每走一步，脚下的积雪便裂开蛛网状的黑色毒痕，他神情狂妄，目光轻蔑地扫视前方。"
-                  },
-                  {
-                    "shotNumber": 3,
-                    "shotType": "CU",
-                    "cameraMovement": "Static",
-                    "duration": 3,
-                    "angle": "EyeLevel",
-                    "aperture": 1.4,
-                    "role": "protagonist",
-                    "visualPrompt": "女王蹲下身，神情温柔，纤细的手指轻轻抚去小贝拉红色斗篷帽子上的积雪，眼神中透着决绝的母爱。"
-                  },
-                  {
-                    "shotNumber": 4,
-                    "shotType": "MS",
-                    "cameraMovement": "Dolly",
-                    "duration": 5,
-                    "angle": "LowAngle",
-                    "aperture": 4,
-                    "role": "action",
-                    "visualPrompt": "女王仰天长啸，身体在白光中迅速异变，银白色的毛发覆盖全身，化身为一只巨大的银狼，带着身后同样变身的狼女们冲向敌阵。"
-                  },
-                  {
-                    "shotNumber": 5,
-                    "shotType": "FS",
-                    "cameraMovement": "Handheld",
-                    "duration": 4,
-                    "angle": "EyeLevel",
-                    "aperture": 4,
-                    "role": "action",
-                    "visualPrompt": "银狼与黑狼群在雪地上猛烈撞击，雪浪被冲击波炸起十米高，利爪撕裂皮肉，鲜血在洁白的雪地上绽放如红梅。"
-                  }
-                ]
-              },
-              {
-                "sceneNumber": 2,
-                "sceneHeader": "1·2 公寓客厅",
-                "location": "公寓客厅",
-                "timeOfDay": "日",
-                "shots": [
-                  {
-                    "shotNumber": 1,
-                    "shotType": "MS",
-                    "cameraMovement": "Static",
-                    "duration": 4,
-                    "angle": "EyeLevel",
-                    "aperture": 4,
-                    "role": "villain",
-                    "visualPrompt": "莱斯特与布蕾克在沙发上纠缠，布蕾克仰头呻吟，眼神迷离且得意，桌上的相框里，辛德瑞拉戴着狼头吊坠的照片显得格外刺眼。"
-                  },
-                  {
-                    "shotNumber": 2,
-                    "shotType": "CU",
-                    "cameraMovement": "PushIn",
-                    "duration": 3,
-                    "angle": "EyeLevel",
-                    "aperture": 1.4,
-                    "role": "protagonist",
-                    "visualPrompt": "辛德瑞拉端着蛋糕，双目空洞无神，嘴角挂着幸福的微笑，胸前的狼头吊坠随着步伐轻轻晃动。"
-                  },
-                  {
-                    "shotNumber": 3,
-                    "shotType": "CU",
-                    "cameraMovement": "Static",
-                    "duration": 3,
-                    "angle": "EyeLevel",
-                    "aperture": 1.4,
-                    "role": "protagonist",
-                    "visualPrompt": "辛德瑞拉推开门，手中的蛋糕掉落在地，她那双空茫的眼睛里闪过一丝难以置信的惊恐。"
-                  }
-                ]
-              },
-              {
-                "sceneNumber": 3,
-                "sceneHeader": "2·2 森林马路",
-                "location": "森林马路",
-                "timeOfDay": "夜",
-                "shots": [
-                  {
-                    "shotNumber": 1,
-                    "shotType": "LS",
-                    "cameraMovement": "Static",
-                    "duration": 4,
-                    "angle": "EyeLevel",
-                    "aperture": 11,
-                    "role": "establishing",
-                    "visualPrompt": "圆月悬挂在茫茫林海之上，蜿蜒的林间小道上，一辆汽车停在路边，辛德瑞拉倒在血泊中，四周灌木丛中亮起一双双幽蓝色的狼眼。"
-                  },
-                  {
-                    "shotNumber": 2,
-                    "shotType": "ECU",
-                    "cameraMovement": "PushIn",
-                    "duration": 3,
-                    "angle": "LowAngle",
-                    "aperture": 1.4,
-                    "role": "action",
-                    "visualPrompt": "头狼跃起，巨大的獠牙挂着涎水，直逼辛德瑞拉的咽喉，月光映照出其狰狞的面目。"
-                  },
-                  {
-                    "shotNumber": 3,
-                    "shotType": "FS",
-                    "cameraMovement": "Dolly",
-                    "duration": 5,
-                    "angle": "LowAngle",
-                    "aperture": 4,
-                    "role": "protagonist",
-                    "visualPrompt": "迷雾中一道巨大的暗金色狼影疾驰而至，将头狼撞飞，巨狼落地后化身为拥有蜜色肌肉线条的男子，背部闪烁着幽蓝色的古老图腾。"
-                  }
-                ]
-              }
-            ],
-            "characterProfiles": {
-              "苏尔里女王": {
-                "role": "主角",
-                "angleBias": "LowAngle",
-                "appearance": "高贵清冷，红瞳，白色狼毛大氅，金冠"
-              },
-              "卡迪亚": {
-                "role": "反派",
-                "angleBias": "HighAngle",
-                "appearance": "上半身伤疤，蓝瞳，缀有灰黑色狼毛的铆钉裤"
-              },
-              "辛德瑞拉": {
-                "role": "主角",
-                "angleBias": "EyeLevel",
-                "appearance": "失明，空洞双眸，佩戴狼头吊坠，米色碎花裙"
-              },
-              "阿瑞斯": {
-                "role": "主角",
-                "appearance": "健美精壮，暗金色毛发，背部幽蓝色图腾，刚毅深沉"
-              }
-            },
-            "totalShots": 11,
-            "debug": [
-              {
-                "agentId": "script-analyst",
-                "agentName": "Script Analyst",
-                "output": "{\n  \"scriptTitle\": \"狼族公主：辛德瑞拉的觉醒\",\n  \"scenes\": [\n    {\n      \"sceneNumber\": 1,\n      \"sceneHeader\": \"1·1 苍茫雪原\",\n      \"location\": \"雪原\",\n      \"timeOfDay\": \"日\",\n      \"shots\": [\n        {\n          \"shotNumber\": 1,\n          \"shotType\": \"ELS\",\n          \"cameraMovement\": \"Truck\",\n          \"duration\": 6,\n          \"angle\": \"EyeLevel\",\n          \"aperture\": 11,\n          \"role\": \"establishing\",\n          \"visualPrompt\": \"广阔无垠的雪原，狂风卷着冰雪呼啸，两队人马在染血的雪地上对峙，地面散落着数具插满利箭的狼尸，氛围肃杀压抑。\"\n        },\n        {\n ",
-                "durationMs": 8765
-              }
-            ],
-            "durationMs": 8765
-          }
-        }
-      },
-      "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "meta": {},
+      "createdAt": "2026-06-14T13:15:47.974Z",
+      "updatedAt": "2026-06-14T13:15:47.974Z"
     }
   ],
   "edges": [],
-  "updatedAt": "2026-06-14T12:21:57.736Z"
+  "updatedAt": "2026-06-14T13:15:50.066Z"
 }
