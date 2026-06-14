@@ -248,6 +248,37 @@ app.post('/api/agent/text', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Script Analysis — 剧本 → 分镜结构 ───
+app.post('/api/agent/script', async (req: Request, res: Response) => {
+  const { scriptText } = req.body;
+  if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
+    res.status(400).json({ error: '请提供剧本文本（至少10个字符）' });
+    return;
+  }
+  console.log('[script-api] Analyzing script (' + scriptText.length + ' chars): ' + scriptText.slice(0, 80) + '...');
+  try {
+    const result = await runScriptPipeline(scriptText.trim());
+    console.log('[script-api] Complete in ' + result.totalDurationMs + 'ms, ' +
+      result.scenes.length + ' scenes, ' +
+      result.scenes.reduce((sum, s) => sum + s.shots.length, 0) + ' shots');
+    res.json({
+      success: true,
+      scriptTitle: result.scriptTitle,
+      scenes: result.scenes,
+      characterProfiles: result.characterProfiles,
+      totalShots: result.scenes.reduce((sum, s) => sum + s.shots.length, 0),
+      debug: result.trace.map(t => ({
+        agentId: t.agentId, agentName: t.agentName,
+        output: t.output.slice(0, 500), durationMs: t.durationMs,
+      })),
+      durationMs: result.totalDurationMs,
+    });
+  } catch (err) {
+    console.error('[script-api] Error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }

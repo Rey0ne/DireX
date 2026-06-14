@@ -3,7 +3,7 @@
 
 import { geminiChat, gpt5Chat, visionAnalyze } from '../ai/gemini.js';
 import {
-  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST,
+  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST, SCRIPT_ANALYST,
   type AgentProfile,
 } from './profiles.js';
 
@@ -616,6 +616,116 @@ export async function runTextPipeline(context: PipelineContext): Promise<TextPip
     console.error('[text-pipeline] Error:', err);
     return {
       textOutput: '失败请重新提交',
+      trace,
+      totalDurationMs: Date.now() - t0,
+    };
+  }
+}
+
+// ─── Script Analysis Pipeline — 剧本 → 分镜 JSON ───
+export interface ShotDef {
+  shotNumber: number;
+  shotType: string;       // ELS/LS/FS/MS/CU/ECU
+  cameraMovement: string; // Static/PushIn/Dolly/Truck/Crane/Orbit/Handheld
+  duration: number;       // seconds
+  angle: string;          // EyeLevel/LowAngle/HighAngle/BirdsEye
+  aperture: number;       // 1.4 / 4 / 11
+  role: string;           // establishing/action/dialog/reaction/insert
+  visualPrompt: string;   // 完整中文画面描述
+}
+
+export interface SceneDef {
+  sceneNumber: number;
+  sceneHeader: string;
+  location: string;
+  timeOfDay: string;
+  shots: ShotDef[];
+}
+
+export interface CharacterProfile {
+  role: string;           // 主角/反派/配角
+  angleBias: string;      // LowAngle/HighAngle/EyeLevel
+  appearance: string;     // 外观描述
+}
+
+export interface ScriptAnalysisResult {
+  scriptTitle: string;
+  scenes: SceneDef[];
+  characterProfiles: Record<string, CharacterProfile>;
+  trace: AgentResult[];
+  totalDurationMs: number;
+}
+
+export async function runScriptPipeline(scriptText: string): Promise<ScriptAnalysisResult> {
+  const t0 = Date.now();
+  const trace: AgentResult[] = [];
+
+  console.log('[script-pipeline] Analyzing script (' + scriptText.length + ' chars)');
+
+  try {
+    const context: PipelineContext = {
+      userInput: scriptText,
+      model: 'deepseek', // cheap text model for analysis
+      mode: 'script-analysis',
+    };
+
+    const result = await runAgent(SCRIPT_ANALYST, context, {});
+    console.log('[script-pipeline] Agent output (' + result.output.length + ' chars)');
+    trace.push(result);
+
+    // Parse JSON from agent output
+    let parsed: any;
+    try {
+      // Find JSON block in output (may be wrapped in markdown code fences)
+      let jsonStr = result.output;
+      const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenceMatch) jsonStr = fenceMatch[1];
+      // Trim any non-JSON prefix/suffix
+      const braceStart = jsonStr.indexOf('{');
+      const braceEnd = jsonStr.lastIndexOf('}');
+      if (braceStart >= 0 && braceEnd > braceStart) {
+        jsonStr = jsonStr.slice(braceStart, braceEnd + 1);
+      }
+      parsed = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      console.error('[script-pipeline] JSON parse failed:', parseErr);
+      return {
+        scriptTitle: '',
+        scenes: [],
+        characterProfiles: {},
+        trace,
+        totalDurationMs: Date.now() - t0,
+      };
+    }
+
+    return {
+      scriptTitle: parsed.scriptTitle || '',
+      scenes: (parsed.scenes || []).map((s: any) => ({
+        sceneNumber: s.sceneNumber || 1,
+        sceneHeader: s.sceneHeader || '',
+        location: s.location || '',
+        timeOfDay: s.timeOfDay || '',
+        shots: (s.shots || []).map((sh: any) => ({
+          shotNumber: sh.shotNumber || 1,
+          shotType: sh.shotType || 'MS',
+          cameraMovement: sh.cameraMovement || 'Static',
+          duration: sh.duration || 5,
+          angle: sh.angle || 'EyeLevel',
+          aperture: sh.aperture || 4,
+          role: sh.role || 'action',
+          visualPrompt: sh.visualPrompt || '',
+        })),
+      })),
+      characterProfiles: parsed.characterProfiles || {},
+      trace,
+      totalDurationMs: Date.now() - t0,
+    };
+  } catch (err) {
+    console.error('[script-pipeline] Error:', err);
+    return {
+      scriptTitle: '',
+      scenes: [],
+      characterProfiles: {},
       trace,
       totalDurationMs: Date.now() - t0,
     };

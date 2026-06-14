@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
+import { useCanvasStore } from '../../store/useCanvasStore';
 
 interface ShotNodeData {
   title: string;
@@ -46,9 +47,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const [scriptMode, setScriptMode] = useState(false);
+  const [scriptResult, setScriptResult] = useState<any>(null);
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
+  const canvasStore = useCanvasStore();
 
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
@@ -56,6 +60,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
   const handleGenerate = () => {
     if (genRunningRef.current) return;
+    if (scriptMode) {
+      handleScriptAnalysis();
+      return;
+    }
     // Allow empty prompt when reference images are connected (reverse-prompt mode)
     if (!prompt.trim() && (!(data as any).refUrls || (data as any).refUrls.length === 0)) return;
     genRunningRef.current = true;
@@ -65,6 +73,61 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       genRunningRef.current = false;
       setGenRunning(false);
     });
+  };
+
+  const handleScriptAnalysis = async () => {
+    if (!prompt.trim()) return;
+    genRunningRef.current = true;
+    setGenRunning(true);
+    setScriptResult(null);
+    try {
+      const resp = await fetch('/api/agent/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success) {
+        setScriptResult(json);
+        patch('scriptResult', json);
+        // Auto-create shot nodes from result
+        if (json.scenes && json.scenes.length > 0) {
+          const cx = canvasStore.nodes.get(id);
+          if (cx) {
+            let yOff = (cx.pos?.y || 0) + 200;
+            const xOff = (cx.pos?.x || 0) + 340;
+            json.scenes.forEach((scene: any, si: number) => {
+              scene.shots.forEach((shot: any, shi: number) => {
+                const nid = 'shot_' + Date.now() + '_' + si + '_' + shi;
+                canvasStore.addNode('shot', { x: xOff + shi * 320, y: yOff + si * 400 }, shot.visualPrompt?.slice(0, 30) || 'Shot ' + shot.shotNumber);
+                canvasStore.updateNode(nid, {
+                  meta: {
+                    shot: {
+                      intent_cn: shot.visualPrompt,
+                      framing: shot.shotType,
+                      movement: shot.cameraMovement,
+                      lens: shot.angle,
+                      aperture: shot.aperture,
+                    },
+                    gen: {
+                      prompt: shot.visualPrompt,
+                      model: 'GPT Image2',
+                      aspect: '16:9',
+                    },
+                  },
+                });
+              });
+            });
+            canvasStore.triggerSync();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[script-analysis] Error:', err);
+    } finally {
+      genRunningRef.current = false;
+      setGenRunning(false);
+    }
   };
 
   return (
@@ -233,9 +296,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   handleGenerate();
                 }
               }}
-              placeholder="输入需求或场景描述…"
-              maxLength={5000}
-              rows={expanded ? 8 : 4}
+              placeholder={scriptMode ? "粘贴完整剧本文本…\n\n例：\n酒吧内景 - 夜\nA一脚踹开大门，大步走进酒吧。所有人转头看向他。\n沉默。\nA走向吧台，坐下。" : "输入需求或场景描述…"}
+              maxLength={scriptMode ? 50000 : 5000}
+              rows={scriptMode ? 12 : expanded ? 8 : 4}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
@@ -248,8 +311,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-                Agent 自动路由
+                {scriptMode ? '剧本分镜分析' : 'Agent 自动路由'}
               </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setScriptMode(!scriptMode); setScriptResult(null); }}
+                style={{
+                  fontSize: '10px', fontWeight: 600, cursor: 'pointer',
+                  background: scriptMode ? 'rgba(255,180,60,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: scriptMode ? '1px solid rgba(255,180,60,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                  color: scriptMode ? '#ffaa44' : 'var(--tap-text-4)',
+                  borderRadius: 'var(--tap-r-full)', padding: '3px 10px',
+                  whiteSpace: 'nowrap',
+                }}
+              >{scriptMode ? '📜 剧本' : '分镜'}</button>
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',
