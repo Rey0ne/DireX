@@ -18,8 +18,12 @@ interface ShotNodeData {
     key?: string;
     lens?: string;
     angle?: string;
+    aperture?: number;
     mood?: string;
     color?: string;
+    lighting?: string;
+    composition?: string;
+    blocking?: string;
   };
   gen?: {
     prompt?: string;
@@ -54,6 +58,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
   const canvasStore = useCanvasStore();
+  const tagStyle = { fontSize:'9px', fontWeight:600, color:'var(--tap-accent)', background:'rgba(74,158,255,0.1)', padding:'1px 6px', borderRadius:'var(--tap-r-full)' } as const;
 
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
@@ -119,6 +124,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                     movement: shot.cameraMovement,
                     lens: shot.angle,
                     aperture: shot.aperture,
+                    key: shot.writerIntent || '',
+                    lighting: shot.lighting || '',
+                    composition: shot.composition || '',
+                    blocking: shot.blocking || '',
+                    mood: shot.role || '',
                   },
                   meta: {
                     gen: {
@@ -227,19 +237,24 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               </div>
             </div>
           ) : (shot.intent_cn || (gen.compiledPromptCn as string) || gen.compiledPrompt) ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                <span style={{
-                  fontSize: '10px', fontWeight: 600,
-                  color: 'var(--tap-accent)',
-                  background: 'rgba(74,158,255,0.12)',
-                  padding: '2px 8px', borderRadius: 'var(--tap-r-full)',
-                }}>
-                  {shot.intent_cn ? '分镜解析' : '提示词生成'}
-                </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* Shot metadata tags */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {shot.framing && <span style={tagStyle}>{shot.framing}</span>}
+                {shot.movement && <span style={tagStyle}>{shot.movement}</span>}
+                {shot.lens && <span style={tagStyle}>{shot.lens}</span>}
+                {shot.aperture && <span style={tagStyle}>T{shot.aperture}</span>}
+                {shot.mood && <span style={{...tagStyle, background:'rgba(180,140,80,0.12)', color:'#c8a060'}}>{shot.mood}</span>}
               </div>
+              {/* Writer Intent */}
+              {shot.key && <div style={{ fontSize:'11px', color:'#c8a060', lineHeight:1.5, padding:'4px 6px', background:'rgba(180,140,80,0.06)', borderRadius:6, borderLeft:'2px solid rgba(180,140,80,0.3)' }}>📝 {shot.key}</div>}
+              {/* Technical details */}
+              {(shot.lighting || shot.composition || shot.blocking) && <div style={{ fontSize:'10px', color:'var(--tap-text-3)', lineHeight:1.6, display:'flex', flexDirection:'column', gap:'2px' }}>
+                {shot.lighting && <div>💡 光线：{shot.lighting}</div>}
+                {shot.composition && <div>📐 构图：{shot.composition}</div>}
+                {shot.blocking && <div>🎭 调度：{shot.blocking}</div>}
+              </div>}
+              {/* Full visual prompt */}
               <div
                 onPointerDownCapture={e => e.stopPropagation()}
                 onMouseDownCapture={e => e.stopPropagation()}

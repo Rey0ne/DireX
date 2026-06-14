@@ -633,6 +633,10 @@ export interface ShotDef {
   angle: string;          // EyeLevel/LowAngle/HighAngle/BirdsEye
   aperture: number;       // 1.4 / 4 / 11
   role: string;           // establishing/action/dialog/reaction/insert
+  lighting: string;       // 光线描述
+  composition: string;    // 构图描述
+  blocking: string;       // 角色调度
+  writerIntent: string;   // 编剧意图——这场戏的戏剧目的
   visualPrompt: string;   // 完整中文画面描述
 }
 
@@ -715,6 +719,10 @@ export async function runScriptPipeline(scriptText: string): Promise<ScriptAnaly
           angle: sh.angle || 'EyeLevel',
           aperture: sh.aperture || 4,
           role: sh.role || 'action',
+          lighting: sh.lighting || '',
+          composition: sh.composition || '',
+          blocking: sh.blocking || '',
+          writerIntent: sh.writerIntent || '',
           visualPrompt: sh.visualPrompt || '',
         })),
       })),
