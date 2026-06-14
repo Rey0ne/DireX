@@ -70,6 +70,7 @@ const KLING_RESOLUTIONS = ['720P', '1080P'];
 const SEEDANCE_RESOLUTIONS = ['480P', '720P', '1080P'];
 
 
+const _vidLocks = new Map<string, boolean>();
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const panelRef = useRef<HTMLDivElement>(null);
@@ -119,7 +120,8 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   }, [curRes, patch]);
 
   const handleGenerate = () => {
-    if (genRunning) return;
+    if (_vidLocks.get(id) || genRunning) return;
+    _vidLocks.set(id, true);
     setGenRunning(true);
     const map: Record<string, unknown> = {
       prompt, model: curModel, genMode, duration: curDuration,
@@ -136,7 +138,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
       map.webSearch = false;
     }
     Object.keys(map).forEach(k => patch(k, map[k]));
-    Promise.resolve(data.onGenerate?.()).finally(() => setGenRunning(false));
+    Promise.resolve(data.onGenerate?.()).finally(() => { _vidLocks.set(id, false); setGenRunning(false); });
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
