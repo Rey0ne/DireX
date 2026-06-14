@@ -284,10 +284,31 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
     const existing = Array.from(nodesMap.values());
     if (existing.length > 0) return;
 
-    loadFromDB().then(restored => {
+    loadFromDB().then(async (restored) => {
       if (!restored) {
         // Fresh canvas — no demo nodes, user starts from scratch
       }
+      // 检查服务器是否有更丰富的画布（防止本地数据丢失）
+      try {
+        const resp = await fetch('/api/canvas');
+        if (resp.ok) {
+          const server = await resp.json();
+          const serverNodes = server.nodes || [];
+          const localNodes = useCanvasStore.getState().nodes;
+          if (Array.isArray(serverNodes) && serverNodes.length > localNodes.size) {
+            console.log('[restore] Server has ' + serverNodes.length + ' nodes, local has ' + localNodes.size + ' — restoring from server');
+            const nodeMap = new Map();
+            for (const n of serverNodes) {
+              nodeMap.set(n.id, n);
+            }
+            const edgeMap = new Map();
+            for (const e of (server.edges || [])) {
+              edgeMap.set(e.id, e);
+            }
+            useCanvasStore.setState({ nodes: nodeMap, edges: edgeMap });
+          }
+        }
+      } catch (e) { /* server not available, use local */ }
     });
 
     const cleanup = startAutoSave();
