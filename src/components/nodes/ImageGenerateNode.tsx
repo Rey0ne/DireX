@@ -154,6 +154,9 @@ function PD2({ children, onClose, anchorRect }: { children: React.ReactNode; onC
   </>, document.body);
 }
 
+// 模块级：防止组件重挂导致重复生成请求
+const _genLocks = new Map<string, boolean>();
+
 function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const [prompt, setPrompt] = useState(gen.prompt || '');
@@ -575,7 +578,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const genRunningRef = useRef(false);
 
   const handleGenerate = () => {
-    if (genRunningRef.current || !prompt.trim()) return;
+    if (_genLocks.get(id) || !prompt.trim()) return;
+    _genLocks.set(id, true);
     genRunningRef.current = true;
     setGenRunning(true);
     patch('prompt', prompt);
@@ -590,6 +594,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     patch('filmStock', FILM_STOCKS[filmIdx].name);
     // onGenerate is async but we fire-and-forget — button stays ⏳ until node remounts with imageUrl
     Promise.resolve(data.onGenerate?.()).finally(() => {
+      _genLocks.set(id, false);
       genRunningRef.current = false;
       setGenRunning(false);
     });

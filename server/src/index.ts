@@ -303,10 +303,24 @@ app.post('/api/agent/script', async (req: Request, res: Response) => {
   }
 });
 
+// 去重 + 日志：追踪重复请求来源
+let _genCount = 0; let _lastGenTs = 0;
+const _dedupMap = new Map<string, number>();
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
-  console.log('[agent] providerId received:', body.providerId, 'model:', (body as any).model, 'mode:', body.mode);
+  _genCount++;
+  const elapsed = Date.now() - _lastGenTs;
+  console.log(`[agent] #${_genCount} request (${elapsed}ms since last). total=${_genCount} provider=${body.providerId} prompt=${(body.rawText||'').slice(0,40)}`);
+  _lastGenTs = Date.now();
+  // 同节点 30 秒只允许一次生成
+  const nodeId = (body as any).nodeId || ((body.rawText || '').slice(0, 50));
+  const lastCall = _dedupMap.get(nodeId) || 0;
+  if (Date.now() - lastCall < 30000) {
+    console.log('[agent] DUP blocked node=' + nodeId);
+    return res.json({ compiled: { en:'',cn:'',negative:'',debug:[] }, result: { success:false, assetUrls:[], cost:0, durationMs:0, seed:0, error:'Duplicate node' } });
+  }
+  _dedupMap.set(nodeId, Date.now());
   const handler = getProvider(body.providerId);
   if (!handler) { res.status(400).json({ error: 'Unknown provider: ' + body.providerId }); return; }
   const config = getProfile();

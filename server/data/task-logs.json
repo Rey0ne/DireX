@@ -4677,6 +4677,80 @@
       ],
       "cost": 6.15,
       "durationMs": 307591
+    },
+    {
+      "id": "51c70a4d-5c17-4d62-b958-9db335756825",
+      "timestamp": "2026-06-14T14:09:01.928Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] Cinematic wide shot, IMAX film aesthetic, 24mm lens, f/4 aperture. A desolate, freezing tundra under a heavy, overcast sky. Violent blizzard whipping up fine ice crystals in the air. In the center, two opposing factions of wolf-humanoids stand in a tense standoff: on the left, Queen Surli’s female wolf-warriors; on the right, Kadia’s male wolf pack. Between them lies a harrowing, blood-stained snowfield with several wolf carcasses pierced by arrows, deep crimson blood contrasting sharply against the pristine white snow. Gritty, raw, and brutal texture. Cold color palette, desaturated blues and greys, high-contrast lighting. Distant jagged snow-capped mountains fading into the swirling storm. Kodak 500T film stock, heavy grain, epic scale, melancholic and oppressive atmosphere, hyper-realistic, 8k resolution.",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] Cinematic wide shot, IMAX film aesthetic, 24mm lens, f/4 aperture. A desolate, freezing tundra under a heavy, overcast sky. Violent blizzard whipping up fine ice crystals in the air. In the center, two opposing factions of wolf-humanoids stand in a tense standoff: on the left, Queen Surli’s female wolf-warriors; on the right, Kadia’s male wolf pack. Between them lies a harrowing, blood-stained snowfield with several wolf carcasses pierced by arrows, deep crimson blood contrasting sharply against the pristine white snow. Gritty, raw, and brutal texture. Cold color palette, desaturated blues and greys, high-contrast lighting. Distant jagged snow-capped mountains fading into the swirling storm. Kodak 500T film stock, heavy grain, epic scale, melancholic and oppressive atmosphere, hyper-realistic, 8k resolution.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122845,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "907cd083-5255-45a9-82dc-9e5fa57101ce",
+      "timestamp": "2026-06-14T14:27:07.207Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122374,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "4eb72620-e04b-44ad-bbd5-9dce259fa5dd",
+      "timestamp": "2026-06-14T14:35:10.421Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122224,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "87a860eb-eac0-4ba7-b0a2-8de94bfac893",
+      "timestamp": "2026-06-14T14:38:55.167Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 124074,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "111f06eb-3114-4b9c-9fd4-4348a08cfbad",
+      "timestamp": "2026-06-14T14:46:17.582Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121991
+    },
+    {
+      "id": "a3a476eb-9b4f-4c74-9ea9-660a6f1bc826",
+      "timestamp": "2026-06-14T14:54:25.330Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 243990
     }
   ]
 }

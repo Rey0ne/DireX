@@ -487,9 +487,13 @@ async function runAgent(
     '\n\n请按照你的角色职责输出。';
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
-  let output = await gpt5Chat(profile.systemPrompt, userMessage, { maxTokens });
-  if (!output) {
+  let output: string|null = null;
+  // 剧本分析长文本用高 token 上限
+  if (profile.id === 'script-analyst') {
     output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
+  } else {
+    output = await gpt5Chat(profile.systemPrompt, userMessage, 1500, 'high');
+    if (!output) output = await geminiChat(profile.systemPrompt, userMessage, 1500);
   }
   return {
     agentId: profile.id,
@@ -662,16 +666,17 @@ export interface ScriptAnalysisResult {
   totalDurationMs: number;
 }
 
-export async function runScriptPipeline(scriptText: string): Promise<ScriptAnalysisResult> {
+export async function runScriptPipeline(scriptText: string, visualStyle = ''): Promise<ScriptAnalysisResult> {
   const t0 = Date.now();
   const trace: AgentResult[] = [];
 
-  console.log('[script-pipeline] Analyzing script (' + scriptText.length + ' chars)');
+  console.log('[script-pipeline] Analyzing script (' + scriptText.length + ' chars)' + (visualStyle ? ' style:' + visualStyle : ''));
 
   try {
+    const styleContext = visualStyle ? '\n\n[视觉风格要求]\n所有镜头的visualPrompt和videoPrompt必须严格遵循此视觉风格：' + visualStyle + '\n将风格特征融入每个画面的场景氛围、光线设计、色彩调色板和构图中。' : '';
     const context: PipelineContext = {
-      userInput: scriptText,
-      model: 'deepseek', // cheap text model for analysis
+      userInput: scriptText + styleContext,
+      model: 'deepseek',
       mode: 'script-analysis',
     };
 

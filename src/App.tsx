@@ -456,6 +456,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   referencePrompts: refPrompts,
                 } as any)
               : await generateWithAgent({
+                  nodeId: n.id,
                   providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
                   mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
                   rawText: (meta.prompt as string) || '',

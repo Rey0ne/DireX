@@ -53,6 +53,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
   const [scriptMode, setScriptMode] = useState(false);
+  const [visualStyle, setVisualStyle] = useState('真人电影'); // 视觉风格
   const [scriptResult, setScriptResult] = useState<any>(null);
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
@@ -96,7 +97,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const resp = await fetch('/api/agent/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
-        body: JSON.stringify({ scriptText: prompt }),
+        body: JSON.stringify({ scriptText: prompt, visualStyle }),
       });
       const json = await resp.json();
       if (json.success) {
@@ -117,30 +118,35 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 globalIdx++;
                 const label = shot.shotType + ' #' + shot.shotNumber;
                 const nid = 'img_' + Date.now() + '_' + si + '_' + shi;
-                canvasStore.addNode('image.generate', { x: baseX + col * 340, y: baseY + row * 400 }, label);
-                const metaData = {
-                  gen: {
-                    prompt: shot.visualPrompt,
-                    videoPrompt: shot.videoPrompt || '',
-                    model: 'GPT Image2',
-                    aspect: '16:9',
-                    resolution: '2K',
-                    quality: 'high',
+                // 直接写入完整节点，避免 addNode+updateNode 时序导致 prompt 丢失
+                const now = new Date().toISOString();
+                const st = useCanvasStore.getState();
+                const next = new Map(st.nodes);
+                next.set(nid, {
+                  id: nid, type: 'image.generate', title: label,
+                  pos: { x: baseX + col * 340, y: baseY + row * 400 },
+                  size: { w: 380, h: 200 }, ports: [], status: 'idle',
+                  meta: {
+                    gen: {
+                      prompt: shot.visualPrompt,
+                      videoPrompt: shot.videoPrompt || '',
+                      model: 'GPT Image2', aspect: '16:9',
+                      resolution: '2K', quality: 'high',
+                    },
+                    shot: {
+                      shotType: shot.shotType,
+                      cameraMovement: shot.cameraMovement,
+                      angle: shot.angle, aperture: shot.aperture,
+                      writerIntent: shot.writerIntent || '',
+                      lighting: shot.lighting || '',
+                      composition: shot.composition || '',
+                      blocking: shot.blocking || '',
+                      role: shot.role || '',
+                    },
                   },
-                  shot: {
-                    shotType: shot.shotType,
-                    cameraMovement: shot.cameraMovement,
-                    angle: shot.angle,
-                    aperture: shot.aperture,
-                    writerIntent: shot.writerIntent || '',
-                    lighting: shot.lighting || '',
-                    composition: shot.composition || '',
-                    blocking: shot.blocking || '',
-                    role: shot.role || '',
-                  },
-                };
-                // Ensure addNode finishes before updateNode
-                setTimeout(() => canvasStore.updateNode(nid, { meta: metaData }), 0);
+                  createdAt: now, updatedAt: now,
+                });
+                useCanvasStore.setState({ nodes: next });
               });
             });
             canvasStore.triggerSync();
@@ -306,7 +312,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {scriptMode && <div style={{ padding: '6px 12px 0' }}>
+              <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
+                placeholder="视觉风格，如：新海诚动漫、BBC自然纪录片、1970年代意大利铅黄电影、赛博朋克…"
+                style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:6,color:'#ccc',fontSize:10,padding:'4px 8px',outline:'none' }}
+                onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
+            </div>}
+            <div style={{ padding: scriptMode?'4px 12px 0':'8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
               <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
                 style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}
