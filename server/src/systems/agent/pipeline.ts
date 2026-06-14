@@ -686,7 +686,7 @@ export async function runScriptPipeline(scriptText: string, visualStyle = ''): P
       mode: 'script-analysis',
     };
 
-    const result = await runAgent(SCRIPT_ANALYST, context, {}, 8000);
+    const result = await runAgent(SCRIPT_ANALYST, context, {}, 24000);
     console.log('[script-pipeline] Agent output (' + result.output.length + ' chars)');
     trace.push(result);
 
