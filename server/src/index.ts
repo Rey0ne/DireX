@@ -96,8 +96,21 @@ setInterval(() => {
   if (bk) console.log(`[canvas] Auto-backup: ${path.basename(bk)}`);
 }, 5 * 60 * 1000);
 
+// 前端启动时拉取服务器画布状态（用于恢复）
+app.get('/api/canvas', (_req, res) => {
+  res.json({ nodes: canvasState.nodes || [], edges: canvasState.edges || [], updatedAt: canvasState.updatedAt || '' });
+});
+
 app.post('/api/canvas/sync', (req, res) => {
-  canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
+  const incoming = req.body.nodes || [];
+  const current = canvasState.nodes || [];
+  // 保护：不接收比当前更少的节点（防止旧客户端覆盖服务器数据）
+  if (Array.isArray(incoming) && Array.isArray(current) && incoming.length < current.length) {
+    console.log(`[canvas] Sync blocked: incoming ${incoming.length} nodes < current ${current.length}`);
+    res.json({ ok: true, restored: true, nodeCount: current.length });
+    return;
+  }
+  canvasState = { nodes: incoming, edges: req.body.edges || [], updatedAt: new Date().toISOString() };
   writeJSON(CANVAS_FILE, canvasState);
   const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
   const imageUrls: string[] = [];
