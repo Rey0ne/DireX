@@ -244,10 +244,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 onPointerDownCapture={e => e.stopPropagation()}
                 onMouseDownCapture={e => e.stopPropagation()}
                 style={{
-                  maxHeight: '320px', overflowY: 'auto',
+                  overflowY: 'auto',
                   fontSize: 'var(--tap-fs-body)',
                   color: 'var(--tap-text-1)', lineHeight: 1.8,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-all', overflowWrap: 'anywhere',
                   userSelect: 'text', cursor: 'text',
                 }}>
                 {shot.intent_cn || (gen.compiledPromptCn as string) || (gen.compiledPrompt as string)}
@@ -313,13 +313,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 }
               }}
               placeholder={scriptMode ? "粘贴完整剧本文本…\n\n例：\n酒吧内景 - 夜\nA一脚踹开大门，大步走进酒吧。所有人转头看向他。\n沉默。\nA走向吧台，坐下。" : "输入需求或场景描述…"}
-              maxLength={scriptMode ? 999999 : 10000}
-              rows={scriptMode ? 12 : expanded ? 8 : 4}
+              rows={scriptMode ? 18 : expanded ? 8 : 4}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
-                color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
-                lineHeight: 1.5, overflowY: 'auto',
+                color: 'var(--tap-text-1)', resize: 'vertical', outline: 'none',
+                lineHeight: 1.5, overflowY: 'scroll', minHeight: scriptMode ? '360px' : 'auto',
               }}
             />
             <div style={{

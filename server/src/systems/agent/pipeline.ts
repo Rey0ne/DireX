@@ -437,7 +437,8 @@ export async function compileI2IWithGPT5(
 async function runAgent(
   profile: AgentProfile,
   context: PipelineContext,
-  previousOutputs: Record<string, string>
+  previousOutputs: Record<string, string>,
+  maxTokens = 1500
 ): Promise<AgentResult> {
   const t0 = Date.now();
 
@@ -486,9 +487,10 @@ async function runAgent(
     '\n\n请按照你的角色职责输出。';
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
+  const outTokens = profile.id === 'script-analyst' ? 8000 : 1500;
   let output = await gpt5Chat(profile.systemPrompt, userMessage, 1500, 'high');
   if (!output) {
-    output = await geminiChat(profile.systemPrompt, userMessage, 1500);
+    output = await geminiChat(profile.systemPrompt, userMessage, outTokens);
   }
   return {
     agentId: profile.id,
@@ -669,7 +671,7 @@ export async function runScriptPipeline(scriptText: string): Promise<ScriptAnaly
       mode: 'script-analysis',
     };
 
-    const result = await runAgent(SCRIPT_ANALYST, context, {});
+    const result = await runAgent(SCRIPT_ANALYST, context, {}, 8000);
     console.log('[script-pipeline] Agent output (' + result.output.length + ' chars)');
     trace.push(result);
 
