@@ -3,7 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
-import { readJSON, writeJSON } from './systems/db/store.js';
+import { readJSON, writeJSON, backupJSON } from './systems/db/store.js';
 import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
@@ -82,8 +82,19 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Da
 
 // ─── Canvas Sync ─────────────────────────────
 const CANVAS_FILE = 'data/canvas-state.json';
+
+// 启动时自动备份当前存档
+const startupBackup = backupJSON(CANVAS_FILE);
+if (startupBackup) console.log(`[canvas] Backup saved: ${startupBackup}`);
+
 let canvasState: any = readJSON(CANVAS_FILE) || { nodes: [], edges: [], updatedAt: '' };
 console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
+
+// 每 5 分钟自动备份
+setInterval(() => {
+  const bk = backupJSON(CANVAS_FILE);
+  if (bk) console.log(`[canvas] Auto-backup: ${path.basename(bk)}`);
+}, 5 * 60 * 1000);
 
 app.post('/api/canvas/sync', (req, res) => {
   canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
