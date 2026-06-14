@@ -274,14 +274,14 @@ app.post('/api/agent/text', async (req: Request, res: Response) => {
 
 // ─── Script Analysis — 剧本 → 分镜结构 ───
 app.post('/api/agent/script', async (req: Request, res: Response) => {
-  const { scriptText } = req.body;
+  const { scriptText, visualStyle } = req.body;
   if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
     res.status(400).json({ error: '请提供剧本文本（至少10个字符）' });
     return;
   }
   console.log('[script-api] Analyzing script (' + scriptText.length + ' chars): ' + scriptText.slice(0, 80) + '...');
   try {
-    const result = await runScriptPipeline(scriptText.trim());
+    const result = await runScriptPipeline(scriptText.trim(), visualStyle || '');
     console.log('[script-api] Complete in ' + result.totalDurationMs + 'ms, ' +
       result.scenes.length + ' scenes, ' +
       result.scenes.reduce((sum, s) => sum + s.shots.length, 0) + ' shots');
@@ -359,17 +359,12 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
         }
       } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = enrichedPrompt; }
     } else {
-      // T2I mode: full cinematic compilation
+      // T2I mode: single compilation (skip expensive 4-agent pipeline)
       try {
-        const pipelineResult = await runAgentPipeline({
-          userInput: enrichedPrompt, model: body.providerId, mode: body.mode,
-          referenceUrls: (body as any).referenceUrls,
-          referencePrompts: (body as any).referencePrompts,
-          aspect: body.aspect, resolution: body.resolution,
-        });
-        compiledPrompt = pipelineResult.modelPrompt || userPrompt;
-        agentTrace = pipelineResult.trace;
-      } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
+        const compiled = await compilePrompt(enrichedPrompt, undefined, (body as any).referenceUrls);
+        compiledPrompt = compiled.en || userPrompt;
+        agentTrace = compiled.debug || [];
+      } catch(e) { compiledPrompt = userPrompt; console.error('[compile] Error:', e); }
     }
   } else {
     compiledPrompt = enrichedPrompt;
