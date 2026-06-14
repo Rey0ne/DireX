@@ -637,7 +637,8 @@ export interface ShotDef {
   composition: string;    // 构图描述
   blocking: string;       // 角色调度
   writerIntent: string;   // 编剧意图——这场戏的戏剧目的
-  visualPrompt: string;   // 完整中文画面描述
+  visualPrompt: string;   // 图生提示词
+  videoPrompt: string;    // 视频生成提示词
 }
 
 export interface SceneDef {
@@ -724,6 +725,7 @@ export async function runScriptPipeline(scriptText: string): Promise<ScriptAnaly
           blocking: sh.blocking || '',
           writerIntent: sh.writerIntent || '',
           visualPrompt: sh.visualPrompt || '',
+          videoPrompt: sh.videoPrompt || '',
         })),
       })),
       characterProfiles: parsed.characterProfiles || {},

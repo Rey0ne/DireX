@@ -133,6 +133,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   meta: {
                     gen: {
                       prompt: shot.visualPrompt,
+                      videoPrompt: shot.videoPrompt || '',
                       model: 'GPT Image2',
                       aspect: '16:9',
                     },
