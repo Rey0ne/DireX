@@ -115,7 +115,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
       type,
       title: title || type,
       pos,
-      size: type==='scene.3d'?{w:500,h:300}:type==='world.3d'?{w:500,h:300}:{w:380,h:200},
+      size: type==='scene.3d'?{w:500,h:300}:type==='world.3d'?{w:500,h:300}:type==='shot'?{w:380,h:420}:{w:380,h:200},
       ports: [],
       status: 'idle',
       meta: {},

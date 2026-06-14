@@ -1,7 +1,7 @@
 /* === ShotNode — Text generation node === */
 /* Agent decides output type (storyboard / image-prompt / etc.) based on user input */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
@@ -45,7 +45,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const panelRef = useRef<HTMLDivElement>(null);
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
-  const [prompt, setPrompt] = useState(gen.prompt || '');
+  const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
   const [scriptMode, setScriptMode] = useState(false);
@@ -58,6 +58,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
+
+  // 自动保存输入框内容到 store（刷新不丢）
+  useEffect(() => {
+    const t = setTimeout(() => { if (prompt) patch('prompt', prompt); }, 800);
+    return () => clearTimeout(t);
+  }, [prompt]);
 
   const handleGenerate = () => {
     if (genRunningRef.current) return;
@@ -238,7 +244,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 onPointerDownCapture={e => e.stopPropagation()}
                 onMouseDownCapture={e => e.stopPropagation()}
                 style={{
-                  maxHeight: '200px', overflowY: 'auto',
+                  maxHeight: '320px', overflowY: 'auto',
                   fontSize: 'var(--tap-fs-body)',
                   color: 'var(--tap-text-1)', lineHeight: 1.8,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word',
@@ -299,6 +305,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               }}
               onPointerDownCapture={e => { e.stopPropagation() }}
               onMouseDownCapture={e => { e.stopPropagation() }}
+              onWheel={e => e.stopPropagation()}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -306,13 +313,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 }
               }}
               placeholder={scriptMode ? "粘贴完整剧本文本…\n\n例：\n酒吧内景 - 夜\nA一脚踹开大门，大步走进酒吧。所有人转头看向他。\n沉默。\nA走向吧台，坐下。" : "输入需求或场景描述…"}
-              maxLength={scriptMode ? 50000 : 5000}
+              maxLength={scriptMode ? 999999 : 10000}
               rows={scriptMode ? 12 : expanded ? 8 : 4}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
                 color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
-                lineHeight: 1.5,
+                lineHeight: 1.5, overflowY: 'auto',
               }}
             />
             <div style={{
