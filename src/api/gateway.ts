@@ -145,6 +145,6 @@ export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGener
 }
 
 // ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
-function getSharedApiKey(): string {
+export function getSharedApiKey(): string {
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';
 }

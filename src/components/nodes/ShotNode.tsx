@@ -7,6 +7,7 @@ import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { getSharedApiKey } from '../../api/gateway';
 
 interface ShotNodeData {
   title: string;
@@ -83,7 +84,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     try {
       const resp = await fetch('/api/agent/script', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
         body: JSON.stringify({ scriptText: prompt }),
       });
       const json = await resp.json();
