@@ -131,8 +131,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           const baseX = (cx.pos?.x || 0) + 340;
           const baseY = (cx.pos?.y || 0) + 200;
           const now = new Date().toISOString();
-          const st = useCanvasStore.getState();
-          const next = new Map(st.nodes);
+          const next = new Map(canvasStore.nodes);
           json.shots.forEach((shot: any, shi: number) => {
             const row = Math.floor(shi / COLS);
             const col = shi % COLS;
@@ -255,7 +254,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   ))}
                 </div>
                 <div onClick={async()=>{
-                  const p=scriptOverview.characterProfiles;const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
+                  const p=scriptOverview.characterProfiles;const next2=new Map(canvasStore.nodes);
                   const baseX2=(st2.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
                   for(const [name,info] of Object.entries(p) as [string,any][]){
                     const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
