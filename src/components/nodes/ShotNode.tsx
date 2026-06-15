@@ -256,31 +256,27 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           {/* Phase 1 result: Scene overview list */}
           {scriptMode && phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-              {/* 角色清单 — 每个角色一个按钮，点击出图 */}
+              {/* 角色清单 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
-                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600,marginBottom:4 }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色 — 点击生成设定图</div>
+                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色</div>
                 <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
                   {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
-                    <button key={name} onClick={()=>{
-                      const groupMatch2=name.match(/^(.+)\((\d+)人\)$/);
-                      const count2=groupMatch2?parseInt(groupMatch2[2]):1;
-                      const baseN=groupMatch2?groupMatch2[1]:name;
-                      const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
-                      const bx=(st2.nodes.get(id)?.pos?.x||0)+360;
-                      for(let g=0;g<count2;g++){
-                        const gName=count2>1?`${baseN} #${g+1}`:baseN;
-                        const prompt=`角色设定图：${gName}。${(info as any).appearance||''}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。${count2>1?'面部特征'+g+'号':''}`;
-                        const nid='char_'+Date.now()+'_'+g;
-                        next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,pos:{x:bx+g*220,y:(st2.nodes.get(id)?.pos?.y||0)},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角'},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-                      }
-                      useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
-                    }} style={{
-                      fontSize:9,fontWeight:500,cursor:'pointer',padding:'3px 8px',borderRadius:12,border:'1px solid',
-                      background:info.role==='主角'?'rgba(100,180,255,0.08)':info.role==='反派'?'rgba(255,100,100,0.08)':'rgba(255,255,255,0.04)',
-                      borderColor:info.role==='主角'?'rgba(100,180,255,0.25)':info.role==='反派'?'rgba(255,100,100,0.25)':'rgba(255,255,255,0.1)',
-                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)',
-                    }}>{name}</button>
+                    <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
+                      background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
+                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>{name}</span>
                   ))}
+                </div>
+                <div onClick={async()=>{
+                  const p=scriptOverview.characterProfiles;const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
+                  const baseX2=(st2.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
+                  for(const [name,info] of Object.entries(p) as [string,any][]){
+                    const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
+                    for(let g=0;g<c2;g++){const gn=c2>1?`${bn}#${g+1}`:bn;
+                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(st2.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt:`角色设定图：${gn}。${(info as any).appearance||''}。白色背景。三视图（正面侧面背面）。武器道具和表情设定。完整角色参考图。`,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
+                  }
+                  useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
+                }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff',marginTop:2}}>
+                  🎭 生成角色设定图，共{Object.keys(scriptOverview.characterProfiles).length}个角色
                 </div>
               </>)}
               {/* 场景列表 */}
