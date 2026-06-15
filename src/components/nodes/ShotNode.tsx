@@ -408,20 +408,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
                 {phase==='overview'?'📋 点击场景卡片生成分镜':phase==='shots'?'✅ 分镜完成':'粘贴剧本，回车分析'}
               </span>
-              <button onClick={async (e) => {
-                e.stopPropagation();
-                if (!prompt.trim()||genRunningRef.current) return;
-                genRunningRef.current=true;setGenRunning(true);
-                try {
-                  const resp=await fetch('/api/agent/script/characters',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scriptText:prompt})});
-                  const json=await resp.json();
-                  if(json.success){setScriptOverview({...scriptOverview,characterProfiles:json.characters,scriptTitle:scriptOverview?.scriptTitle||'角色分析'});setPhase('overview');}
-                }catch{}finally{genRunningRef.current=false;setGenRunning(false);}
-              }} style={{
-                fontSize:'10px',fontWeight:600,cursor:'pointer',
-                background:'rgba(100,200,180,0.08)',border:'1px solid rgba(100,200,180,0.2)',
-                color:'#88ccbb',borderRadius:'var(--tap-r-full)',padding:'3px 10px',whiteSpace:'nowrap',
-              }}>👥 角色分析</button>
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',
