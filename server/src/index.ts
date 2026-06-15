@@ -306,13 +306,14 @@ app.post('/api/agent/script', async (req: Request, res: Response) => {
 
 // ─── 角色提取（独立）───
 app.post('/api/agent/script/characters', async (req: Request, res: Response) => {
-  const { scriptText } = req.body;
+  const { scriptText, visualStyle } = req.body;
   if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
     res.status(400).json({ error: '请提供剧本文本' }); return;
   }
-  console.log('[char-api] Extracting characters (' + scriptText.length + ' chars)');
+  const styleHint = visualStyle ? '\n\n[视觉风格要求]\n所有角色外观描述必须符合此风格：' + visualStyle : '';
+  console.log('[char-api] Extracting characters (' + scriptText.length + ' chars)' + (visualStyle ? ' style:' + visualStyle : ''));
   try {
-    const context = { userInput: scriptText.trim(), model: 'deepseek', mode: 'character-extract' };
+    const context = { userInput: scriptText.trim() + styleHint, model: 'gpt-5-5', mode: 'character-extract' };
     const result = await runAgent(CHARACTER_EXTRACTOR, context as any, {}, 4000);
     let chars: Record<string, any> = {};
     try {

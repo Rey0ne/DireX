@@ -88,8 +88,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     try {
       // 并行：角色提取 + 场景概览
       const [charResp, overviewResp] = await Promise.all([
-        fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt}) }),
-        fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt}) }),
+        fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
+        fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
       ]);
       const charJson = await charResp.json();
       const overviewJson = await overviewResp.json();
