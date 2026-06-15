@@ -672,6 +672,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       store.pushHistory();
     }
     store.updateNode(node.id, { pos: node.position });
+    saveNow(); // 拖拽结束立即保存到服务器，防止刷新丢位置
   }, []);
 
   // ─── Node hover during connection → target glow ──
