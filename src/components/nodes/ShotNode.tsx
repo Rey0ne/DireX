@@ -256,43 +256,31 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           {/* Phase 1 result: Scene overview list */}
           {scriptMode && phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-              {/* 角色清单 */}
+              {/* 角色清单 — 每个角色一个按钮，点击出图 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
-                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色</div>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600,marginBottom:4 }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色 — 点击生成设定图</div>
                 <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
                   {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
-                    <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
-                      background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
-                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>
-                      {name}
-                    </span>
+                    <button key={name} onClick={()=>{
+                      const groupMatch2=name.match(/^(.+)\((\d+)人\)$/);
+                      const count2=groupMatch2?parseInt(groupMatch2[2]):1;
+                      const baseN=groupMatch2?groupMatch2[1]:name;
+                      const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
+                      const bx=(st2.nodes.get(id)?.pos?.x||0)+360;
+                      for(let g=0;g<count2;g++){
+                        const gName=count2>1?`${baseN} #${g+1}`:baseN;
+                        const prompt=`角色设定图：${gName}。${(info as any).appearance||''}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。${count2>1?'面部特征'+g+'号':''}`;
+                        const nid='char_'+Date.now()+'_'+g;
+                        next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,pos:{x:bx+g*220,y:(st2.nodes.get(id)?.pos?.y||0)},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角'},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+                      }
+                      useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
+                    }} style={{
+                      fontSize:9,fontWeight:500,cursor:'pointer',padding:'3px 8px',borderRadius:12,border:'1px solid',
+                      background:info.role==='主角'?'rgba(100,180,255,0.08)':info.role==='反派'?'rgba(255,100,100,0.08)':'rgba(255,255,255,0.04)',
+                      borderColor:info.role==='主角'?'rgba(100,180,255,0.25)':info.role==='反派'?'rgba(255,100,100,0.25)':'rgba(255,255,255,0.1)',
+                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)',
+                    }}>{name}</button>
                   ))}
-                </div>
-                {/* 一键生成角色设定图 */}
-                <div onClick={async () => {
-                  const profiles = scriptOverview.characterProfiles;
-                  const st2 = useCanvasStore.getState();const next2=new Map(st2.nodes);
-                  const baseX=(st2.nodes.get(id)?.pos?.x||0)+360;const baseY=(st2.nodes.get(id)?.pos?.y||0)-120;
-                  let ci=0;const COLS2=4;
-                  for(const [name,info] of Object.entries(profiles) as [string,any][]){
-                    const groupMatch=name.match(/^(.+)\((\d+)人\)$/);
-                    const count=groupMatch?parseInt(groupMatch[2]):1;
-                    const baseName2=groupMatch?groupMatch[1]:name;
-                    for(let g=0;g<count;g++){
-                      const gName=count>1?`${baseName2} #${g+1}`:baseName2;
-                      const faceHint=count>1?`，面部特征${g+1}号`:'';
-                      const prompt=`角色设定图：${gName}。${(info as any).appearance||''}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。${faceHint}`;
-                      const nid='char_'+Date.now()+'_'+ci;
-                      next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,
-                        pos:{x:baseX+(ci%COLS2)*220,y:baseY+Math.floor(ci/COLS2)*220},size:{w:200,h:200},ports:[],status:'idle',
-                        meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
-                        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-                      ci++;
-                    }
-                  }
-                  useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
-                }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px 12px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff'}}>
-                  🎭 一键生成角色设定图
                 </div>
               </>)}
               {/* 场景列表 */}
