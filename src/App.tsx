@@ -298,6 +298,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
           if (Array.isArray(serverNodes) && serverNodes.length > 0) {
             console.log('[restore] Loading ' + serverNodes.length + ' nodes from server');
             const now = new Date().toISOString();
+            // 从 localStorage 恢复最近拖拽的位置
+            let localPos: Record<string,{x:number;y:number}> = {};
+            try { localPos = JSON.parse(localStorage.getItem('tapnow-node-pos')||'{}'); } catch {}
             const nodeMap = new Map();
             for (let i = 0; i < serverNodes.length; i++) {
               const n = serverNodes[i];
@@ -311,7 +314,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
               nodeMap.set(n.id, {
                 ...n,
                 meta,
-                pos: n.pos || { x: (i%8)*340+100, y: Math.floor(i/8)*380+100 },
+                pos: localPos[n.id] || n.pos || { x: (i%8)*340+100, y: Math.floor(i/8)*380+100 },
                 size: n.size || { w: 300, h: 200 },
                 ports: n.ports || [],
                 status: n.status || 'idle',
@@ -672,7 +675,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       store.pushHistory();
     }
     store.updateNode(node.id, { pos: node.position });
-    saveNow(); // 拖拽结束立即保存到服务器，防止刷新丢位置
+    // localStorage 即时备份节点位置
+    try { const pmap=JSON.parse(localStorage.getItem('tapnow-node-pos')||'{}'); pmap[node.id]=node.position; localStorage.setItem('tapnow-node-pos',JSON.stringify(pmap)); } catch {}
+    saveNow();
   }, []);
 
   // ─── Node hover during connection → target glow ──
