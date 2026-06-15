@@ -53,11 +53,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
-  const savedOverview = (data as any).scriptOverview || (gen as any).scriptOverview || null;
-  const [scriptOverview, setScriptOverview] = useState<any>(savedOverview);
-  const overviewRef = useRef<any>(savedOverview);
+  const getOverview = () => (data as any).scriptOverview || (gen as any).scriptOverview || null;
   const [scriptResult, setScriptResult] = useState<any>(null);
-  const [phase, setPhase] = useState<'input'|'overview'|'shots'>(savedOverview ? 'overview' : 'input');
+  const [phase, setPhase] = useState<'input'|'overview'|'shots'>('input');
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
@@ -95,15 +93,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const [charJson, overviewJson] = await Promise.all([charResp.json(), overviewResp.json()]);
       const result = { ...overviewJson, characterProfiles: charJson.success ? charJson.characters : (overviewJson.characterProfiles||{}) };
       patch('scriptOverview', result);
-      overviewRef.current = result;
-      setScriptOverview(result);
       setPhase('overview');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
   const handleSceneShot = async (sceneIndex: number) => {
-    const overview = overviewRef.current;
+    const overview = getOverview();
     if (!overview) return;
     const scene = overview.scenes[sceneIndex];
     if (!scene) return;
@@ -197,20 +193,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
           {/* Phase 1 result: Scene overview list */}
           {/* Overview UI removed — nodes created directly by handleScriptAnalysis */}
-          {phase === 'overview' && scriptOverview && (
+          {phase === 'overview' && getOverview() && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {/* 角色清单 */}
-              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
-                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 组角色（含群演共 {Object.entries(scriptOverview.characterProfiles).reduce((sum,[,v]:[string,any])=>{const m=(typeof v==='string'?v:'').match(/\((\d+)人\)/)||(typeof v==='object'?(v.appearance||v.role||''):'');return sum+1;},0)} 人以上）</div>
+              {getOverview().characterProfiles && Object.keys(getOverview().characterProfiles).length > 0 && (<>
+                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(getOverview().characterProfiles).length} 组角色（含群演共 {Object.entries(getOverview().characterProfiles).reduce((sum,[,v]:[string,any])=>{const m=(typeof v==='string'?v:'').match(/\((\d+)人\)/)||(typeof v==='object'?(v.appearance||v.role||''):'');return sum+1;},0)} 人以上）</div>
                 <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
-                  {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
+                  {Object.entries(getOverview().characterProfiles).map(([name,info]:[string,any]) => (
                     <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
                       background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
                       color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>{name}</span>
                   ))}
                 </div>
                 <div onClick={async()=>{
-                  const p=overviewRef.current?.characterProfiles;if(!p)return;const next2=new Map(canvasStore.nodes);
+                  const p=getOverview()?.characterProfiles;if(!p)return;const next2=new Map(canvasStore.nodes);
                   const baseX2=(canvasStore.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
                   for(const [name,info] of Object.entries(p) as [string,any][]){
                     const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
@@ -222,14 +218,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   }
                   useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
                 }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff',marginTop:2}}>
-                  🎭 生成角色设定图，共{Object.keys(scriptOverview.characterProfiles).length}个角色
+                  🎭 生成角色设定图，共{Object.keys(getOverview().characterProfiles).length}个角色
                 </div>
               </>)}
               {/* 段落分镜按钮 */}
-              {scriptOverview.scenes && scriptOverview.scenes.length>0 && <>
-                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {scriptOverview.scenes.length} 段</div>
-                {scriptOverview.scenes.map((s:any,i:number) => (
-                <button key={i} onClick={async()=>{const ov=overviewRef.current;if(!ov)return;const sc=ov.scenes[i];if(!sc)return;genRunningRef.current=true;setGenRunning(true);try{const r=await fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})});const j=await r.json();if(j.success&&j.shots){const cx=canvasStore.nodes.get(id);if(cx){const BX=(cx.pos?.x||0)+340;const BY=(cx.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{const nid=canvasStore.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);canvasStore.updateNode(nid,{meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}}});});}}}catch(e){console.error(e)}finally{genRunningRef.current=false;setGenRunning(false)}}} style={{
+              {getOverview().scenes && getOverview().scenes.length>0 && <>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
+                {getOverview().scenes.map((s:any,i:number) => (
+                <button key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})}).then(r=>r.json()).then(j=>{console.log('[SCENE]',j.success,j.shots?.length);if(j.success&&j.shots){const cx=canvasStore.nodes.get(id);if(!cx)return;const BX=(cx.pos?.x||0)+340;const BY=(cx.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{const nid=canvasStore.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);canvasStore.updateNode(nid,{meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}}});});}}).catch(e=>console.error(e));}} style={{
                   padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
