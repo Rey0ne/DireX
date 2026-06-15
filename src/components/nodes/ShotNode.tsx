@@ -102,50 +102,30 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
-  const handleSceneShot = useCallback(async (sceneIndex: number) => {
+  const handleSceneShot = async (sceneIndex: number) => {
     const overview = overviewRef.current;
     if (!overview) return;
     const scene = overview.scenes[sceneIndex];
     if (!scene) return;
-    genRunningRef.current = true;
-    setGenRunning(true);
+    genRunningRef.current = true; setGenRunning(true);
     try {
-      // Extract script excerpt for this scene (send full text, agent filters)
-      const resp = await fetch('/api/agent/script/scene', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
-        body: JSON.stringify({
-          scene, scriptExcerpt: prompt,
-          visualBible: overview.visualBible,
-          characterProfiles: overview.characterProfiles,
-        }),
-      });
+      const resp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({ scene, scriptExcerpt: prompt, visualBible: overview.visualBible, characterProfiles: overview.characterProfiles }) });
       const json = await resp.json();
       if (json.success && json.shots?.length > 0) {
         setScriptResult(json); setPhase('shots');
         const cx = canvasStore.nodes.get(id);
         if (cx) {
-          const COLS = 4;
-          const baseX = (cx.pos?.x || 0) + 340;
-          const baseY = (cx.pos?.y || 0) + 200;
+          const COLS = 4; const baseX = (cx.pos?.x||0)+340; const baseY = (cx.pos?.y||0)+200;
           json.shots.forEach((shot: any, shi: number) => {
-            const row = Math.floor(shi / COLS);
-            const col = shi % COLS;
-            const label = shot.shotType + ' #' + (scene.sceneNumber||'') + '-' + shot.shotNumber;
-            const nid = canvasStore.addNode('image.generate', { x: baseX + col * 340, y: baseY + row * 400 }, label);
-            canvasStore.updateNode(nid, {
-              meta: {
-                gen: { prompt: shot.visualPrompt, videoPrompt: shot.videoPrompt || '', model: 'GPT Image2', aspect: '16:9', resolution: '2K', quality: 'high' },
-                characters: scene.characters || [], sceneType: scene.sceneType || '',
-                shot: { shotType: shot.shotType, cameraMovement: shot.cameraMovement, angle: shot.angle, aperture: shot.aperture, writerIntent: shot.writerIntent || '', lighting: shot.lighting || '', composition: shot.composition || '', blocking: shot.blocking || '', role: shot.role || '' },
-              },
-            });
+            const r = Math.floor(shi/COLS); const c = shi%COLS;
+            const nid = canvasStore.addNode('image.generate', { x:baseX+c*340, y:baseY+r*400 }, shot.shotType+' #'+(scene.sceneNumber||'')+'-'+shot.shotNumber);
+            canvasStore.updateNode(nid, { meta: { gen: { prompt:shot.visualPrompt, videoPrompt:shot.videoPrompt||'', model:'GPT Image2', aspect:'16:9', resolution:'2K', quality:'high' }, characters:scene.characters||[], sceneType:scene.sceneType||'', shot:{ shotType:shot.shotType, cameraMovement:shot.cameraMovement, angle:shot.angle, aperture:shot.aperture, writerIntent:shot.writerIntent||'', lighting:shot.lighting||'', composition:shot.composition||'', blocking:shot.blocking||'', role:shot.role||'' } } });
           });
         }
       }
     } catch (err) { console.error('[scene-shot] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
-  }, []);
+  };
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -230,7 +210,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   ))}
                 </div>
                 <div onClick={async()=>{
-                  const p=scriptOverview.characterProfiles;const next2=new Map(canvasStore.nodes);
+                  const p=overviewRef.current?.characterProfiles;if(!p)return;const next2=new Map(canvasStore.nodes);
                   const baseX2=(canvasStore.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
                   for(const [name,info] of Object.entries(p) as [string,any][]){
                     const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
@@ -249,7 +229,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               {scriptOverview.scenes && scriptOverview.scenes.length>0 && <>
                 <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {scriptOverview.scenes.length} 段</div>
                 {scriptOverview.scenes.map((s:any,i:number) => (
-                <button key={i} onClick={()=>handleSceneShot(i)} style={{
+                <button key={i} onClick={async()=>{const ov=overviewRef.current;if(!ov)return;const sc=ov.scenes[i];if(!sc)return;genRunningRef.current=true;setGenRunning(true);try{const r=await fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})});const j=await r.json();if(j.success&&j.shots){const cx=canvasStore.nodes.get(id);if(cx){const BX=(cx.pos?.x||0)+340;const BY=(cx.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{const nid=canvasStore.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);canvasStore.updateNode(nid,{meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}}});});}}}catch(e){console.error(e)}finally{genRunningRef.current=false;setGenRunning(false)}}} style={{
                   padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
