@@ -53,9 +53,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
-  const [scriptOverview, setScriptOverview] = useState<any>(null); // Phase 1 result
+  const savedOverview = (data as any).scriptOverview || (gen as any).scriptOverview || null;
+  const [scriptOverview, setScriptOverview] = useState<any>(savedOverview);
   const [scriptResult, setScriptResult] = useState<any>(null);
-  const [phase, setPhase] = useState<'input'|'overview'|'shots'>('input');
+  const [phase, setPhase] = useState<'input'|'overview'|'shots'>(savedOverview ? 'overview' : 'input');
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
@@ -95,8 +96,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const overviewJson = await overviewResp.json();
       // 合并：角色提取优先
       const chars = charJson.success ? charJson.characters : (overviewJson.characterProfiles || {});
-      console.log('[analysis] chars:',Object.keys(chars).length,'scenes:',overviewJson.scenes?.length,'overviewKeys:',Object.keys(overviewJson).join(','));
-      setScriptOverview({ ...overviewJson, characterProfiles: chars, scriptTitle: overviewJson.scriptTitle || '剧本分析' });
+      const result = { ...overviewJson, characterProfiles: chars, scriptTitle: overviewJson.scriptTitle || '剧本分析' };
+      // 存到 store 防丢失
+      patch('scriptOverview', result);
+      setScriptOverview(result);
       setPhase('overview');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
