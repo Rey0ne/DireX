@@ -78,20 +78,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   useEffect(() => () => { if (promptRef.current) patch('prompt', promptRef.current); }, []);
 
   const handleGenerate = () => {
-    if (genRunningRef.current) return;
-    if (scriptMode) {
-      handleScriptAnalysis();
-      return;
-    }
-    // Allow empty prompt when reference images are connected (reverse-prompt mode)
-    if (!prompt.trim() && (!(data as any).refUrls || (data as any).refUrls.length === 0)) return;
-    genRunningRef.current = true;
-    setGenRunning(true);
+    if (genRunningRef.current || !prompt.trim()) return;
+    if (prompt.length > 200) { handleScriptAnalysis(); return; }
+    genRunningRef.current = true; setGenRunning(true);
     patch('prompt', prompt);
-    Promise.resolve(data.onGenerate?.()).finally(() => {
-      genRunningRef.current = false;
-      setGenRunning(false);
-    });
+    Promise.resolve(data.onGenerate?.()).finally(() => { genRunningRef.current = false; setGenRunning(false); });
   };
 
   const handleScriptAnalysis = async () => {
