@@ -164,8 +164,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   },
                   createdAt: now, updatedAt: now,
                 });
-                useCanvasStore.setState({ nodes: next });
-          });
+                });
+          useCanvasStore.setState({ nodes: next });
           canvasStore.triggerSync();
         }
       }

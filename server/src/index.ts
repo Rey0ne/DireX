@@ -310,7 +310,7 @@ app.post('/api/agent/script/characters', async (req: Request, res: Response) => 
   if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
     res.status(400).json({ error: '请提供剧本文本' }); return;
   }
-  const styleHint = visualStyle ? '\n\n[视觉风格要求]\n所有角色外观描述必须符合此风格：' + visualStyle : '';
+  const styleHint = visualStyle ? '\n\n[视觉风格要求]\n所有角色外观描述必须符合' + visualStyle : '';
   console.log('[char-api] Extracting characters (' + scriptText.length + ' chars)' + (visualStyle ? ' style:' + visualStyle : ''));
   try {
     const context = { userInput: scriptText.trim() + styleHint, model: 'gpt-5-5', mode: 'character-extract' };
