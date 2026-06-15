@@ -489,12 +489,11 @@ export async function runAgent(
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   let output: string|null = null;
-  // 剧本分析长文本用高 token 上限
   if (profile.id === 'script-analyst') {
     output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
   } else {
     output = await gpt5Chat(profile.systemPrompt, userMessage, 1500, 'high');
-    if (!output) output = await geminiChat(profile.systemPrompt, userMessage, 1500);
+    if (!output) output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
   }
   return {
     agentId: profile.id,
@@ -800,7 +799,8 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
       const bs = js.indexOf('{'), be = js.lastIndexOf('}');
       if (bs >= 0 && be > bs) js = js.slice(bs, be + 1);
       const parsed = JSON.parse(js);
-      if (parsed.characters) extractedChars = parsed.characters;
+      // 支持两种格式: {"name":"desc"} 或 {"characters":{"name":{...}}}
+      extractedChars = parsed.characters || (typeof Object.values(parsed)[0]==='string' ? parsed : {});
       console.log('[overview] Character extractor found ' + Object.keys(extractedChars).length + ' characters');
     } catch { console.log('[overview] Character extraction parse failed'); }
   } catch (err) { console.log('[overview] Character extraction failed:', String(err).slice(0,60)); }

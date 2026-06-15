@@ -322,7 +322,8 @@ app.post('/api/agent/script/characters', async (req: Request, res: Response) => 
       const bs = js.indexOf('{'), be = js.lastIndexOf('}');
       if (bs >= 0 && be > bs) js = js.slice(bs, be + 1);
       const parsed = JSON.parse(js);
-      if (parsed.characters) chars = parsed.characters;
+      // 新格式: {"name":"desc"} 或旧格式: {"characters":{"name":{...}}}
+      chars = parsed.characters || (typeof Object.values(parsed)[0]==='string' ? parsed : {});
     } catch {}
     console.log('[char-api] Found ' + Object.keys(chars).length + ' characters');
     res.json({ success: true, characters: chars, total: Object.keys(chars).length });

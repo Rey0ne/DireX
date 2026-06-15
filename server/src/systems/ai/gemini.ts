@@ -173,7 +173,7 @@ async function callKieGemini(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
@@ -182,7 +182,7 @@ async function callKieGemini(
       }),
     };
     if (proxy) opts.dispatcher = new ProxyAgent(proxy);
-    const resp = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', opts);
+    const resp = await fetch('https://api.kie.ai/gemini-2.5-pro/v1/chat/completions', opts);
     if (!resp.ok) { console.log('[kie-gemini] Error:', resp.status); return null; }
     const data = await resp.json();
     const text = data.choices?.[0]?.message?.content?.trim();
@@ -192,7 +192,7 @@ async function callKieGemini(
 }
 
 // ─── Vision LLM (Kie.ai Gemini — for image analysis) ──
-// Model configured via GEMINI_VISION_MODEL env, defaults to gemini-2.5-flash
+// Model configured via GEMINI_VISION_MODEL env, defaults to gemini-2.5-pro
 export async function visionAnalyze(
   systemPrompt: string,
   imageBase64: string,
@@ -201,7 +201,7 @@ export async function visionAnalyze(
   const gmKey = process.env.GEMINI_API_KEY;
   if (!gmKey) { console.log('[vision] No GEMINI_API_KEY'); return null; }
 
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-pro';
   const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
   try {
     const opts: any = {
