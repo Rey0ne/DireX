@@ -342,8 +342,15 @@ app.post('/api/agent/script/overview', async (req: Request, res: Response) => {
   console.log('[overview-api] Scanning (' + scriptText.length + ' chars)');
   try {
     const result = await runOverviewPipeline(scriptText.trim());
-    console.log('[overview-api] ' + result.scenes.length + ' scenes');
-    res.json({ success: true, ...result, totalScenes: result.scenes.length });
+    // 并行获取所有场景分镜
+    const shotPromises = result.scenes.map(scene =>
+      runSceneShotPipeline(scene, scriptText.trim(), result.visualBible, result.characterProfiles)
+        .then(r => ({ sceneNumber: scene.sceneNumber, shots: r.shots }))
+        .catch(() => ({ sceneNumber: scene.sceneNumber, shots: [] }))
+    );
+    const allShots = await Promise.all(shotPromises);
+    console.log('[overview-api] ' + result.scenes.length + ' scenes, ' + allShots.reduce((s,x) => s + x.shots.length, 0) + ' total shots');
+    res.json({ success: true, ...result, allShots, totalScenes: result.scenes.length });
   } catch (err) {
     console.error('[overview-api] Error:', err);
     res.status(500).json({ error: String(err) });

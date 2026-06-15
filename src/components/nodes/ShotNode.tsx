@@ -109,22 +109,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       patch('scriptOverview', result);
       analysisDoneRef.current = true;
       setPhase('overview');
-      // 后台预取所有场景分镜数据
-      if (overviewJson.scenes?.length > 0) {
-        (async () => {
-          for (const scene of overviewJson.scenes) {
-            try {
-              const sResp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scene, scriptExcerpt:prompt, visualBible:overviewJson.visualBible, characterProfiles:overviewJson.characterProfiles}) });
-              const sJson = await sResp.json();
-              if (sJson.success && sJson.shots) {
-                const cur = getOverview() || {};
-                const allShots = [...(cur.allShots || []), { sceneNumber: scene.sceneNumber, shots: sJson.shots }];
-                patch('scriptOverview', { ...cur, allShots });
-              }
-            } catch(e) {}
-          }
-        })();
-      }
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
