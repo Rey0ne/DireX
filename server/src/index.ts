@@ -10,7 +10,8 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline, runScriptPipeline, runOverviewPipeline, runSceneShotPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, runScriptPipeline, runOverviewPipeline, runSceneShotPipeline, runAgent, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { CHARACTER_EXTRACTOR } from './systems/agent/profiles.js';
 import { geminiChat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
@@ -300,6 +301,33 @@ app.post('/api/agent/script', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[script-api] Error:', err);
     res.status(500).json({ error: String(err) });
+  }
+});
+
+// ─── 角色提取（独立）───
+app.post('/api/agent/script/characters', async (req: Request, res: Response) => {
+  const { scriptText } = req.body;
+  if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
+    res.status(400).json({ error: '请提供剧本文本' }); return;
+  }
+  console.log('[char-api] Extracting characters (' + scriptText.length + ' chars)');
+  try {
+    const context = { userInput: scriptText.trim(), model: 'deepseek', mode: 'character-extract' };
+    const result = await runAgent(CHARACTER_EXTRACTOR, context as any, {}, 4000);
+    let chars: Record<string, any> = {};
+    try {
+      let js = result.output;
+      const fm = js.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fm) js = fm[1];
+      const bs = js.indexOf('{'), be = js.lastIndexOf('}');
+      if (bs >= 0 && be > bs) js = js.slice(bs, be + 1);
+      const parsed = JSON.parse(js);
+      if (parsed.characters) chars = parsed.characters;
+    } catch {}
+    console.log('[char-api] Found ' + Object.keys(chars).length + ' characters');
+    res.json({ success: true, characters: chars, total: Object.keys(chars).length });
+  } catch (err) {
+    console.error('[char-api] Error:', err); res.status(500).json({ error: String(err) });
   }
 });
 

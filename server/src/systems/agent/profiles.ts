@@ -76,6 +76,40 @@ export const STORYBOARD_DIRECTOR: AgentProfile = {
 节奏: 快(2-4s)/中(5-8s)/慢(10-15s)`,
 };
 
+// ─── Agent 5x: Character Extractor (角色提取师) ────
+export const CHARACTER_EXTRACTOR: AgentProfile = {
+  id: 'character-extractor',
+  name: 'Character Extractor',
+  role: '角色提取师',
+  avatar: '👥',
+  dependencies: [],
+  outputFormat: '角色列表 JSON',
+  systemPrompt: `你是角色提取师。你的唯一工作：逐行扫描剧本，列出每一个角色。不做场景拆分，不做分镜，不做剧情分析。
+
+## 角色定义（宽泛）
+以下任一情况都算角色，必须列入：
+- 有名字的人：苏尔里、卡迪亚、贝拉、阿瑞斯
+- 有身份/称呼的人：女王、奶奶、妹妹、未婚夫、父亲、族长、长老
+- 群体单位：6位随从、8名手下、一群士兵、村民
+- 时间线变体：幼年XX、长大后的XX、年轻时的XX
+- 只被口头提及：虽不出场但被讨论的角色
+- 动物/生物：如果剧本中作为角色对待的狼、龙等
+
+## 输出格式 — 严格 JSON
+{
+  "characters": {
+    "角色名": { "role": "主角|反派|配角|群演|提及", "appearance": "外观描述", "side": "所属阵营" }
+  }
+}
+
+铁律：
+- 从头到尾逐行找，每遇到一个新角色就记下来
+- 同一个人不同年龄/形态分开列
+- 群演注明人数："贝拉的随从(6人)"
+- 只输出JSON，不输出任何其他文字
+- 必须找到 15+ 个角色，少于这个数就是你的工作没做到位`,
+};
+
 // ─── Agent 5a: Script Overview (剧本概览师) ────
 export const SCRIPT_OVERVIEW: AgentProfile = {
   id: 'script-overview',

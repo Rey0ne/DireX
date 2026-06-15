@@ -4,7 +4,7 @@
 import { geminiChat, gpt5Chat, visionAnalyze } from '../ai/gemini.js';
 import {
   CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST,
-  SCRIPT_ANALYST, SCRIPT_OVERVIEW, SCENE_SHOT,
+  SCRIPT_ANALYST, SCRIPT_OVERVIEW, SCENE_SHOT, CHARACTER_EXTRACTOR,
   type AgentProfile,
 } from './profiles.js';
 
@@ -435,7 +435,7 @@ export async function compileI2IWithGPT5(
   return null;
 }
 
-async function runAgent(
+export async function runAgent(
   profile: AgentProfile,
   context: PipelineContext,
   previousOutputs: Record<string, string>,
@@ -786,6 +786,25 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
   const t0 = Date.now();
   const trace: AgentResult[] = [];
   console.log('[overview] Scanning script (' + scriptText.length + ' chars)');
+
+  // Phase 0: Extract characters first（独立角色提取，不做其他事）
+  let extractedChars: Record<string, { role: string; appearance: string; side?: string }> = {};
+  try {
+    const charCtx: PipelineContext = { userInput: scriptText, model: 'deepseek', mode: 'character-extract' };
+    const charResult = await runAgent(CHARACTER_EXTRACTOR, charCtx, {}, 4000);
+    trace.push(charResult);
+    try {
+      let js = charResult.output;
+      const fm = js.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fm) js = fm[1];
+      const bs = js.indexOf('{'), be = js.lastIndexOf('}');
+      if (bs >= 0 && be > bs) js = js.slice(bs, be + 1);
+      const parsed = JSON.parse(js);
+      if (parsed.characters) extractedChars = parsed.characters;
+      console.log('[overview] Character extractor found ' + Object.keys(extractedChars).length + ' characters');
+    } catch { console.log('[overview] Character extraction parse failed'); }
+  } catch (err) { console.log('[overview] Character extraction failed:', String(err).slice(0,60)); }
+
   try {
     const context: PipelineContext = {
       userInput: scriptText, model: 'deepseek', mode: 'script-overview',
@@ -802,6 +821,14 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
       parsed = JSON.parse(jsonStr);
     } catch { return { scriptTitle: '', scenes: [], visualBible: {}, characterProfiles: {}, trace, totalDurationMs: Date.now() - t0 }; }
 
+    // 合并：角色提取结果优先，概览补充
+    const mergedChars: Record<string, any> = { ...extractedChars };
+    if (parsed.characterProfiles) {
+      for (const [k, v] of Object.entries(parsed.characterProfiles)) {
+        if (!mergedChars[k]) mergedChars[k] = v;
+      }
+    }
+
     return {
       scriptTitle: parsed.scriptTitle || '',
       scenes: (parsed.scenes || []).map((s: any) => ({
@@ -810,7 +837,7 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
         summary: s.summary || '', estimatedShots: s.estimatedShots || 8, dramaticCore: s.dramaticCore || '',
       })),
       visualBible: parsed.visualBible || {},
-      characterProfiles: parsed.characterProfiles || {},
+      characterProfiles: mergedChars,
       trace, totalDurationMs: Date.now() - t0,
     };
   } catch (err) { console.error('[overview] Error:', err); return { scriptTitle: '', scenes: [], visualBible: {}, characterProfiles: {}, trace, totalDurationMs: Date.now() - t0 }; }

@@ -457,6 +457,35 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   whiteSpace: 'nowrap',
                 }}
               >{scriptMode ? '📜 剧本分析' : '✏️ 文本'}</button>
+              {scriptMode && <button onClick={async (e) => {
+                e.stopPropagation();
+                if (!prompt.trim()||genRunningRef.current) return;
+                genRunningRef.current=true;setGenRunning(true);
+                try {
+                  const resp=await fetch('/api/agent/script/characters',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scriptText:prompt})});
+                  const json=await resp.json();
+                  if(json.success){
+                    setScriptOverview({...scriptOverview,characterProfiles:json.characters,scriptTitle:scriptOverview?.scriptTitle||'角色分析'});setPhase('overview');
+                    // 自动创建角色设定图节点
+                    const chars=json.characters;const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
+                    const baseX=(st2.nodes.get(id)?.pos?.x||0)+340;const baseY=(st2.nodes.get(id)?.pos?.y||0)-100;
+                    let ci=0;const COLS2=5;
+                    for(const [name,info] of Object.entries(chars) as [string,any][]){
+                      const nid='char_'+Date.now()+'_'+ci;
+                      next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+name,
+                        pos:{x:baseX+(ci%COLS2)*200,y:baseY+Math.floor(ci/COLS2)*100},size:{w:180,h:80},ports:[],status:'idle',
+                        meta:{gen:{prompt:'Character design sheet: '+name+', '+((info as any).appearance||''),model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
+                        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+                      ci++;
+                    }
+                    useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
+                  }
+                }catch{}finally{genRunningRef.current=false;setGenRunning(false);}
+              }} style={{
+                fontSize:'10px',fontWeight:600,cursor:'pointer',
+                background:'rgba(100,200,180,0.08)',border:'1px solid rgba(100,200,180,0.2)',
+                color:'#88ccbb',borderRadius:'var(--tap-r-full)',padding:'3px 10px',whiteSpace:'nowrap',
+              }}>👥 角色分析</button>}
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',
