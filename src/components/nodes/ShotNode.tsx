@@ -262,8 +262,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   const baseX2=(st2.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
                   for(const [name,info] of Object.entries(p) as [string,any][]){
                     const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
+                    const faceVariants=['鹅蛋脸，杏眼，薄唇','圆脸，丹凤眼，厚唇','瓜子脸，桃花眼，嘴角上扬','方脸，细长眼，高鼻梁','菱形脸，圆眼，宽额头','长脸，下垂眼，尖下巴','心形脸，柳叶眉，樱桃嘴','椭圆脸，深眼窝，薄唇紧闭'];
                     for(let g=0;g<c2;g++){const gn=c2>1?`${bn}#${g+1}`:bn;
-                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(st2.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt:`角色设定图：${gn}。${(info as any).appearance||''}。白色背景。三视图（正面侧面背面）。武器道具和表情设定。完整角色参考图。`,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
+                      const face=c2>1?`。面部特征：${faceVariants[g%faceVariants.length]}`:'';
+                      const prompt=`角色设定图：${gn}。${typeof info==='string'?info:((info as any).appearance||(info as any)||'')}${face}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。`;
+                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(st2.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
                   }
                   useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
                 }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff',marginTop:2}}>
