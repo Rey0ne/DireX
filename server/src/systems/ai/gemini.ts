@@ -42,7 +42,7 @@ export async function gpt5Chat(
   const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
   try {
     const body: any = {
-      model: 'gpt-5-4',
+      model: 'gpt-5-5',
       input: messages,
       stream: false,
       reasoning: { effort: opts?.effort || 'high' },
@@ -153,12 +153,9 @@ export async function geminiChat(
     const r = await callKieGemini(kieKey, systemPrompt, userContent, maxTokens);
     if (r) return r;
   }
-  // DeepSeek Official (fallback)
-  const dsKey = process.env.DEEPSEEK_API_KEY;
-  if (dsKey) {
-    const r = await callDeepSeek(dsKey, systemPrompt, userContent, maxTokens);
-    if (r) return r;
-  }
+  // DeepSeek disabled — use Kie.ai only
+  // const dsKey = process.env.DEEPSEEK_API_KEY;
+  // if (dsKey) { const r = await callDeepSeek(dsKey, systemPrompt, userContent, maxTokens); if (r) return r; }
   console.log('[llm] No text LLM configured');
   return null;
 }
@@ -173,7 +170,7 @@ async function callKieGemini(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
       body: JSON.stringify({
-        model: 'gpt-5-5-openai-resp',
+        model: 'gpt-5-5',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
@@ -183,10 +180,11 @@ async function callKieGemini(
     };
     if (proxy) opts.dispatcher = new ProxyAgent(proxy);
     const resp = await fetch('https://api.kie.ai/gpt-5-5-openai-resp/v1/chat/completions', opts);
-    if (!resp.ok) { console.log('[kie-gemini] Error:', resp.status); return null; }
+    if (!resp.ok) { const eb = await resp.text().catch(()=>''); console.log('[kie-gemini] Error '+resp.status+':', eb.slice(0,200)); return null; }
     const data = await resp.json();
     const text = data.choices?.[0]?.message?.content?.trim();
     if (text) { console.log('[kie-gemini]', text.slice(0, 60)); return text; }
+    console.log('[kie-gemini] Unexpected response:', JSON.stringify(data).slice(0,200));
     return null;
   } catch (err) { console.log('[kie-gemini] Failed:', String(err).slice(0, 60)); return null; }
 }

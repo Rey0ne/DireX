@@ -249,7 +249,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {/* 角色清单 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
-                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色</div>
+                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 组角色（含群演共 {Object.entries(scriptOverview.characterProfiles).reduce((sum,[,v]:[string,any])=>{const m=(typeof v==='string'?v:'').match(/\((\d+)人\)/)||(typeof v==='object'?(v.appearance||v.role||''):'');return sum+1;},0)} 人以上）</div>
                 <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
                   {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
                     <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
@@ -321,6 +321,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
           }}>
+            <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
+              placeholder="视觉风格：真人电影、新海诚动漫、赛博朋克、1970年代意大利铅黄电影…"
+              style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',color:'var(--tap-text-3)',fontSize:10,padding:'4px 14px',outline:'none' }}
+              onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
             <div style={{ padding: '4px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
               <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}

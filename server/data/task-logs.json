@@ -4879,6 +4879,19 @@
       ],
       "cost": 0.1,
       "durationMs": 122213
+    },
+    {
+      "id": "db4ff8e6-23f0-4f13-87b5-89af1e521732",
+      "timestamp": "2026-06-15T06:48:40.325Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 角色设定图：苏尔里女王。白色狼毛大氅金色王冠红瞳，可化身银色巨狼。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 角色设定图：苏尔里女王。白色狼毛大氅金色王冠红瞳，可化身银色巨狼。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/ac2f251846255e56d8dd4262c29627ee_7e75151eb90d491ea3cd559505e8e3b3.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 241978
     }
   ]
 }

@@ -487,14 +487,13 @@ export async function runAgent(
     refBlock +
     '\n\n请按照你的角色职责输出。';
 
-  // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
-  let output: string|null = null;
-  if (profile.id === 'script-analyst') {
-    output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
-  } else {
-    output = await gpt5Chat(profile.systemPrompt, userMessage, 1500, 'high');
-    if (!output) output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
-  }
+  // gpt-5-5 via Kie.ai Codex API
+  const msgs: any[] = [
+    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
+    { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
+  ];
+  let output = await gpt5Chat(msgs, { effort: 'high', maxTokens });
+  if (!output) output = await geminiChat(profile.systemPrompt, userMessage, maxTokens);
   return {
     agentId: profile.id,
     agentName: profile.name,
@@ -789,7 +788,7 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
   // Phase 0: Extract characters first（独立角色提取，不做其他事）
   let extractedChars: Record<string, { role: string; appearance: string; side?: string }> = {};
   try {
-    const charCtx: PipelineContext = { userInput: scriptText, model: 'deepseek', mode: 'character-extract' };
+    const charCtx: PipelineContext = { userInput: scriptText, model: 'gpt-5-5', mode: 'character-extract' };
     const charResult = await runAgent(CHARACTER_EXTRACTOR, charCtx, {}, 6000);
     trace.push(charResult);
     try {
@@ -807,7 +806,7 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
 
   try {
     const context: PipelineContext = {
-      userInput: scriptText, model: 'deepseek', mode: 'script-overview',
+      userInput: scriptText, model: 'gpt-5-5', mode: 'script-overview',
     };
     const result = await runAgent(SCRIPT_OVERVIEW, context, {}, 6000);
     trace.push(result);
@@ -862,7 +861,7 @@ ${scriptExcerpt}`;
 
   console.log(`[scene-shot] Scene ${scene.sceneNumber} (${contextText.length} chars)`);
   try {
-    const context: PipelineContext = { userInput: contextText, model: 'deepseek', mode: 'scene-shot' };
+    const context: PipelineContext = { userInput: contextText, model: 'gpt-5-5', mode: 'scene-shot' };
     const result = await runAgent(SCENE_SHOT, context, {}, 12000);
     trace.push(result);
     let parsed: any;
