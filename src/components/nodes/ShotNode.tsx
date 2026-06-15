@@ -55,8 +55,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [pendingSceneIdx, setPendingSceneIdx] = useState(-1);
   const [visualStyle, setVisualStyle] = useState('');
   const getOverview = () => (data as any).scriptOverview || (gen as any).scriptOverview || null;
-  const [scriptResult, setScriptResult] = useState<any>(null);
-  const [phase, setPhase] = useState<'input'|'overview'|'shots'>('input');
+  const analysisDoneRef = useRef(!!getOverview());
+  const [phase, setPhase] = useState<'input'|'overview'|'shots'>(analysisDoneRef.current?'overview':'input');
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
@@ -107,6 +107,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const [charJson, overviewJson] = await Promise.all([charResp.json(), overviewResp.json()]);
       const result = { ...overviewJson, characterProfiles: charJson.success ? charJson.characters : (overviewJson.characterProfiles||{}) };
       patch('scriptOverview', result);
+      analysisDoneRef.current = true;
       setPhase('overview');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
@@ -122,7 +123,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const resp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({ scene, scriptExcerpt: prompt, visualBible: overview.visualBible, characterProfiles: overview.characterProfiles }) });
       const json = await resp.json();
       if (json.success && json.shots?.length > 0) {
-        setScriptResult(json); setPhase('shots');
+        setPhase('shots');
         const cx = canvasStore.nodes.get(id);
         if (cx) {
           const COLS = 4; const baseX = (cx.pos?.x||0)+340; const baseY = (cx.pos?.y||0)+200;
@@ -239,7 +240,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               {getOverview().scenes && getOverview().scenes.length>0 && <>
                 <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
                 {getOverview().scenes.map((s:any,i:number) => (
-                <div key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})}).then(r=>r.json()).then(j=>{if(!j.success||!j.shots)return;const store=useCanvasStore.getState();const BX=(store.nodes.get(id)?.pos?.x||0)+340;const BY=(store.nodes.get(id)?.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{store.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);});}).catch(e=>console.error(e));}} style={{
+                <div key={i} onClick={async()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;const r=await fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})});const j=await r.json();if(!j.success||!j.shots)return;const store=useCanvasStore.getState();const BX=(store.nodes.get(id)?.pos?.x||0)+340;const BY=(store.nodes.get(id)?.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{store.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);});}} style={{
                   padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
