@@ -318,7 +318,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           )}
 
           {/* Content — Agent output area */}
-          {genRunning ? (
+          {scriptMode && phase === 'overview' ? null : genRunning ? (
             <div style={{
               minHeight: '80px', display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: '8px',
