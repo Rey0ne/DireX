@@ -53,8 +53,10 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
   const [scriptMode, setScriptMode] = useState(false);
-  const [visualStyle, setVisualStyle] = useState('真人电影'); // 视觉风格
+  const [visualStyle, setVisualStyle] = useState('真人电影');
+  const [scriptOverview, setScriptOverview] = useState<any>(null); // Phase 1 result
   const [scriptResult, setScriptResult] = useState<any>(null);
+  const [phase, setPhase] = useState<'input'|'overview'|'shots'>('input');
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
@@ -92,37 +94,59 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     if (!prompt.trim()) return;
     genRunningRef.current = true;
     setGenRunning(true);
-    setScriptResult(null);
     try {
-      const resp = await fetch('/api/agent/script', {
+      const resp = await fetch('/api/agent/script/overview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
         body: JSON.stringify({ scriptText: prompt, visualStyle }),
       });
       const json = await resp.json();
       if (json.success) {
+        setScriptOverview(json);
+        setPhase('overview');
+        console.log('[overview] ' + json.scenes?.length + ' scenes');
+      }
+    } catch (err) { console.error('[overview] Error:', err); }
+    finally { genRunningRef.current = false; setGenRunning(false); }
+  };
+
+  const handleSceneShot = async (sceneIndex: number) => {
+    const overview = scriptOverview;
+    if (!overview) return;
+    const scene = overview.scenes[sceneIndex];
+    if (!scene) return;
+    genRunningRef.current = true;
+    setGenRunning(true);
+    try {
+      // Extract script excerpt for this scene (send full text, agent filters)
+      const resp = await fetch('/api/agent/script/scene', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({
+          scene, scriptExcerpt: prompt,
+          visualBible: overview.visualBible,
+          characterProfiles: overview.characterProfiles,
+        }),
+      });
+      const json = await resp.json();
+      if (json.success && json.shots?.length > 0) {
         setScriptResult(json);
-        patch('scriptResult', json);
-        // Auto-create shot nodes from result
-        if (json.scenes && json.scenes.length > 0) {
-          const cx = canvasStore.nodes.get(id);
-          if (cx) {
-            const COLS = 4; // 每行最多 4 个镜头
-            const baseX = (cx.pos?.x || 0) + 340;
-            const baseY = (cx.pos?.y || 0) + 200;
-            let globalIdx = 0;
-            json.scenes.forEach((scene: any, si: number) => {
-              scene.shots.forEach((shot: any, shi: number) => {
-                const row = Math.floor(globalIdx / COLS);
-                const col = globalIdx % COLS;
-                globalIdx++;
-                const label = shot.shotType + ' #' + shot.shotNumber;
-                const nid = 'img_' + Date.now() + '_' + si + '_' + shi;
-                // 直接写入完整节点，避免 addNode+updateNode 时序导致 prompt 丢失
-                const now = new Date().toISOString();
-                const st = useCanvasStore.getState();
-                const next = new Map(st.nodes);
-                next.set(nid, {
+        setPhase('shots');
+        // Create image nodes from shots
+        const cx = canvasStore.nodes.get(id);
+        if (cx) {
+          const COLS = 4;
+          const baseX = (cx.pos?.x || 0) + 340;
+          const baseY = (cx.pos?.y || 0) + 200;
+          const now = new Date().toISOString();
+          const st = useCanvasStore.getState();
+          const next = new Map(st.nodes);
+          json.shots.forEach((shot: any, shi: number) => {
+            const row = Math.floor(shi / COLS);
+            const col = shi % COLS;
+            const label = shot.shotType + ' #' + (scene.sceneNumber||'') + '-' + shot.shotNumber;
+            const nid = 'img_' + Date.now() + '_s' + sceneIndex + '_' + shi;
+            next.set(nid, {
                   id: nid, type: 'image.generate', title: label,
                   pos: { x: baseX + col * 340, y: baseY + row * 400 },
                   size: { w: 380, h: 200 }, ports: [], status: 'idle',
@@ -147,18 +171,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   createdAt: now, updatedAt: now,
                 });
                 useCanvasStore.setState({ nodes: next });
-              });
-            });
-            canvasStore.triggerSync();
-          }
+          });
+          canvasStore.triggerSync();
         }
       }
-    } catch (err) {
-      console.error('[script-analysis] Error:', err);
-    } finally {
-      genRunningRef.current = false;
-      setGenRunning(false);
-    }
+    } catch (err) { console.error('[scene-shot] Error:', err); }
+    finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
   return (

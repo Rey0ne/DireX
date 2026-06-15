@@ -3,7 +3,8 @@
 
 import { geminiChat, gpt5Chat, visionAnalyze } from '../ai/gemini.js';
 import {
-  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST, SCRIPT_ANALYST,
+  CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST,
+  SCRIPT_ANALYST, SCRIPT_OVERVIEW, SCENE_SHOT,
   type AgentProfile,
 } from './profiles.js';
 
@@ -753,4 +754,112 @@ export async function runScriptPipeline(scriptText: string, visualStyle = ''): P
       totalDurationMs: Date.now() - t0,
     };
   }
+}
+
+// ─── Two-Phase Script Pipeline — Phase 1: Overview ───
+export interface SceneOverview {
+  sceneNumber: number;
+  sceneHeader: string;
+  location: string;
+  timeOfDay: string;
+  characters: string[];
+  sceneType: string;
+  summary: string;
+  estimatedShots: number;
+  dramaticCore: string;
+}
+
+export interface ScriptOverviewResult {
+  scriptTitle: string;
+  scenes: SceneOverview[];
+  visualBible: {
+    colorPalette?: string;
+    lightingStyle?: string;
+    era?: string;
+  };
+  characterProfiles: Record<string, { role: string; appearance: string }>;
+  trace: AgentResult[];
+  totalDurationMs: number;
+}
+
+export async function runOverviewPipeline(scriptText: string): Promise<ScriptOverviewResult> {
+  const t0 = Date.now();
+  const trace: AgentResult[] = [];
+  console.log('[overview] Scanning script (' + scriptText.length + ' chars)');
+  try {
+    const context: PipelineContext = {
+      userInput: scriptText, model: 'deepseek', mode: 'script-overview',
+    };
+    const result = await runAgent(SCRIPT_OVERVIEW, context, {}, 4000);
+    trace.push(result);
+    let parsed: any;
+    try {
+      let jsonStr = result.output;
+      const fm = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fm) jsonStr = fm[1];
+      const bs = jsonStr.indexOf('{'), be = jsonStr.lastIndexOf('}');
+      if (bs >= 0 && be > bs) jsonStr = jsonStr.slice(bs, be + 1);
+      parsed = JSON.parse(jsonStr);
+    } catch { return { scriptTitle: '', scenes: [], visualBible: {}, characterProfiles: {}, trace, totalDurationMs: Date.now() - t0 }; }
+
+    return {
+      scriptTitle: parsed.scriptTitle || '',
+      scenes: (parsed.scenes || []).map((s: any) => ({
+        sceneNumber: s.sceneNumber || 1, sceneHeader: s.sceneHeader || '', location: s.location || '',
+        timeOfDay: s.timeOfDay || '', characters: s.characters || [], sceneType: s.sceneType || 'mixed',
+        summary: s.summary || '', estimatedShots: s.estimatedShots || 8, dramaticCore: s.dramaticCore || '',
+      })),
+      visualBible: parsed.visualBible || {},
+      characterProfiles: parsed.characterProfiles || {},
+      trace, totalDurationMs: Date.now() - t0,
+    };
+  } catch (err) { console.error('[overview] Error:', err); return { scriptTitle: '', scenes: [], visualBible: {}, characterProfiles: {}, trace, totalDurationMs: Date.now() - t0 }; }
+}
+
+// ─── Phase 2: Per-Scene Shot Breakdown ───
+export async function runSceneShotPipeline(
+  scene: SceneOverview, scriptExcerpt: string, visualBible: any, characterProfiles: any
+): Promise<{ sceneNumber: number; shots: ShotDef[]; trace: AgentResult[] }> {
+  const t0 = Date.now();
+  const trace: AgentResult[] = [];
+  const contextText = `场景${scene.sceneNumber}: ${scene.sceneHeader}
+地点: ${scene.location} | 时间: ${scene.timeOfDay} | 类型: ${scene.sceneType}
+角色: ${(scene.characters||[]).join(', ')}
+戏剧核心: ${scene.dramaticCore}
+预计镜头数: ${scene.estimatedShots}
+视觉圣经: ${JSON.stringify(visualBible||{})}
+角色设定: ${JSON.stringify(characterProfiles||{})}
+
+剧本原文:
+${scriptExcerpt}`;
+
+  console.log(`[scene-shot] Scene ${scene.sceneNumber} (${contextText.length} chars)`);
+  try {
+    const context: PipelineContext = { userInput: contextText, model: 'deepseek', mode: 'scene-shot' };
+    const result = await runAgent(SCENE_SHOT, context, {}, 8000);
+    trace.push(result);
+    let parsed: any;
+    try {
+      let jsonStr = result.output;
+      const fm = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fm) jsonStr = fm[1];
+      const bs = jsonStr.indexOf('{'), be = jsonStr.lastIndexOf('}');
+      if (bs >= 0 && be > bs) jsonStr = jsonStr.slice(bs, be + 1);
+      parsed = JSON.parse(jsonStr);
+    } catch { return { sceneNumber: scene.sceneNumber, shots: [], trace }; }
+
+    return {
+      sceneNumber: scene.sceneNumber,
+      shots: (parsed.shots || []).map((sh: any) => ({
+        shotNumber: sh.shotNumber || 1, shotType: sh.shotType || 'MS',
+        cameraMovement: sh.cameraMovement || 'Static', duration: sh.duration || 5,
+        angle: sh.angle || 'EyeLevel', aperture: sh.aperture || 4,
+        role: sh.role || 'action', lighting: sh.lighting || '',
+        composition: sh.composition || '', blocking: sh.blocking || '',
+        writerIntent: sh.writerIntent || '',
+        visualPrompt: sh.visualPrompt || '', videoPrompt: sh.videoPrompt || '',
+      })),
+      trace,
+    };
+  } catch (err) { console.error('[scene-shot] Error:', err); return { sceneNumber: scene.sceneNumber, shots: [], trace }; }
 }

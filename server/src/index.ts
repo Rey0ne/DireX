@@ -10,7 +10,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline, runScriptPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, runScriptPipeline, runOverviewPipeline, runSceneShotPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { geminiChat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
@@ -299,6 +299,38 @@ app.post('/api/agent/script', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('[script-api] Error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// ─── Two-Phase Script — Phase 1: 剧本概览（拆场景）───
+app.post('/api/agent/script/overview', async (req: Request, res: Response) => {
+  const { scriptText } = req.body;
+  if (!scriptText || typeof scriptText !== 'string' || scriptText.trim().length < 10) {
+    res.status(400).json({ error: '请提供剧本文本' }); return;
+  }
+  console.log('[overview-api] Scanning (' + scriptText.length + ' chars)');
+  try {
+    const result = await runOverviewPipeline(scriptText.trim());
+    console.log('[overview-api] ' + result.scenes.length + ' scenes');
+    res.json({ success: true, ...result, totalScenes: result.scenes.length });
+  } catch (err) {
+    console.error('[overview-api] Error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// ─── Two-Phase Script — Phase 2: 单场景分镜细拆 ───
+app.post('/api/agent/script/scene', async (req: Request, res: Response) => {
+  const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
+  if (!scene || !scriptExcerpt) { res.status(400).json({ error: 'Missing scene or scriptExcerpt' }); return; }
+  console.log('[scene-shot-api] Scene ' + scene.sceneNumber + ': ' + (scene.sceneHeader || ''));
+  try {
+    const result = await runSceneShotPipeline(scene, scriptExcerpt, visualBible, characterProfiles);
+    console.log('[scene-shot-api] ' + result.shots.length + ' shots');
+    res.json({ success: true, sceneNumber: result.sceneNumber, shots: result.shots });
+  } catch (err) {
+    console.error('[scene-shot-api] Error:', err);
     res.status(500).json({ error: String(err) });
   }
 });
