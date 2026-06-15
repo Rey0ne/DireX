@@ -468,15 +468,24 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                     setScriptOverview({...scriptOverview,characterProfiles:json.characters,scriptTitle:scriptOverview?.scriptTitle||'角色分析'});setPhase('overview');
                     // 自动创建角色设定图节点
                     const chars=json.characters;const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
-                    const baseX=(st2.nodes.get(id)?.pos?.x||0)+340;const baseY=(st2.nodes.get(id)?.pos?.y||0)-100;
-                    let ci=0;const COLS2=5;
+                    const baseX=(st2.nodes.get(id)?.pos?.x||0)+360;const baseY=(st2.nodes.get(id)?.pos?.y||0)-120;
+                    let ci=0;const COLS2=4;
                     for(const [name,info] of Object.entries(chars) as [string,any][]){
-                      const nid='char_'+Date.now()+'_'+ci;
-                      next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+name,
-                        pos:{x:baseX+(ci%COLS2)*200,y:baseY+Math.floor(ci/COLS2)*100},size:{w:180,h:80},ports:[],status:'idle',
-                        meta:{gen:{prompt:'Character design sheet: '+name+', '+((info as any).appearance||''),model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
-                        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-                      ci++;
+                      // 群演拆分：如"随从(6人)" → 6个独立节点
+                      const groupMatch=name.match(/^(.+)\((\d+)人\)$/);
+                      const count=groupMatch?parseInt(groupMatch[2]):1;
+                      const baseName=groupMatch?groupMatch[1]:name;
+                      for(let g=0;g<count;g++){
+                        const gName=count>1?`${baseName} #${g+1}`:baseName;
+                        const faceHint=count>1?`, face #${g+1}: ${g===0?'narrow jaw':g===1?'round face':g===2?'sharp cheekbones':g===3?'square jaw':g===4?'angular features':'distinct look'}`:'';
+                        const prompt=`Character design sheet: ${gName}. ${(info as any).appearance||''}. White background. Three-view turnaround (front, side, back). Include weapons, props, and expression sheet. Full character reference.${faceHint}`;
+                        const nid='char_'+Date.now()+'_'+ci;
+                        next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,
+                          pos:{x:baseX+(ci%COLS2)*220,y:baseY+Math.floor(ci/COLS2)*220},size:{w:200,h:200},ports:[],status:'idle',
+                          meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
+                          createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+                        ci++;
+                      }
                     }
                     useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
                   }
