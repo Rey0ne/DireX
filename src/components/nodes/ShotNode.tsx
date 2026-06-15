@@ -87,7 +87,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     if (!prompt.trim()) return;
     genRunningRef.current = true; setGenRunning(true);
     try {
-      // 1. 角色提取
+      console.log('[STEP1] Starting characters');
       const charResp = await fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) });
       const charJson = await charResp.json();
       const chars = charJson.success ? charJson.characters : {};
@@ -101,6 +101,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             for (let g = 0; g < c2; g++) {
               const gn = c2 > 1 ? `${bn}#${g+1}` : bn;
               const desc = typeof info === 'string' ? info : (info.appearance || info.role || '');
+              console.log('[STEP2] Creating char node:', gn);
               const nid = canvasStore.addNode('image.generate', { x: baseX + (ci % COLS) * 220, y: (cx.pos?.y || 0) + Math.floor(ci / COLS) * 220 }, '🎭 ' + gn);
               canvasStore.updateNode(nid, { meta: { gen: { prompt: `角色设定图：${gn}。${desc}。白色背景。三视图（正面侧面背面）。武器道具和表情设定。`, model: 'GPT Image2', aspect: '3:2', resolution: '2K', quality: 'high' } } });
               ci++;
@@ -249,7 +250,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           />
 
           {/* Phase 1 result: Scene overview list */}
-          {phase === 'overview' && scriptOverview && (
+          {/* Overview UI removed — nodes created directly by handleScriptAnalysis */}
+          {false && phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {/* 角色清单 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
