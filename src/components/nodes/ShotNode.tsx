@@ -109,6 +109,22 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       patch('scriptOverview', result);
       analysisDoneRef.current = true;
       setPhase('overview');
+      // 后台预取所有场景分镜数据
+      if (overviewJson.scenes?.length > 0) {
+        (async () => {
+          for (const scene of overviewJson.scenes) {
+            try {
+              const sResp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scene, scriptExcerpt:prompt, visualBible:overviewJson.visualBible, characterProfiles:overviewJson.characterProfiles}) });
+              const sJson = await sResp.json();
+              if (sJson.success && sJson.shots) {
+                const cur = getOverview() || {};
+                const allShots = [...(cur.allShots || []), { sceneNumber: scene.sceneNumber, shots: sJson.shots }];
+                patch('scriptOverview', { ...cur, allShots });
+              }
+            } catch(e) {}
+          }
+        })();
+      }
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
@@ -240,7 +256,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               {getOverview().scenes && getOverview().scenes.length>0 && <>
                 <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
                 {getOverview().scenes.map((s:any,i:number) => (
-                <div key={i} onClick={()=>setPendingSceneIdx(i)} style={{
+                <div key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;const shots=(ov.allShots||[]).find((s:any)=>s.sceneNumber===sc.sceneNumber)?.shots;if(!shots?.length)return;const store=useCanvasStore.getState();const BX=(store.nodes.get(id)?.pos?.x||0)+340;const BY=(store.nodes.get(id)?.pos?.y||0)+200;shots.forEach((sh:any,si:number)=>{store.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);});}} style={{
                   padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
