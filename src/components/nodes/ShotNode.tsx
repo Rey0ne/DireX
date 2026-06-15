@@ -245,7 +245,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           />
 
           {/* Phase 1 result: Scene overview list */}
-          {scriptMode && phase === 'overview' && scriptOverview && (
+          {phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {/* 角色清单 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
@@ -294,7 +294,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           )}
 
           {/* Content — Agent output area */}
-          {scriptMode && phase === 'overview' ? null : genRunning ? (
+          {phase === 'overview' ? null : genRunning ? (
             <div style={{
               minHeight: '80px', display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -376,13 +376,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
           }}>
-            {scriptMode && <div style={{ padding: '6px 12px 0' }}>
-              <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
-                placeholder="视觉风格，如：新海诚动漫、BBC自然纪录片、1970年代意大利铅黄电影、赛博朋克…"
-                style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:6,color:'#ccc',fontSize:10,padding:'4px 8px',outline:'none' }}
-                onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
-            </div>}
-            <div style={{ padding: scriptMode?'4px 12px 0':'8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ padding: '4px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
               <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
                 style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}
@@ -406,13 +400,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   handleGenerate();
                 }
               }}
-              placeholder={scriptMode ? "粘贴完整剧本文本…\n\n例：\n酒吧内景 - 夜\nA一脚踹开大门，大步走进酒吧。所有人转头看向他。\n沉默。\nA走向吧台，坐下。" : "输入需求或场景描述…"}
-              rows={scriptMode ? 18 : expanded ? 8 : 4}
+              placeholder="粘贴完整剧本文本…&#10;&#10;例：&#10;酒吧内景 - 夜&#10;A一脚踹开大门，大步走进酒吧。所有人转头看向他。&#10;沉默。&#10;A走向吧台，坐下。"
+              rows={18}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
                 color: 'var(--tap-text-1)', resize: 'vertical', outline: 'none',
-                lineHeight: 1.5, overflowY: 'scroll', minHeight: scriptMode ? '360px' : 'auto',
+                lineHeight: 1.5, overflowY: 'scroll', minHeight: '360px',
               }}
             />
             <div style={{
@@ -420,20 +414,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-                {scriptMode ? (phase==='overview'?'📋 点击场景生成分镜':phase==='shots'?'✅ 分镜已生成':'📜 剧本 → 概览') : '✏️ 文本分析'}
+                {phase==='overview'?'📋 点击场景卡片生成分镜':phase==='shots'?'✅ 分镜完成':'粘贴剧本，回车分析'}
               </span>
-              <button
-                onClick={(e) => { e.stopPropagation(); setScriptMode(!scriptMode); setScriptResult(null); }}
-                style={{
-                  fontSize: '10px', fontWeight: 600, cursor: 'pointer',
-                  background: scriptMode ? 'rgba(255,180,60,0.15)' : 'rgba(255,255,255,0.04)',
-                  border: scriptMode ? '1px solid rgba(255,180,60,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                  color: scriptMode ? '#ffaa44' : 'var(--tap-text-4)',
-                  borderRadius: 'var(--tap-r-full)', padding: '3px 10px',
-                  whiteSpace: 'nowrap',
-                }}
-              >{scriptMode ? '📜 剧本分析' : '✏️ 文本'}</button>
-              {scriptMode && <button onClick={async (e) => {
+              <button onClick={async (e) => {
                 e.stopPropagation();
                 if (!prompt.trim()||genRunningRef.current) return;
                 genRunningRef.current=true;setGenRunning(true);
@@ -446,7 +429,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 fontSize:'10px',fontWeight:600,cursor:'pointer',
                 background:'rgba(100,200,180,0.08)',border:'1px solid rgba(100,200,180,0.2)',
                 color:'#88ccbb',borderRadius:'var(--tap-r-full)',padding:'3px 10px',whiteSpace:'nowrap',
-              }}>👥 角色分析</button>}
+              }}>👥 角色分析</button>
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',
