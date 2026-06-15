@@ -100,7 +100,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
-  const handleSceneShot = async (sceneIndex: number) => {
+  const handleSceneShot = useCallback(async (sceneIndex: number) => {
     const overview = scriptOverview;
     if (!overview) return;
     const scene = overview.scenes[sceneIndex];
@@ -143,7 +143,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       }
     } catch (err) { console.error('[scene-shot] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
-  };
+  }, [scriptOverview]);
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
