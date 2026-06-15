@@ -95,9 +95,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const overviewJson = await overviewResp.json();
       // 合并：角色提取优先
       const chars = charJson.success ? charJson.characters : (overviewJson.characterProfiles || {});
+      console.log('[analysis] chars:',Object.keys(chars).length,'scenes:',overviewJson.scenes?.length,'overviewKeys:',Object.keys(overviewJson).join(','));
       setScriptOverview({ ...overviewJson, characterProfiles: chars, scriptTitle: overviewJson.scriptTitle || '剧本分析' });
       setPhase('overview');
-      console.log('[analysis] ' + Object.keys(chars).length + ' chars, ' + (overviewJson.scenes?.length||0) + ' scenes');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
@@ -122,50 +122,25 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       });
       const json = await resp.json();
       if (json.success && json.shots?.length > 0) {
-        setScriptResult(json);
-        setPhase('shots');
-        // Create image nodes from shots
+        setScriptResult(json); setPhase('shots');
         const cx = canvasStore.nodes.get(id);
         if (cx) {
           const COLS = 4;
           const baseX = (cx.pos?.x || 0) + 340;
           const baseY = (cx.pos?.y || 0) + 200;
-          const now = new Date().toISOString();
-          const next = new Map(canvasStore.nodes);
           json.shots.forEach((shot: any, shi: number) => {
             const row = Math.floor(shi / COLS);
             const col = shi % COLS;
             const label = shot.shotType + ' #' + (scene.sceneNumber||'') + '-' + shot.shotNumber;
-            const nid = 'img_' + Date.now() + '_s' + sceneIndex + '_' + shi;
-            next.set(nid, {
-                  id: nid, type: 'image.generate', title: label,
-                  pos: { x: baseX + col * 340, y: baseY + row * 400 },
-                  size: { w: 380, h: 200 }, ports: [], status: 'idle',
-                  meta: {
-                    gen: {
-                      prompt: shot.visualPrompt,
-                      videoPrompt: shot.videoPrompt || '',
-                      model: 'GPT Image2', aspect: '16:9',
-                      resolution: '2K', quality: 'high',
-                    },
-                    characters: scene.characters || [],  // 场景角色标签
-                    sceneType: scene.sceneType || '',     // establishing/action/dialogue
-                    shot: {
-                      shotType: shot.shotType,
-                      cameraMovement: shot.cameraMovement,
-                      angle: shot.angle, aperture: shot.aperture,
-                      writerIntent: shot.writerIntent || '',
-                      lighting: shot.lighting || '',
-                      composition: shot.composition || '',
-                      blocking: shot.blocking || '',
-                      role: shot.role || '',
-                    },
-                  },
-                  createdAt: now, updatedAt: now,
-                });
-                });
-          useCanvasStore.setState({ nodes: next });
-          canvasStore.triggerSync();
+            const nid = canvasStore.addNode('image.generate', { x: baseX + col * 340, y: baseY + row * 400 }, label);
+            canvasStore.updateNode(nid, {
+              meta: {
+                gen: { prompt: shot.visualPrompt, videoPrompt: shot.videoPrompt || '', model: 'GPT Image2', aspect: '16:9', resolution: '2K', quality: 'high' },
+                characters: scene.characters || [], sceneType: scene.sceneType || '',
+                shot: { shotType: shot.shotType, cameraMovement: shot.cameraMovement, angle: shot.angle, aperture: shot.aperture, writerIntent: shot.writerIntent || '', lighting: shot.lighting || '', composition: shot.composition || '', blocking: shot.blocking || '', role: shot.role || '' },
+              },
+            });
+          });
         }
       }
     } catch (err) { console.error('[scene-shot] Error:', err); }
