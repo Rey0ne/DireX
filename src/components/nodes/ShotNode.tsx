@@ -247,6 +247,28 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
           />
 
+          {/* Phase 1 result: Scene overview list */}
+          {scriptMode && phase === 'overview' && scriptOverview?.scenes && (
+            <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+              <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📋 {scriptOverview.scriptTitle} — {scriptOverview.scenes.length} 个场景</div>
+              {scriptOverview.scenes.map((s:any,i:number) => (
+                <div key={i} onClick={()=>handleSceneShot(i)} style={{
+                  padding:'8px 10px',borderRadius:8,cursor:'pointer',
+                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',
+                  display:'flex',justifyContent:'space-between',alignItems:'center',
+                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.08)';e.currentTarget.style.borderColor='rgba(100,180,255,0.25)'}}
+                   onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}}>
+                  <div>
+                    <div style={{ fontSize:11,fontWeight:600,color:'var(--tap-text-1)' }}>{s.sceneHeader}</div>
+                    <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:2 }}>{s.location} · {s.timeOfDay} · {s.sceneType} · ~{s.estimatedShots}镜</div>
+                    <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:1 }}>{s.summary}</div>
+                  </div>
+                  <span style={{ fontSize:16,color:'var(--tap-text-4)' }}>→</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Content — Agent output area */}
           {genRunning ? (
             <div style={{
@@ -374,7 +396,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-                {scriptMode ? '📜 剧本 → 自动分镜' : '✏️ 文本分析'}
+                {scriptMode ? (phase==='overview'?'📋 点击场景生成分镜':phase==='shots'?'✅ 分镜已生成':'📜 剧本 → 概览') : '✏️ 文本分析'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setScriptMode(!scriptMode); setScriptResult(null); }}
