@@ -270,6 +270,34 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   ))}
                 </div>
               )}
+              {/* 一键生成角色设定图 */}
+              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length>0 && (
+                <div onClick={async () => {
+                  const profiles = scriptOverview.characterProfiles;
+                  const st2 = useCanvasStore.getState();
+                  const next2 = new Map(st2.nodes);
+                  const baseX = (st2.nodes.get(id)?.pos?.x||0)+340;
+                  const baseY = (st2.nodes.get(id)?.pos?.y||0)-100;
+                  let ci = 0;
+                  for(const [name,info] of Object.entries(profiles) as [string,any][]){
+                    const nid='char_'+Date.now()+'_'+ci;
+                    next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+name,
+                      pos:{x:baseX+ci*340,y:baseY},size:{w:380,h:200},ports:[],status:'idle',
+                      meta:{gen:{prompt:'Character design sheet: '+name+', '+((info as any).appearance||''),model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角'},
+                      createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+                    ci++;
+                  }
+                  useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
+                }} style={{
+                  fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',
+                  padding:'6px 12px',borderRadius:8,marginTop:2,
+                  background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',
+                  color:'#88bbff',
+                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.14)'}}
+                   onMouseLeave={e=>{e.currentTarget.style.background='rgba(100,180,255,0.08)'}}>
+                  🎭 一键生成 {Object.keys(scriptOverview.characterProfiles).length} 个角色设定图
+                </div>
+              )}
               {scriptOverview.scenes.map((s:any,i:number) => (
                 <div key={i} onClick={()=>handleSceneShot(i)} style={{
                   padding:'8px 10px',borderRadius:8,cursor:'pointer',
