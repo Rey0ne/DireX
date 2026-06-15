@@ -16,7 +16,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveNow(), 500);
+  saveTimer = setTimeout(() => saveNow(), 100);
 }
 
 export async function saveNow() {

@@ -52,8 +52,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
-  const [scriptMode, setScriptMode] = useState(false);
-  const [visualStyle, setVisualStyle] = useState('真人电影');
+  const [visualStyle, setVisualStyle] = useState('');
   const [scriptOverview, setScriptOverview] = useState<any>(null); // Phase 1 result
   const [scriptResult, setScriptResult] = useState<any>(null);
   const [phase, setPhase] = useState<'input'|'overview'|'shots'>('input');
@@ -61,8 +60,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
   const canvasStore = useCanvasStore();
-  const tagStyle = { fontSize:'9px', fontWeight:600, color:'var(--tap-accent)', background:'rgba(74,158,255,0.1)', padding:'1px 6px', borderRadius:'var(--tap-r-full)' } as const;
-
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
@@ -322,8 +319,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             overflow: 'hidden',
           }}>
             <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
-              placeholder="视觉风格：真人电影、新海诚动漫、赛博朋克、1970年代意大利铅黄电影…"
-              style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',color:'var(--tap-text-3)',fontSize:10,padding:'4px 14px',outline:'none' }}
+              placeholder="请填入风格，如真人/动漫"
+              style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',color:'var(--tap-text-4)',fontSize:9,padding:'2px 14px',outline:'none' }}
               onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
             <div style={{ padding: '4px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
