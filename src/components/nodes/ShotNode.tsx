@@ -67,11 +67,15 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     data.onChange?.({ [k]: v });
   }, [data]);
 
-  // 自动保存输入框内容到 store（刷新不丢）
+  // 自动保存输入框内容（200ms 防抖）
+  const promptRef = useRef(prompt);
+  promptRef.current = prompt;
   useEffect(() => {
-    const t = setTimeout(() => { if (prompt) patch('prompt', prompt); }, 800);
+    const t = setTimeout(() => { if (promptRef.current) patch('prompt', promptRef.current); }, 200);
     return () => clearTimeout(t);
   }, [prompt]);
+  // 组件卸载时立即保存
+  useEffect(() => () => { if (promptRef.current) patch('prompt', promptRef.current); }, []);
 
   const handleGenerate = () => {
     if (genRunningRef.current) return;
@@ -251,6 +255,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           {scriptMode && phase === 'overview' && scriptOverview?.scenes && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📋 {scriptOverview.scriptTitle} — {scriptOverview.scenes.length} 个场景</div>
+              {/* 角色清单 — 让用户确认 Agent 判断 */}
+              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (
+                <div style={{ display:'flex',flexWrap:'wrap',gap:4,padding:'4px 0' }}>
+                  <span style={{ fontSize:9,color:'var(--tap-text-4)' }}>角色：</span>
+                  {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
+                    <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
+                      background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
+                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>
+                      {name} ({info.role})
+                    </span>
+                  ))}
+                </div>
+              )}
               {scriptOverview.scenes.map((s:any,i:number) => (
                 <div key={i} onClick={()=>handleSceneShot(i)} style={{
                   padding:'8px 10px',borderRadius:8,cursor:'pointer',
@@ -258,12 +275,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   display:'flex',justifyContent:'space-between',alignItems:'center',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.08)';e.currentTarget.style.borderColor='rgba(100,180,255,0.25)'}}
                    onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}}>
-                  <div>
+                  <div style={{ flex:1 }}>
                     <div style={{ fontSize:11,fontWeight:600,color:'var(--tap-text-1)' }}>{s.sceneHeader}</div>
                     <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:2 }}>{s.location} · {s.timeOfDay} · {s.sceneType} · ~{s.estimatedShots}镜</div>
+                    {s.characters?.length > 0 && <div style={{ fontSize:9,color:'var(--tap-accent)',marginTop:1 }}>角色：{s.characters.join(', ')}</div>}
                     <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:1 }}>{s.summary}</div>
                   </div>
-                  <span style={{ fontSize:16,color:'var(--tap-text-4)' }}>→</span>
+                  <span style={{ fontSize:16,color:'var(--tap-text-4)',flexShrink:0 }}>→</span>
                 </div>
               ))}
             </div>

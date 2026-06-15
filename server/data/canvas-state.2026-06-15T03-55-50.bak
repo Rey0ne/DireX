@@ -1,12 +1,404 @@
 {
   "nodes": [
     {
+      "id": "img_1781444442578_0_1",
+      "type": "image.generate",
+      "title": "MS #2",
+      "pos": {
+        "x": 933.6083892724771,
+        "y": 3179.203751928687
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "videoPrompt": "低角度拍摄，镜头跟随卡迪亚的脚步推进，聚焦于他脚下蔓延的黑色毒痕，持续4秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "compiledPromptCn": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
+          ]
+        },
+        "shot": {
+          "shotType": "MS",
+          "cameraMovement": "PushIn",
+          "angle": "LowAngle",
+          "aperture": 4,
+          "writerIntent": "展现反派卡迪亚的威胁感与邪恶力量。",
+          "lighting": "侧逆光，强调肌肉线条与黑雾质感",
+          "composition": "框架构图，卡迪亚位于画面中心",
+          "blocking": "卡迪亚赤裸上身，每走一步脚下浮现黑色毒痕",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-14T13:40:42.578Z",
+      "updatedAt": "2026-06-14T15:16:55.103Z"
+    },
+    {
+      "id": "img_1781444442578_0_2",
+      "type": "image.generate",
+      "title": "CU #3",
+      "pos": {
+        "x": 1513.6514934760705,
+        "y": 3186.852233001039
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "videoPrompt": "特写镜头，女王的手缓缓拂去雪花，眼神充满温柔，持续3秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383",
+          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "compiledPromptCn": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
+          ]
+        },
+        "shot": {
+          "shotType": "CU",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
+          "aperture": 1.4,
+          "writerIntent": "展现女王的母性保护欲与对女儿的温柔。",
+          "lighting": "柔和的漫反射光，聚焦面部",
+          "composition": "特写构图，女王与小贝拉处于画面黄金分割点",
+          "blocking": "女王蹲下，为小贝拉拂去帽子上的雪",
+          "role": "dialog"
+        }
+      },
+      "createdAt": "2026-06-14T13:40:42.578Z",
+      "updatedAt": "2026-06-14T15:46:00.373Z"
+    },
+    {
+      "id": "img_1781444442578_0_3",
+      "type": "image.generate",
+      "title": "MS #4",
+      "pos": {
+        "x": 2054.7593033460885,
+        "y": 3215.2946497962494
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+          "videoPrompt": "快速推镜头，记录双方变身并撞击的瞬间，雪浪炸开的瞬间定格，持续5秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "Sony Venice",
+          "lens": "Cooke S4",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 2383",
+          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+          "compiledPromptCn": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png"
+          ]
+        },
+        "shot": {
+          "shotType": "MS",
+          "cameraMovement": "Dolly",
+          "angle": "LowAngle",
+          "aperture": 4,
+          "writerIntent": "展现变身过程的震撼与野性。",
+          "lighting": "硬光，强调变身时的毛发与骨骼扭曲",
+          "composition": "动态构图，银狼与黑狼的对冲",
+          "blocking": "女王与手下变身银狼，卡迪亚与手下变身黑狼，双方猛烈撞击",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-14T13:40:42.578Z",
+      "updatedAt": "2026-06-14T15:46:02.480Z"
+    },
+    {
+      "id": "img_1781450248255_0_1",
+      "type": "image.generate",
+      "title": "CU #2",
+      "pos": {
+        "x": -516,
+        "y": 3184
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+          "videoPrompt": "缓慢推镜头，聚焦布蕾克的面部表情，眼神中流露出对辛德瑞拉的轻蔑，持续3秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "75mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 75mm, Aperture: f/1.4, Film stock: Kodak 500T] 布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+          "compiledPromptCn": "布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/e80c9791c018630bbcc4e6d7f1dac271_a0902e12a6d243548403c97aa759d189.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/e80c9791c018630bbcc4e6d7f1dac271_a0902e12a6d243548403c97aa759d189.png"
+          ]
+        },
+        "shot": {
+          "shotType": "CU",
+          "cameraMovement": "PushIn",
+          "angle": "EyeLevel",
+          "aperture": 1.4,
+          "writerIntent": "捕捉布蕾克的得意与挑衅，强化其卑劣性格。",
+          "lighting": "侧逆光，强调面部轮廓",
+          "composition": "特写构图，负空间留给莱斯特",
+          "blocking": "布蕾克仰头，眼神迷离看向照片",
+          "role": "dialog"
+        }
+      },
+      "createdAt": "2026-06-14T15:17:28.255Z",
+      "updatedAt": "2026-06-15T03:34:45.504Z"
+    },
+    {
+      "id": "img_1781450248255_0_2",
+      "type": "image.generate",
+      "title": "MS #3",
+      "pos": {
+        "x": -28,
+        "y": 3184
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+          "videoPrompt": "手持镜头跟随辛德瑞拉的脚步，随着她推门动作，镜头快速推进到她惊讶的面部表情，持续5秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "35mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+          "compiledPromptCn": "辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/8a9a082b723d3fa0b2c7513fced488fa_68c61fb6391b4109b3957fdae22df35b.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/8a9a082b723d3fa0b2c7513fced488fa_68c61fb6391b4109b3957fdae22df35b.png"
+          ]
+        },
+        "shot": {
+          "shotType": "MS",
+          "cameraMovement": "Handheld",
+          "angle": "EyeLevel",
+          "aperture": 4,
+          "writerIntent": "辛德瑞拉推门而入，打破平静，制造冲突点。",
+          "lighting": "自然光，冷色调",
+          "composition": "框架构图，通过门框看室内",
+          "blocking": "辛德瑞拉在门口，蛋糕在手中晃动",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-14T15:17:28.255Z",
+      "updatedAt": "2026-06-15T03:38:14.625Z"
+    },
+    {
+      "id": "img_1781450248255_1_0",
+      "type": "image.generate",
+      "title": "LS #4",
+      "pos": {
+        "x": -38,
+        "y": 3452
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+          "videoPrompt": "摄影机横向移动，展示狼群从黑暗中逼近的动态，辛德瑞拉在画面中央颤抖，持续6秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "35mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+          "compiledPromptCn": "月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/6eac8942278e9d824ea446dfc99e58b1_8fef5613e3e742149e7861438bee4863.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/6eac8942278e9d824ea446dfc99e58b1_8fef5613e3e742149e7861438bee4863.png"
+          ]
+        },
+        "shot": {
+          "shotType": "LS",
+          "cameraMovement": "Truck",
+          "angle": "LowAngle",
+          "aperture": 11,
+          "writerIntent": "营造狼群包围的绝望感。",
+          "lighting": "月光冷色硬光",
+          "composition": "三分法构图，狼群分布在四周",
+          "blocking": "辛德瑞拉坐在马路中央，七只狼从阴影中走出",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-14T15:17:28.255Z",
+      "updatedAt": "2026-06-15T03:45:21.379Z"
+    },
+    {
+      "id": "img_1781450248255_1_2",
+      "type": "image.generate",
+      "title": "FS #6",
+      "pos": {
+        "x": 438,
+        "y": 3176
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+          "videoPrompt": "摄影机快速推进，捕捉阿瑞斯撞击的瞬间以及他站立的姿态，气势磅礴，持续5秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "24mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+          "compiledPromptCn": "阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/26b8b10448f8a415c8edae97e7679a6a_45eaf9b545764c8291d912a63b8b7a1e.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/26b8b10448f8a415c8edae97e7679a6a_45eaf9b545764c8291d912a63b8b7a1e.png"
+          ]
+        },
+        "shot": {
+          "shotType": "FS",
+          "cameraMovement": "Dolly",
+          "angle": "LowAngle",
+          "aperture": 4,
+          "writerIntent": "英雄登场，视觉爆发。",
+          "lighting": "逆光，金色光晕",
+          "composition": "中心构图",
+          "blocking": "阿瑞斯撞飞狼群，护在辛德瑞拉身前",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-14T15:17:28.255Z",
+      "updatedAt": "2026-06-15T03:45:18.241Z"
+    },
+    {
+      "id": "img_1781450248255_1_3",
+      "type": "image.generate",
+      "title": "CU #7",
+      "pos": {
+        "x": -516,
+        "y": 3456
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "succeeded",
+      "meta": {
+        "gen": {
+          "prompt": "阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+          "videoPrompt": "缓慢推向两人的面部，聚焦辛德瑞拉瞳孔变色的过程，持续4秒。",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high",
+          "camera": "IMAX Film Camera",
+          "lens": "Zeiss Ultra Prime",
+          "focalLength": "50mm",
+          "aperture": "f/1.4",
+          "filmStock": "Kodak 500T",
+          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+          "compiledPromptCn": "阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/59a6f3785c422f5ec4feba49debc1391_aa146c5d0f3244fab28b11f803ccd4e0.png",
+          "resultAssetIds": [
+            "https://tempfile.aiquickdraw.com/images/chatgpt/59a6f3785c422f5ec4feba49debc1391_aa146c5d0f3244fab28b11f803ccd4e0.png"
+          ]
+        },
+        "shot": {
+          "shotType": "CU",
+          "cameraMovement": "PushIn",
+          "angle": "EyeLevel",
+          "aperture": 1.4,
+          "writerIntent": "展现辛德瑞拉的觉醒。",
+          "lighting": "暖色与冷色交织",
+          "composition": "双人特写",
+          "blocking": "阿瑞斯抚摸辛德瑞拉的脸",
+          "role": "reaction"
+        }
+      },
+      "createdAt": "2026-06-14T15:17:28.255Z",
+      "updatedAt": "2026-06-15T03:45:16.348Z"
+    },
+    {
       "id": "node-1780933543040-3",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 100,
-        "y": 100
+        "x": -500,
+        "y": 2880
       },
       "size": {
         "w": 300,
@@ -28,61 +420,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
-    },
-    {
-      "id": "node-1781237565807-2",
-      "type": "video.generate",
-      "title": "video.generate",
-      "pos": {
-        "x": 1800,
-        "y": 100
-      },
-      "size": {
-        "w": 300,
-        "h": 200
-      },
-      "ports": [],
-      "status": "idle",
-      "meta": {
-        "gen": {
-          "prompt": "一名韩国歌星，在极具科幻色彩的外星殖民地透明苍穹下科幻商业街中录制自己的MV，她穿梭在繁忙的人群中，天空中飞行着各式各样的飞行汽车，人们穿着极具科幻，与歌星的穿着形成极大的反差，大楼上的全息投影播放着歌星代言化妆品的巨幅广告，1-6秒斯坦尼康镜头环绕歌星一圈，后退又推近到女星的上半身特写时她手挡住镜头，她一边歌唱一边跳着性感的舞蹈，7-12秒放下手之后她来到了1945年战火纷飞的欧洲战场，士兵们前赴后继冲出战壕，她戴上头盔，她表情紧张，但是很轻松，一边对着镜头歌唱，一边跟随士兵们穿梭在不同的掩体中躲避炮火和枪弹，炮火的爆炸和枪弹在她身边穿梭，她都又酷又优雅的躲过了，同时还继续歌唱，随着再一次爆炸摄影机在一阵火光填充式转场之后回到了白色弧形墙的影棚里，MV结束",
-          "model": "Seedance 2.0",
-          "duration": "15s",
-          "resolution": "720P",
-          "aspect": "21:9",
-          "refMode": "first",
-          "firstFrameUrl": null,
-          "lastFrameUrl": null,
-          "multiFrames": [],
-          "compiledPrompt": "Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
-          "compiledPromptCn": "将画面@c215601bea7209e35764acefe6b22f7d.mp4 中的角色替换为@image.generate 图中的五官和@image.generate 的穿着和五官以及身材比例",
-          "videoUrl": "https://tempfile.aiquickdraw.com/seedance/1781249562496-r2s8e6vpcq9.mp4",
-          "resultAssetIds": [
-            "https://tempfile.aiquickdraw.com/seedance/1781249562496-r2s8e6vpcq9.mp4"
-          ],
-          "musicOn": false,
-          "genMode": "i2v",
-          "fullRefs": {
-            "image-style": null,
-            "video-motion": null,
-            "audio-rhythm": null
-          },
-          "fixedCamera": false,
-          "generateAudio": true,
-          "webSearch": false
-        }
-      },
-      "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:59.166Z"
     },
     {
       "id": "node-1781239565102-2",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 2140,
-        "y": 100
+        "x": -40,
+        "y": 2840
       },
       "size": {
         "w": 300,
@@ -103,15 +449,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:55:01.343Z"
     },
     {
       "id": "node-1781239826909-1",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 2480,
-        "y": 100
+        "x": 420,
+        "y": 2860
       },
       "size": {
         "w": 300,
@@ -134,15 +480,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:55:03.745Z"
     },
     {
       "id": "node-1781258185405-1",
       "type": "image.generate",
       "title": "Sony Venice",
       "pos": {
-        "x": 780,
-        "y": 480
+        "x": 3480,
+        "y": 80
       },
       "size": {
         "w": 300,
@@ -163,15 +509,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:10.593Z"
     },
     {
       "id": "node-1781269980220-1",
       "type": "image.generate",
       "title": "Arri Alexa 35",
       "pos": {
-        "x": 1120,
-        "y": 480
+        "x": 3980,
+        "y": 100
       },
       "size": {
         "w": 300,
@@ -191,15 +537,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:13.590Z"
     },
     {
       "id": "node-1781270026389-2",
       "type": "image.generate",
       "title": "Arri Alexa 65",
       "pos": {
-        "x": 1460,
-        "y": 480
+        "x": 4480,
+        "y": 80
       },
       "size": {
         "w": 300,
@@ -220,15 +566,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:16.224Z"
     },
     {
       "id": "node-1781270066387-3",
       "type": "image.generate",
       "title": "RED V-Raptor",
       "pos": {
-        "x": 1800,
-        "y": 480
+        "x": 4980,
+        "y": 80
       },
       "size": {
         "w": 300,
@@ -249,15 +595,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:21.577Z"
     },
     {
       "id": "node-1781270121698-4",
       "type": "image.generate",
       "title": "Panavision DXL2",
       "pos": {
-        "x": 2140,
-        "y": 480
+        "x": 3480,
+        "y": 380
       },
       "size": {
         "w": 300,
@@ -277,15 +623,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:24.298Z"
     },
     {
       "id": "node-1781270148350-5",
       "type": "image.generate",
       "title": "Arricam LT",
       "pos": {
-        "x": 2480,
-        "y": 480
+        "x": 3980,
+        "y": 360
       },
       "size": {
         "w": 300,
@@ -306,15 +652,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:28.870Z"
     },
     {
       "id": "node-1781270168248-6",
       "type": "image.generate",
       "title": "Arriflex 435",
       "pos": {
-        "x": 100,
-        "y": 860
+        "x": 4480,
+        "y": 360
       },
       "size": {
         "w": 300,
@@ -335,15 +681,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:32.473Z"
     },
     {
       "id": "node-1781270190587-7",
       "type": "image.generate",
       "title": "IMAX Film Camera",
       "pos": {
-        "x": 440,
-        "y": 860
+        "x": 4980,
+        "y": 360
       },
       "size": {
         "w": 300,
@@ -364,15 +710,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:35.700Z"
     },
     {
       "id": "node-1781270635587-8",
       "type": "image.generate",
       "title": "Zeiss Ultra Prime",
       "pos": {
-        "x": 780,
-        "y": 860
+        "x": 3480,
+        "y": 740
       },
       "size": {
         "w": 300,
@@ -393,15 +739,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:40.503Z"
     },
     {
       "id": "node-1781270681038-9",
       "type": "image.generate",
       "title": "Arri Signature Prime",
       "pos": {
-        "x": 1120,
-        "y": 860
+        "x": 3980,
+        "y": 740
       },
       "size": {
         "w": 300,
@@ -422,15 +768,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:45.556Z"
     },
     {
       "id": "node-1781270717573-10",
       "type": "image.generate",
       "title": "Canon K-35",
       "pos": {
-        "x": 1460,
-        "y": 860
+        "x": 4480,
+        "y": 740
       },
       "size": {
         "w": 300,
@@ -451,15 +797,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:52:56.272Z"
     },
     {
       "id": "node-1781270745273-11",
       "type": "image.generate",
       "title": "Cooke S4",
       "pos": {
-        "x": 1800,
-        "y": 860
+        "x": 5000,
+        "y": 740
       },
       "size": {
         "w": 300,
@@ -480,15 +826,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:04.365Z"
     },
     {
       "id": "node-1781270774184-12",
       "type": "image.generate",
       "title": "Cooke Panchro",
       "pos": {
-        "x": 2140,
-        "y": 860
+        "x": 3480,
+        "y": 1020
       },
       "size": {
         "w": 300,
@@ -509,15 +855,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:07.567Z"
     },
     {
       "id": "node-1781270807831-13",
       "type": "image.generate",
       "title": "Cooke SF",
       "pos": {
-        "x": 5443.641755892351,
-        "y": 1360.8324827787073
+        "x": 3980,
+        "y": 1020
       },
       "size": {
         "w": 300,
@@ -538,15 +884,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:12:47.140Z"
+      "updatedAt": "2026-06-15T03:53:10.678Z"
     },
     {
       "id": "node-1781270834641-14",
       "type": "image.generate",
       "title": "Helios",
       "pos": {
-        "x": 100,
-        "y": 1240
+        "x": 4480,
+        "y": 1020
       },
       "size": {
         "w": 300,
@@ -567,15 +913,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:17.061Z"
     },
     {
       "id": "node-1781270865261-15",
       "type": "image.generate",
       "title": "Panavision C-Series",
       "pos": {
-        "x": 440,
-        "y": 1240
+        "x": 5000,
+        "y": 1020
       },
       "size": {
         "w": 300,
@@ -596,15 +942,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:20.010Z"
     },
     {
       "id": "node-1781270901354-16",
       "type": "image.generate",
       "title": "Panavision Primo",
       "pos": {
-        "x": 780,
-        "y": 1240
+        "x": 3480,
+        "y": 1300
       },
       "size": {
         "w": 300,
@@ -625,15 +971,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:23.515Z"
     },
     {
       "id": "node-1781270931324-17",
       "type": "image.generate",
       "title": "Hawk Class X",
       "pos": {
-        "x": 1120,
-        "y": 1240
+        "x": 3980,
+        "y": 1300
       },
       "size": {
         "w": 300,
@@ -654,15 +1000,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:26.510Z"
     },
     {
       "id": "node-1781271362550-19",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 1460,
-        "y": 1240
+        "x": 4480,
+        "y": 1300
       },
       "size": {
         "w": 300,
@@ -683,15 +1029,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:30.201Z"
     },
     {
       "id": "node-1781271694768-20",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 1800,
-        "y": 1240
+        "x": 5000,
+        "y": 1300
       },
       "size": {
         "w": 300,
@@ -712,15 +1058,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:33.301Z"
     },
     {
       "id": "node-1781271737095-21",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 2140,
-        "y": 1240
+        "x": 3480,
+        "y": 1580
       },
       "size": {
         "w": 300,
@@ -741,15 +1087,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:35.740Z"
     },
     {
       "id": "node-1781271815037-22",
       "type": "image.generate",
       "title": "Kodak 2383",
       "pos": {
-        "x": 4520.0882784747355,
-        "y": -276.28182859608637
+        "x": 5020,
+        "y": 2240
       },
       "size": {
         "w": 300,
@@ -770,15 +1116,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:12:46.088Z"
+      "updatedAt": "2026-06-15T03:54:36.015Z"
     },
     {
       "id": "node-1781271831289-23",
       "type": "image.generate",
       "title": "Kodak 250D",
       "pos": {
-        "x": 100,
-        "y": 1620
+        "x": 4000,
+        "y": 1960
       },
       "size": {
         "w": 300,
@@ -799,15 +1145,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:03.846Z"
     },
     {
       "id": "node-1781271856777-24",
       "type": "image.generate",
       "title": "Kodak 500T",
       "pos": {
-        "x": 440,
-        "y": 1620
+        "x": 4500,
+        "y": 1960
       },
       "size": {
         "w": 300,
@@ -828,15 +1174,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:06.782Z"
     },
     {
       "id": "node-1781271906241-25",
       "type": "image.generate",
       "title": "Ektachrome",
       "pos": {
-        "x": 780,
-        "y": 1620
+        "x": 5020,
+        "y": 1960
       },
       "size": {
         "w": 300,
@@ -857,15 +1203,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:10.274Z"
     },
     {
       "id": "node-1781271943294-26",
       "type": "image.generate",
       "title": "Fuji Eterna",
       "pos": {
-        "x": 1120,
-        "y": 1620
+        "x": 3480,
+        "y": 1960
       },
       "size": {
         "w": 300,
@@ -886,15 +1232,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:53:55.972Z"
     },
     {
       "id": "node-1781271992307-27",
       "type": "image.generate",
       "title": "Fuji Velvia",
       "pos": {
-        "x": 1460,
-        "y": 1620
+        "x": 3480,
+        "y": 2240
       },
       "size": {
         "w": 300,
@@ -915,15 +1261,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:21.762Z"
     },
     {
       "id": "node-1781272041007-29",
       "type": "image.generate",
       "title": "Technicolor",
       "pos": {
-        "x": 1800,
-        "y": 1620
+        "x": 4000,
+        "y": 2240
       },
       "size": {
         "w": 300,
@@ -945,15 +1291,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:24.796Z"
     },
     {
       "id": "node-1781272110883-30",
       "type": "image.generate",
       "title": "Bleach Bypass",
       "pos": {
-        "x": 2140,
-        "y": 1620
+        "x": 4500,
+        "y": 2240
       },
       "size": {
         "w": 300,
@@ -974,15 +1320,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:54:27.666Z"
     },
     {
       "id": "node-1781272171622-31",
       "type": "image.generate",
       "title": "Acros",
       "pos": {
-        "x": 3798.7057115365965,
-        "y": 1449.9926434604388
+        "x": 3480,
+        "y": 2520
       },
       "size": {
         "w": 300,
@@ -1003,15 +1349,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:12:45.318Z"
+      "updatedAt": "2026-06-15T03:54:37.988Z"
     },
     {
       "id": "node-1781275558228-2",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 780,
-        "y": 2000
+        "x": 940,
+        "y": 2860
       },
       "size": {
         "w": 300,
@@ -1040,15 +1386,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:55:07.608Z"
     },
     {
       "id": "node-1781276129081-1",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 1120,
-        "y": 2000
+        "x": 1500,
+        "y": 2860
       },
       "size": {
         "w": 300,
@@ -1076,15 +1422,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:55:09.918Z"
     },
     {
       "id": "node-1781276262733-4",
       "type": "image.generate",
       "title": "image.generate",
       "pos": {
-        "x": 1460,
-        "y": 2000
+        "x": 2060,
+        "y": 2860
       },
       "size": {
         "w": 300,
@@ -1112,15 +1458,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T12:09:06.236Z"
+      "updatedAt": "2026-06-15T03:55:13.648Z"
     },
     {
       "id": "node-1781359007627-1",
       "type": "scene.3d",
       "title": "scene.3d",
       "pos": {
-        "x": 1800,
-        "y": 2000
+        "x": 1540,
+        "y": 900
       },
       "size": {
         "w": 300,
@@ -1440,15 +1786,15 @@
         }
       },
       "createdAt": "2026-06-14T12:09:06.236Z",
-      "updatedAt": "2026-06-14T14:58:19.754Z"
+      "updatedAt": "2026-06-15T03:54:41.526Z"
     },
     {
       "id": "node-1781442947974-1",
       "type": "shot",
       "title": "shot",
       "pos": {
-        "x": 855.6514934760705,
-        "y": 4104.852233001039
+        "x": 219.07697646344707,
+        "y": 4265.618980935838
       },
       "size": {
         "w": 380,
@@ -1458,422 +1804,630 @@
       "status": "succeeded",
       "meta": {
         "gen": {
-          "prompt": "正文：\n第一集\n1·1\n场景：苍茫雪原/日·外\n人物：苏尔里女王 卡迪亚 小贝拉（辛德瑞拉）苏尔里女王手下6人（女性） 卡迪亚狼群8人（男性）\n人物服饰：小贝拉：红色斗篷。\n苏尔里女王：（白色狼毛大氅，金色王冠，红瞳）\n六位随从：（紧身浅色皮衣，棉服，口袋或领口缀有银白色狼毛，三个白妹，三个黑妹/黑瞳）\n卡迪亚：光着带着伤疤的上半身，穿着缀有灰黑色狼毛的铆钉裤子，蓝瞳\n手下8人：（清一色古铜皮肤，穿着黑色夹克，棉服，带着灰黑色狼毛耳罩，毛领，黑瞳）\n广阔雪原，风雪呼啸，两队狼群对峙。\n两队之间，空出一片染血的雪地，和数只身上擦满了利箭的狼尸(1镜扫视战场)。\n女王清冷高贵，身后随从神色忠诚视死如归。\n卡迪亚带着八名吊儿郎当的手下，不屑一顾的打量着对面的女王，古铜色皮肤上每一道伤疤都在渗着黑色血雾。他每走一步，脚下裂出蛛网状黑色毒痕。\n卡迪亚（邪笑挑衅）：尊贵的女王陛下，王位该换人了。\n女王身后六个随从立即围上来，对着卡迪亚咆哮龇牙低吼，保护女王。\n瞬间，卡迪亚身后的手下也全都围过来，对着女王部落狂妄龇牙，蠢蠢欲动威胁逼近。\n小贝拉躲在女王的身后，紧张的抓着女王的裙摆。\n小贝拉：妈妈我害怕。\n女王看眼对面的族群，蹲下身，伸手抚去了小贝拉帽子上的雪。\n女王（温柔）：别怕，有妈妈在，谁都不能伤害你。\n女王站起来看向躺在风雪里的的狼尸，再看向卡迪亚，目光变得坚毅悲壮愤怒。\n女王（悲愤颤抖）：叛徒卡迪亚。今天，我将为所有战死的王室狼族，向你复仇！\n女王双眼变红，仰天长啸，人脸瞬间边长，拉出狼牙，变成一只银色的狼，向着卡迪亚冲过去！\n女王身后狼女，也迅速变成银狼，跟着女王一起往前冲！\n卡迪亚看着冲过来的狼群，邪笑一下也仰天长，黑色毛发从他头上长出，长出丑陋的嘴脸，再变成一只纯黑色狼，\n与此同时，他身后的手下也变身——骨骼扭曲，肌肉膨胀，毛发从皮肤下炸出变成黑狼，疯狂向着对方冲过去！\n银狼与黑狼如两道洪流，猛然撞在一起——\n雪浪被冲击波炸起十米高。\n一只黑色巨狼咬住了一只银狼的脖子，鲜血在空中绽开如红梅。\n另一只银狼咬住黑狼咽喉，黑爪撕开银狼腹部。狼毛与参杂了鲜血的碎雪齐飞，惨嚎声此起彼伏。\n女王化身为巨狼，她冲入敌阵，一爪拍飞两只黑狼，獠牙咬断第三只的脊骨——\n卡迪亚化身的黑狼，体型比女王更大一圈。他从侧翼扑来，利爪直取女王咽喉。\n黑爪撕裂空气，银毛飞散。\n女王侧身闪避，但仍被划开身体，整个狼身重重摔倒在地上。\n小贝拉（尖叫）：妈妈！\n瞬间，五六只狼全部扑了过来！\n第一只狠狠咬住女王前腿——骨裂声如鞭炮！\n第二只咬住女王后腿——肌肉被撕开，银白色的筋腱在空气中绷断！\n第三只、第四只、第五只——女王的身体被六只黑狼同时撕扯！\n女王按在地上无法挣脱，痛苦哀嚎！\n小贝拉再也控制不住，哭着向着女王跑过来！\n小贝拉：妈妈！\n一只黑狼听到声音，忽然转头直扑向小贝拉。\n黑狼跃起，张牙向着小贝拉咬下去。\n被压在地上的女王看见小贝拉有危险，鼓足所有的劲抬头狼嚎，声波震飞她身边所有群狼。女王奋起，一路带血的踉跄向着小贝拉跑过去。\n身后黑狼欲要追上来，身后银狼一齐冲过去奋战，挡住黑狼！\n鲜血随雪花不断洒落雪地，哀鸣遍野，银狼瞬间被黑狼撕咬消灭。\n女王回头看了眼身后战死的姐妹，流下一滴泪，发出悲鸣，奋力将要咬住小贝拉的黑狼撞开，在即将冲到小贝拉身前时，迅速幻化成人形抱住了小贝拉往断崖边上冲！\n 悬崖边上，女王回头看了一眼身后继续向着她们冲过来的黑狼群。\n女王将脖子里的狼头吊坠快速取下来快速挂在小贝拉的脖子里。\n小贝拉脖子里原就有一条的狼头吊坠上，现在两条叠在一起，亲了小贝拉一口。\n女王（流泪）：妈妈以后不能保护你了，以后把这条吊坠，交给可以保护你的人！\n在身后黑狼群即将要扑过来之际，女王恢复威严抱起小贝拉抛下悬崖。\n女王：苏尔里狼族最后的公主，好好活下去！\n身后一只黑狼瞬间咬住女王的脖子，将女王扑倒在地！\n小贝拉坠下悬崖，哭着尖叫向女王伸手。\n小贝拉：妈妈！\n小贝拉（pov)悬崖边上黑狼，啃噬着女王的身体。\n黑屏。\n十八年后。\n1·2\n（和7·1场景相同）\n场景1：公寓客厅/公寓小院/日·内/外\n人物:辛德瑞拉 莱斯特 布蕾克\n人物服装：布蕾克（豹纹紧身露臀吊带裙）莱斯特（西装套装）辛德瑞拉（甜品店制服）阿瑞斯（裸露健美精壮上身，下身穿着装饰有兽皮金属皮具的黑色牛仔裤）\n桌上一张镶银边的相框，辛德瑞拉与莱斯特的亲密合影。\n相框里辛德瑞拉胸口戴着一条狼头吊坠。\n女人呻吟的声音传来。\n莱斯特赤裸上身坐在沙发上，抱着骑在他跨上的布蕾克。\n布蕾克用手撩拨着一头黑色卷发散乱，坐在莱斯特身上不断剧烈起伏，乳波震动。\n贝蕾克仰着头，口中享受的不断发出呻吟！\n布蕾克：（喘息着，声音惊喜）：OMG!姐夫你太棒了！\n布蕾克兴奋之际，迷离看了眼桌旁辛德瑞拉的照片。\n布蕾克(得意洋洋）：你说要是辛德瑞拉知道我们在偷情……她会怎么样？她可是我的表姐。\n莱斯特不屑一笑，猛然翻身将一脸欲求不满的布雷克压在身下。\n莱斯特：那个碧池还在甜品店给别人烤蛋糕呢。\n他狠狠咬住布蕾克的耳垂——\n莱斯特（暧昧）：如果她知道了，我就杀了她，我们结婚！\n两人在沙发上继续激情大笑律动，沙发发出刺耳的吱呀声响。\n//\n【音效：远处传来教堂钟声】\n辛德瑞拉推开锈迹斑斑的铁艺院门。\n胸口狼头吊坠晃动。\n辛德瑞拉端着精致的写着生日快乐的奶油蛋糕，小心翼翼的向着门口走过去。\n辛德瑞拉OS：我叫辛德瑞拉，是十八年前奶奶从山谷里捡回来的孤儿。\n胸口狼头吊坠晃动。\n辛德瑞拉：今天是我未婚夫莱斯特的生日。他说过，最喜欢我做的提拉米苏……我要给他一个惊喜。\n辛德瑞拉嘴角扬起甜蜜的弧度，脚步轻快走到门前，脚不小心踢在阶梯上，整个人往前以倾，一只手掌不受控猛地推开门。\n辛德瑞拉抬头看向屋里。\n瞬间，表情惊讶在脸上，蛋糕从手中掉落。\n\n第二集\n场景1：公寓客厅/公寓小院/日·内/外\n人物:辛德瑞拉 莱斯特 布蕾克\n人物服装：布蕾克（豹纹紧身露臀吊带裙）莱斯特（牛仔裤）辛德瑞拉（米色碎花长裙+围裙）阿瑞斯（裸露健美精壮上身，下身穿着装饰有兽皮金属皮具的黑色牛仔裤）\n门吱呀一声响，辛德瑞拉猛地推开门，辛德瑞拉一惊，凭着本能迅速抓住了即将要掉在地上的蛋糕，重新微笑着站在门口。\n辛德瑞拉OS：十年前一场大火烧瞎了我的眼睛，还好，我遇到了我的未婚夫莱斯特，他非常爱我。\n沙发上正在做爱的莱斯特和布蕾克惊恐看向辛德瑞拉。\n笑声与沙发吱呀声嘎然而止。\n莱斯特（紧张）：亲爱的，你，你怎么回来了？\n辛德瑞拉没看见眼前发生的一切，双目茫然的端着蛋糕向着沙发走近。\n辛德瑞拉（微笑）：Happy birthday to you，Happy birthday to you……\n辛德瑞拉靠近，莱斯特慌张想从沙发上起身，布蕾克伸手挽住了莱斯特的脖子，眼神示意看了一眼失明的辛德瑞拉，拿起莱斯特的手放在自己口中含着，魅惑的看了眼莱斯特。\n莱斯特会意猥琐一笑，狠狠揉着布蕾克的屁股配合她律动，仰起头张口喘气，脸上露出爽的表情。\n辛德瑞拉的歌声伴着莱斯特疯狂的律动，沙发越来越激烈的吱呀声。\n辛德瑞拉的脚停在了沙发前，辛德瑞拉睁着一双空茫的眼睛看着两个近在咫尺的人。\n三人的脸靠的很近。\n辛德瑞拉（甜蜜）：亲爱的莱斯特，生日快乐！\n莱斯特和布蕾克紧张的看着辛德瑞拉，在辛德瑞拉近距离空洞的目光下，起伏动作更为凶猛，沙发响声愈剧烈，终于同时发出了难以抑制到极致的叫声！\n瞬间，辛德瑞拉微笑的脸色突变。\n蛋糕从辛德瑞拉手中掉落在地上。\n辛德瑞拉赶紧后撤一步。\n辛德瑞拉（颤抖）：我怎么听到了布蕾克的声音？（略微思考提高声音惊恐）莱斯特，你和布蕾克在干什么？！\n布蕾克从愉悦中回过神，推开莱斯特从沙发上起身，挑衅的站在辛德瑞拉面前。\n布蕾克：既然你都听到了，那我就告诉你。\n布蕾克得意的摸了摸肚子。\n布蕾克（炫耀）：辛德瑞拉，我已经怀了莱斯特的孩子，并且，我们马上就要结婚了！\n辛德瑞拉（不可置信后退，差点摔倒在地上，浑身颤抖）：你说什么？布蕾克，你是我妹妹！你和莱斯特为什么要这么对我？\n布蕾克笑着逼近辛德瑞拉，狠狠抬手给了辛德瑞拉一个巴掌。\n布蕾克（趾高气扬）：因为你个野种，是个瞎子！天生就该被我踩在脚下！\n辛德瑞拉狼狈摔倒在地，脖子里的狼头项链被甩在了地上。\n辛德瑞拉没忍住情绪哭泣，伸手去摸地上的项链。\n布蕾克抬着穿着高跟鞋的脚，狠狠的跺在了辛德瑞拉的手背上。\n辛德瑞拉痛的大叫赶紧捂住手，匍匐在地上哭泣。\n布蕾克（得意/居高临下）：辛德瑞拉，既然我们的丑事已经被你知道了——\n布雷克转头看向莱斯特。\n身后莱斯特已经穿好裤子，拿起一根棒球棍的莱斯特，狞笑走了过来。\n布蕾克（残忍弯腰靠近小声）：我和莱斯特已经决定了，会你永远消失在这个世界上！\n布蕾克松开脚，莱斯特狞笑举挥起棒球棍，向着辛德瑞拉打了下去！\n辛德瑞拉尖叫！\n辛德瑞拉的脸倒在血地中，面前是掉在地上的生日蛋糕上还能看生日快乐的字样，和蜡烛燃烧扭曲光影。\n布蕾克（vo）:莱斯特我们把她丢到山里喂狼！\n2·2\n场景：夜  外  森林马路\n人物：辛德瑞拉 莱斯特 布蕾克 七匹狼  阿瑞斯\n人物服装：莱斯特（绿色格子衬衣/牛仔裤）\n森林如海茫茫。\n一轮明亮圆月悬挂在林海之上。\n一辆响着激烈音乐的汽车停在月光下的蜿蜒林间小道上。\n莱斯特和布蕾克下车将满身是血的辛德瑞拉扛下车，丢在马路中间。\n血腥味引来狼群。\n嗷……\n一双双蓝色眼睛如同鬼火般在路边的灌木丛出现。\n黑暗的树林中响起逼近的狼群嚎叫。\n辛德瑞拉耳朵动了动听见了狼嚎，害怕凭着直觉上去抱住了莱斯特的腿。\n辛德瑞拉（虚弱哭泣）：莱斯特，布蕾克，求你们了，请别把我丢在这。\n莱斯特紧张害怕看了眼路边树木下的狼暗色狼影。\n吓得一脚挣脱开辛德瑞拉的手。\n莱斯特：去死吧贱女人，我们才不想留在这跟你一起被野狼吃掉！\n两人快速上车，驾车扬长而去。\n七只灰黑色的狼，立马龇牙咧嘴，猛的从灌木中跳到马路上，四面八方低吼向着哭泣的辛德瑞拉包抄了过来。\n每只狼低垂着头，虎视眈眈的盯着满身是血的辛德瑞拉，毛发竖立，獠牙在月光下泛着冷光。\n辛德瑞拉听见了狼群靠近她的呜鸣声，双目迷茫空洞，哭着挣扎坐起身害怕后退，却不知她身后就是一只最大的头狼。\n辛德瑞拉退到头狼寒光闪耀流着涎液的巨口前，抱着膝盖群浑身颤抖。\n辛德瑞拉（声音颤抖）：你，你们别过来。\n头狼压低前肢，肌肉绷紧喉间发出低沉的呜咽，绕着辛德瑞拉扫视转了一圈后，在头狼一声低沉的命令下，七条狼瞬间全都龇牙咧嘴向着辛德瑞拉跃起扑去！\n辛德瑞拉睁着一双看不见的茫然大眼睛柔弱哭着，坐在地上颤抖小心后退着等待死亡\n//\n速切\n明亮的圆月之下，马路不远处的迷雾中亮起一双浅黄色的瞳孔，一个依稀可见的巨大狼影。\n//\n慢镜头——头狼跃起，张开流着拉丝涎水的巨口，锋利亮着白光獠牙直咬辛德瑞拉咽喉。\n就在这一瞬间——\n雾中巨大的狼影疾速飞冲而来，如陨石般撞击在头狼身上。\n【音效：沉闷的撞击声，骨骼碎裂声】\n头狼连带周围飞起来的狼群瞬间被撞飞十米远，周围树木横断十几棵，重重摔倒在地，低声呜咽抽搐。\n周围六只狼瞬间害怕的夹着尾巴匍匐在地。\n一只体型是普通狼三倍的巨狼，护在辛德瑞拉的身前，仰月长鸣，气波震动整片森林。\n辛德瑞拉听着狼嚎，转过一双空洞的眼睛看向巨狼。\n在天上金色圆月的照耀下，巨狼在辛德瑞拉面前变化人身。\n一身流淌着金色流光的暗金色毛发在月光下幻化成如钢铁铸造般的蜜色肌肉线条。\n宽厚的背部蔓延着幽蓝色的发光纹路——化成古老的图腾烙印在背部的皮肤上。\n一张如古神般刚毅深沉，帅气性感的脸。\n胸口戴着和辛德瑞拉一样的狼头吊坠。\n血红圆月下，阿瑞斯弯腰扶住辛德瑞拉，四目相对。\n阿瑞斯伸手抚摸上辛德瑞拉满是血迹的脸。\n林中萤火虫围绕他们飞起。\n阿瑞斯（低沉磁性嗓音）：我的露娜，我的命定之妻，我终于找到你了。\n话毕，辛德瑞拉空洞眼睛，如血的红光，快速蔓延侵占了辛德瑞拉的双眸。\n一双血红色瞳孔的狼眼。",
+          "prompt": "第一集\n1·1\n场景：苍茫雪原/日·外\n人物：苏尔里女王 卡迪亚 小贝拉（辛德瑞拉）苏尔里女王手下6人（女性） 卡迪亚狼群8人（男性）\n人物服饰：小贝拉：红色斗篷。\n苏尔里女王：（白色狼毛大氅，金色王冠，红瞳）\n六位随从：（紧身浅色皮衣，棉服，口袋或领口缀有银白色狼毛，三个白妹，三个黑妹/黑瞳）\n卡迪亚：光着带着伤疤的上半身，穿着缀有灰黑色狼毛的铆钉裤子，蓝瞳\n手下8人：（清一色古铜皮肤，穿着黑色夹克，棉服，带着灰黑色狼毛耳罩，毛领，黑瞳）\n广阔雪原，风雪呼啸，两队狼群对峙。\n两队之间，空出一片染血的雪地，和数只身上擦满了利箭的狼尸(1镜扫视战场)。\n女王清冷高贵，身后随从神色忠诚视死如归。\n卡迪亚带着八名吊儿郎当的手下，不屑一顾的打量着对面的女王，古铜色皮肤上每一道伤疤都在渗着黑色血雾。他每走一步，脚下裂出蛛网状黑色毒痕。\n卡迪亚（邪笑挑衅）：尊贵的女王陛下，王位该换人了。\n女王身后六个随从立即围上来，对着卡迪亚咆哮龇牙低吼，保护女王。\n瞬间，卡迪亚身后的手下也全都围过来，对着女王部落狂妄龇牙，蠢蠢欲动威胁逼近。\n小贝拉躲在女王的身后，紧张的抓着女王的裙摆。\n小贝拉：妈妈我害怕。\n女王看眼对面的族群，蹲下身，伸手抚去了小贝拉帽子上的雪。\n女王（温柔）：别怕，有妈妈在，谁都不能伤害你。\n女王站起来看向躺在风雪里的的狼尸，再看向卡迪亚，目光变得坚毅悲壮愤怒。\n女王（悲愤颤抖）：叛徒卡迪亚。今天，我将为所有战死的王室狼族，向你复仇！\n女王双眼变红，仰天长啸，人脸瞬间边长，拉出狼牙，变成一只银色的狼，向着卡迪亚冲过去！\n女王身后狼女，也迅速变成银狼，跟着女王一起往前冲！\n卡迪亚看着冲过来的狼群，邪笑一下也仰天长，黑色毛发从他头上长出，长出丑陋的嘴脸，再变成一只纯黑色狼，\n与此同时，他身后的手下也变身——骨骼扭曲，肌肉膨胀，毛发从皮肤下炸出变成黑狼，疯狂向着对方冲过去！\n银狼与黑狼如两道洪流，猛然撞在一起——\n雪浪被冲击波炸起十米高。\n一只黑色巨狼咬住了一只银狼的脖子，鲜血在空中绽开如红梅。\n另一只银狼咬住黑狼咽喉，黑爪撕开银狼腹部。狼毛与参杂了鲜血的碎雪齐飞，惨嚎声此起彼伏。\n女王化身为巨狼，她冲入敌阵，一爪拍飞两只黑狼，獠牙咬断第三只的脊骨——\n卡迪亚化身的黑狼，体型比女王更大一圈。他从侧翼扑来，利爪直取女王咽喉。\n黑爪撕裂空气，银毛飞散。\n女王侧身闪避，但仍被划开身体，整个狼身重重摔倒在地上。\n小贝拉（尖叫）：妈妈！\n瞬间，五六只狼全部扑了过来！\n第一只狠狠咬住女王前腿——骨裂声如鞭炮！\n第二只咬住女王后腿——肌肉被撕开，银白色的筋腱在空气中绷断！\n第三只、第四只、第五只——女王的身体被六只黑狼同时撕扯！\n女王按在地上无法挣脱，痛苦哀嚎！\n小贝拉再也控制不住，哭着向着女王跑过来！\n小贝拉：妈妈！\n一只黑狼听到声音，忽然转头直扑向小贝拉。\n黑狼跃起，张牙向着小贝拉咬下去。\n被压在地上的女王看见小贝拉有危险，鼓足所有的劲抬头狼嚎，声波震飞她身边所有群狼。女王奋起，一路带血的踉跄向着小贝拉跑过去。\n身后黑狼欲要追上来，身后银狼一齐冲过去奋战，挡住黑狼！\n鲜血随雪花不断洒落雪地，哀鸣遍野，银狼瞬间被黑狼撕咬消灭。\n女王回头看了眼身后战死的姐妹，流下一滴泪，发出悲鸣，奋力将要咬住小贝拉的黑狼撞开，在即将冲到小贝拉身前时，迅速幻化成人形抱住了小贝拉往断崖边上冲！\n 悬崖边上，女王回头看了一眼身后继续向着她们冲过来的黑狼群。\n女王将脖子里的狼头吊坠快速取下来快速挂在小贝拉的脖子里。\n小贝拉脖子里原就有一条的狼头吊坠上，现在两条叠在一起，亲了小贝拉一口。\n女王（流泪）：妈妈以后不能保护你了，以后把这条吊坠，交给可以保护你的人！\n在身后黑狼群即将要扑过来之际，女王恢复威严抱起小贝拉抛下悬崖。\n女王：苏尔里狼族最后的公主，好好活下去！\n身后一只黑狼瞬间咬住女王的脖子，将女王扑倒在地！\n小贝拉坠下悬崖，哭着尖叫向女王伸手。\n小贝拉：妈妈！\n小贝拉（pov)悬崖边上黑狼，啃噬着女王的身体。\n黑屏。\n十八年后。\n1·2\n（和7·1场景相同）\n场景1：公寓客厅/公寓小院/日·内/外\n人物:辛德瑞拉 莱斯特 布蕾克\n人物服装：布蕾克（豹纹紧身露臀吊带裙）莱斯特（西装套装）辛德瑞拉（甜品店制服）阿瑞斯（裸露健美精壮上身，下身穿着装饰有兽皮金属皮具的黑色牛仔裤）\n桌上一张镶银边的相框，辛德瑞拉与莱斯特的亲密合影。\n相框里辛德瑞拉胸口戴着一条狼头吊坠。\n女人呻吟的声音传来。\n莱斯特赤裸上身坐在沙发上，抱着骑在他跨上的布蕾克。\n布蕾克用手撩拨着一头黑色卷发散乱，坐在莱斯特身上不断剧烈起伏，乳波震动。\n贝蕾克仰着头，口中享受的不断发出呻吟！\n布蕾克：（喘息着，声音惊喜）：OMG!姐夫你太棒了！\n布蕾克兴奋之际，迷离看了眼桌旁辛德瑞拉的照片。\n布蕾克(得意洋洋）：你说要是辛德瑞拉知道我们在偷情……她会怎么样？她可是我的表姐。\n莱斯特不屑一笑，猛然翻身将一脸欲求不满的布雷克压在身下。\n莱斯特：那个碧池还在甜品店给别人烤蛋糕呢。\n他狠狠咬住布蕾克的耳垂——\n莱斯特（暧昧）：如果她知道了，我就杀了她，我们结婚！\n两人在沙发上继续激情大笑律动，沙发发出刺耳的吱呀声响。\n//\n【音效：远处传来教堂钟声】\n辛德瑞拉推开锈迹斑斑的铁艺院门。\n胸口狼头吊坠晃动。\n辛德瑞拉端着精致的写着生日快乐的奶油蛋糕，小心翼翼的向着门口走过去。\n辛德瑞拉OS：我叫辛德瑞拉，是十八年前奶奶从山谷里捡回来的孤儿。\n胸口狼头吊坠晃动。\n辛德瑞拉：今天是我未婚夫莱斯特的生日。他说过，最喜欢我做的提拉米苏……我要给他一个惊喜。\n辛德瑞拉嘴角扬起甜蜜的弧度，脚步轻快走到门前，脚不小心踢在阶梯上，整个人往前以倾，一只手掌不受控猛地推开门。\n辛德瑞拉抬头看向屋里。\n瞬间，表情惊讶在脸上，蛋糕从手中掉落。",
           "scriptResult": {
             "success": true,
             "scriptTitle": "狼族公主：觉醒",
             "scenes": [
               {
                 "sceneNumber": 1,
-                "sceneHeader": "1·1 苍茫雪原",
-                "location": "雪原",
+                "sceneHeader": "公寓客厅",
+                "location": "公寓客厅",
                 "timeOfDay": "日",
                 "shots": [
                   {
                     "shotNumber": 1,
-                    "shotType": "ELS",
+                    "shotType": "LS",
                     "cameraMovement": "Static",
-                    "duration": 6,
+                    "duration": 4,
                     "angle": "EyeLevel",
-                    "aperture": 11,
+                    "aperture": 4,
                     "role": "establishing",
-                    "lighting": "冷调自然光，高反差，雪地强反射光",
-                    "composition": "三分法构图，地平线压低，展现雪原的广阔与荒凉",
-                    "blocking": "两队人马左右对峙，中间散落着插满箭矢的狼尸",
-                    "writerIntent": "建立两军对峙的肃杀氛围，通过尸体展现战斗的惨烈。",
-                    "visualPrompt": "极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
-                    "videoPrompt": "全景镜头，风雪呼啸，镜头缓慢横移扫过战场，从插满箭矢的狼尸缓慢移向对峙的双方，持续6秒。"
+                    "lighting": "室内暖色调钨丝灯，与窗外冷色光形成对比",
+                    "composition": "深焦构图，前景相框清晰，背景沙发上两人模糊但动作剧烈",
+                    "blocking": "莱斯特与布蕾克在沙发上，辛德瑞拉的相框立在前景桌上",
+                    "writerIntent": "建立空间关系，展示莱斯特与布蕾克的背德行为与辛德瑞拉照片的对比。",
+                    "visualPrompt": "室内公寓客厅，光线昏暗，空气中漂浮着细微尘埃。前景桌面上放置着一个镶银边的相框，照片中辛德瑞拉戴着狼头吊坠微笑。背景沙发上，莱斯特与布蕾克正处于纠缠状态，布蕾克背对镜头，豹纹裙摆凌乱。室内光线由窗外透入的冷光与室内暖黄台灯构成，营造出一种压抑且堕落的氛围。",
+                    "videoPrompt": "静态镜头，室内光线微弱，沙发上两人起伏动作明显，相框在前景中静止，画面充满张力，持续4秒。"
                   },
                   {
                     "shotNumber": 2,
-                    "shotType": "MS",
-                    "cameraMovement": "PushIn",
-                    "duration": 4,
-                    "angle": "LowAngle",
-                    "aperture": 4,
-                    "role": "action",
-                    "lighting": "侧逆光，强调肌肉线条与黑雾质感",
-                    "composition": "框架构图，卡迪亚位于画面中心",
-                    "blocking": "卡迪亚赤裸上身，每走一步脚下浮现黑色毒痕",
-                    "writerIntent": "展现反派卡迪亚的威胁感与邪恶力量。",
-                    "visualPrompt": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
-                    "videoPrompt": "低角度拍摄，镜头跟随卡迪亚的脚步推进，聚焦于他脚下蔓延的黑色毒痕，持续4秒。"
-                  },
-                  {
-                    "shotNumber": 3,
                     "shotType": "CU",
-                    "cameraMovement": "Static",
+                    "cameraMovement": "PushIn",
                     "duration": 3,
                     "angle": "EyeLevel",
                     "aperture": 1.4,
                     "role": "dialog",
-                    "lighting": "柔和的漫反射光，聚焦面部",
-                    "composition": "特写构图，女王与小贝拉处于画面黄金分割点",
-                    "blocking": "女王蹲下，为小贝拉拂去帽子上的雪",
-                    "writerIntent": "展现女王的母性保护欲与对女儿的温柔。",
-                    "visualPrompt": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
-                    "videoPrompt": "特写镜头，女王的手缓缓拂去雪花，眼神充满温柔，持续3秒。"
+                    "lighting": "侧逆光，强调面部轮廓",
+                    "composition": "特写构图，负空间留给莱斯特",
+                    "blocking": "布蕾克仰头，眼神迷离看向照片",
+                    "writerIntent": "捕捉布蕾克的得意与挑衅，强化其卑劣性格。",
+                    "visualPrompt": "布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+                    "videoPrompt": "缓慢推镜头，聚焦布蕾克的面部表情，眼神中流露出对辛德瑞拉的轻蔑，持续3秒。"
                   },
                   {
-                    "shotNumber": 4,
-                    "shotType": "MS",
-                    "cameraMovement": "Dolly",
-                    "duration": 5,
-                    "angle": "LowAngle",
-                    "aperture": 4,
-                    "role": "action",
-                    "lighting": "硬光，强调变身时的毛发与骨骼扭曲",
-                    "composition": "动态构图，银狼与黑狼的对冲",
-                    "blocking": "女王与手下变身银狼，卡迪亚与手下变身黑狼，双方猛烈撞击",
-                    "writerIntent": "展现变身过程的震撼与野性。",
-                    "visualPrompt": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
-                    "videoPrompt": "快速推镜头，记录双方变身并撞击的瞬间，雪浪炸开的瞬间定格，持续5秒。"
-                  },
-                  {
-                    "shotNumber": 5,
+                    "shotNumber": 3,
                     "shotType": "MS",
                     "cameraMovement": "Handheld",
                     "duration": 5,
                     "angle": "EyeLevel",
                     "aperture": 4,
                     "role": "action",
-                    "lighting": "高对比度光影，血色与白色交织",
-                    "composition": "混乱构图，强调被围攻的压迫感",
-                    "blocking": "女王被六只黑狼撕扯，小贝拉在不远处尖叫",
-                    "writerIntent": "展现女王的绝望与小贝拉的危机。",
-                    "visualPrompt": "女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
-                    "videoPrompt": "手持摄影，模拟混乱的战场视角，镜头在女王被撕咬的惨状与小贝拉惊恐的脸之间快速切换，持续5秒。"
+                    "lighting": "自然光，冷色调",
+                    "composition": "框架构图，通过门框看室内",
+                    "blocking": "辛德瑞拉在门口，蛋糕在手中晃动",
+                    "writerIntent": "辛德瑞拉推门而入，打破平静，制造冲突点。",
+                    "visualPrompt": "辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+                    "videoPrompt": "手持镜头跟随辛德瑞拉的脚步，随着她推门动作，镜头快速推进到她惊讶的面部表情，持续5秒。"
+                  }
+                ]
+              },
+              {
+                "sceneNumber": 2,
+                "sceneHeader": "森林马路",
+                "location": "夜/森林",
+                "timeOfDay": "夜",
+                "shots": [
+                  {
+                    "shotNumber": 4,
+                    "shotType": "LS",
+                    "cameraMovement": "Truck",
+                    "duration": 6,
+                    "angle": "LowAngle",
+                    "aperture": 11,
+                    "role": "action",
+                    "lighting": "月光冷色硬光",
+                    "composition": "三分法构图，狼群分布在四周",
+                    "blocking": "辛德瑞拉坐在马路中央，七只狼从阴影中走出",
+                    "writerIntent": "营造狼群包围的绝望感。",
+                    "visualPrompt": "月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+                    "videoPrompt": "摄影机横向移动，展示狼群从黑暗中逼近的动态，辛德瑞拉在画面中央颤抖，持续6秒。"
+                  },
+                  {
+                    "shotNumber": 5,
+                    "shotType": "ECU",
+                    "cameraMovement": "Static",
+                    "duration": 2,
+                    "angle": "EyeLevel",
+                    "aperture": 1.4,
+                    "role": "insert",
+                    "lighting": "高反差硬光",
+                    "composition": "极近特写",
+                    "blocking": "头狼张开大口",
+                    "writerIntent": "强调头狼进攻的瞬间，提升节奏。",
+                    "visualPrompt": "头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+                    "videoPrompt": "极快节奏的特写镜头，头狼跃起的瞬间，持续2秒。"
                   },
                   {
                     "shotNumber": 6,
+                    "shotType": "FS",
+                    "cameraMovement": "Dolly",
+                    "duration": 5,
+                    "angle": "LowAngle",
+                    "aperture": 4,
+                    "role": "action",
+                    "lighting": "逆光，金色光晕",
+                    "composition": "中心构图",
+                    "blocking": "阿瑞斯撞飞狼群，护在辛德瑞拉身前",
+                    "writerIntent": "英雄登场，视觉爆发。",
+                    "visualPrompt": "阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+                    "videoPrompt": "摄影机快速推进，捕捉阿瑞斯撞击的瞬间以及他站立的姿态，气势磅礴，持续5秒。"
+                  },
+                  {
+                    "shotNumber": 7,
                     "shotType": "CU",
                     "cameraMovement": "PushIn",
                     "duration": 4,
-                    "angle": "LowAngle",
+                    "angle": "EyeLevel",
                     "aperture": 1.4,
-                    "role": "action",
-                    "lighting": "逆光，轮廓光勾勒女王身形",
-                    "composition": "框架构图，吊坠成为焦点",
-                    "blocking": "女王将吊坠挂在小贝拉脖子上，将她抛下悬崖",
-                    "writerIntent": "展现女王最后的母爱与决绝。",
-                    "visualPrompt": "悬崖边，满身血迹的女王眼神决绝，她颤抖着将脖子上的狼头吊坠摘下，与小贝拉原有的吊坠叠戴在一起。她深情地亲吻了小贝拉的额头，随后在黑狼群扑来的瞬间，用尽最后的力量将小贝拉抛向悬崖下方。夕阳的余晖洒在她们身上，形成一道悲壮的轮廓光，背景是深不见底的断崖，空气中弥漫着血腥与离别的气息。",
-                    "videoPrompt": "缓慢推镜头，聚焦于吊坠重叠的瞬间，随后镜头跟随小贝拉坠落的轨迹，持续4秒。"
+                    "role": "reaction",
+                    "lighting": "暖色与冷色交织",
+                    "composition": "双人特写",
+                    "blocking": "阿瑞斯抚摸辛德瑞拉的脸",
+                    "writerIntent": "展现辛德瑞拉的觉醒。",
+                    "visualPrompt": "阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+                    "videoPrompt": "缓慢推向两人的面部，聚焦辛德瑞拉瞳孔变色的过程，持续4秒。"
                   }
                 ]
               }
             ],
             "characterProfiles": {
-              "苏尔里女王": {
-                "role": "主角",
-                "angleBias": "LowAngle",
-                "appearance": "白色狼毛大氅，金色王冠，红瞳，高贵威严"
-              },
-              "卡迪亚": {
-                "role": "反派",
-                "angleBias": "LowAngle",
-                "appearance": "赤裸上身，伤疤渗黑雾，蓝瞳，狂妄邪恶"
-              },
-              "小贝拉": {
+              "辛德瑞拉": {
                 "role": "主角",
                 "angleBias": "EyeLevel",
-                "appearance": "红色斗篷，清纯无辜"
+                "appearance": "长发凌乱，面容清秀带伤，双目空洞，穿着破损米色碎花裙"
+              },
+              "阿瑞斯": {
+                "role": "主角",
+                "angleBias": "LowAngle",
+                "appearance": "健硕蜜色肌肉，背部幽蓝图腾，眼神深邃"
+              },
+              "莱斯特": {
+                "role": "反派",
+                "angleBias": "HighAngle",
+                "appearance": "西装革履，阴鸷贪婪"
+              },
+              "布蕾克": {
+                "role": "反派",
+                "angleBias": "HighAngle",
+                "appearance": "豹纹短裙，浓妆艳抹，刻薄挑衅"
               }
             },
-            "totalShots": 6,
+            "totalShots": 7,
             "debug": [
               {
                 "agentId": "script-analyst",
                 "agentName": "Script Analyst",
-                "output": "```json\n{\n  \"scriptTitle\": \"狼族公主：觉醒\",\n  \"scenes\": [\n    {\n      \"sceneNumber\": 1,\n      \"sceneHeader\": \"1·1 苍茫雪原\",\n      \"location\": \"雪原\",\n      \"timeOfDay\": \"日\",\n      \"shots\": [\n        {\n          \"shotNumber\": 1,\n          \"shotType\": \"ELS\",\n          \"cameraMovement\": \"Static\",\n          \"duration\": 6,\n          \"angle\": \"EyeLevel\",\n          \"aperture\": 11,\n          \"role\": \"establishing\",\n          \"writerIntent\": \"建立两军对峙的肃杀氛围，通过尸体展现战斗的惨烈。\",\n          \"lighting\": \"冷调自然光，高反差，雪地强反射光\",\n    ",
-                "durationMs": 11098
+                "output": "```json\n{\n  \"scriptTitle\": \"狼族公主：觉醒\",\n  \"visualBible\": {\n    \"colorPalette\": \"冷调冰雪蓝、暗夜深林黑、血色红、金属冷银\",\n    \"lightingStyle\": \"高反差电影光，月光作为冷色轮廓光，火光或血迹作为暖色强调\",\n    \"environment\": \"苍茫雪原与阴郁森林，质感粗粝，充满史诗感与现代都市的冷漠对比\",\n    \"characters\": {\n      \"辛德瑞拉\": \"长发凌乱，面容清秀但带着伤痕，双目空洞无神，身穿破损的米色碎花裙，胸前挂着古朴的狼头吊坠。\",\n      \"阿瑞斯\": \"身材极度健硕，蜜色皮肤，背部有幽蓝色图腾纹路，充满野性的原始美感，眼神深邃。\",\n      \"莱斯特\": \"西装革履，眼神阴鸷，充满现代社会的虚伪与贪婪。\",\n      \"布蕾克\": \"浓妆艳抹，豹纹短裙，神情刻薄，充满挑衅与轻蔑。\"\n    }\n  },\n  \"scenes\": [\n    {\n      \"sceneNumber\": 1,\n      \"sceneHeader\": ",
+                "durationMs": 12537
               }
             ],
-            "durationMs": 11098
+            "durationMs": 12538
           },
-          "compiledPrompt": "## 优化后提示词\n\n**场景一：复仇之战（史诗奇幻风格）**\n广阔的苍茫雪原，风雪呼啸，两队狼群在染血的雪地上对峙。苏尔里女王身着白色狼毛大氅，头戴金色王冠，红瞳冷艳高贵，身后六名随从身穿缀有银白狼毛的紧身皮衣，神色忠诚。对面是卡迪亚及其八名手下，古铜色皮肤上布满伤疤，穿着缀有灰黑色狼毛的黑色夹克，散发着邪恶的黑色毒雾。小贝拉身披红色斗篷，躲在女王身后。画面定格在女王化身为银色巨狼、卡迪亚化身为黑色巨狼，两股狼群洪流猛烈撞击的瞬间，雪浪炸起，鲜血如红梅绽放，展现悲壮惨烈的战斗张力。\n\n**场景二：背叛与危机（现代悬疑/暗黑风格）**\n昏暗的公寓客厅，莱斯特赤裸上身坐在沙发上，与身穿豹纹吊带裙的布蕾克纠缠。辛德瑞拉身穿米色碎花裙与围裙，双目失明，神情茫然地端着生日蛋糕，胸口佩戴着狼头吊坠。画面通过对比展现：背景中莱斯特与布蕾克狰狞的背叛，前景中辛德瑞拉破碎的蛋糕与绝望的神情。镜头切换至深夜森林，辛德瑞拉满身是血被丢弃在月光下的林间小道，七匹灰黑色恶狼在月光下露出獠牙，将其团团围住，营造出极度压抑与绝望的氛围。\n\n**场景三：觉醒与守护（奇幻史诗风格）**\n明亮的圆月照耀着森林，阿瑞斯化身为体型巨大的巨狼，挡在辛德瑞拉身前，气势震慑群狼。随后他幻化成人形，拥有如钢铁铸造般的蜜色精壮肌肉，背部蔓延着幽蓝色的古老图腾纹路，面容刚毅深沉。他俯身轻抚辛德瑞拉满是血迹的脸庞，辛德瑞拉空洞的双眸中瞬间觉醒出如血般的红光。周围萤火虫环绕，月光与血色瞳孔交织，展现出宿命感与力量感并存的视觉冲击。",
-          "compiledPromptCn": "## 优化后提示词\n\n**场景一：复仇之战（史诗奇幻风格）**\n广阔的苍茫雪原，风雪呼啸，两队狼群在染血的雪地上对峙。苏尔里女王身着白色狼毛大氅，头戴金色王冠，红瞳冷艳高贵，身后六名随从身穿缀有银白狼毛的紧身皮衣，神色忠诚。对面是卡迪亚及其八名手下，古铜色皮肤上布满伤疤，穿着缀有灰黑色狼毛的黑色夹克，散发着邪恶的黑色毒雾。小贝拉身披红色斗篷，躲在女王身后。画面定格在女王化身为银色巨狼、卡迪亚化身为黑色巨狼，两股狼群洪流猛烈撞击的瞬间，雪浪炸起，鲜血如红梅绽放，展现悲壮惨烈的战斗张力。\n\n**场景二：背叛与危机（现代悬疑/暗黑风格）**\n昏暗的公寓客厅，莱斯特赤裸上身坐在沙发上，与身穿豹纹吊带裙的布蕾克纠缠。辛德瑞拉身穿米色碎花裙与围裙，双目失明，神情茫然地端着生日蛋糕，胸口佩戴着狼头吊坠。画面通过对比展现：背景中莱斯特与布蕾克狰狞的背叛，前景中辛德瑞拉破碎的蛋糕与绝望的神情。镜头切换至深夜森林，辛德瑞拉满身是血被丢弃在月光下的林间小道，七匹灰黑色恶狼在月光下露出獠牙，将其团团围住，营造出极度压抑与绝望的氛围。\n\n**场景三：觉醒与守护（奇幻史诗风格）**\n明亮的圆月照耀着森林，阿瑞斯化身为体型巨大的巨狼，挡在辛德瑞拉身前，气势震慑群狼。随后他幻化成人形，拥有如钢铁铸造般的蜜色精壮肌肉，背部蔓延着幽蓝色的古老图腾纹路，面容刚毅深沉。他俯身轻抚辛德瑞拉满是血迹的脸庞，辛德瑞拉空洞的双眸中瞬间觉醒出如血般的红光。周围萤火虫环绕，月光与血色瞳孔交织，展现出宿命感与力量感并存的视觉冲击。"
+          "compiledPrompt": "## 还原提示词\n\n**场景一：雪原狼族之战**\n广阔无垠的极寒雪原，暴风雪呼啸。两支狼族部落在染血的雪地上惨烈对峙。\n苏尔里女王：身披厚重的白色狼毛大氅，头戴金色王冠，红瞳冷艳高贵。\n卡迪亚：上半身赤裸，布满狰狞伤疤，伤口处渗出黑色毒雾，穿着缀有灰黑色狼毛的铆钉裤，蓝瞳邪恶挑衅，走过之处雪地裂开蛛网状黑色毒痕。\n随从：女王一方六名女性，身穿紧身浅色皮衣与棉服，领口缀有银白狼毛；卡迪亚一方八名男性，古铜色皮肤，身穿黑色夹克与毛领棉服，佩戴灰黑色狼毛耳罩。\n小贝拉：年幼的女孩，身穿红色斗篷，躲在女王身后。\n动作：女王蹲下温柔抚去小贝拉帽子上的雪，随后神情悲愤，双眼化为血红，人脸拉长化作银色巨狼。卡迪亚邪笑变身，骨骼扭曲肌肉膨胀，化作体型巨大的黑狼。\n战斗：银狼与黑狼群猛烈撞击，雪浪炸起，鲜血如红梅溅洒，断肢与狼毛齐飞。女王在绝境中护住小贝拉，将其抛下悬崖，脖颈处佩戴着双重狼头吊坠。\n\n**场景二：十八年后公寓**\n室内场景，阳光透过窗户洒入。\n布蕾克：穿着豹纹紧身露臀吊带裙，黑色卷发散乱，神情迷离。\n莱斯特：身着西装，赤裸上身，坐在沙发上。\n两人在沙发上举止亲密，环境奢华且颓废。桌上摆放着镶银边的相框，照片中辛德瑞拉佩戴着狼头吊坠。\n辛德瑞拉：穿着甜品店制服，端着写有“生日快乐”的精致奶油蛋糕，推开锈迹斑斑的铁艺院门，胸口晃动着狼头吊坠。\n画面焦点：辛德瑞拉推开门瞬间，手中蛋糕掉落，脸上露出震惊与破碎的表情，背景是沙发上纠缠的两人。",
+          "compiledPromptCn": "## 还原提示词\n\n**场景一：雪原狼族之战**\n广阔无垠的极寒雪原，暴风雪呼啸。两支狼族部落在染血的雪地上惨烈对峙。\n苏尔里女王：身披厚重的白色狼毛大氅，头戴金色王冠，红瞳冷艳高贵。\n卡迪亚：上半身赤裸，布满狰狞伤疤，伤口处渗出黑色毒雾，穿着缀有灰黑色狼毛的铆钉裤，蓝瞳邪恶挑衅，走过之处雪地裂开蛛网状黑色毒痕。\n随从：女王一方六名女性，身穿紧身浅色皮衣与棉服，领口缀有银白狼毛；卡迪亚一方八名男性，古铜色皮肤，身穿黑色夹克与毛领棉服，佩戴灰黑色狼毛耳罩。\n小贝拉：年幼的女孩，身穿红色斗篷，躲在女王身后。\n动作：女王蹲下温柔抚去小贝拉帽子上的雪，随后神情悲愤，双眼化为血红，人脸拉长化作银色巨狼。卡迪亚邪笑变身，骨骼扭曲肌肉膨胀，化作体型巨大的黑狼。\n战斗：银狼与黑狼群猛烈撞击，雪浪炸起，鲜血如红梅溅洒，断肢与狼毛齐飞。女王在绝境中护住小贝拉，将其抛下悬崖，脖颈处佩戴着双重狼头吊坠。\n\n**场景二：十八年后公寓**\n室内场景，阳光透过窗户洒入。\n布蕾克：穿着豹纹紧身露臀吊带裙，黑色卷发散乱，神情迷离。\n莱斯特：身着西装，赤裸上身，坐在沙发上。\n两人在沙发上举止亲密，环境奢华且颓废。桌上摆放着镶银边的相框，照片中辛德瑞拉佩戴着狼头吊坠。\n辛德瑞拉：穿着甜品店制服，端着写有“生日快乐”的精致奶油蛋糕，推开锈迹斑斑的铁艺院门，胸口晃动着狼头吊坠。\n画面焦点：辛德瑞拉推开门瞬间，手中蛋糕掉落，脸上露出震惊与破碎的表情，背景是沙发上纠缠的两人。"
         }
       },
       "createdAt": "2026-06-14T13:15:47.974Z",
-      "updatedAt": "2026-06-14T14:58:21.620Z"
+      "updatedAt": "2026-06-15T03:45:27.496Z"
     },
     {
-      "id": "img_1781444442578_0_0",
+      "id": "img_1781494761193_s0_0",
       "type": "image.generate",
-      "title": "ELS #1",
+      "title": "LS #1-1",
       "pos": {
-        "x": 1685.6514934760705,
-        "y": 3412.852233001039
+        "x": 980,
+        "y": 4302
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "failed",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
-          "videoPrompt": "全景镜头，风雪呼啸，镜头缓慢横移扫过战场，从插满箭矢的狼尸缓慢移向对峙的双方，持续6秒。",
+          "prompt": "广阔的雪原，风雪呼啸。地面覆盖着厚重的积雪，几具插满利箭的狼尸横陈在两队人马中间。苏尔里女王身披白色狼毛大氅，银发红瞳，神情清冷高贵。对面卡迪亚半裸上身，古铜色皮肤上布满伤疤，渗出黑色血雾，每走一步脚下绽放出蛛网状的黑色毒痕。",
+          "videoPrompt": "Wide shot, snowy tundra, two packs of wolves in human form facing each other, wind blowing snow, static camera, cinematic lighting.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "IMAX Film Camera",
-          "lens": "Zeiss Ultra Prime",
-          "focalLength": "24mm",
-          "aperture": "f/4",
-          "filmStock": "Kodak 500T"
+          "quality": "high"
         },
         "shot": {
-          "shotType": "ELS",
+          "shotType": "LS",
           "cameraMovement": "Static",
           "angle": "EyeLevel",
           "aperture": 11,
-          "writerIntent": "建立两军对峙的肃杀氛围，通过尸体展现战斗的惨烈。",
-          "lighting": "冷调自然光，高反差，雪地强反射光",
-          "composition": "三分法构图，地平线压低，展现雪原的广阔与荒凉",
-          "blocking": "两队人马左右对峙，中间散落着插满箭矢的狼尸",
+          "writerIntent": "展示两军对峙的肃杀氛围与惨烈战场。",
+          "lighting": "冷色调高对比自然光，风雪弥漫。",
+          "composition": "广角镜头，左侧为女王部落，右侧为卡迪亚狼群，中间是散落的狼尸。",
+          "blocking": "两队人马对峙，女王居中，卡迪亚在右侧阵前。",
           "role": "establishing"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T14:38:55.178Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     },
     {
-      "id": "img_1781444442578_0_1",
+      "id": "img_1781494761193_s0_1",
       "type": "image.generate",
-      "title": "MS #2",
+      "title": "MS #1-2",
       "pos": {
-        "x": 1255.243928671647,
-        "y": 4224.519254975989
+        "x": 1320,
+        "y": 4302
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "succeeded",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
-          "videoPrompt": "低角度拍摄，镜头跟随卡迪亚的脚步推进，聚焦于他脚下蔓延的黑色毒痕，持续4秒。",
+          "prompt": "卡迪亚嘴角勾起一抹邪笑，蓝瞳闪烁着残忍的光芒，他对着女王挑衅，古铜色的肌肉紧绷，伤疤处的黑色血雾在冷风中飘散。",
+          "videoPrompt": "Medium shot of a scarred man with blue eyes, smirking, walking forward, black mist rising from his skin, cinematic, 4k.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "IMAX Film Camera",
-          "lens": "Zeiss Ultra Prime",
-          "focalLength": "50mm",
-          "aperture": "f/1.4",
-          "filmStock": "Kodak 500T",
-          "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
-          "compiledPromptCn": "卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
-          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png",
-          "resultAssetIds": [
-            "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
-          ]
+          "quality": "high"
         },
         "shot": {
           "shotType": "MS",
           "cameraMovement": "PushIn",
           "angle": "LowAngle",
           "aperture": 4,
-          "writerIntent": "展现反派卡迪亚的威胁感与邪恶力量。",
-          "lighting": "侧逆光，强调肌肉线条与黑雾质感",
-          "composition": "框架构图，卡迪亚位于画面中心",
-          "blocking": "卡迪亚赤裸上身，每走一步脚下浮现黑色毒痕",
-          "role": "action"
+          "writerIntent": "确立卡迪亚的挑衅姿态。",
+          "lighting": "侧逆光强调卡迪亚皮肤上的伤疤与血雾。",
+          "composition": "卡迪亚占据画面主体，邪笑。",
+          "blocking": "卡迪亚向前迈步，毒痕蔓延。",
+          "role": "dialog"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T14:46:54.310Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     },
     {
-      "id": "img_1781444442578_0_2",
+      "id": "img_1781494761193_s0_2",
       "type": "image.generate",
-      "title": "CU #3",
+      "title": "CU #1-3",
       "pos": {
-        "x": 1729.6514934760705,
-        "y": 4218.852233001039
+        "x": 1660,
+        "y": 4302
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "succeeded",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
-          "videoPrompt": "特写镜头，女王的手缓缓拂去雪花，眼神充满温柔，持续3秒。",
+          "prompt": "女王蹲下身，银色长发垂落在雪地上。她温柔地抚摸着小贝拉红色斗篷上的积雪，红瞳中流露出一丝悲伤的母爱。",
+          "videoPrompt": "Close up, a queen with silver hair and red eyes gently brushing snow off a little girl's red hood, tender moment, snowy background.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "Sony Venice",
-          "lens": "Cooke S4",
-          "focalLength": "50mm",
-          "aperture": "f/1.4",
-          "filmStock": "Kodak 2383",
-          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
-          "compiledPromptCn": "苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
-          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png",
-          "resultAssetIds": [
-            "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
-          ]
+          "quality": "high"
         },
         "shot": {
           "shotType": "CU",
           "cameraMovement": "Static",
           "angle": "EyeLevel",
           "aperture": 1.4,
-          "writerIntent": "展现女王的母性保护欲与对女儿的温柔。",
-          "lighting": "柔和的漫反射光，聚焦面部",
-          "composition": "特写构图，女王与小贝拉处于画面黄金分割点",
-          "blocking": "女王蹲下，为小贝拉拂去帽子上的雪",
-          "role": "dialog"
+          "writerIntent": "展现小贝拉的恐惧与母女羁绊。",
+          "lighting": "柔光聚焦于女王与小贝拉。",
+          "composition": "女王蹲下，小贝拉躲在身后。",
+          "blocking": "女王抚去小贝拉帽子上的雪。",
+          "role": "reaction"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T14:54:25.346Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     },
     {
-      "id": "img_1781444442578_0_3",
+      "id": "img_1781494761193_s0_3",
       "type": "image.generate",
-      "title": "MS #4",
+      "title": "MS #1-4",
       "pos": {
-        "x": 2208.7593033460885,
-        "y": 4223.294649796249
+        "x": 2000,
+        "y": 4302
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "succeeded",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
-          "videoPrompt": "快速推镜头，记录双方变身并撞击的瞬间，雪浪炸开的瞬间定格，持续5秒。",
+          "prompt": "女王仰天长啸，脸部轮廓拉长，银色毛发覆盖全身，瞬间化作一只威严的银狼，带领身后的随从冲向敌阵。",
+          "videoPrompt": "Action shot, a woman transforming into a silver wolf, running through snow, dynamic, motion blur.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "Sony Venice",
-          "lens": "Cooke S4",
-          "focalLength": "50mm",
-          "aperture": "f/1.4",
-          "filmStock": "Kodak 2383",
-          "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
-          "compiledPromptCn": "苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
-          "imageUrl": "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png",
-          "resultAssetIds": [
-            "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png"
-          ]
+          "quality": "high"
         },
         "shot": {
           "shotType": "MS",
-          "cameraMovement": "Dolly",
-          "angle": "LowAngle",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
           "aperture": 4,
-          "writerIntent": "展现变身过程的震撼与野性。",
-          "lighting": "硬光，强调变身时的毛发与骨骼扭曲",
-          "composition": "动态构图，银狼与黑狼的对冲",
-          "blocking": "女王与手下变身银狼，卡迪亚与手下变身黑狼，双方猛烈撞击",
+          "writerIntent": "变身爆发，战斗开始。",
+          "lighting": "高对比度光线，强调变身瞬间的张力。",
+          "composition": "女王仰天长啸，身体开始发生变化。",
+          "blocking": "女王化身为银狼，随从紧随其后。",
           "role": "action"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T15:02:53.378Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     },
     {
-      "id": "img_1781444442578_0_4",
+      "id": "img_1781494761193_s0_4",
       "type": "image.generate",
-      "title": "MS #5",
+      "title": "MS #1-5",
       "pos": {
-        "x": 1285.2499651658393,
-        "y": 4502.681322521561
+        "x": 980,
+        "y": 4702
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "failed",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
-          "videoPrompt": "手持摄影，模拟混乱的战场视角，镜头在女王被撕咬的惨状与小贝拉惊恐的脸之间快速切换，持续5秒。",
+          "prompt": "银狼与黑狼如两道洪流猛烈撞击，雪浪炸起十米高。一只黑色巨狼咬住银狼脖颈，红色的液体飞溅在雪地上，如同绽放的红梅。",
+          "videoPrompt": "Action shot, two packs of wolves colliding in the snow, chaos, slow motion impact, cinematic, high quality.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "Sony Venice",
-          "lens": "Cooke S4",
-          "focalLength": "50mm",
-          "aperture": "f/1.4",
-          "filmStock": "Kodak 2383"
+          "quality": "high"
         },
         "shot": {
           "shotType": "MS",
           "cameraMovement": "Handheld",
-          "angle": "EyeLevel",
+          "angle": "LowAngle",
           "aperture": 4,
-          "writerIntent": "展现女王的绝望与小贝拉的危机。",
-          "lighting": "高对比度光影，血色与白色交织",
-          "composition": "混乱构图，强调被围攻的压迫感",
-          "blocking": "女王被六只黑狼撕扯，小贝拉在不远处尖叫",
+          "writerIntent": "展示两军撞击的惨烈。",
+          "lighting": "混乱的雪雾与暗影。",
+          "composition": "银狼与黑狼撞击的瞬间。",
+          "blocking": "双方狼群混战，雪浪炸起。",
           "role": "action"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T15:06:16.822Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     },
     {
-      "id": "img_1781444442578_0_5",
+      "id": "img_1781494761193_s0_5",
       "type": "image.generate",
-      "title": "CU #6",
+      "title": "CU #1-6",
       "pos": {
-        "x": 1974.2424661204805,
-        "y": 4505.153450486613
+        "x": 1328,
+        "y": 4710
       },
       "size": {
         "w": 380,
         "h": 200
       },
       "ports": [],
-      "status": "running",
+      "status": "idle",
       "meta": {
         "gen": {
-          "prompt": "悬崖边，满身血迹的女王眼神决绝，她颤抖着将脖子上的狼头吊坠摘下，与小贝拉原有的吊坠叠戴在一起。她深情地亲吻了小贝拉的额头，随后在黑狼群扑来的瞬间，用尽最后的力量将小贝拉抛向悬崖下方。夕阳的余晖洒在她们身上，形成一道悲壮的轮廓光，背景是深不见底的断崖，空气中弥漫着血腥与离别的气息。",
-          "videoPrompt": "缓慢推镜头，聚焦于吊坠重叠的瞬间，随后镜头跟随小贝拉坠落的轨迹，持续4秒。",
+          "prompt": "女王化身的银狼被多只黑狼压制，银白色的筋腱在撕扯中绷断，她发出痛苦的闷哼，眼神却死死盯着悬崖边的小贝拉。",
+          "videoPrompt": "Close up, a silver wolf struggling on the ground, surrounded by black wolves, intense, emotional.",
           "model": "GPT Image2",
           "aspect": "16:9",
           "resolution": "2K",
-          "quality": "high",
-          "camera": "Sony Venice",
-          "lens": "Cooke S4",
-          "focalLength": "50mm",
-          "aperture": "f/1.4",
-          "filmStock": "Kodak 2383"
+          "quality": "high"
         },
         "shot": {
           "shotType": "CU",
-          "cameraMovement": "PushIn",
-          "angle": "LowAngle",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
           "aperture": 1.4,
-          "writerIntent": "展现女王最后的母爱与决绝。",
-          "lighting": "逆光，轮廓光勾勒女王身形",
-          "composition": "框架构图，吊坠成为焦点",
-          "blocking": "女王将吊坠挂在小贝拉脖子上，将她抛下悬崖",
+          "writerIntent": "女王受创，展现绝境。",
+          "lighting": "阴影笼罩女王。",
+          "composition": "女王倒地，黑狼围攻。",
+          "blocking": "女王被多只黑狼撕扯。",
+          "role": "reaction"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:41:45.795Z"
+    },
+    {
+      "id": "img_1781494761193_s0_6",
+      "type": "image.generate",
+      "title": "MS #1-7",
+      "pos": {
+        "x": 1992,
+        "y": 4716
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "女王带着满身伤痕幻化回人形，一把抱起小贝拉冲向悬崖边。她将脖子上的狼头吊坠摘下，叠戴在小贝拉的脖子上，眼中满是泪水与决绝。",
+          "videoPrompt": "Medium shot, a wounded queen putting a necklace on a little girl, emotional, snowy cliff edge.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "MS",
+          "cameraMovement": "Dolly",
+          "angle": "EyeLevel",
+          "aperture": 4,
+          "writerIntent": "女王最后的抉择。",
+          "lighting": "冷光与血迹的冷暖对比。",
+          "composition": "女王幻化人形，抱住小贝拉。",
+          "blocking": "女王踉跄冲向悬崖。",
           "role": "action"
         }
       },
-      "createdAt": "2026-06-14T13:40:42.578Z",
-      "updatedAt": "2026-06-14T15:06:17.982Z"
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:45:36.691Z"
+    },
+    {
+      "id": "img_1781494761193_s0_7",
+      "type": "image.generate",
+      "title": "FS #1-8",
+      "pos": {
+        "x": 1642,
+        "y": 4720
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "女王将小贝拉抛下悬崖，小贝拉在空中哭喊。与此同时，一只巨大的黑狼扑向女王，将其按倒在悬崖边，画面定格在女王最后的目光中。",
+          "videoPrompt": "Wide shot, a woman throwing a child off a cliff, then being tackled by a wolf, dramatic, emotional.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "FS",
+          "cameraMovement": "Crane",
+          "angle": "HighAngle",
+          "aperture": 11,
+          "writerIntent": "悲剧高潮，抛下孩子。",
+          "lighting": "冷冽的日光。",
+          "composition": "女王将小贝拉抛下悬崖。",
+          "blocking": "小贝拉坠落，女王被黑狼扑倒。",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:45:34.764Z"
+    },
+    {
+      "id": "img_1781494761193_s0_8",
+      "type": "image.generate",
+      "title": "CU #1-9",
+      "pos": {
+        "x": 980,
+        "y": 5102
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "相框精致，镶着银边，照片中辛德瑞拉戴着狼头吊坠，笑容甜蜜，与莱斯特亲密相依。",
+          "videoPrompt": "Close up, a framed photo of a couple, warm lighting, slow zoom out.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "CU",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
+          "aperture": 1.4,
+          "writerIntent": "转场，十八年后。",
+          "lighting": "昏黄温暖的室内光。",
+          "composition": "相框特写。",
+          "blocking": "相框内是辛德瑞拉与莱斯特的合影。",
+          "role": "insert"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
+    },
+    {
+      "id": "img_1781494761193_s0_9",
+      "type": "image.generate",
+      "title": "MS #1-10",
+      "pos": {
+        "x": 1320,
+        "y": 5102
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "莱斯特赤裸上身坐在沙发上，布蕾克骑在他身上，两人神情迷乱。布蕾克得意地提起辛德瑞拉，莱斯特露出不屑且残暴的笑容。",
+          "videoPrompt": "Medium shot, a couple on a sofa, intimate, dark, moody lighting, sharp contrast.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "MS",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
+          "aperture": 4,
+          "writerIntent": "展现反派的虚伪与残忍。",
+          "lighting": "暧昧的昏黄灯光。",
+          "composition": "莱斯特与布蕾克在沙发上。",
+          "blocking": "两人举止亲密，言语恶毒。",
+          "role": "dialog"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
+    },
+    {
+      "id": "img_1781494761193_s0_10",
+      "type": "image.generate",
+      "title": "LS #1-11",
+      "pos": {
+        "x": 1660,
+        "y": 5102
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "辛德瑞拉推开锈迹斑斑的铁艺院门，胸口的狼头吊坠在阳光下闪烁。她端着生日蛋糕，满脸期待，脚步轻快。",
+          "videoPrompt": "Medium shot, a young woman holding a cake, walking through a gate, sunlight, hopeful atmosphere.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "LS",
+          "cameraMovement": "PushIn",
+          "angle": "EyeLevel",
+          "aperture": 11,
+          "writerIntent": "辛德瑞拉登场，命运转折。",
+          "lighting": "明亮的日光照射在院门。",
+          "composition": "辛德瑞拉推门。",
+          "blocking": "辛德瑞拉端着蛋糕进入。",
+          "role": "action"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
+    },
+    {
+      "id": "img_1781494761193_s0_11",
+      "type": "image.generate",
+      "title": "CU #1-12",
+      "pos": {
+        "x": 2000,
+        "y": 5102
+      },
+      "size": {
+        "w": 380,
+        "h": 200
+      },
+      "ports": [],
+      "status": "idle",
+      "meta": {
+        "gen": {
+          "prompt": "辛德瑞拉的表情从甜蜜瞬间转为惊愕，手中的蛋糕滑落，奶油溅在地上，她的双眼圆睁，映照出室内不堪的一幕。",
+          "videoPrompt": "Extreme close up, a woman's face, shock, tears welling up, dramatic lighting shift.",
+          "model": "GPT Image2",
+          "aspect": "16:9",
+          "resolution": "2K",
+          "quality": "high"
+        },
+        "shot": {
+          "shotType": "CU",
+          "cameraMovement": "Static",
+          "angle": "EyeLevel",
+          "aperture": 1.4,
+          "writerIntent": "真相大白，破碎的希望。",
+          "lighting": "室内昏暗与室外明亮的对比。",
+          "composition": "辛德瑞拉的脸部特写。",
+          "blocking": "辛德瑞拉看到室内场景，表情僵住。",
+          "role": "reaction"
+        }
+      },
+      "createdAt": "2026-06-15T03:39:21.193Z",
+      "updatedAt": "2026-06-15T03:39:21.193Z"
     }
   ],
   "edges": [],
-  "updatedAt": "2026-06-14T15:07:29.691Z"
+  "updatedAt": "2026-06-15T03:55:14.571Z"
 }
