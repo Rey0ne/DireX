@@ -161,6 +161,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                       model: 'GPT Image2', aspect: '16:9',
                       resolution: '2K', quality: 'high',
                     },
+                    characters: scene.characters || [],  // 场景角色标签
+                    sceneType: scene.sceneType || '',     // establishing/action/dialogue
                     shot: {
                       shotType: shot.shotType,
                       cameraMovement: shot.cameraMovement,
