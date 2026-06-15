@@ -87,21 +87,21 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
   const handleScriptAnalysis = async () => {
     if (!prompt.trim()) return;
-    genRunningRef.current = true;
-    setGenRunning(true);
+    genRunningRef.current = true; setGenRunning(true);
     try {
-      const resp = await fetch('/api/agent/script/overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
-        body: JSON.stringify({ scriptText: prompt, visualStyle }),
-      });
-      const json = await resp.json();
-      if (json.success) {
-        setScriptOverview(json);
-        setPhase('overview');
-        console.log('[overview] ' + json.scenes?.length + ' scenes');
-      }
-    } catch (err) { console.error('[overview] Error:', err); }
+      // 并行：角色提取 + 场景概览
+      const [charResp, overviewResp] = await Promise.all([
+        fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt}) }),
+        fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt}) }),
+      ]);
+      const charJson = await charResp.json();
+      const overviewJson = await overviewResp.json();
+      // 合并：角色提取优先
+      const chars = charJson.success ? charJson.characters : (overviewJson.characterProfiles || {});
+      setScriptOverview({ ...overviewJson, characterProfiles: chars, scriptTitle: overviewJson.scriptTitle || '剧本分析' });
+      setPhase('overview');
+      console.log('[analysis] ' + Object.keys(chars).length + ' chars, ' + (overviewJson.scenes?.length||0) + ' scenes');
+    } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 

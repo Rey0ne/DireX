@@ -791,7 +791,7 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
   let extractedChars: Record<string, { role: string; appearance: string; side?: string }> = {};
   try {
     const charCtx: PipelineContext = { userInput: scriptText, model: 'deepseek', mode: 'character-extract' };
-    const charResult = await runAgent(CHARACTER_EXTRACTOR, charCtx, {}, 4000);
+    const charResult = await runAgent(CHARACTER_EXTRACTOR, charCtx, {}, 6000);
     trace.push(charResult);
     try {
       let js = charResult.output;
