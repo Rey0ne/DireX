@@ -55,6 +55,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [visualStyle, setVisualStyle] = useState('');
   const savedOverview = (data as any).scriptOverview || (gen as any).scriptOverview || null;
   const [scriptOverview, setScriptOverview] = useState<any>(savedOverview);
+  const overviewRef = useRef<any>(savedOverview);
   const [scriptResult, setScriptResult] = useState<any>(null);
   const [phase, setPhase] = useState<'input'|'overview'|'shots'>(savedOverview ? 'overview' : 'input');
   const zoom = useStore(s => s.transform[2]);
@@ -94,6 +95,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const [charJson, overviewJson] = await Promise.all([charResp.json(), overviewResp.json()]);
       const result = { ...overviewJson, characterProfiles: charJson.success ? charJson.characters : (overviewJson.characterProfiles||{}) };
       patch('scriptOverview', result);
+      overviewRef.current = result;
       setScriptOverview(result);
       setPhase('overview');
     } catch (err) { console.error('[analysis] Error:', err); }
@@ -101,7 +103,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   };
 
   const handleSceneShot = useCallback(async (sceneIndex: number) => {
-    const overview = scriptOverview;
+    const overview = overviewRef.current;
     if (!overview) return;
     const scene = overview.scenes[sceneIndex];
     if (!scene) return;
@@ -143,7 +145,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       }
     } catch (err) { console.error('[scene-shot] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
-  }, [scriptOverview]);
+  }, []);
 
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
