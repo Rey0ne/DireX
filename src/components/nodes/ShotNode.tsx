@@ -87,44 +87,15 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     if (!prompt.trim()) return;
     genRunningRef.current = true; setGenRunning(true);
     try {
-      const newNodeList: any[] = [];
-      const cx = canvasStore.nodes.get(id);
-      if (!cx) return;
-      const bx = (cx.pos?.x || 0) + 340;
-      const by = (cx.pos?.y || 0) + 200;
-      let ni = 0;
-      // 1. 角色提取
-      const charResp = await fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) });
-      const charJson = await charResp.json();
-      if (charJson.success && charJson.characters) {
-        for (const [name, info] of Object.entries(charJson.characters) as [string, any][]) {
-          const gm = name.match(/^(.+)\((\d+)人\)$/); const c2 = gm ? parseInt(gm[2]) : 1; const bn = gm ? gm[1] : name;
-          for (let g = 0; g < c2; g++) {
-            const gn = c2 > 1 ? `${bn}#${g+1}` : bn;
-            const desc = typeof info === 'string' ? info : (info.appearance || '');
-            newNodeList.push({ id: 'c_' + Date.now() + '_' + ni, type: 'image.generate', title: '🎭 ' + gn, pos: { x: bx + (ni % 4) * 220, y: by - 120 + Math.floor(ni / 4) * 220 }, size: { w: 200, h: 200 }, meta: { gen: { prompt: `角色设定图：${gn}。${desc}。白色背景。三视图（正面侧面背面）。武器道具和表情设定。`, model: 'GPT Image2', aspect: '3:2', resolution: '2K', quality: 'high' } } });
-            ni++;
-          }
-        }
-      }
-      // 2. 场景概览 → 场景分镜
-      const overviewResp = await fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) });
-      const overviewJson = await overviewResp.json();
-      if (overviewJson.success && overviewJson.scenes) {
-        for (const scene of overviewJson.scenes) {
-          const sResp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({ scene, scriptExcerpt: prompt, visualBible: overviewJson.visualBible, characterProfiles: overviewJson.characterProfiles }) });
-          const sJson = await sResp.json();
-          if (sJson.success && sJson.shots) {
-            for (const shot of sJson.shots) {
-              const row = Math.floor(ni / 4); const col = ni % 4;
-              newNodeList.push({ id: 's_' + Date.now() + '_' + ni, type: 'image.generate', title: shot.shotType + ' #' + (scene.sceneNumber || '') + '-' + shot.shotNumber, pos: { x: bx + col * 340, y: by + row * 400 }, size: { w: 380, h: 200 }, meta: { gen: { prompt: shot.visualPrompt, videoPrompt: shot.videoPrompt || '', model: 'GPT Image2', aspect: '16:9', resolution: '2K', quality: 'high' }, shot: { shotType: shot.shotType, cameraMovement: shot.cameraMovement, angle: shot.angle, aperture: shot.aperture } } });
-              ni++;
-            }
-          }
-        }
-      }
-      if (newNodeList.length > 0) canvasStore.batchCreateNodes(newNodeList);
-      setPhase('shots');
+      const [charResp, overviewResp] = await Promise.all([
+        fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
+        fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
+      ]);
+      const [charJson, overviewJson] = await Promise.all([charResp.json(), overviewResp.json()]);
+      const result = { ...overviewJson, characterProfiles: charJson.success ? charJson.characters : (overviewJson.characterProfiles||{}) };
+      patch('scriptOverview', result);
+      setScriptOverview(result);
+      setPhase('overview');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
@@ -244,7 +215,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
           {/* Phase 1 result: Scene overview list */}
           {/* Overview UI removed — nodes created directly by handleScriptAnalysis */}
-          {false && phase === 'overview' && scriptOverview && (
+          {phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
               {/* 角色清单 */}
               {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
@@ -258,14 +229,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 </div>
                 <div onClick={async()=>{
                   const p=scriptOverview.characterProfiles;const next2=new Map(canvasStore.nodes);
-                  const baseX2=(st2.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
+                  const baseX2=(canvasStore.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
                   for(const [name,info] of Object.entries(p) as [string,any][]){
                     const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
                     const faceVariants=['鹅蛋脸，杏眼，薄唇','圆脸，丹凤眼，厚唇','瓜子脸，桃花眼，嘴角上扬','方脸，细长眼，高鼻梁','菱形脸，圆眼，宽额头','长脸，下垂眼，尖下巴','心形脸，柳叶眉，樱桃嘴','椭圆脸，深眼窝，薄唇紧闭'];
                     for(let g=0;g<c2;g++){const gn=c2>1?`${bn}#${g+1}`:bn;
                       const face=c2>1?`。面部特征：${faceVariants[g%faceVariants.length]}`:'';
                       const prompt=`角色设定图：${gn}。${typeof info==='string'?info:((info as any).appearance||(info as any)||'')}${face}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。`;
-                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(st2.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
+                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(canvasStore.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
                   }
                   useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
                 }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff',marginTop:2}}>
