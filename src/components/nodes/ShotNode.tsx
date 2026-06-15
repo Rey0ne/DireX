@@ -270,26 +270,18 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   🎭 生成角色设定图，共{Object.keys(scriptOverview.characterProfiles).length}个角色
                 </div>
               </>)}
-              {/* 场景列表 */}
+              {/* 段落分镜按钮 */}
               {scriptOverview.scenes && scriptOverview.scenes.length>0 && <>
-                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📋 {scriptOverview.scriptTitle} — {scriptOverview.scenes.length} 个场景</div>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {scriptOverview.scenes.length} 段</div>
                 {scriptOverview.scenes.map((s:any,i:number) => (
-                <div key={i} onClick={()=>handleSceneShot(i)} style={{
-                  padding:'8px 10px',borderRadius:8,cursor:'pointer',
-                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',
-                  display:'flex',justifyContent:'space-between',alignItems:'center',
-                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.08)';e.currentTarget.style.borderColor='rgba(100,180,255,0.25)'}}
+                <button key={i} onClick={()=>handleSceneShot(i)} style={{
+                  padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
+                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
+                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
                    onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:11,fontWeight:600,color:'var(--tap-text-1)' }}>{s.sceneHeader}</div>
-                    <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:2 }}>{s.location} · {s.timeOfDay} · {s.sceneType} · ~{s.estimatedShots}镜</div>
-                    {s.characters?.length > 0 && <div style={{ fontSize:9,color:'var(--tap-accent)',marginTop:1 }}>角色：{s.characters.join(', ')}</div>}
-                    <div style={{ fontSize:9,color:'var(--tap-text-4)',marginTop:1 }}>{s.summary}</div>
-                  </div>
-                  <span style={{ fontSize:16,color:'var(--tap-text-4)',flexShrink:0 }}>→</span>
-                </div>
-              ))}
-              </>}
+                  📝 第{i+1}段：{s.sceneHeader}  <span style={{color:'var(--tap-text-4)',fontSize:9}}>~{s.estimatedShots}镜</span>
+                </button>
+              ))}</>}
             </div>
           )}
 
