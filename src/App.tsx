@@ -2,7 +2,7 @@
 /* ReactFlow-powered infinite canvas with node workflow */
 /* Two-layer: ProjectSelector → CanvasWorkspace */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -280,71 +280,20 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   // ─── Initialize ─────────────────────────────────
-  const autoSaveCleanup = useRef<(()=>void)|null>(null);
   useEffect(() => {
-    const projectId = localStorage.getItem('tapnow-current-project');
-    if (!projectId) return;
-    (async () => {
-      // 清理旧的 auto-save 订阅
-      if (autoSaveCleanup.current) { autoSaveCleanup.current(); autoSaveCleanup.current = null; }
+    const existing = Array.from(nodesMap.values());
+    if (existing.length > 0) return;
 
-      // 优先从服务器恢复（防止本地数据丢失）
-      let fromServer = false;
-      try {
-        const resp = await fetch('/api/canvas');
-        if (resp.ok) {
-          const server = await resp.json();
-          const serverNodes = server.nodes || [];
-          if (Array.isArray(serverNodes) && serverNodes.length > 0) {
-            console.log('[restore] Loading ' + serverNodes.length + ' nodes from server');
-            const now = new Date().toISOString();
-            // 从 localStorage 恢复最近拖拽的位置
-            let localPos: Record<string,{x:number;y:number}> = {};
-            try { localPos = JSON.parse(localStorage.getItem('tapnow-node-pos')||'{}'); } catch {}
-            const nodeMap = new Map();
-            for (let i = 0; i < serverNodes.length; i++) {
-              const n = serverNodes[i];
-              // 清理巨量 base64 内联图片（防止渲染崩溃）
-              const meta = n.meta ? { ...n.meta } : {};
-              if (meta.gen?.referenceUrls) {
-                meta.gen = { ...meta.gen, referenceUrls: meta.gen.referenceUrls.filter(
-                  (u: string) => !u.startsWith('data:') || u.length < 5000
-                ) };
-              }
-              nodeMap.set(n.id, {
-                ...n,
-                meta,
-                pos: localPos[n.id] || n.pos || { x: (i%8)*340+100, y: Math.floor(i/8)*380+100 },
-                size: n.size || { w: 300, h: 200 },
-                ports: n.ports || [],
-                status: n.status || 'idle',
-                createdAt: n.createdAt || now,
-                updatedAt: n.updatedAt || now,
-              });
-            }
-            const edgeMap = new Map();
-            for (const e of (server.edges || [])) {
-              edgeMap.set(e.id, e);
-            }
-            useCanvasStore.setState({ nodes: nodeMap, edges: edgeMap });
-            fromServer = true;
-          }
-        }
-      } catch (e) { console.log('[restore] Server not available'); }
-
-      // 服务器没数据才从本地加载
-      if (!fromServer) {
-        const restored = await loadFromDB();
-        if (!restored) {
-          // Fresh canvas
-        }
+    loadFromDB().then(restored => {
+      if (!restored) {
+        // Fresh canvas — no demo nodes, user starts from scratch
       }
+    });
 
-      autoSaveCleanup.current = startAutoSave();
-    })();
-    return () => { if (autoSaveCleanup.current) { autoSaveCleanup.current(); autoSaveCleanup.current = null; } };
+    const cleanup = startAutoSave();
+    return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once when CanvasWorkspace mounts
+  }, []); // Only run once on mount — NOT when nodes change
 
   // ─── Sync store → ReactFlow ──
   const prevNodeIdsRef = useRef('');
@@ -459,7 +408,6 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
                   referencePrompts: refPrompts,
                 } as any)
               : await generateWithAgent({
-                  nodeId: n.id,
                   providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
                   mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
                   rawText: (meta.prompt as string) || '',
@@ -675,9 +623,6 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       store.pushHistory();
     }
     store.updateNode(node.id, { pos: node.position });
-    // localStorage 即时备份节点位置
-    try { const pmap=JSON.parse(localStorage.getItem('tapnow-node-pos')||'{}'); pmap[node.id]=node.position; localStorage.setItem('tapnow-node-pos',JSON.stringify(pmap)); } catch {}
-    saveNow();
   }, []);
 
   // ─── Node hover during connection → target glow ──
@@ -1171,12 +1116,6 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 }
 
 // ─── Root: two-layer routing ────────────────────
-class ErrorBoundary extends React.Component<{children:React.ReactNode},{hasError:boolean,error:string}>{
-  constructor(p:any){super(p);this.state={hasError:false,error:''};}
-  static getDerivedStateFromError(e:any){return{hasError:true,error:String(e?.message||e)};}
-  render(){if(this.state.hasError)return<div style={{padding:40,color:'red',fontSize:14}}><b>Canvas Error:</b><pre>{this.state.error}</pre></div>;return this.props.children;}
-}
-
 export default function App() {
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
     return localStorage.getItem('tapnow-current-project') || null;
@@ -1215,7 +1154,7 @@ export default function App() {
   // Canvas workspace — ReactFlow hooks only run here
   return (
     <ReactFlowProvider>
-      <ErrorBoundary key={currentProjectId}><CanvasWorkspace onGoHome={handleGoHome} /></ErrorBoundary>
+      <CanvasWorkspace onGoHome={handleGoHome} />
     </ReactFlowProvider>
   );
 }

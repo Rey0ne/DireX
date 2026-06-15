@@ -84,7 +84,7 @@ export async function generateImage(req: GenerateRequest): Promise<GenerateResul
 }
 
 // ─── Generate with Agent (DeepSeek compile → Image API) ──
-export async function generateWithAgent(req: AgentGenerateRequest & { nodeId?: string }): Promise<AgentGenerateResult> {
+export async function generateWithAgent(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/generate` : '/api/agent/generate';
 
   try {
@@ -94,7 +94,7 @@ export async function generateWithAgent(req: AgentGenerateRequest & { nodeId?: s
         'Content-Type': 'application/json',
         Authorization: `Bearer ${getSharedApiKey()}`,
       },
-      body: JSON.stringify({ ...req, nodeId: req.nodeId }),
+      body: JSON.stringify(req),
     });
 
     if (!response.ok) {
