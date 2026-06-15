@@ -790,7 +790,7 @@ export async function runOverviewPipeline(scriptText: string): Promise<ScriptOve
     const context: PipelineContext = {
       userInput: scriptText, model: 'deepseek', mode: 'script-overview',
     };
-    const result = await runAgent(SCRIPT_OVERVIEW, context, {}, 4000);
+    const result = await runAgent(SCRIPT_OVERVIEW, context, {}, 6000);
     trace.push(result);
     let parsed: any;
     try {
