@@ -254,51 +254,51 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           />
 
           {/* Phase 1 result: Scene overview list */}
-          {scriptMode && phase === 'overview' && scriptOverview?.scenes && (
+          {scriptMode && phase === 'overview' && scriptOverview && (
             <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-              <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📋 {scriptOverview.scriptTitle} — {scriptOverview.scenes.length} 个场景</div>
-              {/* 角色清单 — 让用户确认 Agent 判断 */}
-              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (
-                <div style={{ display:'flex',flexWrap:'wrap',gap:4,padding:'4px 0' }}>
-                  <span style={{ fontSize:9,color:'var(--tap-text-4)' }}>角色：</span>
+              {/* 角色清单 */}
+              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length > 0 && (<>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>👥 {Object.keys(scriptOverview.characterProfiles).length} 个角色</div>
+                <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
                   {Object.entries(scriptOverview.characterProfiles).map(([name,info]:[string,any]) => (
                     <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
                       background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
                       color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>
-                      {name} ({info.role})
+                      {name}
                     </span>
                   ))}
                 </div>
-              )}
-              {/* 一键生成角色设定图 */}
-              {scriptOverview.characterProfiles && Object.keys(scriptOverview.characterProfiles).length>0 && (
+                {/* 一键生成角色设定图 */}
                 <div onClick={async () => {
                   const profiles = scriptOverview.characterProfiles;
-                  const st2 = useCanvasStore.getState();
-                  const next2 = new Map(st2.nodes);
-                  const baseX = (st2.nodes.get(id)?.pos?.x||0)+340;
-                  const baseY = (st2.nodes.get(id)?.pos?.y||0)-100;
-                  let ci = 0;
+                  const st2 = useCanvasStore.getState();const next2=new Map(st2.nodes);
+                  const baseX=(st2.nodes.get(id)?.pos?.x||0)+360;const baseY=(st2.nodes.get(id)?.pos?.y||0)-120;
+                  let ci=0;const COLS2=4;
                   for(const [name,info] of Object.entries(profiles) as [string,any][]){
-                    const nid='char_'+Date.now()+'_'+ci;
-                    next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+name,
-                      pos:{x:baseX+ci*340,y:baseY},size:{w:380,h:200},ports:[],status:'idle',
-                      meta:{gen:{prompt:'Character design sheet: '+name+', '+((info as any).appearance||''),model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角'},
-                      createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-                    ci++;
+                    const groupMatch=name.match(/^(.+)\((\d+)人\)$/);
+                    const count=groupMatch?parseInt(groupMatch[2]):1;
+                    const baseName2=groupMatch?groupMatch[1]:name;
+                    for(let g=0;g<count;g++){
+                      const gName=count>1?`${baseName2} #${g+1}`:baseName2;
+                      const faceHint=count>1?`，面部特征${g+1}号`:'';
+                      const prompt=`角色设定图：${gName}。${(info as any).appearance||''}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。${faceHint}`;
+                      const nid='char_'+Date.now()+'_'+ci;
+                      next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,
+                        pos:{x:baseX+(ci%COLS2)*220,y:baseY+Math.floor(ci/COLS2)*220},size:{w:200,h:200},ports:[],status:'idle',
+                        meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
+                        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+                      ci++;
+                    }
                   }
                   useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
-                }} style={{
-                  fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',
-                  padding:'6px 12px',borderRadius:8,marginTop:2,
-                  background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',
-                  color:'#88bbff',
-                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.14)'}}
-                   onMouseLeave={e=>{e.currentTarget.style.background='rgba(100,180,255,0.08)'}}>
-                  🎭 一键生成 {Object.keys(scriptOverview.characterProfiles).length} 个角色设定图
+                }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px 12px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff'}}>
+                  🎭 一键生成角色设定图
                 </div>
-              )}
-              {scriptOverview.scenes.map((s:any,i:number) => (
+              </>)}
+              {/* 场景列表 */}
+              {scriptOverview.scenes && scriptOverview.scenes.length>0 && <>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📋 {scriptOverview.scriptTitle} — {scriptOverview.scenes.length} 个场景</div>
+                {scriptOverview.scenes.map((s:any,i:number) => (
                 <div key={i} onClick={()=>handleSceneShot(i)} style={{
                   padding:'8px 10px',borderRadius:8,cursor:'pointer',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',
@@ -314,6 +314,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   <span style={{ fontSize:16,color:'var(--tap-text-4)',flexShrink:0 }}>→</span>
                 </div>
               ))}
+              </>}
             </div>
           )}
 
@@ -464,31 +465,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 try {
                   const resp=await fetch('/api/agent/script/characters',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scriptText:prompt})});
                   const json=await resp.json();
-                  if(json.success){
-                    setScriptOverview({...scriptOverview,characterProfiles:json.characters,scriptTitle:scriptOverview?.scriptTitle||'角色分析'});setPhase('overview');
-                    // 自动创建角色设定图节点
-                    const chars=json.characters;const st2=useCanvasStore.getState();const next2=new Map(st2.nodes);
-                    const baseX=(st2.nodes.get(id)?.pos?.x||0)+360;const baseY=(st2.nodes.get(id)?.pos?.y||0)-120;
-                    let ci=0;const COLS2=4;
-                    for(const [name,info] of Object.entries(chars) as [string,any][]){
-                      // 群演拆分：如"随从(6人)" → 6个独立节点
-                      const groupMatch=name.match(/^(.+)\((\d+)人\)$/);
-                      const count=groupMatch?parseInt(groupMatch[2]):1;
-                      const baseName=groupMatch?groupMatch[1]:name;
-                      for(let g=0;g<count;g++){
-                        const gName=count>1?`${baseName} #${g+1}`:baseName;
-                        const faceHint=count>1?`, face #${g+1}: ${g===0?'narrow jaw':g===1?'round face':g===2?'sharp cheekbones':g===3?'square jaw':g===4?'angular features':'distinct look'}`:'';
-                        const prompt=`Character design sheet: ${gName}. ${(info as any).appearance||''}. White background. Three-view turnaround (front, side, back). Include weapons, props, and expression sheet. Full character reference.${faceHint}`;
-                        const nid='char_'+Date.now()+'_'+ci;
-                        next2.set(nid,{id:nid,type:'image.generate',title:'🎭 '+gName,
-                          pos:{x:baseX+(ci%COLS2)*220,y:baseY+Math.floor(ci/COLS2)*220},size:{w:200,h:200},ports:[],status:'idle',
-                          meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'},charRole:(info as any).role||'配角',charSide:(info as any).side||''},
-                          createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-                        ci++;
-                      }
-                    }
-                    useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();
-                  }
+                  if(json.success){setScriptOverview({...scriptOverview,characterProfiles:json.characters,scriptTitle:scriptOverview?.scriptTitle||'角色分析'});setPhase('overview');}
                 }catch{}finally{genRunningRef.current=false;setGenRunning(false);}
               }} style={{
                 fontSize:'10px',fontWeight:600,cursor:'pointer',
