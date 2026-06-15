@@ -836,7 +836,7 @@ ${scriptExcerpt}`;
   console.log(`[scene-shot] Scene ${scene.sceneNumber} (${contextText.length} chars)`);
   try {
     const context: PipelineContext = { userInput: contextText, model: 'deepseek', mode: 'scene-shot' };
-    const result = await runAgent(SCENE_SHOT, context, {}, 8000);
+    const result = await runAgent(SCENE_SHOT, context, {}, 12000);
     trace.push(result);
     let parsed: any;
     try {
