@@ -342,16 +342,8 @@ app.post('/api/agent/script/overview', async (req: Request, res: Response) => {
   console.log('[overview-api] Scanning (' + scriptText.length + ' chars)');
   try {
     const result = await runOverviewPipeline(scriptText.trim());
-    // 为每个场景生成分镜
-    const allShots: any[] = [];
-    for (const scene of result.scenes) {
-      try {
-        const shotResult = await runSceneShotPipeline(scene, scriptText.trim(), result.visualBible, result.characterProfiles);
-        allShots.push({ sceneNumber: scene.sceneNumber, shots: shotResult.shots });
-      } catch(e) { console.log('[overview-api] Scene shot failed for scene '+scene.sceneNumber); }
-    }
-    console.log('[overview-api] ' + result.scenes.length + ' scenes, ' + allShots.reduce((s,x)=>s+x.shots.length,0) + ' total shots');
-    res.json({ success: true, ...result, allShots, totalScenes: result.scenes.length });
+    console.log('[overview-api] ' + result.scenes.length + ' scenes');
+    res.json({ success: true, ...result, totalScenes: result.scenes.length });
   } catch (err) {
     console.error('[overview-api] Error:', err);
     res.status(500).json({ error: String(err) });

@@ -52,6 +52,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const [pendingSceneIdx, setPendingSceneIdx] = useState(-1);
   const [visualStyle, setVisualStyle] = useState('');
   const getOverview = () => (data as any).scriptOverview || (gen as any).scriptOverview || null;
   const [scriptResult, setScriptResult] = useState<any>(null);
@@ -73,6 +74,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   }, [prompt]);
   // 组件卸载时立即保存
   useEffect(() => () => { if (promptRef.current) patch('prompt', promptRef.current); }, []);
+  // 分镜按钮：通过 state 触发，在 useEffect 里调 API（避开事件系统限制）
+  useEffect(() => {
+    if (pendingSceneIdx < 0) return;
+    const ov = getOverview();
+    if (!ov) { setPendingSceneIdx(-1); return; }
+    const sc = ov.scenes[pendingSceneIdx];
+    if (!sc) { setPendingSceneIdx(-1); return; }
+    genRunningRef.current = true; setGenRunning(true);
+    fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles}) })
+      .then(r=>r.json()).then(j=>{
+        if(j.success&&j.shots){const next2=new Map(canvasStore.nodes);const BX=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const BY=(canvasStore.nodes.get(id)?.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{next2.set('s_'+Date.now()+'_'+si,{id:'s_'+Date.now()+'_'+si,type:'image.generate',title:sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber,pos:{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});});const allNodes=Array.from(next2.values());useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:allNodes.map(n=>({id:n.id,type:n.type,title:n.title,pos:n.pos,size:n.size,ports:n.ports,status:n.status,meta:n.meta})),edges:[]})}).catch(()=>{});}
+      }).catch(e=>console.error(e)).finally(()=>{genRunningRef.current=false;setGenRunning(false);setPendingSceneIdx(-1)});
+  }, [pendingSceneIdx]);
 
   const handleGenerate = () => {
     if (genRunningRef.current || !prompt.trim()) return;
@@ -225,7 +239,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               {getOverview().scenes && getOverview().scenes.length>0 && <>
                 <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
                 {getOverview().scenes.map((s:any,i:number) => (
-                <div key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;const shots=(ov.allShots||[]).find((s:any)=>s.sceneNumber===sc.sceneNumber)?.shots;if(!shots?.length)return;const next2=new Map(canvasStore.nodes);const BX=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const BY=(canvasStore.nodes.get(id)?.pos?.y||0)+200;shots.forEach((sh:any,si:number)=>{next2.set('s_'+Date.now()+'_'+si,{id:'s_'+Date.now()+'_'+si,type:'image.generate',title:sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber,pos:{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});});const allNodes=Array.from(next2.values());useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:allNodes.map(n=>({id:n.id,type:n.type,title:n.title,pos:n.pos,size:n.size,ports:n.ports,status:n.status,meta:n.meta})),edges:[]})}).catch(()=>{});}} style={{
+                <div key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;fetch('/api/agent/script/scene',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles})}).then(r=>r.json()).then(j=>{if(!j.success||!j.shots)return;const BX=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const BY=(canvasStore.nodes.get(id)?.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{canvasStore.addNode('image.generate',{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber);});}).catch(e=>console.error(e));}} style={{
                   padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
                   background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
                 }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}

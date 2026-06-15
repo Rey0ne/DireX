@@ -872,7 +872,7 @@ ${scriptExcerpt}`;
       const bs = jsonStr.indexOf('{'), be = jsonStr.lastIndexOf('}');
       if (bs >= 0 && be > bs) jsonStr = jsonStr.slice(bs, be + 1);
       parsed = JSON.parse(jsonStr);
-    } catch { return { sceneNumber: scene.sceneNumber, shots: [], trace }; }
+    } catch(e) { console.log('[scene-shot] JSON parse failed, output first 200:', result.output?.slice(0,200)); return { sceneNumber: scene.sceneNumber, shots: [], trace }; }
 
     return {
       sceneNumber: scene.sceneNumber,
