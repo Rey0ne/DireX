@@ -159,6 +159,57 @@ export interface KeyStatus {
   masked: string;
 }
 
+// ─── Auth types ──────────────────────────────────
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: UserProfile;
+  error?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  credits: number;
+  plan: 'free' | 'creator' | 'pro_base' | 'pro_mid' | 'pro_high' | 'pro_pro' | 'pro_max' | 'elite' | 'ultra';
+  concurrency: number;
+  storageGB: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreditTransaction {
+  id: string;
+  userId: string;
+  amount: number;        // positive = topup, negative = spend
+  type: 'signup_bonus' | 'plan_monthly' | 'topup_pack' | 'spend_image' | 'spend_video' | 'spend_script' | 'spend_3d' | 'refund';
+  description: string;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export interface CreditBalanceResponse {
+  credits: number;
+  plan: string;
+  monthlyAllowance: number;
+  recentTransactions: CreditTransaction[];
+}
+
+// ─── Generation types ────────────────────────────
+
 export interface GenerationLog {
   id: string;
   timestamp: string;

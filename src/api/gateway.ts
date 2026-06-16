@@ -144,7 +144,36 @@ export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGener
   }
 }
 
-// ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
+// ─── Auth token: JWT if logged in, otherwise shared dev key ──
 export function getSharedApiKey(): string {
+  // 动态读取，避免 zustand import 循环依赖 — 直接从 localStorage 读
+  try {
+    const saved = localStorage.getItem('direx_auth');
+    if (saved) {
+      const { token } = JSON.parse(saved);
+      if (token) return token;
+    }
+  } catch {}
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';
+}
+
+// ─── Auth API helpers ──
+const BACKEND = import.meta.env.VITE_API_URL || '';
+
+export async function spendCredits(amount: number, type: string, description: string) {
+  const key = getSharedApiKey();
+  const resp = await fetch(`${BACKEND}/api/auth/credits/spend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ amount, type, description }),
+  });
+  return resp.json();
+}
+
+export async function fetchCredits() {
+  const key = getSharedApiKey();
+  const resp = await fetch(`${BACKEND}/api/auth/credits`, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  return resp.json();
 }

@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
 import { authMiddleware } from './middleware/auth.js';
+import authRouter from './routes/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runScriptPipeline, runOverviewPipeline, runSceneShotPipeline, runAgent, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
@@ -48,6 +49,8 @@ async function proxyAsset(req: Request, res: Response) {
 }
 
 app.use(authMiddleware);
+
+app.use('/api/auth', authRouter);  // JWT 路由在中间件之后，确保 req.user 已设置
 
 // ─── Image Analysis Cache ──────────────────────
 // Stores Gemini Vision analysis for every image URL

@@ -1,6 +1,6 @@
 /* === App — Canvas Workspace === */
 /* ReactFlow-powered infinite canvas with node workflow */
-/* Two-layer: ProjectSelector → CanvasWorkspace */
+/* Three-layer: LoginPage → ProjectSelector → CanvasWorkspace */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
@@ -27,6 +27,8 @@ import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
 import type { ToolMode } from './components/LeftToolbar';
 import { ProjectSelector } from './components/ProjectSelector';
+import { LoginPage } from './components/LoginPage';
+import { useAuthStore } from './store/useAuthStore';
 import { AgentPanel } from './components/AgentPanel';
 import { AgentToggleButton } from './components/AgentToggleButton';
 import { InpaintTool, RelightTool, MultiAngleTool } from './components/ImageTools';
@@ -118,6 +120,35 @@ function getNodeProviderId(store: ReturnType<typeof useCanvasStore.getState>, no
   const node = store.nodes.get(nodeId);
   const model = ((node?.meta?.gen as any)?.model) || 'GPT Image2';
   return mapModelNameToProviderId(model);
+}
+
+function UserBadge() {
+  const user = useAuthStore(s => s.user);
+  const logout = useAuthStore(s => s.logout);
+  if (!user) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: '18px', right: '18px', zIndex: 500,
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '6px 6px 6px 16px', borderRadius: '20px',
+      background: 'rgba(22,26,34,0.85)', backdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.06)',
+    }}>
+      <span style={{ color: '#4a9eff', fontWeight: 700, fontSize: 12 }}>{user.credits}</span>
+      <button onClick={logout} title="登出"
+        style={{
+          width: '26px', height: '26px', borderRadius: '50%',
+          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'rgba(255,255,255,0.04)',
+          color: 'var(--tap-text-4)', cursor: 'pointer',
+          fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.3)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+      >⏻</button>
+    </div>
+  );
 }
 
 function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
@@ -895,6 +926,9 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         />
       </div>
 
+      {/* ── User Badge (top-right) ── */}
+      <UserBadge />
+
       {/* ── Home Button ── */}
       <button onClick={onGoHome} title="返回项目选择"
         style={{
@@ -1117,6 +1151,14 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 
 // ─── Root: two-layer routing ────────────────────
 export default function App() {
+  const authUser = useAuthStore(s => s.user);
+  const [entering, setEntering] = useState(false); // 登录超放动画
+
+  const handleEnter = useCallback(() => {
+    setEntering(true);
+    setTimeout(() => setEntering(false), 600);
+  }, []);
+
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
     return localStorage.getItem('tapnow-current-project') || null;
   });
@@ -1141,20 +1183,50 @@ export default function App() {
     setCurrentProjectId(null);
   }, []);
 
+  // ── Login gate ──
+  if (!authUser) {
+    return (
+      <div style={{
+        width: '100vw', height: '100vh',
+        overflow: 'hidden',
+        animation: entering ? 'direx-login-zoom 0.6s cubic-bezier(0.16,1,0.3,1) forwards' : 'none',
+      }}>
+        <style>{`
+          @keyframes direx-login-zoom {
+            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+            100% { transform: scale(1.25); opacity: 0; filter: brightness(1.8); }
+          }
+        `}</style>
+        <LoginPage onEnter={handleEnter} />
+      </div>
+    );
+  }
+
   // Project selector (no ReactFlow hooks involved)
   if (!currentProjectId) {
     return (
-      <ProjectSelector
-        onSelectProject={handleSelectProject}
-        onCreateNew={handleCreateNew}
-      />
+      <>
+        <UserBadge />
+        <ProjectSelector
+          onSelectProject={handleSelectProject}
+          onCreateNew={handleCreateNew}
+        />
+      </>
     );
   }
 
   // Canvas workspace — ReactFlow hooks only run here
   return (
     <ReactFlowProvider>
-      <CanvasWorkspace onGoHome={handleGoHome} />
+      <style>{`
+        @keyframes direx-enter {
+          0% { transform: scale(0.95); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+      <div style={{ animation: 'direx-enter 0.5s cubic-bezier(0.16,1,0.3,1) forwards', width: '100%', height: '100%' }}>
+        <CanvasWorkspace onGoHome={handleGoHome} />
+      </div>
     </ReactFlowProvider>
   );
 }
