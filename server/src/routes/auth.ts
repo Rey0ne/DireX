@@ -1,6 +1,6 @@
 /* === Auth Routes — Register / Login / Me / Credits === */
 import { Router, Request, Response } from 'express';
-import { createUser, getUserByEmail, verifyPassword, getProfile, updateCredits } from '../systems/db/user-store.js';
+import { createUser, getUserByEmail, verifyPassword, getProfile, updateCredits, updatePlanAndCredits } from '../systems/db/user-store.js';
 import { addTransaction, getRecentTransactions } from '../systems/db/credit-store.js';
 import { signToken, requireUser } from '../middleware/auth.js';
 import type { RegisterRequest, LoginRequest, AuthResponse, CreditBalanceResponse } from '../../../../shared/api-types.js';
@@ -80,6 +80,40 @@ router.get('/credits', requireUser, (req: Request, res: Response) => {
     recentTransactions: transactions,
   };
   res.json(resp);
+});
+
+// POST /api/auth/credits/topup — 积分充值（开发阶段直接到账）
+router.post('/credits/topup', requireUser, (req: Request, res: Response) => {
+  const { amount, description } = req.body;
+  if (!amount || amount <= 0) {
+    res.status(400).json({ error: 'Invalid amount' });
+    return;
+  }
+  const updated = updateCredits(req.user!.userId, amount);
+  if (!updated) {
+    res.status(500).json({ error: 'Failed to update credits' });
+    return;
+  }
+  const tx = addTransaction(req.user!.userId, amount, 'topup_pack', description || '积分充值', updated.credits);
+  res.json({ success: true, credits: updated.credits, transaction: tx });
+});
+
+// POST /api/auth/credits/upgrade-plan — 升级套餐（开发阶段直接切换）
+router.post('/credits/upgrade-plan', requireUser, (req: Request, res: Response) => {
+  const { plan, monthlyCredits } = req.body;
+  if (!plan) {
+    res.status(400).json({ error: 'Plan required' });
+    return;
+  }
+  const updated = updatePlanAndCredits(req.user!.userId, plan, monthlyCredits || 0);
+  if (!updated) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+  if (monthlyCredits) {
+    addTransaction(req.user!.userId, monthlyCredits, 'plan_monthly', `套餐月度积分: ${plan}`, updated.credits);
+  }
+  res.json({ success: true, user: updated });
 });
 
 // POST /api/auth/credits/spend — 扣减积分（内部调用，后续中间件也会用）

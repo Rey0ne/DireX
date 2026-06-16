@@ -28,6 +28,7 @@ import { LeftToolbar } from './components/LeftToolbar';
 import type { ToolMode } from './components/LeftToolbar';
 import { ProjectSelector } from './components/ProjectSelector';
 import { LoginPage } from './components/LoginPage';
+import { CreditPanel } from './components/CreditPanel';
 import { useAuthStore } from './store/useAuthStore';
 import { AgentPanel } from './components/AgentPanel';
 import { AgentToggleButton } from './components/AgentToggleButton';
@@ -122,36 +123,43 @@ function getNodeProviderId(store: ReturnType<typeof useCanvasStore.getState>, no
   return mapModelNameToProviderId(model);
 }
 
-function UserBadge() {
+function UserBadge({ onLogout }: { onLogout: () => void }) {
   const user = useAuthStore(s => s.user);
-  const logout = useAuthStore(s => s.logout);
+  const [showPanel, setShowPanel] = useState(false);
   if (!user) return null;
   return (
-    <div style={{
-      position: 'fixed', top: '18px', right: '18px', zIndex: 500,
-      display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '6px 6px 6px 16px', borderRadius: '20px',
-      background: 'rgba(22,26,34,0.85)', backdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.06)',
-    }}>
-      <span style={{ color: '#4a9eff', fontWeight: 700, fontSize: 12 }}>{user.credits}</span>
-      <button onClick={logout} title="登出"
-        style={{
-          width: '26px', height: '26px', borderRadius: '50%',
-          border: '1px solid rgba(255,255,255,0.10)',
-          background: 'rgba(255,255,255,0.04)',
-          color: 'var(--tap-text-4)', cursor: 'pointer',
-          fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.3)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
-      >⏻</button>
-    </div>
+    <>
+      <div style={{
+        position: 'fixed', top: '18px', right: '18px', zIndex: 500,
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '6px 6px 6px 16px', borderRadius: '20px',
+        background: 'rgba(22,26,34,0.85)', backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <span
+          onClick={() => setShowPanel(true)}
+          style={{ color: '#5EEAD4', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
+          title="积分中心"
+        >{user.credits}</span>
+        <button onClick={onLogout} title="登出"
+          style={{
+            width: '26px', height: '26px', borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(255,255,255,0.04)',
+            color: 'var(--tap-text-4)', cursor: 'pointer',
+            fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+        >⏻</button>
+      </div>
+      {showPanel && <CreditPanel onClose={() => setShowPanel(false)} />}
+    </>
   );
 }
 
-function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
+function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogout: () => void }) {
   // Demo expiration — only in production builds (Vite define injects __BUILD_TIME__)
   // @ts-ignore
   const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
@@ -874,15 +882,15 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         style={{ background: 'var(--tap-bg)' }}
       >
-        <Background color="rgba(180,180,190,0.14)" gap={20} size={1.6} />
+        <Background color="rgba(255,255,255,0.08)" gap={20} size={1.6} />
         <MiniMap
           position="bottom-left"
           pannable={true}
           zoomable={true}
-          nodeColor={() => 'rgba(160, 160, 170, 0.5)'}
-          maskColor="rgba(0,0,0,0.5)"
-          bgColor="rgba(24,26,30,0.9)"
-          style={{ marginBottom: 80, marginLeft: 20, width: 260, height: 170, border: '1px solid rgba(255,255,255,0.15)' }}
+          nodeColor={() => 'rgba(94, 234, 212, 0.30)'}
+          maskColor="rgba(13,15,18,0.7)"
+          bgColor="rgba(18,21,25,0.92)"
+          style={{ marginBottom: 80, marginLeft: 20, width: 260, height: 170, border: '1px solid rgba(255,255,255,0.06)' }}
         />
       </ReactFlow>
 
@@ -927,7 +935,7 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
       </div>
 
       {/* ── User Badge (top-right) ── */}
-      <UserBadge />
+      <UserBadge onLogout={onLogout} />
 
       {/* ── Home Button ── */}
       <button onClick={onGoHome} title="返回项目选择"
@@ -1152,12 +1160,35 @@ function CanvasWorkspace({ onGoHome }: { onGoHome: () => void }) {
 // ─── Root: two-layer routing ────────────────────
 export default function App() {
   const authUser = useAuthStore(s => s.user);
-  const [entering, setEntering] = useState(false); // 登录超放动画
+  const [authReady, setAuthReady] = useState(() => useAuthStore.getState().isLoggedIn());
+  const [entering, setEntering] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
+  // 登录：先播动画再进入
   const handleEnter = useCallback(() => {
     setEntering(true);
-    setTimeout(() => setEntering(false), 600);
+    setTimeout(() => {
+      setAuthReady(true);
+      setEntering(false);
+    }, 850);
   }, []);
+
+  // 登出：先清 store 再回登录页（立刻响应）
+  const handleLogout = useCallback(() => {
+    setLeaving(true);
+    setTimeout(() => {
+      useAuthStore.getState().logout();
+      setAuthReady(false);
+      setLeaving(false);
+    }, 800);
+  }, []);
+
+  // 保持 authReady 与 store 同步（处理其他地方调 logout 的情况）
+  useEffect(() => {
+    if (!useAuthStore.getState().isLoggedIn()) {
+      setAuthReady(false);
+    }
+  }, [authUser]);
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
     return localStorage.getItem('tapnow-current-project') || null;
@@ -1184,17 +1215,19 @@ export default function App() {
   }, []);
 
   // ── Login gate ──
-  if (!authUser) {
+  if (!authReady) {
     return (
       <div style={{
         width: '100vw', height: '100vh',
         overflow: 'hidden',
-        animation: entering ? 'direx-login-zoom 0.6s cubic-bezier(0.16,1,0.3,1) forwards' : 'none',
+        animation: entering ? 'direx-login-zoom 0.85s cubic-bezier(0.16,1,0.3,1) forwards' : 'none',
       }}>
         <style>{`
           @keyframes direx-login-zoom {
             0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-            100% { transform: scale(1.25); opacity: 0; filter: brightness(1.8); }
+            30% { transform: scale(1.05); filter: brightness(0.8); }
+            60% { transform: scale(1.15); opacity: 0.8; filter: brightness(1.6); }
+            100% { transform: scale(1.3); opacity: 0; filter: brightness(2.2); }
           }
         `}</style>
         <LoginPage onEnter={handleEnter} />
@@ -1206,7 +1239,7 @@ export default function App() {
   if (!currentProjectId) {
     return (
       <>
-        <UserBadge />
+        <UserBadge onLogout={handleLogout} />
         <ProjectSelector
           onSelectProject={handleSelectProject}
           onCreateNew={handleCreateNew}
@@ -1220,12 +1253,22 @@ export default function App() {
     <ReactFlowProvider>
       <style>{`
         @keyframes direx-enter {
-          0% { transform: scale(0.95); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
+          0% { opacity: 0; filter: brightness(0.15) blur(12px); }
+          40% { opacity: 0.6; filter: brightness(1.2) blur(3px); }
+          100% { opacity: 1; filter: brightness(1) blur(0); }
+        }
+        @keyframes direx-leave {
+          0% { opacity: 1; filter: brightness(1) blur(0); }
+          100% { opacity: 0; filter: brightness(0.1) blur(18px); }
         }
       `}</style>
-      <div style={{ animation: 'direx-enter 0.5s cubic-bezier(0.16,1,0.3,1) forwards', width: '100%', height: '100%' }}>
-        <CanvasWorkspace onGoHome={handleGoHome} />
+      <div style={{
+        animation: leaving
+          ? 'direx-leave 0.7s ease-in forwards'
+          : 'direx-enter 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
+        width: '100%', height: '100%',
+      }}>
+        <CanvasWorkspace onGoHome={handleGoHome} onLogout={handleLogout} />
       </div>
     </ReactFlowProvider>
   );

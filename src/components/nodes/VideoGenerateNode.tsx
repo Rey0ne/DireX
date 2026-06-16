@@ -208,7 +208,23 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           )
         )}
 
-        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: 'var(--tap-panel)', boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: `all var(--tap-dur-fast) var(--tap-ease)` }}>
+                <div className={selected ? 'direx-node-selected' : undefined} style={selected
+          ? {
+              width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden',
+              border: '1px solid var(--tap-border)',
+              background: 'linear-gradient(115deg, rgba(186,230,253,0.07) 0%, rgba(125,211,252,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
+              backgroundSize: '250% 250%',
+              animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
+              boxShadow: 'var(--tap-shadow-sm)',
+              transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+            }
+          : {
+              width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden',
+              border: '1px solid var(--tap-border)',
+              background: 'var(--tap-panel)',
+              boxShadow: 'var(--tap-shadow-sm)',
+              transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+            }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
               <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -270,7 +286,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                   onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
                   onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '11px' }}>{m.name}</span>
-                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
+                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(125,211,252,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
                 </div>))}</PD>}
             </div>
 
@@ -314,7 +330,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                       <div key={a} onClick={() => { setCurAspect(a); patch('aspect', a); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', background: active ? 'var(--tap-hover)' : 'transparent', border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent' }}>
                         <div style={{ width: B, height: B, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(74,158,255,0.06)' : 'transparent' }} />
+                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(125,211,252,0.06)' : 'transparent' }} />
                         </div>
                         <span style={{ fontSize: '10px', color: active ? 'var(--tap-text-1)' : 'var(--tap-text-3)', fontWeight: active ? 600 : 400 }}>{a}</span>
                       </div>

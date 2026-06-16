@@ -88,6 +88,17 @@ export function updateCredits(userId: string, delta: number): UserProfile | null
   return toProfile(users[idx]);
 }
 
+export function updatePlanAndCredits(userId: string, plan: StoredUser['plan'], addCredits: number): UserProfile | null {
+  const users = allUsers();
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx < 0) return null;
+  users[idx].plan = plan;
+  users[idx].credits += addCredits;
+  users[idx].updatedAt = new Date().toISOString();
+  saveUsers(users);
+  return toProfile(users[idx]);
+}
+
 export function getProfile(userId: string): UserProfile | null {
   const u = getUserById(userId);
   return u ? toProfile(u) : null;

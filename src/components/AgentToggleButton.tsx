@@ -66,7 +66,7 @@ export function AgentToggleButton({ isOpen, onClick, hasSuggestion = false }: Ag
               borderRadius: '50%',
               background: 'var(--tap-accent)',
               border: '2px solid var(--tap-bg)',
-              boxShadow: '0 0 8px rgba(74, 158, 255, 0.6)',
+              boxShadow: '0 0 6px rgba(200, 184, 160, 0.25)',
             }} />
           )}
         </button>

@@ -750,6 +750,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         {/* ── Image Card (width based on aspect ratio) ── */}
         <div
         ref={cardRef}
+        className={selected ? 'direx-node-selected' : undefined}
         style={{
           width: 'var(--tap-node-width)',
           borderRadius: 'var(--tap-node-radius)',
@@ -761,8 +762,12 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               ? '1px dashed rgba(180,180,185,0.3)'
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
-                : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
-          background: 'var(--tap-panel)',
+                : '1px solid var(--tap-border)',
+          ...(selected ? {
+            background: 'linear-gradient(115deg, rgba(186,230,253,0.07) 0%, rgba(125,211,252,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
+            backgroundSize: '250% 250%',
+            animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
+          } : { background: 'var(--tap-panel)' }),
           boxShadow: data.isPickTarget
             ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget
@@ -1148,7 +1153,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                     onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='var(--tap-hover)'}}
                     onMouseLeave={e=>{if(currentModel!==m.name)e.currentTarget.style.background='transparent'}}>
                     <span>{m.name}</span>
-                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
+                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(125,211,252,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
                   </div>))}
               </ImgDropBtn>
               <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
@@ -1165,7 +1170,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                       return <div key={a.label} onClick={()=>{setCurrentAspect(a.label);patch('aspect',a.label);setShowRatioPicker(false)}}
                         style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 6px',borderRadius:'4px',cursor:'pointer',background:active?'var(--tap-hover)':'transparent',border:active?'1px solid rgba(255,255,255,0.1)':'1px solid transparent'}}>
                         <div style={{width:B,height:B,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(74,158,255,0.06)':'transparent'}}/>
+                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(125,211,252,0.06)':'transparent'}}/>
                         </div>
                         <span style={{fontSize:'10px',color:active?'var(--tap-text-1)':'var(--tap-text-3)',fontWeight:active?600:400}}>{a.label}</span>
                       </div>;

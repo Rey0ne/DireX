@@ -145,7 +145,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <>
+      <style>{`
+        @keyframes direx-light-wash {
+          0%,100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes direx-light-rim {
+          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+        }
+      `}</style>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper */}
       <div style={{ position: 'relative' }}
         onMouseEnter={() => setHovered(true)}
@@ -182,13 +194,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               ? '1px dashed rgba(180,180,185,0.3)'
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
-                : selected ? '2px solid rgba(180,180,185,0.45)' : '1px solid var(--tap-border)',
+                : '1px solid var(--tap-border)',
           borderRadius: 'var(--tap-r-xl)',
+          ...(selected ? {
+            background: 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
+            backgroundSize: '250% 250%',
+            animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
+            willChange: 'box-shadow',
+          } : {}),
           boxShadow: data.isPickTarget
             ? '0 0 28px rgba(180,180,185,0.25)'
             : data.isConnectTarget
               ? '0 0 28px rgba(180,180,185,0.2)'
-              : selected ? '0 0 20px rgba(180,180,185,0.08)' : 'var(--tap-shadow-sm)',
+              : selected ? undefined : 'var(--tap-shadow-sm)',
           padding: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -388,5 +406,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         </div>
       )}
     </div>
+    </>
   );
 }

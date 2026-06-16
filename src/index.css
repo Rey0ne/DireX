@@ -24,28 +24,21 @@ html, body, #root {
   user-select: none;
 }
 
-/* Focus ring */
+/* Focus ring — warm */
 *:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.4);
-  outline-offset: 2px;
+  outline: 1.5px solid rgba(200, 184, 160, 0.5);
+  outline-offset: 3px;
   border-radius: var(--tap-r-sm);
 }
 
-/* Scrollbar (dark theme) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Scrollbar — barely there */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--tap-r-full);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.12); }
 
 /* Hide ReactFlow's buggy selection boxes completely */
 .react-flow__selection,
@@ -61,9 +54,9 @@ html, body, #root {
   pointer-events: none !important;
 }
 
-/* Text selection */
+/* Text selection — warm */
 ::selection {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(200, 184, 160, 0.15);
   color: var(--tap-text-1);
 }
 

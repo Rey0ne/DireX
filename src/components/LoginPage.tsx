@@ -1,6 +1,8 @@
 /* === LoginPage — Register / Login screen === */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
+
+const CRED_KEY = 'direx_remembered';
 
 interface LoginPageProps {
   onEnter: () => void;
@@ -14,6 +16,20 @@ export function LoginPage({ onEnter }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
+  const [remember, setRemember] = useState(false);
+
+  // 恢复已保存的账号密码
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CRED_KEY);
+      if (saved) {
+        const { email: e, password: p } = JSON.parse(saved);
+        if (e) setEmail(e);
+        if (p) setPassword(p);
+        setRemember(true);
+      }
+    } catch {}
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +45,12 @@ export function LoginPage({ onEnter }: LoginPageProps) {
       ok = await register(email, password, name || undefined);
     }
     if (ok) {
+      // 记住密码
+      if (remember) {
+        localStorage.setItem(CRED_KEY, JSON.stringify({ email, password }));
+      } else {
+        localStorage.removeItem(CRED_KEY);
+      }
       onEnter();
     } else {
       setMsg(useAuthStore.getState().error || 'Failed');
@@ -76,7 +98,7 @@ export function LoginPage({ onEnter }: LoginPageProps) {
         {/* Logo */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
-            Dire<span style={{ color: '#4a9eff' }}>X</span>
+            Dire<span style={{ color: '#5EEAD4' }}>X</span>
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
             AI 内容制作管线
@@ -90,9 +112,9 @@ export function LoginPage({ onEnter }: LoginPageProps) {
               style={{
                 flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
                 background: 'transparent',
-                color: mode === m ? '#4a9eff' : 'rgba(255,255,255,0.35)',
+                color: mode === m ? '#5EEAD4' : 'rgba(255,255,255,0.35)',
                 fontSize: 14, fontWeight: 600,
-                borderBottom: mode === m ? '2px solid #4a9eff' : '2px solid transparent',
+                borderBottom: mode === m ? '2px solid #5EEAD4' : '2px solid transparent',
                 transition: 'all 0.15s',
               }}
             >{m === 'login' ? '登录' : '注册'}</button>
@@ -121,6 +143,14 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
 
+          {mode === 'login' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+              <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+                style={{ accentColor: '#5EEAD4', cursor: 'pointer' }} />
+              记住密码
+            </label>
+          )}
+
           {(msg || error) && (
             <div style={{ fontSize: 12, color: '#ff6b6b', textAlign: 'center' }}>
               {msg || error}
@@ -131,7 +161,7 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             style={{
               padding: '12px', borderRadius: 10, border: 'none',
               cursor: loading ? 'wait' : 'pointer',
-              background: loading ? 'rgba(74,158,255,0.4)' : '#4a9eff',
+              background: loading ? 'rgba(94,234,212,0.4)' : '#5EEAD4',
               color: '#fff', fontSize: 15, fontWeight: 600,
               transition: 'all 0.15s',
             }}
