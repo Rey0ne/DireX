@@ -8,7 +8,6 @@ import { CameraObject } from './CameraGizmo';
 import { SafeModel } from './ModelLoader';
 import { StickFigure } from './StickFigure';
 import { SafeSkinnedFigure } from './Skeleton/SkinnedFigure';
-import { SelectionPlane, screenRectContains } from './SelectionRect';
 import { FBXFigure } from './FBXFigure';
 import { ErrorBoundary } from './shared';
 

@@ -18,7 +18,7 @@ interface TimelineProps {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
   setTimelineH: React.Dispatch<React.SetStateAction<number>>;
   setAnimTimeline: React.Dispatch<React.SetStateAction<AnimationTimeline | null>>;
-  activeCamRef: React.MutableRefAction<THREE.Object3D | null>;
+  activeCamRef: React.MutableRefObject<THREE.Object3D | null>;
   getTrackCamera: (prog: number) => any;
 }
 
