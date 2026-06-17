@@ -11,6 +11,24 @@ export interface SceneObject {
   color?: string;
   figurePose?: string;
   figureSrc?: string;
+  figureFmt?: string;
+}
+
+// ─── Clip Sequencer types ─────────────────────────
+export interface ClipBlock {
+  id: string;
+  clipId: string;
+  startTime: number;
+  repeatCount: number;
+  timeScale: number;
+  crossfadeDuration: number;
+  rootOffsetY: number;
+  rootOffsetX: number;
+}
+
+export interface AnimationTimeline {
+  blocks: ClipBlock[];
+  targetFigureId: string;
 }
 export type Vec3 = [number, number, number];
 export type GizmoMode = 'translate' | 'rotate' | 'scale';

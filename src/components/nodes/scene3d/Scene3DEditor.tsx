@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
-import { SceneObject, Vec3, GizmoMode, TrackType, CameraRig, poseRegistry, pickColor } from './shared';
+import { SceneObject, Vec3, GizmoMode, TrackType, CameraRig, AnimationTimeline, poseRegistry, pickColor } from './shared';
 import { initPoseRegistry, importFile } from './ModelLoader';
 import { EBtn } from './EBtn';
 import { SceneContent } from './SceneContent';
@@ -37,8 +37,9 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
   const animCamLook = useRef(new THREE.Vector3(0, 1, 0));
   const camObjIdRef = useRef<string | null>(null);
   const [trackCpId, setTrackCpId] = useState<string | null>(null);
-  const [timelineH, setTimelineH] = useState(80);
+  const [timelineH, setTimelineH] = useState(120);
   const [zoom, setZoom] = useState(60);
+  const [animTimeline, setAnimTimeline] = useState<AnimationTimeline | null>(null);
   const rigRef = useRef(rig);
   rigRef.current = rig;
 
@@ -408,8 +409,10 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
       {/* Timeline */}
       {rig && (
         <Timeline rig={rig} playing={playing} playTime={playTime} zoom={zoom}
-          timelineH={timelineH} setRig={setRig} setPlaying={setPlaying}
+          timelineH={timelineH} animTimeline={animTimeline}
+          setRig={setRig} setPlaying={setPlaying}
           setPlayTime={setPlayTime} setZoom={setZoom} setTimelineH={setTimelineH}
+          setAnimTimeline={setAnimTimeline}
           activeCamRef={activeCamRef} getTrackCamera={getTrackCamera} />
       )}
 
