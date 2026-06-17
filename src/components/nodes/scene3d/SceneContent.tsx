@@ -10,6 +10,7 @@ import { StickFigure } from './StickFigure';
 import { SafeSkinnedFigure } from './Skeleton/SkinnedFigure';
 import { FBXFigure } from './FBXFigure';
 import { ErrorBoundary } from './shared';
+import { CheckerGround, ProcSky, CloudLayer, SunLight } from './EnvComponents';
 
 // ─── Mover — syncs object transform to event bus ───────────
 function mover(el: THREE.Object3D, obj: SceneObject) {
@@ -50,11 +51,10 @@ export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActi
 
   return (
     <>
-      <ambientLight intensity={0.35} />
-      <hemisphereLight args={['#ffffff', '#606060', 0.65]} />
-      <Grid position={[0, -0.01, 0]} args={[20, 20]} cellSize={1} cellThickness={0.5}
-        cellColor="#aaaaaa" sectionSize={5} sectionThickness={1.5} sectionColor="#cccccc"
-        fadeDistance={25} infiniteGrid />
+      <CheckerGround />
+      <ProcSky sunAzimuth={45} sunElevation={40} />
+      <CloudLayer sunAzimuth={45} sunElevation={40} />
+      <SunLight azimuth={45} elevation={40} />
       <mesh onClick={() => onSelect(null)} position={[0, -0.02, 0]}
         rotation={[-Math.PI / 2, 0, 0]} visible={false}>
         <planeGeometry args={[100, 100]} />
