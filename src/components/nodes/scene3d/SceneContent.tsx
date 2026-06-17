@@ -7,6 +7,7 @@ import { RotationGizmo } from './RotationGizmo';
 import { CameraObject } from './CameraGizmo';
 import { SafeModel } from './ModelLoader';
 import { StickFigure } from './StickFigure';
+import { SafeSkinnedFigure } from './Skeleton/SkinnedFigure';
 
 // ─── Mover — syncs object transform to event bus ───────────
 function mover(el: THREE.Object3D, obj: SceneObject) {
@@ -21,16 +22,21 @@ function mover(el: THREE.Object3D, obj: SceneObject) {
 }
 
 // ─── SceneContent ──────────────────────────────────────────
-export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActive, snapToTrack }: {
+export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActive, snapToTrack, selectedBone, onSelectBone, boneGizmoRef }: {
   objects: SceneObject[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   gizmoMode: GizmoMode;
   rigActive?: boolean;
   snapToTrack?: ((p: THREE.Vector3) => THREE.Vector3 | null);
+  selectedBone?: string | null;
+  onSelectBone?: (name: string | null) => void;
+  boneGizmoRef?: React.MutableRefObject<THREE.Object3D | null>;
 }) {
   const meshRefs = useRef<Map<string, THREE.Object3D>>(new Map());
   const orbitRef = useRef<any>(null);
+  const dummyBoneRef = useRef<THREE.Object3D | null>(null);
+  const bRef = boneGizmoRef || dummyBoneRef;
 
   useEffect(() => {
     const s = () => { if (orbitRef.current) orbitRef.current.enabled = false; };
@@ -73,8 +79,16 @@ export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActi
               onClick={e => { e.stopPropagation(); onSelect(obj.id); }}
             >
               {obj.type === 'figure' ? (
-                <SafeModel poseId={obj.figurePose || ''} figureSrc={obj.figureSrc}
-                  fallback={<StickFigure poseId={obj.figurePose || 'stand'} color={obj.color || '#c0c8d0'} />} />
+                obj.figureSrc ? (
+                  <SafeSkinnedFigure src={obj.figureSrc}
+                    fallback={<StickFigure poseId={obj.figurePose || 'stand'} color={obj.color || '#c0c8d0'} />}
+                    selectedBone={sel ? (selectedBone ?? null) : null}
+                    onSelectBone={onSelectBone || (() => {})}
+                    gizmoRef={bRef} />
+                ) : (
+                  <SafeModel poseId={obj.figurePose || ''} figureSrc={obj.figureSrc}
+                    fallback={<StickFigure poseId={obj.figurePose || 'stand'} color={obj.color || '#c0c8d0'} />} />
+                )
               ) : obj.type === 'camera' ? (
                 <CameraObject />
               ) : (

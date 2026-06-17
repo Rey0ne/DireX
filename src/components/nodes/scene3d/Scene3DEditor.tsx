@@ -42,6 +42,12 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
   const rigRef = useRef(rig);
   rigRef.current = rig;
 
+  // ─── Bone selection ────────────────────────────────
+  const [selectedBone, setSelectedBone] = useState<string | null>(null);
+  const boneGizmoRef = useRef<THREE.Object3D | null>(null);
+  // Reset bone selection when switching objects
+  useEffect(() => { setSelectedBone(null); }, [selectedId]);
+
   // ─── Snap camera to track ─────────────────────────
   const snapToTrack = useCallback((pos: THREE.Vector3): THREE.Vector3 | null => {
     const r = rigRef.current; if (!r) return null;
@@ -319,7 +325,9 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
             dpr={[0.5, 1.5]} style={{ width: '100%', height: '100%' }}>
             <Suspense fallback={null}>
               <SceneContent objects={objects} selectedId={selectedId} onSelect={setSelectedId}
-                gizmoMode={gizmoMode} rigActive={!!rig} snapToTrack={snapToTrack} />
+                gizmoMode={gizmoMode} rigActive={!!rig} snapToTrack={snapToTrack}
+                selectedBone={selectedBone} onSelectBone={setSelectedBone}
+                boneGizmoRef={boneGizmoRef} />
               {rig?.type === 'dolly' && (
                 <DollyRails rig={rig} selCp={trackCpId} onSelCp={setTrackCpId}
                   onMoveCp={(id, pos) => {
@@ -352,6 +360,22 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
               {selObj.type === 'figure' && (
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
                   姿态:<span style={{ color: '#ccc' }}>{poseRegistry.get(selObj.figurePose || '')?.name || selObj.figurePose}</span>
+                </div>
+              )}
+              {/* Bone selection info */}
+              {selectedBone && (
+                <div style={{
+                  padding: '6px 8px', borderRadius: 6,
+                  background: 'rgba(255,200,0,0.08)', border: '1px solid rgba(255,200,0,0.2)',
+                }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,200,0,0.5)', textTransform: 'uppercase', marginBottom: 2 }}>选中骨骼</div>
+                  <div style={{ fontSize: 11, color: '#ffcc00', fontWeight: 600, wordBreak: 'break-all' }}>
+                    {selectedBone.replace(/^mixamorig:/, '')}
+                  </div>
+                  <button onClick={() => setSelectedBone(null)} style={{
+                    marginTop: 4, padding: '3px 8px', borderRadius: 4, fontSize: 9, cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', width: '100%',
+                  }}>取消选中</button>
                 </div>
               )}
               <div style={{ display: 'flex', gap: 4 }}>
