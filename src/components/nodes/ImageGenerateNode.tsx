@@ -154,14 +154,8 @@ function PD2({ children, onClose, anchorRect }: { children: React.ReactNode; onC
   </>, document.body);
 }
 
-// 模块级：防止组件重挂导致重复生成请求
-const _genLocks = new Map<string, boolean>();
-
 function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
-  // 合并连线参考图和本地上传图
-  const [localRefs, setLocalRefs] = useState<string[]>((gen.referenceUrls as string[]) || []);
-  const allRefs = [...(data.refUrls || []), ...localRefs];
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showRatioPicker, setShowRatioPicker] = useState(false);
@@ -263,9 +257,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   // Build @mention list from connected refUrls
   const getMentionList = useCallback(() => {
     const list: {name: string; url: string}[] = [];
-    if (allRefs) {
+    if (data.refUrls) {
       const store = useCanvasStore.getState();
-      allRefs.forEach(url => {
+      data.refUrls.forEach(url => {
         store.nodes.forEach(node => {
           const imgUrl = (node.meta?.gen as any)?.imageUrl;
           if (imgUrl === url && !list.find(m => m.url === url)) {
@@ -276,7 +270,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     }
     if (styleImgUrl) list.push({ name: '风格参考', url: styleImgUrl });
     return list;
-  }, [allRefs, styleImgUrl]);
+  }, [data.refUrls, styleImgUrl]);
 
   // Capture trigger rect when picker opens — portal renders outside overflow
   useEffect(() => { if (showModelPicker && modelChipRef.current) setModelChipRect(modelChipRef.current.getBoundingClientRect()); }, [showModelPicker]);
@@ -581,8 +575,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const genRunningRef = useRef(false);
 
   const handleGenerate = () => {
-    if (_genLocks.get(id) || !prompt.trim()) return;
-    _genLocks.set(id, true);
+    if (genRunningRef.current || !prompt.trim()) return;
     genRunningRef.current = true;
     setGenRunning(true);
     patch('prompt', prompt);
@@ -597,7 +590,6 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     patch('filmStock', FILM_STOCKS[filmIdx].name);
     // onGenerate is async but we fire-and-forget — button stays ⏳ until node remounts with imageUrl
     Promise.resolve(data.onGenerate?.()).finally(() => {
-      _genLocks.set(id, false);
       genRunningRef.current = false;
       setGenRunning(false);
     });
@@ -662,7 +654,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
         {/* ── Upload bar (portal) — shown when no image */}
         {selected && !data.multiSelect && cardRect && !data.imageUrl && createPortal(
-        <div onClick={() => { const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true; inp.onchange=async()=>{ const files=inp.files; if(!files?.length)return; const refs: string[] = []; for(let i=0;i<Math.min(files.length,20);i++){ const f=files[i]; const u=await new Promise<string>(r=>{ const reader=new FileReader(); reader.onload=()=>r(reader.result as string); reader.readAsDataURL(f); }); refs.push(u); } const cur=(gen.referenceUrls as string[])||localRefs; const merged=[...cur,...refs]; setLocalRefs(merged); data.onChange?.({ referenceUrls: merged } as any); }; inp.click(); }}
+        <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
           style={{ position: 'fixed', left: cardRect.left + cardRect.width / 2, top: cardRect.top - 8, transform: 'translateX(-50%) translateY(-100%)', zIndex: 9998, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 20px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}>
           <span style={{ fontSize: '16px' }}>↑</span>
           <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
@@ -750,7 +742,6 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         {/* ── Image Card (width based on aspect ratio) ── */}
         <div
         ref={cardRef}
-        className={selected ? 'direx-node-selected' : undefined}
         style={{
           width: 'var(--tap-node-width)',
           borderRadius: 'var(--tap-node-radius)',
@@ -762,12 +753,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               ? '1px dashed rgba(180,180,185,0.3)'
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
-                : '1px solid var(--tap-border)',
-          ...(selected ? {
-            background: 'linear-gradient(115deg, rgba(186,230,253,0.07) 0%, rgba(125,211,252,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
-            backgroundSize: '250% 250%',
-            animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
-          } : { background: 'var(--tap-panel)' }),
+                : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
+          background: 'var(--tap-panel)',
           boxShadow: data.isPickTarget
             ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget
@@ -993,14 +980,14 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
             {/* Reference strip — inside panel */}
             <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', padding: '6px 8px 0', minHeight: 32, alignItems: 'center' }}>
               {/* Upload + — left */}
-              {(!allRefs || allRefs.length === 0) && !styleImgUrl && (
+              {(!data.refUrls || data.refUrls.length === 0) && !styleImgUrl && (
                 <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
                   style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
                 >＋</div>
               )}
-              {allRefs && allRefs.map((uri, i) => (
+              {data.refUrls && data.refUrls.map((uri, i) => (
                 <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
                   <img src={uri} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
                   <span onClick={e => {
@@ -1153,7 +1140,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                     onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='var(--tap-hover)'}}
                     onMouseLeave={e=>{if(currentModel!==m.name)e.currentTarget.style.background='transparent'}}>
                     <span>{m.name}</span>
-                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(125,211,252,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
+                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
                   </div>))}
               </ImgDropBtn>
               <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
@@ -1170,7 +1157,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                       return <div key={a.label} onClick={()=>{setCurrentAspect(a.label);patch('aspect',a.label);setShowRatioPicker(false)}}
                         style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 6px',borderRadius:'4px',cursor:'pointer',background:active?'var(--tap-hover)':'transparent',border:active?'1px solid rgba(255,255,255,0.1)':'1px solid transparent'}}>
                         <div style={{width:B,height:B,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(125,211,252,0.06)':'transparent'}}/>
+                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(74,158,255,0.06)':'transparent'}}/>
                         </div>
                         <span style={{fontSize:'10px',color:active?'var(--tap-text-1)':'var(--tap-text-3)',fontWeight:active?600:400}}>{a.label}</span>
                       </div>;
