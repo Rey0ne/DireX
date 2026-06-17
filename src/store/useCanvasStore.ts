@@ -115,7 +115,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
       type,
       title: title || type,
       pos,
-      size: type==='scene.3d'?{w:500,h:300}:type==='world.3d'?{w:500,h:300}:type==='shot'?{w:380,h:420}:{w:380,h:200},
+      size: type==='scene.3d'?{w:500,h:300}:type==='world.3d'?{w:500,h:300}:{w:380,h:200},
       ports: [],
       status: 'idle',
       meta: {},
@@ -270,20 +270,6 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
 
   setPendingConnection(nodeId) {
     set({ pendingConnection: nodeId });
-  },
-
-  // 批量创建节点——供 ShotNode 脚本分析使用
-  batchCreateNodes(newNodes: Array<{id:string;type:string;title:string;pos:{x:number;y:number};size:{w:number;h:number};meta:Record<string,unknown>}>) {
-    get().pushHistory();
-    const now = new Date().toISOString();
-    set(s => {
-      const next = new Map(s.nodes);
-      for (const n of newNodes) {
-        next.set(n.id, { ...n, ports: [], status: 'idle' as const, createdAt: now, updatedAt: now });
-      }
-      return { nodes: next };
-    });
-    get().triggerSync();
   },
 
   triggerSync() {
