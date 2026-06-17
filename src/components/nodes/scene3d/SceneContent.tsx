@@ -181,7 +181,8 @@ export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActi
         );
       })}
       <OrbitControls ref={orbitRef} makeDefault enableDamping dampingFactor={0.08}
-        minDistance={2} maxDistance={25} maxPolarAngle={Math.PI / 2 + 0.2} target={[0, 1, 0]} />
+        minDistance={2} maxDistance={25} maxPolarAngle={Math.PI / 2 + 0.2} target={[0, 1, 0]}
+        mouseButtons={{ LEFT: null as any, MIDDLE: 2, RIGHT: 0 }} />
     </>
   );
 }
