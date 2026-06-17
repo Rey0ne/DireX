@@ -1,5 +1,6 @@
 /* === SceneContent — 3D viewport contents: objects, lights, gizmos === */
 import { useRef, useEffect, Suspense } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { OrbitControls, Grid, TransformControls } from '@react-three/drei';
 import { SceneObject, Vec3, GizmoMode } from './shared';
@@ -38,16 +39,35 @@ export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActi
 }) {
   const meshRefs = useRef<Map<string, THREE.Object3D>>(new Map());
   const orbitRef = useRef<any>(null);
+  const keys = useRef<Record<string, boolean>>({});
   const dummyBoneRef = useRef<THREE.Object3D | null>(null);
   const bRef = boneGizmoRef || dummyBoneRef;
 
   useEffect(() => {
     const s = () => { if (orbitRef.current) orbitRef.current.enabled = false; };
     const e = () => { if (orbitRef.current) orbitRef.current.enabled = true; };
+    const kd = (ev: KeyboardEvent) => { keys.current[ev.key.toLowerCase()] = true; };
+    const ku = (ev: KeyboardEvent) => { keys.current[ev.key.toLowerCase()] = false; };
     window.addEventListener('gizmo-drag-start', s);
     window.addEventListener('gizmo-drag-end', e);
-    return () => { window.removeEventListener('gizmo-drag-start', s); window.removeEventListener('gizmo-drag-end', e); };
+    window.addEventListener('keydown', kd);
+    window.addEventListener('keyup', ku);
+    return () => {
+      window.removeEventListener('gizmo-drag-start', s); window.removeEventListener('gizmo-drag-end', e);
+      window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+    };
   }, []);
+
+  // WASD movement
+  useFrame((_, delta) => {
+    const k = keys.current; if (!k || !orbitRef.current) return;
+    const spd = 5 * delta;
+    const tgt = orbitRef.current.target as THREE.Vector3;
+    if (k['w']) { tgt.z -= spd; orbitRef.current.update(); }
+    if (k['s']) { tgt.z += spd; orbitRef.current.update(); }
+    if (k['a']) { tgt.x -= spd; orbitRef.current.update(); }
+    if (k['d']) { tgt.x += spd; orbitRef.current.update(); }
+  });
 
   return (
     <>
