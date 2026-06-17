@@ -1,13 +1,15 @@
 /* === AutoRigButton — Blender auto-rig integration === */
 import { useState, useEffect, useCallback } from 'react';
+import { addPoseEntry } from './Scene3DNode';
 
 interface AutoRigButtonProps {
   figureSrc: string;
   figureFmt: string;
+  figurePose: string;
   onRigged: (glbUrl: string) => void;
 }
 
-export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonProps) {
+export function AutoRigButton({ figureSrc, figureFmt, figurePose, onRigged }: AutoRigButtonProps) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
   const [boneCount, setBoneCount] = useState(0);
@@ -28,6 +30,7 @@ export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonP
           for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
           const blob = new Blob([buf], { type: 'model/gltf+json' });
           const url = URL.createObjectURL(blob);
+          addPoseEntry(figurePose, '', url, 'glb');
           onRigged(url);
         } else if (j.status === 'error') {
           setStatus('error');
