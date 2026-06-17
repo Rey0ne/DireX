@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 interface AutoRigButtonProps {
   figureSrc: string;
   figureFmt: string;
-  objectId: string;
   onRigged: (glbUrl: string) => void;
 }
 
@@ -13,7 +12,6 @@ export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonP
   const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>('idle');
   const [boneCount, setBoneCount] = useState(0);
 
-  // Poll job status
   useEffect(() => {
     if (!jobId || status !== 'processing') return;
     const timer = setInterval(async () => {
@@ -25,7 +23,6 @@ export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonP
         if (j.status === 'done') {
           setStatus('done');
           setBoneCount(j.boneCount || 0);
-          // Convert base64 to blob URL
           const bin = atob(j.outputModel);
           const buf = new Uint8Array(bin.length);
           for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
@@ -43,28 +40,21 @@ export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonP
   const handleClick = useCallback(async () => {
     setStatus('processing');
     try {
-      // Fetch the model as ArrayBuffer
       const resp = await fetch(figureSrc);
       const buf = await resp.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let b64 = '';
       for (let i = 0; i < bytes.length; i++) b64 += String.fromCharCode(bytes[i]);
       b64 = btoa(b64);
-
       const r = await fetch('/api/blender/auto-rig', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' },
         body: JSON.stringify({ modelBase64: b64, format: figureFmt || 'glb' }),
       });
       const j = await r.json();
-      if (j.success) {
-        setJobId(j.jobId);
-      } else {
-        setStatus('error');
-      }
-    } catch {
-      setStatus('error');
-    }
+      if (j.success) { setJobId(j.jobId); }
+      else { setStatus('error'); }
+    } catch { setStatus('error'); }
   }, [figureSrc, figureFmt]);
 
   return (
@@ -81,7 +71,7 @@ export function AutoRigButton({ figureSrc, figureFmt, onRigged }: AutoRigButtonP
       {status === 'processing' ? '绑骨中…' :
        status === 'done' ? `✓ ${boneCount}骨骼` :
        status === 'error' ? '绑骨失败' :
-       '\u{1F9B4} 自动绑骨'}
+       '🦴 自动绑骨'}
     </button>
   );
 }
