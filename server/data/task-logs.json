@@ -4677,6 +4677,221 @@
       ],
       "cost": 6.15,
       "durationMs": 307591
+    },
+    {
+      "id": "51c70a4d-5c17-4d62-b958-9db335756825",
+      "timestamp": "2026-06-14T14:09:01.928Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] Cinematic wide shot, IMAX film aesthetic, 24mm lens, f/4 aperture. A desolate, freezing tundra under a heavy, overcast sky. Violent blizzard whipping up fine ice crystals in the air. In the center, two opposing factions of wolf-humanoids stand in a tense standoff: on the left, Queen Surli’s female wolf-warriors; on the right, Kadia’s male wolf pack. Between them lies a harrowing, blood-stained snowfield with several wolf carcasses pierced by arrows, deep crimson blood contrasting sharply against the pristine white snow. Gritty, raw, and brutal texture. Cold color palette, desaturated blues and greys, high-contrast lighting. Distant jagged snow-capped mountains fading into the swirling storm. Kodak 500T film stock, heavy grain, epic scale, melancholic and oppressive atmosphere, hyper-realistic, 8k resolution.",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] Cinematic wide shot, IMAX film aesthetic, 24mm lens, f/4 aperture. A desolate, freezing tundra under a heavy, overcast sky. Violent blizzard whipping up fine ice crystals in the air. In the center, two opposing factions of wolf-humanoids stand in a tense standoff: on the left, Queen Surli’s female wolf-warriors; on the right, Kadia’s male wolf pack. Between them lies a harrowing, blood-stained snowfield with several wolf carcasses pierced by arrows, deep crimson blood contrasting sharply against the pristine white snow. Gritty, raw, and brutal texture. Cold color palette, desaturated blues and greys, high-contrast lighting. Distant jagged snow-capped mountains fading into the swirling storm. Kodak 500T film stock, heavy grain, epic scale, melancholic and oppressive atmosphere, hyper-realistic, 8k resolution.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122845,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "907cd083-5255-45a9-82dc-9e5fa57101ce",
+      "timestamp": "2026-06-14T14:27:07.207Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122374,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "4eb72620-e04b-44ad-bbd5-9dce259fa5dd",
+      "timestamp": "2026-06-14T14:35:10.421Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122224,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "87a860eb-eac0-4ba7-b0a2-8de94bfac893",
+      "timestamp": "2026-06-14T14:38:55.167Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/4, Film stock: Kodak 500T] 极寒雪原，天空阴沉，狂风卷起细碎冰晶。画面中心是两队对峙的阵营，左侧苏尔里女王率领的女性狼族，右侧卡迪亚带领的男性狼群。两军之间是一片触目惊心的血色雪地，数只身中利箭的狼尸横陈，鲜血染红了白雪，质感粗粝而残酷。冷色调光影，强调环境的压迫感与战斗后的死寂，远处连绵的雪山隐没在风雪中，营造出史诗般的悲壮基调。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 124074,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "111f06eb-3114-4b9c-9fd4-4348a08cfbad",
+      "timestamp": "2026-06-14T14:46:17.582Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 卡迪亚赤裸上半身，古铜色皮肤上布满狰狞伤疤，伤疤处隐隐渗出诡异的黑色血雾。他穿着缀有灰黑色狼毛的铆钉裤子，双眼闪烁着冰冷的蓝光。随着他每一步沉重的迈进，脚下的积雪迅速溶解并裂开蛛网状的黑色毒痕。光线从侧后方打来，勾勒出他健硕肌肉的轮廓，背景是模糊的雪原，强调其作为反派的侵略性与不屑一顾的神态。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/f7f5adca53384f134897ae0d14525b8d_5e43fbaa45b144fca36157d296156aba.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121991
+    },
+    {
+      "id": "a3a476eb-9b4f-4c74-9ea9-660a6f1bc826",
+      "timestamp": "2026-06-14T14:54:25.330Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王身披白色狼毛大氅，头戴金色王冠，红瞳在风雪中显得格外清冷高贵。她蹲下身，动作轻柔地抚去小贝拉红色斗篷帽子上的积雪。小贝拉依偎在女王身侧，神情紧张。光线柔和地打在女王侧脸上，与背景中肃杀的战场形成鲜明对比，凸显出母女之间唯一的温情时刻，质感细腻，强调女王红瞳的深邃与神圣感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/e6b31ef13a10216fe665f44bdbd12740_50764c61bc6a4f76ac04a329fe20c8c9.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 243990
+    },
+    {
+      "id": "c9e2e52f-8e94-42e9-8954-d79182c6d986",
+      "timestamp": "2026-06-14T15:02:53.365Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 苏尔里女王仰天长啸，身体在光影扭曲中迅速幻化为一只巨大的银色巨狼，毛发如银丝般闪耀。与此同时，卡迪亚身体骨骼发出令人牙酸的碎裂声，肌肉疯狂膨胀，黑色的毛发从皮肤下炸出，化作一只体型巨大的黑狼。双方阵营如两道冰与火的洪流，在雪原中央猛烈撞击，激起十米高的雪浪，画面充满野性张力与视觉冲击感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/1d62c6a3e7d52a76d6e26080009a4c45_ad26d26144394df58baf0464b3c8d6e5.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242680
+    },
+    {
+      "id": "2c4501c9-6eab-4e1d-a927-d8e9d7e74244",
+      "timestamp": "2026-06-14T15:05:35.110Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 女王化身的银狼被六只强壮的黑狼死死压制在雪地上，利齿撕扯着银色的皮毛，鲜血如梅花般溅落在洁白的雪地上。女王痛苦地哀嚎，银白色的筋腱在黑狼的撕咬下绷断。不远处，小贝拉身穿红色斗篷，在风雪中绝望地尖叫，一只黑狼正转头向她扑去。镜头捕捉到女王绝望的眼神与小贝拉无助的身影，光影昏暗，营造出极度压抑的悲剧氛围。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 121421,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "442466cf-d7c7-4732-9633-dece03435edb",
+      "timestamp": "2026-06-14T15:26:20.819Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 75mm, Aperture: f/1.4, Film stock: Kodak 500T] 布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 75mm, Aperture: f/1.4, Film stock: Kodak 500T] 布蕾克的面部特写，妆容精致但神情扭曲，嘴角带着得意的笑。她仰着头，黑色卷发散乱，眼神投向桌上的照片。光线从侧面打入，勾勒出她紧绷的颈部线条，背景虚化，强调她此时的傲慢与嘲弄。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/e80c9791c018630bbcc4e6d7f1dac271_a0902e12a6d243548403c97aa759d189.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121838
+    },
+    {
+      "id": "12e40c0b-be34-4b69-92bc-012c02c12b05",
+      "timestamp": "2026-06-14T15:28:22.244Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 121357,
+      "error": "Kie.ai: Generation failed"
+    },
+    {
+      "id": "8bada03f-2fe5-4251-bff9-eea6a9e6d4b4",
+      "timestamp": "2026-06-14T15:28:30.586Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 辛德瑞拉站在锈迹斑斑的铁艺门前，米色碎花裙在风中微动。她端着奶油蛋糕，胸口的狼头吊坠在阳光下闪烁着冷冽的金属光泽。她推开门，阳光从门外倾泻而入，照亮了室内昏暗的客厅，形成强烈的明暗对比。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/8a9a082b723d3fa0b2c7513fced488fa_68c61fb6391b4109b3957fdae22df35b.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 244298
+    },
+    {
+      "id": "674b2f83-7eea-42b2-bddc-e9ae53b6dbcb",
+      "timestamp": "2026-06-14T15:28:30.914Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 35mm, Aperture: f/1.4, Film stock: Kodak 500T] 月光洒在蜿蜒的林间小道上，辛德瑞拉蜷缩在马路中央，满身血迹。周围灌木丛中，七双幽蓝色的狼眼在黑暗中闪烁，如同鬼火。狼群低垂着头，毛发竖立，獠牙在月光下泛着寒光，缓缓向中心包抄，营造出极度的压迫感。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/6eac8942278e9d824ea446dfc99e58b1_8fef5613e3e742149e7861438bee4863.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242263
+    },
+    {
+      "id": "a46c228e-4d74-4b6e-8c47-27b0bf1d2649",
+      "timestamp": "2026-06-14T15:28:31.266Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 室内公寓客厅，光线昏暗，空气中漂浮着细微尘埃。前景桌面上放置着一个镶银边的相框，照片中辛德瑞拉戴着狼头吊坠微笑。背景沙发上，莱斯特与布蕾克正处于纠缠状态，布蕾克背对镜头，豹纹裙摆凌乱。室内光线由窗外透入的冷光与室内暖黄台灯构成，营造出一种压抑且堕落的氛围。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 室内公寓客厅，光线昏暗，空气中漂浮着细微尘埃。前景桌面上放置着一个镶银边的相框，照片中辛德瑞拉戴着狼头吊坠微笑。背景沙发上，莱斯特与布蕾克正处于纠缠状态，布蕾克背对镜头，豹纹裙摆凌乱。室内光线由窗外透入的冷光与室内暖黄台灯构成，营造出一种压抑且堕落的氛围。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/0451b30c930dd31fd285639c4911eca0_c8e15080182b4f6d874fa5d04f2124cc.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 363231
+    },
+    {
+      "id": "f5154795-a746-49d7-8413-636d3dd0f841",
+      "timestamp": "2026-06-14T15:28:51.079Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 24mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯化身的巨狼如陨石般撞入画面，将头狼及周围狼群击飞，树木横断。随后他幻化成人形，蜜色肌肉线条在月光下闪烁，背部幽蓝色图腾纹路发光。他站在辛德瑞拉身前，如同一座不可撼动的山峰，周围萤火虫缭绕。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/26b8b10448f8a415c8edae97e7679a6a_45eaf9b545764c8291d912a63b8b7a1e.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 242982
+    },
+    {
+      "id": "024f3e47-598c-4191-bc3e-e3b9e51699a1",
+      "timestamp": "2026-06-14T15:29:11.784Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 500T] 阿瑞斯宽厚的手掌抚摸着辛德瑞拉满是血迹的脸庞。辛德瑞拉空洞的双眸中，血红色的光芒如丝线般迅速蔓延，最终填满整个瞳孔。月光映照下，两人的神情在这一刻达成了一种宿命般的连接，背景是虚化的森林与萤火虫光点。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/59a6f3785c422f5ec4feba49debc1391_aa146c5d0f3244fab28b11f803ccd4e0.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 243014
+    },
+    {
+      "id": "3298fa88-5f18-4fcc-88d1-770e860619c6",
+      "timestamp": "2026-06-14T15:43:06.608Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "compiledPrompt": "[Camera: IMAX Film Camera, Lens: Zeiss Ultra Prime, Focal length: 125mm, Aperture: f/1.4, Film stock: Kodak 500T] 头狼的极近特写，张开的巨口中流出拉丝的涎水，锋利的獠牙在月光下呈现出金属般的质感。背景是模糊的森林剪影，镜头聚焦在獠牙与辛德瑞拉咽喉的距离上，极具视觉冲击力。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/a1e8747a56570749b3154d126e4a1a9a_45290b86d77948fdb7cab6f33a54f387.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 122213
+    },
+    {
+      "id": "db4ff8e6-23f0-4f13-87b5-89af1e521732",
+      "timestamp": "2026-06-15T06:48:40.325Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 角色设定图：苏尔里女王。白色狼毛大氅金色王冠红瞳，可化身银色巨狼。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 角色设定图：苏尔里女王。白色狼毛大氅金色王冠红瞳，可化身银色巨狼。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/images/chatgpt/ac2f251846255e56d8dd4262c29627ee_7e75151eb90d491ea3cd559505e8e3b3.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 241978
     }
   ]
 }

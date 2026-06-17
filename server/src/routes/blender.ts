@@ -43,8 +43,12 @@ router.post('/auto-rig', checkAuth as any, async (req: Request, res: Response) =
 
   console.log(`[blender] Job ${jobId}: auto-rig ${ext} (${(buffer.length / 1024).toFixed(1)} KB)`);
 
-  // 执行 Blender（本地安装的 Blender 或 Docker）
-  const cmd = `blender --background --python "${BLENDER_SCRIPT}" -- "${inputPath}" "${outputPath}"`;
+  // 本地 Blender（Windows）
+  const blenderExe = process.env.BLENDER_PATH || 'D:/Blander/blender.exe';
+  const blendScript = BLENDER_SCRIPT.replace(/\//g, '\\\\');
+  const inPath = inputPath.replace(/\//g, '\\\\');
+  const outPath = outputPath.replace(/\//g, '\\\\');
+  const cmd = `"${blenderExe}" --background --python "${blendScript}" -- "${inPath}" "${outPath}"`;
   console.log(`[blender] Running: ${cmd}`);
 
   exec(cmd, { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
