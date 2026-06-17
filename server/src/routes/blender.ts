@@ -1,30 +1,36 @@
-/* === Blender API Routes — auto-rig / bake / render === */
+/* === Blender API Routes — async job-based auto-rig / bake / render === */
 import { Router, Request, Response } from 'express';
-import { execSync, exec } from 'child_process';
+import { exec } from 'child_process';
 import { v4 as uuid } from 'uuid';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
 import { join } from 'path';
-// 简单鉴权：检查 shared API key
-const SHARED_KEY = process.env.SHARED_API_KEY || 'tapnow-dev-key';
-function checkAuth(req: Request, res: Response, next: Function) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (token !== SHARED_KEY) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-  next();
-}
 
 const router = Router();
 const WORKSPACE = join(process.cwd(), 'data', 'blender-jobs');
+const BLENDER_EXE = process.env.BLENDER_PATH || 'D:/Blander/blender.exe';
 const BLENDER_SCRIPT = join(process.cwd(), 'blender', 'auto_rig.py');
 
-// 确保工作目录存在
 try { mkdirSync(WORKSPACE, { recursive: true }); } catch {}
 
-// ─── Auto-Rig ─────────────────────────────────────
+// 简单鉴权
+const SHARED_KEY = process.env.SHARED_API_KEY || 'tapnow-dev-key';
+function checkAuth(req: Request, res: Response, next: Function) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token !== SHARED_KEY) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  next();
+}
+
+// ─── Job storage (内存 Map) ───────────────────────
+interface BlenderJob {
+  id: string; status: 'processing' | 'done' | 'error';
+  boneCount: number; error: string | null;
+  outputBase64: string | null; createdAt: number;
+}
+const jobs = new Map<string, BlenderJob>();
+
+// ─── POST /auto-rig — 提交绑骨任务 ───────────────
 router.post('/auto-rig', checkAuth as any, async (req: Request, res: Response) => {
-  const { modelBase64, format } = req.body; // format: 'glb' | 'fbx'
+  const { modelBase64, format } = req.body;
   if (!modelBase64) {
     res.status(400).json({ success: false, error: 'modelBase64 required' });
     return;
@@ -34,79 +40,76 @@ router.post('/auto-rig', checkAuth as any, async (req: Request, res: Response) =
   mkdirSync(jobDir, { recursive: true });
 
   const ext = format || 'glb';
-  const inputPath = join(jobDir, `input.${ext}`);
-  const outputPath = join(jobDir, `output.glb`);
+  const inputPath = join(jobDir, `input.${ext}`).replace(/\//g, '\\');
+  const outputPath = join(jobDir, `output.glb`).replace(/\//g, '\\');
+  const scriptPath = BLENDER_SCRIPT.replace(/\//g, '\\');
 
-  // 写入上传的模型
   const buffer = Buffer.from(modelBase64, 'base64');
   writeFileSync(inputPath, buffer);
 
-  console.log(`[blender] Job ${jobId}: auto-rig ${ext} (${(buffer.length / 1024).toFixed(1)} KB)`);
+  const job: BlenderJob = { id: jobId, status: 'processing', boneCount: 0, error: null, outputBase64: null, createdAt: Date.now() };
+  jobs.set(jobId, job);
 
-  // 本地 Blender（Windows）
-  const blenderExe = process.env.BLENDER_PATH || 'D:/Blander/blender.exe';
-  const blendScript = BLENDER_SCRIPT.replace(/\//g, '\\\\');
-  const inPath = inputPath.replace(/\//g, '\\\\');
-  const outPath = outputPath.replace(/\//g, '\\\\');
-  const cmd = `"${blenderExe}" --background --python "${blendScript}" -- "${inPath}" "${outPath}"`;
-  console.log(`[blender] Running: ${cmd}`);
+  console.log(`[blender] Job ${jobId}: started (${(buffer.length / 1024).toFixed(0)} KB)`);
 
-  exec(cmd, { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+  const cmd = `"${BLENDER_EXE}" --background --python "${scriptPath}" -- "${inputPath}" "${outputPath}"`;
+  exec(cmd, { timeout: 300_000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+    if (stderr) console.log(`[blender] Job ${jobId}: stderr:`, stderr.slice(-500));
     if (err && err.killed) {
-      res.status(504).json({ success: false, error: 'Timeout: auto-rig took longer than 2 minutes' });
-      cleanJob(jobDir);
+      job.status = 'error'; job.error = 'Timeout (5 minutes)';
+      console.log(`[blender] Job ${jobId}: timeout`);
       return;
     }
-    // 从 stdout 提取最后一行 JSON
     const lines = stdout.trim().split('\n');
-    const lastLine = lines[lines.length - 1];
+    let lastLine = lines[lines.length - 1] || '';
+    // Skip non-JSON lines (Blender debug output)
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].trim().startsWith('{')) { lastLine = lines[i]; break; }
+    }
+    console.log(`[blender] Job ${jobId}: lastLine=${lastLine.slice(0,200)}`);
     try {
       const result = JSON.parse(lastLine);
+      job.boneCount = result.bone_count || 0;
       if (result.success && existsSync(outputPath)) {
-        const outputBuffer = readFileSync(outputPath);
-        const outputBase64 = outputBuffer.toString('base64');
-        res.json({
-          success: true,
-          boneCount: result.bone_count,
-          outputModel: outputBase64,
-          outputFormat: 'glb',
-          jobId,
-        });
-        console.log(`[blender] Job ${jobId}: success, ${result.bone_count} bones`);
+        const buf = readFileSync(outputPath);
+        job.outputBase64 = buf.toString('base64');
+        job.status = 'done';
+        console.log(`[blender] Job ${jobId}: done, ${job.boneCount} bones, ${(buf.length/1024).toFixed(0)} KB`);
       } else {
-        res.json({ success: false, error: result.error || 'Auto-rig failed', debugOutput: stdout.slice(-500) });
+        job.status = 'error'; job.error = result.error || 'Auto-rig failed';
+        console.log(`[blender] Job ${jobId}: failed — ${job.error}`);
       }
     } catch {
-      // 如果 Blender 成功但 JSON 解析失败，尝试返回文件
-      if (existsSync(outputPath)) {
-        const outputBuffer = readFileSync(outputPath);
-        res.json({ success: true, boneCount: 0, outputModel: outputBuffer.toString('base64'), outputFormat: 'glb', jobId });
-      } else {
-        res.status(500).json({ success: false, error: 'Blender execution failed', debugOutput: stdout.slice(-500) });
-      }
+      job.status = 'error'; job.error = 'Blender output parse error';
     }
-    cleanJob(jobDir);
+    // 1分钟后清理临时文件
+    setTimeout(() => { try { rmSync(jobDir, { recursive: true }); } catch {} }, 60000);
   });
+
+  res.json({ success: true, jobId, status: 'processing' });
 });
 
-// ─── Animation Bake ───────────────────────────────
-router.post('/bake-animation', checkAuth as any, async (req: Request, res: Response) => {
-  // 后续实现：合并多段动画
-  res.status(501).json({ success: false, error: 'Coming soon' });
+// ─── GET /job/:id — 查询任务状态 ──────────────────
+router.get('/job/:id', checkAuth as any, (req: Request, res: Response) => {
+  const job = jobs.get(req.params.id);
+  if (!job) { res.status(404).json({ error: 'Job not found' }); return; }
+  res.json({
+    status: job.status,
+    boneCount: job.boneCount,
+    error: job.error,
+    outputModel: job.outputBase64,
+    outputFormat: 'glb',
+  });
+  // 查询后 5 分钟清理内存
+  if (job.status === 'done' || job.status === 'error') {
+    setTimeout(() => jobs.delete(job.id), 300000);
+  }
 });
 
-// ─── Status check ─────────────────────────────────
+// ─── GET /status ──────────────────────────────────
 router.get('/status', (_req: Request, res: Response) => {
-  const blenderInstalled = (() => {
-    try { execSync('blender --version', { timeout: 5000 }); return true; } catch { return false; }
-  })();
-  res.json({ blenderInstalled, workspace: WORKSPACE });
+  const active = Array.from(jobs.values()).filter(j => j.status === 'processing').length;
+  res.json({ blenderPath: BLENDER_EXE, scriptPath: BLENDER_SCRIPT, activeJobs: active });
 });
-
-function cleanJob(dir: string) {
-  setTimeout(() => {
-    try { rmSync(dir, { recursive: true }); } catch {}
-  }, 60000); // 1 分钟后清理
-}
 
 export default router;
