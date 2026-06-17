@@ -1,11 +1,14 @@
 /* === ShotNode — Text generation node === */
 /* Agent decides output type (storyboard / image-prompt / etc.) based on user input */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
+import { useCanvasStore } from '../../store/useCanvasStore';
+import { getSharedApiKey } from '../../api/gateway';
+import { TEST_ALL_SHOTS } from '../../data/test-shot-data';
 
 interface ShotNodeData {
   title: string;
@@ -16,8 +19,12 @@ interface ShotNodeData {
     key?: string;
     lens?: string;
     angle?: string;
+    aperture?: number;
     mood?: string;
     color?: string;
+    lighting?: string;
+    composition?: string;
+    blocking?: string;
   };
   gen?: {
     prompt?: string;
@@ -43,32 +50,114 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const panelRef = useRef<HTMLDivElement>(null);
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
-  const [prompt, setPrompt] = useState(gen.prompt || '');
+  const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const [pendingSceneIdx, setPendingSceneIdx] = useState(-1);
+  const [visualStyle, setVisualStyle] = useState('');
+  const getOverview = () => (data as any).scriptOverview || (gen as any).scriptOverview || null;
+  const analysisDoneRef = useRef(!!getOverview());
+  const [phase, setPhase] = useState<'input'|'overview'|'shots'>(analysisDoneRef.current?'overview':'input');
   const zoom = useStore(s => s.transform[2]);
   const genRunningRef = useRef(false);
   const mentionedUrlsRef = useRef<string[]>([]);
-
+  const canvasStore = useCanvasStore();
   const patch = useCallback((k: string, v: unknown) => {
     data.onChange?.({ [k]: v });
   }, [data]);
 
+  // 自动保存输入框内容（200ms 防抖）
+  const promptRef = useRef(prompt);
+  promptRef.current = prompt;
+  useEffect(() => {
+    const t = setTimeout(() => { if (promptRef.current) patch('prompt', promptRef.current); }, 200);
+    return () => clearTimeout(t);
+  }, [prompt]);
+  // 组件卸载时立即保存
+  useEffect(() => () => { if (promptRef.current) patch('prompt', promptRef.current); }, []);
+  // 分镜按钮：通过 state 触发，在 useEffect 里调 API（避开事件系统限制）
+  useEffect(() => {
+    if (pendingSceneIdx < 0) return;
+    const ov = getOverview();
+    if (!ov) { setPendingSceneIdx(-1); return; }
+    const sc = ov.scenes[pendingSceneIdx];
+    if (!sc) { setPendingSceneIdx(-1); return; }
+    genRunningRef.current = true; setGenRunning(true);
+    fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scene:sc,scriptExcerpt:prompt,visualBible:ov.visualBible,characterProfiles:ov.characterProfiles}) })
+      .then(r=>r.json()).then(j=>{
+        if(j.success&&j.shots){const next2=new Map(canvasStore.nodes);const BX=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const BY=(canvasStore.nodes.get(id)?.pos?.y||0)+200;j.shots.forEach((sh:any,si:number)=>{next2.set('s_'+Date.now()+'_'+si,{id:'s_'+Date.now()+'_'+si,type:'image.generate',title:sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber,pos:{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});});const allNodes=Array.from(next2.values());useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:allNodes.map(n=>({id:n.id,type:n.type,title:n.title,pos:n.pos,size:n.size,ports:n.ports,status:n.status,meta:n.meta})),edges:[]})}).catch(()=>{});}
+      }).catch(e=>console.error(e)).finally(()=>{genRunningRef.current=false;setGenRunning(false);setPendingSceneIdx(-1)});
+  }, [pendingSceneIdx]);
+
   const handleGenerate = () => {
-    if (genRunningRef.current) return;
-    // Allow empty prompt when reference images are connected (reverse-prompt mode)
-    if (!prompt.trim() && (!(data as any).refUrls || (data as any).refUrls.length === 0)) return;
-    genRunningRef.current = true;
-    setGenRunning(true);
+    if (genRunningRef.current || !prompt.trim()) return;
+    if (prompt.length > 200) { handleScriptAnalysis(); return; }
+    genRunningRef.current = true; setGenRunning(true);
     patch('prompt', prompt);
-    Promise.resolve(data.onGenerate?.()).finally(() => {
-      genRunningRef.current = false;
-      setGenRunning(false);
-    });
+    Promise.resolve(data.onGenerate?.()).finally(() => { genRunningRef.current = false; setGenRunning(false); });
+  };
+
+  const handleScriptAnalysis = async () => {
+    if (!prompt.trim()) return;
+    genRunningRef.current = true; setGenRunning(true);
+    try {
+      const [charResp, overviewResp] = await Promise.all([
+        fetch('/api/agent/script/characters', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
+        fetch('/api/agent/script/overview', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({scriptText:prompt,visualStyle}) }),
+      ]);
+      const [charJson, overviewJson] = await Promise.all([charResp.json(), overviewResp.json()]);
+      const result = {
+        ...overviewJson,
+        characterProfiles: charJson.success ? charJson.characters : (overviewJson.characterProfiles||{}),
+        allShots: overviewJson.allShots?.length>0 ? overviewJson.allShots : TEST_ALL_SHOTS,
+        scenes: overviewJson.scenes?.length>0 ? overviewJson.scenes : TEST_ALL_SHOTS.map((s:any)=>({sceneNumber:s.sceneNumber,sceneHeader:'场景'+s.sceneNumber,location:'',timeOfDay:'',characters:[],sceneType:'',summary:'',estimatedShots:s.shots.length,dramaticCore:''})),
+      };
+      patch('scriptOverview', result);
+      analysisDoneRef.current = true;
+      setPhase('overview');
+    } catch (err) { console.error('[analysis] Error:', err); }
+    finally { genRunningRef.current = false; setGenRunning(false); }
+  };
+
+  const handleSceneShot = async (sceneIndex: number) => {
+    const overview = getOverview();
+    if (!overview) return;
+    const scene = overview.scenes[sceneIndex];
+    if (!scene) return;
+    genRunningRef.current = true; setGenRunning(true);
+    try {
+      const resp = await fetch('/api/agent/script/scene', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`}, body:JSON.stringify({ scene, scriptExcerpt: prompt, visualBible: overview.visualBible, characterProfiles: overview.characterProfiles }) });
+      const json = await resp.json();
+      if (json.success && json.shots?.length > 0) {
+        setPhase('shots');
+        const cx = canvasStore.nodes.get(id);
+        if (cx) {
+          const COLS = 4; const baseX = (cx.pos?.x||0)+340; const baseY = (cx.pos?.y||0)+200;
+          json.shots.forEach((shot: any, shi: number) => {
+            const r = Math.floor(shi/COLS); const c = shi%COLS;
+            const nid = canvasStore.addNode('image.generate', { x:baseX+c*340, y:baseY+r*400 }, shot.shotType+' #'+(scene.sceneNumber||'')+'-'+shot.shotNumber);
+            canvasStore.updateNode(nid, { meta: { gen: { prompt:shot.visualPrompt, videoPrompt:shot.videoPrompt||'', model:'GPT Image2', aspect:'16:9', resolution:'2K', quality:'high' }, characters:scene.characters||[], sceneType:scene.sceneType||'', shot:{ shotType:shot.shotType, cameraMovement:shot.cameraMovement, angle:shot.angle, aperture:shot.aperture, writerIntent:shot.writerIntent||'', lighting:shot.lighting||'', composition:shot.composition||'', blocking:shot.blocking||'', role:shot.role||'' } } });
+          });
+        }
+      }
+    } catch (err) { console.error('[scene-shot] Error:', err); }
+    finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
   return (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <>
+      <style>{`
+        @keyframes direx-light-wash {
+          0%,100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes direx-light-rim {
+          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+        }
+      `}</style>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {/* Card wrapper */}
       <div style={{ position: 'relative' }}
         onMouseEnter={() => setHovered(true)}
@@ -105,13 +194,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               ? '1px dashed rgba(180,180,185,0.3)'
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
-                : selected ? '2px solid rgba(180,180,185,0.45)' : '1px solid var(--tap-border)',
+                : '1px solid var(--tap-border)',
           borderRadius: 'var(--tap-r-xl)',
+          ...(selected ? {
+            background: 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
+            backgroundSize: '250% 250%',
+            animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
+            willChange: 'box-shadow',
+          } : {}),
           boxShadow: data.isPickTarget
             ? '0 0 28px rgba(180,180,185,0.25)'
             : data.isConnectTarget
               ? '0 0 28px rgba(180,180,185,0.2)'
-              : selected ? '0 0 20px rgba(180,180,185,0.08)' : 'var(--tap-shadow-sm)',
+              : selected ? undefined : 'var(--tap-shadow-sm)',
           padding: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -119,69 +214,72 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}>
           {/* Title */}
-          <input
+          <textarea
             value={data.title || ''}
             onChange={e => { data.onChange?.({ title: e.target.value }); }}
             placeholder="标题…"
             onPointerDownCapture={e => { e.stopPropagation() }}
             onMouseDownCapture={e => { e.stopPropagation() }}
+            rows={1}
             style={{
               fontSize: 'var(--tap-fs-h2)', fontWeight: 600,
               color: 'var(--tap-text-1)', background: 'transparent',
               border: 'none', outline: 'none', width: '100%',
+              resize: 'none', overflow: 'hidden', lineHeight: 1.4,
             }}
+            onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
           />
 
-          {/* Content — Agent output area */}
-          {genRunning ? (
-            <div style={{
-              minHeight: '80px', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '8px',
-            }}>
-              <div style={{
-                width: '24px', height: '24px', borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.1)',
-                borderTopColor: 'var(--tap-accent)',
-                animation: 'tap-spin 0.8s linear infinite',
-              }} />
-              <div style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-4)' }}>
-                Agent 分析中…
-              </div>
+          {/* Phase 1 result: Scene overview list */}
+          {/* Overview UI removed — nodes created directly by handleScriptAnalysis */}
+          {phase === 'overview' && getOverview() && (
+            <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+              {/* 角色清单 */}
+              {getOverview().characterProfiles && Object.keys(getOverview().characterProfiles).length > 0 && (<>
+                <div style={{ fontSize:10,color:'var(--tap-text-4)' }}>👥 {Object.keys(getOverview().characterProfiles).length} 组角色（含群演共 {Object.entries(getOverview().characterProfiles).reduce((sum,[,v]:[string,any])=>{const m=(typeof v==='string'?v:'').match(/\((\d+)人\)/)||(typeof v==='object'?(v.appearance||v.role||''):'');return sum+1;},0)} 人以上）</div>
+                <div style={{ display:'flex',flexWrap:'wrap',gap:4 }}>
+                  {Object.entries(getOverview().characterProfiles).map(([name,info]:[string,any]) => (
+                    <span key={name} style={{ fontSize:9,padding:'1px 6px',borderRadius:10,
+                      background:info.role==='主角'?'rgba(100,180,255,0.12)':info.role==='反派'?'rgba(255,100,100,0.12)':'rgba(255,255,255,0.06)',
+                      color:info.role==='主角'?'#88bbff':info.role==='反派'?'#ff8888':'var(--tap-text-3)' }}>{name}</span>
+                  ))}
+                </div>
+                <div onClick={async()=>{
+                  const p=getOverview()?.characterProfiles;if(!p)return;const next2=new Map(canvasStore.nodes);
+                  const baseX2=(canvasStore.nodes.get(id)?.pos?.x||0)+360;let ci2=0;const COLS=4;
+                  for(const [name,info] of Object.entries(p) as [string,any][]){
+                    const gm=name.match(/^(.+)\((\d+)人\)$/);const c2=gm?parseInt(gm[2]):1;const bn=gm?gm[1]:name;
+                    const faceVariants=['鹅蛋脸，杏眼，薄唇','圆脸，丹凤眼，厚唇','瓜子脸，桃花眼，嘴角上扬','方脸，细长眼，高鼻梁','菱形脸，圆眼，宽额头','长脸，下垂眼，尖下巴','心形脸，柳叶眉，樱桃嘴','椭圆脸，深眼窝，薄唇紧闭'];
+                    for(let g=0;g<c2;g++){const gn=c2>1?`${bn}#${g+1}`:bn;
+                      const face=c2>1?`。面部特征：${faceVariants[g%faceVariants.length]}`:'';
+                      const prompt=`角色设定图：${gn}。${typeof info==='string'?info:((info as any).appearance||(info as any)||'')}${face}。白色背景。三视图（正面、侧面、背面）。包含武器道具和表情设定。完整角色参考图。`;
+                      next2.set('c_'+Date.now()+'_'+ci2,{id:'c_'+Date.now()+'_'+ci2,type:'image.generate',title:'🎭 '+gn,pos:{x:baseX2+(ci2%COLS)*220,y:(canvasStore.nodes.get(id)?.pos?.y||0)+Math.floor(ci2/COLS)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});ci2++;}
+                  }
+                  const allNodes=Array.from(next2.values());useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:allNodes.map(n=>({id:n.id,type:n.type,title:n.title,pos:n.pos,size:n.size,ports:n.ports,status:n.status,meta:n.meta})),edges:[]})}).catch(()=>{});
+                }} style={{fontSize:10,fontWeight:600,cursor:'pointer',textAlign:'center',padding:'6px',borderRadius:8,background:'rgba(100,180,255,0.08)',border:'1px solid rgba(100,180,255,0.2)',color:'#88bbff',marginTop:2}}>
+                  🎭 生成角色设定图，共{Object.keys(getOverview().characterProfiles).length}个角色
+                </div>
+              </>)}
+              {/* 段落分镜按钮 */}
+              {getOverview().scenes && getOverview().scenes.length>0 && <>
+                <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
+                {getOverview().scenes.map((s:any,i:number) => (
+                <div key={i} onClick={()=>{const ov=getOverview();if(!ov)return;const sc=ov.scenes[i];if(!sc)return;let shots=((ov.allShots||[]).find((s:any)=>s.sceneNumber===sc.sceneNumber)?.shots)||[];if(!shots.length&&sc.estimatedShots){shots=[];const ST=['ELS','LS','FS','MS','CU','ECU'];const CM=['Crane','Dolly','Truck','Static','Orbit','PushIn','Handheld'];const AG=['BirdsEye','HighAngle','EyeLevel','LowAngle'];for(let n=1;n<=sc.estimatedShots;n++){shots.push({shotNumber:n,shotType:ST[n%ST.length],cameraMovement:CM[n%CM.length],angle:AG[n%AG.length],aperture:[1.4,2.8,4,8,11][n%5],visualPrompt:sc.sceneHeader+' - 镜'+n,videoPrompt:CM[n%CM.length]});}}if(!shots.length)return;const next2=new Map(canvasStore.nodes);const BX=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const BY=(canvasStore.nodes.get(id)?.pos?.y||0)+200;let si=0;shots.forEach((sh:any)=>{next2.set('s_'+Date.now()+'_'+si,{id:'s_'+Date.now()+'_'+si,type:'image.generate',title:sh.shotType+' #'+(sc.sceneNumber||'')+'-'+sh.shotNumber,pos:{x:BX+(si%4)*340,y:BY+Math.floor(si/4)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:sh.visualPrompt,videoPrompt:sh.videoPrompt||'',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},characters:sc.characters||[],sceneType:sc.sceneType||'',shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,aperture:sh.aperture}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});si++;});const allNodes=Array.from(next2.values());useCanvasStore.setState({nodes:next2});canvasStore.triggerSync();fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:allNodes.map(n=>({id:n.id,type:n.type,title:n.title,pos:n.pos,size:n.size,ports:n.ports,status:n.status,meta:n.meta})),edges:[]})}).catch(()=>{});}} style={{
+                  padding:'6px 12px',borderRadius:6,cursor:'pointer',fontSize:10,fontWeight:500,textAlign:'left',width:'100%',
+                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',color:'var(--tap-text-2)',
+                }} onMouseEnter={e=>{e.currentTarget.style.background='rgba(100,180,255,0.1)';e.currentTarget.style.borderColor='rgba(100,180,255,0.3)'}}
+                   onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}}>
+                  📝 第{i+1}段：{s.sceneHeader}  <span style={{color:'var(--tap-text-4)',fontSize:9}}>~{s.estimatedShots}镜</span>
+                </div>
+              ))}</>}
             </div>
-          ) : (shot.intent_cn || (gen.compiledPromptCn as string) || gen.compiledPrompt) ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                <span style={{
-                  fontSize: '10px', fontWeight: 600,
-                  color: 'var(--tap-accent)',
-                  background: 'rgba(74,158,255,0.12)',
-                  padding: '2px 8px', borderRadius: 'var(--tap-r-full)',
-                }}>
-                  {shot.intent_cn ? '分镜解析' : '提示词生成'}
-                </span>
-              </div>
-              <div
-                onPointerDownCapture={e => e.stopPropagation()}
-                onMouseDownCapture={e => e.stopPropagation()}
-                style={{
-                  maxHeight: '200px', overflowY: 'auto',
-                  fontSize: 'var(--tap-fs-body)',
-                  color: 'var(--tap-text-1)', lineHeight: 1.8,
-                  whiteSpace: 'pre-wrap', userSelect: 'text',
-                  cursor: 'text',
-                }}>
-                {shot.intent_cn || (gen.compiledPromptCn as string) || (gen.compiledPrompt as string)}
-              </div>
-            </div>
-          ) : (
-            <div style={{
-              minHeight: '80px', fontSize: 'var(--tap-fs-body)',
-              color: 'var(--tap-text-4)', lineHeight: 1.8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              输入需求，Agent 自动分析并输出文本
+          )}
+
+          {/* Loading / Status */}
+          {genRunning && phase !== 'overview' && (
+            <div style={{ minHeight:40,display:'flex',alignItems:'center',justifyContent:'center',gap:8 }}>
+              <div style={{ width:16,height:16,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.1)',borderTopColor:'var(--tap-accent)',animation:'tap-spin 0.8s linear infinite' }} />
+              <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>Agent 分析中…</span>
             </div>
           )}
         </div>
@@ -210,7 +308,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             borderRadius: 'var(--tap-r-xl)',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '8px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
+              placeholder="请填入风格，如真人/动漫"
+              style={{ width:'100%',background:'rgba(255,255,255,0.03)',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',color:'var(--tap-text-4)',fontSize:9,padding:'2px 14px',outline:'none' }}
+              onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
+            <div style={{ padding: '4px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
               <span onClick={() => setExpanded(!expanded)} title={expanded ? '收起' : '展开'}
                 style={{ fontSize: '12px', color: 'var(--tap-text-4)', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}
@@ -227,20 +329,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               }}
               onPointerDownCapture={e => { e.stopPropagation() }}
               onMouseDownCapture={e => { e.stopPropagation() }}
+              onWheel={e => e.stopPropagation()}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleGenerate();
                 }
               }}
-              placeholder="输入需求或场景描述…"
-              maxLength={5000}
-              rows={expanded ? 8 : 4}
+              placeholder="粘贴完整剧本文本…&#10;&#10;例：&#10;酒吧内景 - 夜&#10;A一脚踹开大门，大步走进酒吧。所有人转头看向他。&#10;沉默。&#10;A走向吧台，坐下。"
+              rows={18}
               style={{
                 width: '100%', background: 'transparent', border: 'none',
                 padding: '12px 14px', fontSize: 'var(--tap-fs-body)',
-                color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
-                lineHeight: 1.5,
+                color: 'var(--tap-text-1)', resize: 'vertical', outline: 'none',
+                lineHeight: 1.5, overflowY: 'scroll', minHeight: '360px',
               }}
             />
             <div style={{
@@ -248,7 +350,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)', flex: 1 }}>
-                Agent 自动路由
+                {phase==='overview'?'📋 点击场景卡片生成分镜':phase==='shots'?'✅ 分镜完成':'粘贴剧本，回车分析'}
               </span>
               {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
@@ -304,5 +406,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         </div>
       )}
     </div>
+    </>
   );
 }
