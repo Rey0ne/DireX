@@ -10,6 +10,7 @@ import { SceneContent } from './SceneContent';
 import { DollyRails, CurvedTrackRails, OrbitRing } from './CameraRig';
 import { PiPViewer } from './PiPViewer';
 import { Timeline } from './Timeline';
+import { PlaybackEngine } from './PlaybackEngine';
 
 export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, onSnapshot, onClose, nodeId, rig, setRig }: {
   objects: SceneObject[];
@@ -40,6 +41,7 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
   const [timelineH, setTimelineH] = useState(120);
   const [zoom, setZoom] = useState(60);
   const [animTimeline, setAnimTimeline] = useState<AnimationTimeline | null>(null);
+  const engineRef = useRef(new PlaybackEngine());
   const rigRef = useRef(rig);
   rigRef.current = rig;
 
@@ -122,6 +124,20 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
     return null;
   }, []);
 
+  // ─── Bind PlaybackEngine to figure ──────────────
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!animTimeline || animTimeline.blocks.length === 0) { engine.stop(); return; }
+    const figObj = objects.find(o => o.id === animTimeline.targetFigureId);
+    if (!figObj) return;
+    const onReady = (e: Event) => {
+      const { id: figId, mesh } = (e as CustomEvent).detail as { id: string; mesh: THREE.Object3D };
+      if (figId === animTimeline.targetFigureId) engine.bind(mesh, animTimeline);
+    };
+    window.addEventListener('figure-mesh-ready', onReady);
+    return () => window.removeEventListener('figure-mesh-ready', onReady);
+  }, [animTimeline, objects]);
+
   // ─── Playback loop ────────────────────────────────
   const playTimeRef = useRef(0);
   useEffect(() => { playTimeRef.current = playTime; }, [playTime]);
@@ -129,9 +145,13 @@ export function Scene3DEditor({ objects, selectedId, setObjects, setSelectedId, 
     if (!playing || !rig) return;
     const camObj = objects.find(o => o.type === 'camera'); camObjIdRef.current = camObj?.id || null;
     const startTime = performance.now(); const startPlay = playTimeRef.current;
+    let lastT = startTime;
     let raf: number;
     const loop = (now: number) => {
       const elapsed = (now - startTime) / 1000;
+      const delta = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+      // Drive clip playback
+      engineRef.current.update(delta);
       let p = (startPlay + elapsed) / rig.duration;
       if (p >= 1) { p = 1; setPlaying(false); setPlayTime(rig.duration); }
       else { setPlayTime(p * rig.duration); }
