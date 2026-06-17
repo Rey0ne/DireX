@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import * as THREE from 'three';
 import { CameraRig, ClipBlock, AnimationTimeline } from './shared';
 import { clipLibrary, getClipLabel } from './ClipLibrary';
+import { ClipEditor } from './ClipEditor';
 
 interface TimelineProps {
   rig: CameraRig;
@@ -34,6 +35,7 @@ export function Timeline({
   setAnimTimeline,
   activeCamRef, getTrackCamera,
 }: TimelineProps) {
+  const [editingBlock, setEditingBlock] = useState<{ block: ClipBlock; index: number } | null>(null);
   if (!rig) return null;
   const totalDur = rig.duration;
 
@@ -157,6 +159,7 @@ export function Timeline({
                   const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
                   window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
                 }}
+                onDoubleClick={ev => { ev.stopPropagation(); setEditingBlock({ block, index: i }); }}
               >
                 {blockDur > 0.3 ? clip.name : ''}
               </div>
@@ -185,6 +188,20 @@ export function Timeline({
           />
         </div>
       </div>
+      {/* ── Clip Editor Modal ── */}
+      {editingBlock && animTimeline && (
+        <ClipEditor block={editingBlock.block}
+          onApply={updated => {
+            const u = [...animTimeline.blocks];
+            u[editingBlock.index] = updated;
+            setAnimTimeline({ ...animTimeline, blocks: u });
+          }}
+          onDelete={() => {
+            setAnimTimeline({ ...animTimeline, blocks: animTimeline.blocks.filter((_, j) => j !== editingBlock.index) });
+            setEditingBlock(null);
+          }}
+          onClose={() => setEditingBlock(null)} />
+      )}
     </div>
   );
 }
