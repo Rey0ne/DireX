@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
 import { authMiddleware } from './middleware/auth.js';
+import blenderRouter from './routes/blender.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
@@ -45,6 +46,8 @@ async function proxyAsset(req: Request, res: Response) {
     res.status(500).json({ error: String(err) });
   }
 }
+
+app.use('/api/blender', blenderRouter);
 
 app.use(authMiddleware);
 
