@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>修复项目</title></head><body>
+<h2>画布修复</h2>
+<p>当前项目ID: <b id="pid"></b></p>
+<p>数据所在项目: <b>project-1780053677344</b></p>
+<button onclick="fix()" style="font-size:18px;padding:10px 20px;">一键修复</button>
+<div id="msg"></div>
+<script>
+document.getElementById('pid').textContent = localStorage.getItem('tapnow-current-project') || '未设置';
+function fix() {
+  localStorage.setItem('tapnow-current-project', 'project-1780053677344');
+  document.getElementById('msg').innerHTML = '<p style="color:green">✅ 已修复！<a href="/">返回应用</a></p>';
+}
+</script>
+</body></html>

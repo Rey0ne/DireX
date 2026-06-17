@@ -5,9 +5,10 @@ import { useGLTF } from '@react-three/drei';
 import { Vec3, ErrorBoundary } from './shared';
 
 export function CameraGLB({ pos, tgt }: { pos: Vec3; tgt: Vec3 }) {
-  const { scene } = useGLTF('/models/camera.glb');
+  const { scene } = useGLTF('/models/IMAXX%20%E6%91%84%E5%83%8F%E6%9C%BA.glb');
   const cloned = useMemo(() => {
     const c = scene.clone(true);
+    c.rotation.set(0, Math.PI - 13 * Math.PI / 180, 0);
     c.traverse((ch: any) => {
       if (ch.isMesh) {
         ch.castShadow = true;
@@ -21,7 +22,7 @@ export function CameraGLB({ pos, tgt }: { pos: Vec3; tgt: Vec3 }) {
     });
     return c;
   }, [scene]);
-  return <primitive object={cloned} position={pos} lookAt={tgt} scale={0.5} />;
+  return <primitive object={cloned} position={pos} lookAt={tgt} scale={1.5} />;
 }
 
 export function FallbackCamera({ pos, tgt }: { pos: Vec3; tgt: Vec3 }) {
@@ -52,13 +53,13 @@ export function CameraObject() {
         <cylinderGeometry args={[0.01, 0.01, 1, 8]} />
         <meshBasicMaterial color="#ff4444" transparent opacity={0.6} />
       </mesh>
-      <mesh position={[0, 0, -3]}>
+      <mesh position={[0, 0.2, -3]}>
         <sphereGeometry args={[0.08, 8, 8]} />
         <meshBasicMaterial color="#ff4444" transparent opacity={0.5} />
       </mesh>
-      <ErrorBoundary fallback={<FallbackCamera pos={[0, 0, 0]} tgt={[0, 0, -3]} />}>
+      <ErrorBoundary fallback={<FallbackCamera pos={[0, 0.2, 0]} tgt={[0, 0.2, -3]} />}>
         <Suspense fallback={null}>
-          <CameraGLB pos={[0, 0, 0]} tgt={[0, 0, -3]} />
+          <CameraGLB pos={[0, 0.2, 0]} tgt={[0, 0, -3]} />
         </Suspense>
       </ErrorBoundary>
     </>

@@ -41,10 +41,13 @@ export function Scene3DNode({ id, data, selected }: {
     ctr.current++;
     const y = type === 'figure' || type === 'plane' ? 0 : 0.5;
     const first = poseRegistry.size > 0 ? poseRegistry.keys().next().value as string : 'stand1';
+    const rx = (Math.random() - 0.5) * 5;
+    const rz = (Math.random() - 0.5) * 5;
     const obj: SceneObject = {
-      id: `o_${ctr.current}`, type, position: [0, y, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+      id: `o_${ctr.current}`, type, position: [rx, y, rz], rotation: [0, 0, 0], scale: [1, 1, 1],
       color: pickColor(), figurePose: type === 'figure' ? first : undefined,
       figureSrc: type === 'figure' ? poseRegistry.get(first)?.src : undefined,
+      figureFmt: type === 'figure' ? poseRegistry.get(first)?.format : undefined,
     };
     setObjects(prev => [...prev, obj]);
     setSelId(obj.id);

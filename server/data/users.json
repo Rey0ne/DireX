@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "id": "affb8e36-e706-458c-818e-26debe859da8",
+      "email": "test@direx.io",
+      "passwordHash": "$2b$10$C7u57L7HOROVtTgQlTcWKeA1PhU9e/wMJuYJ5r7L8IUYhfbcKAIcW",
+      "name": "Test",
+      "credits": 200,
+      "plan": "free",
+      "concurrency": 1,
+      "storageGB": 0.5,
+      "createdAt": "2026-06-16T11:36:33.879Z",
+      "updatedAt": "2026-06-16T11:36:33.879Z"
+    },
+    {
+      "id": "6ec476e9-1cf0-474e-a9a2-9adf25bae68c",
+      "email": "test2@direx.io",
+      "passwordHash": "$2b$10$Q9lmauOQZI3/XQ0qDef3juZ4lUrgi50HmG10TA40GLo4uwqpdUW2.",
+      "name": "Test2",
+      "credits": 200,
+      "plan": "free",
+      "concurrency": 1,
+      "storageGB": 0.5,
+      "createdAt": "2026-06-16T11:37:01.686Z",
+      "updatedAt": "2026-06-16T11:37:01.686Z"
+    },
+    {
+      "id": "877b65e9-ea2e-43a7-aaee-aa11eb1abd44",
+      "email": "test3@direx.io",
+      "passwordHash": "$2b$10$14WwcjvRNP5RAO4rKFf.GeScjvZjps7Z.aYlG6pR4BPxSs4LWM8hC",
+      "name": "Test3",
+      "credits": 193,
+      "plan": "free",
+      "concurrency": 1,
+      "storageGB": 0.5,
+      "createdAt": "2026-06-16T12:50:47.229Z",
+      "updatedAt": "2026-06-16T12:50:47.592Z"
+    }
+  ],
+  "updatedAt": "2026-06-16T12:50:47.592Z"
+}
