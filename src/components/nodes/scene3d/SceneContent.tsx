@@ -1,5 +1,5 @@
 /* === SceneContent — 3D viewport contents: objects, lights, gizmos === */
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, Suspense } from 'react';
 import * as THREE from 'three';
 import { OrbitControls, Grid, TransformControls } from '@react-three/drei';
 import { SceneObject, Vec3, GizmoMode } from './shared';
@@ -8,6 +8,9 @@ import { CameraObject } from './CameraGizmo';
 import { SafeModel } from './ModelLoader';
 import { StickFigure } from './StickFigure';
 import { SafeSkinnedFigure } from './Skeleton/SkinnedFigure';
+import { SelectionPlane, screenRectContains } from './SelectionRect';
+import { FBXFigure } from './FBXFigure';
+import { ErrorBoundary } from './shared';
 
 // ─── Mover — syncs object transform to event bus ───────────
 function mover(el: THREE.Object3D, obj: SceneObject) {
@@ -79,7 +82,13 @@ export function SceneContent({ objects, selectedId, onSelect, gizmoMode, rigActi
               onClick={e => { e.stopPropagation(); onSelect(obj.id); }}
             >
               {obj.type === 'figure' ? (
-                obj.figureSrc ? (
+                obj.figureFormat === 'fbx' ? (
+                  <ErrorBoundary fallback={<StickFigure poseId={obj.figurePose || 'stand'} color={obj.color || '#c0c8d0'} />}>
+                    <Suspense fallback={null}>
+                      <FBXFigure src={obj.figureSrc!} />
+                    </Suspense>
+                  </ErrorBoundary>
+                ) : obj.figureSrc ? (
                   <SafeSkinnedFigure src={obj.figureSrc}
                     fallback={<StickFigure poseId={obj.figurePose || 'stand'} color={obj.color || '#c0c8d0'} />}
                     selectedBone={sel ? (selectedBone ?? null) : null}
