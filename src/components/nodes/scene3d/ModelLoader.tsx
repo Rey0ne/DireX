@@ -21,6 +21,15 @@ export async function initPoseRegistry() {
 export function importFile(file: File, done: (entry: PoseEntry, poseId: string) => void) {
   const name = file.name.replace(/\.(glb|fbx)$/i, '');
   const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_') || `pose_${Date.now()}`;
+  const ext = file.name.endsWith('.fbx') ? 'fbx' : 'glb';
+  // Use Object URL for FBX (FBXLoader needs a real URL, not base64)
+  if (ext === 'fbx') {
+    const url = URL.createObjectURL(file);
+    const e: PoseEntry = { name, src: url, format: 'fbx' };
+    poseRegistry.set(id, e);
+    done(e, id);
+    return;
+  }
   const r = new FileReader();
   r.onload = () => { const src = r.result as string; const e: PoseEntry = { name, src, format: 'glb' }; poseRegistry.set(id, e); done(e, id); };
   r.readAsDataURL(file);
