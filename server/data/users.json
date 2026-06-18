@@ -3,8 +3,8 @@
     {
       "id": "affb8e36-e706-458c-818e-26debe859da8",
       "email": "test@direx.io",
-      "passwordHash": "$2b$10$C7u57L7HOROVtTgQlTcWKeA1PhU9e/wMJuYJ5r7L8IUYhfbcKAIcW",
-      "name": "Test",
+      "passwordHash": "$2b$10$TX5bJP/yldh1XGONTl.WvOYFfNuD50xGs54O8aP6JyRndG6FS/7ku",
+      "name": "Admin",
       "credits": 200,
       "plan": "free",
       "concurrency": 1,
@@ -37,5 +37,5 @@
       "updatedAt": "2026-06-16T12:50:47.592Z"
     }
   ],
-  "updatedAt": "2026-06-16T12:50:47.592Z"
+  "updatedAt": "2026-06-18T12:13:27.716Z"
 }
