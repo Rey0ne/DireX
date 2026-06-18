@@ -3,7 +3,7 @@ import React,{useState,useCallback,useMemo,useRef,useEffect,Suspense}from'react'
 import{createPortal}from'react-dom';
 import{Handle,Position}from'@xyflow/react';
 import{Canvas,useThree,useFrame}from'@react-three/fiber';
-import{OrbitControls,Grid,TransformControls,useGLTF,useFBX,useTexture,useAnimations}from'@react-three/drei';
+import{OrbitControls,Grid,TransformControls,useGLTF,useFBX,useTexture,useAnimations,Text}from'@react-three/drei';
 import{Sky}from'three/examples/jsm/objects/Sky';
 import{FBXLoader}from'three/examples/jsm/loaders/FBXLoader';
 import{mergeGeometries}from'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -66,7 +66,7 @@ const SceneContent=React.memo(function SceneContent({objects,selectedId,onSelect
     {objects.map(obj=>{const sel=selectedId===obj.id;const bottomY=obj.type==='figure'||obj.type==='plane'?0:0.5;return(<group key={obj.id}>
       <group position={obj.position} rotation={obj.rotation} scale={obj.scale} ref={el=>{if(el){meshRefs.current.set(obj.id,el);if(obj.type==='camera'){const fwd=new THREE.Vector3(0,0,-1);el.localToWorld(fwd);window.dispatchEvent(new CustomEvent('cam-ready',{detail:{objRef:el,forward:[fwd.x,fwd.y,fwd.z]as Vec3}}));}}}} onClick={e=>{e.stopPropagation();if(e.ctrlKey&&onSetLookTarget){const pt=(e as any).point;if(pt){onSetLookTarget([pt.x,pt.y,pt.z]);return;}}onSelect(obj.id);if(obj.type==='figure')window.dispatchEvent(new CustomEvent('anim-model-selected',{detail:{id:obj.id}}));}}>
         {obj.type==='figure'?<LODFigure pos={obj.position} obj={obj}/>:
-        obj.type==='camera'?<><mesh rotation={[-Math.PI/2,0,0]} position={[0,0.2,-0.6]}><cylinderGeometry args={[0.01,0.01,1,8]}/><meshBasicMaterial color="#ff4444" transparent opacity={0.6}/></mesh><mesh position={[0,0,-3]}><sphereGeometry args={[0.08,8,8]}/><meshBasicMaterial color="#ff4444" transparent opacity={0.5}/></mesh><ErrorBoundary fallback={<FallbackCamera pos={[0,0,0]} tgt={[0,0,-3]}/>}><Suspense fallback={null}><CameraGLB pos={[0,0,0]} tgt={[0,0,-3]}/></Suspense></ErrorBoundary></>:
+        obj.type==='camera'?<><mesh rotation={[-Math.PI/2,0,0]} position={[0,0.2,-0.6]}><cylinderGeometry args={[0.01,0.01,1,8]}/><meshBasicMaterial color="#ff4444" transparent opacity={0.6}/></mesh><mesh position={[0,0,-3]}><sphereGeometry args={[0.08,8,8]}/><meshBasicMaterial color="#ff4444" transparent opacity={0.5}/></mesh><ErrorBoundary fallback={<FallbackCamera pos={[0,0,0]} tgt={[0,0,-3]}/>}><Suspense fallback={null}><CameraGLB pos={[0,0,0]} tgt={[0,0,-3]}/></Suspense></ErrorBoundary><Text position={[0,1.2,0]} fontSize={0.35} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000000">{(()=>{const idx=objects.filter(o=>o.type==='camera').findIndex(x=>x.id===obj.id);return'机位'+(idx+1);})()}</Text></>:
         <mesh>{obj.type==='box'&&<boxGeometry/>}{obj.type==='sphere'&&<sphereGeometry args={[0.5,28,28]}/>}{obj.type==='cylinder'&&<cylinderGeometry args={[0.5,0.5,1,24]}/>}{obj.type==='plane'&&<planeGeometry/>}<meshStandardMaterial color={obj.color||'#8899aa'} roughness={0.35} metalness={0.25}/></mesh>}
       </group>
       {sel&&<lineSegments position={obj.position} rotation={obj.rotation}><edgesGeometry args={[new THREE.BoxGeometry(0.6,0.6,0.6)]}/><lineBasicMaterial color="#60a0ff" opacity={0.8} transparent/></lineSegments>}
