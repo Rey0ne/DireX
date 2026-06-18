@@ -198,7 +198,7 @@ function FullscreenEditor({objects,selectedId,setObjects,setSelectedId,onSnapsho
         </Canvas>:<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'rgba(255,255,255,0.15)',fontSize:12,background:'#1a1a1a'}}>请添加相机</div>}
         {showCam&&<div style={{position:'absolute',inset:0,pointerEvents:'none',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:'80%',height:'80%',border:'1px solid rgba(255,255,255,0.3)'}}/></div>}
       </div>
-    </div>}
+    </div>
         {rig&&<div style={{position:'absolute',bottom:0,left:210,right:showCam?376:8,zIndex:101,background:'rgba(0,0,0,0.85)',borderTop:'1px solid rgba(255,255,255,0.1)',padding:'6px 14px',height:Math.max(timelineH,80+rig.animTracks.length*24),overflow:'hidden'}}>
       <div style={{position:'absolute',top:-3,left:'50%',transform:'translateX(-50%)',width:40,height:6,background:'rgba(255,255,255,0.3)',borderRadius:3,cursor:'ns-resize',zIndex:102}}
         onMouseDown={e=>{e.preventDefault();const sY=e.clientY,sH=timelineH;const mv=(me)=>{setTimelineH(Math.max(60,Math.min(300,sH+(sY-me.clientY))));};const up=()=>{window.removeEventListener('mousemove',mv);window.removeEventListener('mouseup',up);};window.addEventListener('mousemove',mv);window.addEventListener('mouseup',up);}}/>
