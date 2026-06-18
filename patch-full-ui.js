@@ -8,7 +8,7 @@ const origLen = c.length;
 // After: const camNames=useRef<Map<string,string>>(new Map());
 const camNamesLine = "const camNames=useRef<Map<string,string>>(new Map());";
 const addState = "const[trackDur,setTrackDur]=useState(15);const[rigCamId,setRigCamId]=useState('');";
-if (!c.includes('trackDur')) {
+if (!c.includes('setTrackDur=useState')) {
   c = c.replace(camNamesLine, camNamesLine + addState);
   console.log('0. Added trackDur + rigCamId state');
 }
