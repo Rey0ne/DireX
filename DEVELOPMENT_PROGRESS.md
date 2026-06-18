@@ -249,3 +249,35 @@ direx-isolated/
 ```
 继续 DireX 开发，先读 DEVELOPMENT_PROGRESS.md
 ```
+
+---
+
+## 十、上下文窗口预警 🚨
+
+### 预警阈值
+| 用量 | 状态 | 建议操作 |
+|------|------|----------|
+| < 200K tokens | 🟢 安全 | 正常开发 |
+| 200K - 350K | 🟡 注意 | 准备保存节点，整理进度文档 |
+| 350K - 450K | 🟠 警告 | 完成当前任务即保存，准备新开窗口 |
+| > 450K | 🔴 危险 | 立即保存，**不要开始新任务**，新开窗口 |
+
+### 检查方法
+在新对话中随时问我：
+```
+当前上下文用了多少？
+```
+
+### 保存清单（达到 🟡 时执行）
+1. 确保最新代码已 commit: `git add -A && git commit -m "Chore: 保存进度"`
+2. 更新 DEVELOPMENT_PROGRESS.md（本文件）
+3. 更新 C:\Users\ROG\.claude\projects\c--Users-ROG-tapnow-canvas\memory\task-backlog.md
+4. 备份 Scene3DNode.tsx: `cp Scene3DNode.tsx Scene3DNode.tsx.bak.$(date +%Y%m%d-%H%M)`
+
+### 新开窗口恢复
+```
+继续 DireX 开发。
+工作目录: C:\Users\ROG\direx-isolated
+分支: direx-dev
+先读 DEVELOPMENT_PROGRESS.md 了解进度
+```
