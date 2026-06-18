@@ -16,8 +16,8 @@ export function ModelPanel({ objects, selectedId, onSelect, onImport, onDeleteSe
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <div style={{ position:'absolute', bottom:0, left:8, zIndex:103, width:260, height:408,
-      display:'flex', flexDirection:'column', pointerEvents:'all', background:'#141416' }}>
+    <div style={{ width:260, height:'100%',
+      display:'flex', flexDirection:'column', pointerEvents:'all', background:'#141416', flexShrink:0 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 10px', flexShrink:0 }}>
         <span style={{ fontSize:14, color:'#fff', fontWeight:700 }}>模型</span>
         <div style={{ display:'flex', gap:6 }}>
