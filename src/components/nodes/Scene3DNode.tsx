@@ -8,7 +8,7 @@ import{Sky}from'three/examples/jsm/objects/Sky';
 import{FBXLoader}from'three/examples/jsm/loaders/FBXLoader';
 import{mergeGeometries}from'three/examples/jsm/utils/BufferGeometryUtils.js';
 import*as THREE from'three';
-const animMixers=new Map<string,THREE.AnimationMixer>();let animTime=0;let animPlaying=false;let animSpeed=0.7;
+const animMixers=new Map<string,THREE.AnimationMixer>();let animTime=0;let animPlaying=false;let animSpeed=0.7;let _oid=Date.now();
 import{ColorPicker}from'../../components/ColorPicker';
 import{useCanvasStore}from'../../store/useCanvasStore';
 
