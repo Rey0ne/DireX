@@ -196,6 +196,12 @@
   50% { opacity: 1; }
 }
 
+/* ─── 选中节点呼吸光 ─── */
+@keyframes direx-light-rim {
+  0%,100% { box-shadow: 0 0 12px rgba(94,234,212,0.12), 0 0 32px rgba(94,234,212,0.04); }
+  50% { box-shadow: 0 0 24px rgba(94,234,212,0.28), 0 0 56px rgba(94,234,212,0.10); }
+}
+
 .direx-node-selected {
   animation: direx-light-rim 5s ease-in-out infinite;
 }
