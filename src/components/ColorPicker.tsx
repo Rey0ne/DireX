@@ -1,5 +1,5 @@
 /* === ColorPicker — PS style hue/SV selector === */
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 interface ColorPickerProps {
   initialColor: string;
@@ -38,110 +38,68 @@ function hsvToHex(h: number, s: number, v: number): string {
     case 5: r = v; g = p; b = q; break;
   }
   const toHex = (n: number) => Math.round(n * 255).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
 export function ColorPicker({ initialColor, onConfirm, onClose }: ColorPickerProps) {
   const [hsv, setHsv] = useState(() => hexToHsv(initialColor));
   const [hex, setHex] = useState(initialColor);
   const svRef = useRef<HTMLDivElement>(null);
+  const hueRef = useRef<HTMLDivElement>(null);
 
-  const updateFromSV = useCallback((e: React.MouseEvent) => {
-    const rect = svRef.current!.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
-    const newHex = hsvToHex(hsv[0], x, y);
-    setHsv([hsv[0], x, y]);
-    setHex(newHex);
+  const updateSV = useCallback((clientX: number, clientY: number) => {
+    const el = svRef.current; if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const s = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const v = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height));
+    const h = hsv[0];
+    const newHex = hsvToHex(h, s, v);
+    setHsv([h, s, v]); setHex(newHex);
   }, [hsv]);
 
-  const updateHue = useCallback((e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = Math.max(0, Math.min(360, ((e.clientX - rect.left) / rect.width) * 360));
-    const newHex = hsvToHex(x, hsv[1], hsv[2]);
-    setHsv([x, hsv[1], hsv[2]]);
-    setHex(newHex);
+  const updateHue = useCallback((clientX: number) => {
+    const el = hueRef.current; if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const h = Math.max(0, Math.min(360, ((clientX - rect.left) / rect.width) * 360));
+    const newHex = hsvToHex(h, hsv[1], hsv[2]);
+    setHsv([h, hsv[1], hsv[2]]); setHex(newHex);
   }, [hsv]);
 
   const handleHexInput = (value: string) => {
     setHex(value);
-    if (/^#[0-9a-fA-F]{6}$/.test(value)) {
-      setHsv(hexToHsv(value));
-    }
+    if (/^#[0-9a-fA-F]{6}$/.test(value)) setHsv(hexToHsv(value));
+  };
+
+  const svDown = (e: React.MouseEvent) => {
+    updateSV(e.clientX, e.clientY);
+    const mv = (me: MouseEvent) => updateSV(me.clientX, me.clientY);
+    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+  };
+  const hueDown = (e: React.MouseEvent) => {
+    updateHue(e.clientX);
+    const mv = (me: MouseEvent) => updateHue(me.clientX);
+    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-    }} onClick={onClose}>
-      <div style={{
-        width: 280, padding: 16, borderRadius: 12,
-        background: 'rgba(24,26,30,0.97)', border: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex', flexDirection: 'column', gap: 12,
-      }} onClick={e => e.stopPropagation()}>
-        {/* SV square */}
-        <div ref={svRef} onMouseDown={e => { updateFromSV(e);
-          const mv = (me: MouseEvent) => updateFromSV(me as any);
-          const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
-          window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
-        }} style={{
-          width: '100%', height: 180, borderRadius: 6, cursor: 'crosshair', position: 'relative',
-          background: `linear-gradient(to right, #fff, hsl(${hsv[0]},100%,50%))`,
-        }}>
-          {/* Vertical gradient: white at top, black at bottom */}
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 6,
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,1))' }} />
-          {/* SV cursor */}
-          <div style={{
-            position: 'absolute',
-            left: `${hsv[1] * 100}%`, top: `${(1 - hsv[2]) * 100}%`,
-            width: 14, height: 14, borderRadius: '50%',
-            border: '2px solid #fff', boxShadow: '0 0 4px rgba(0,0,0,0.5)',
-            transform: 'translate(-50%,-50%)', pointerEvents: 'none',
-            background: hex,
-          }} />
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div style={{ width: 280, padding: 16, borderRadius: 12, background: 'rgba(24,26,30,0.97)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }} onClick={e => e.stopPropagation()}>
+        <div ref={svRef} onMouseDown={svDown} style={{ width: '100%', height: 180, borderRadius: 6, cursor: 'crosshair', position: 'relative', background: `linear-gradient(to right, #fff, hsl(${hsv[0]},100%,50%))` }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,1))' }} />
+          <div style={{ position: 'absolute', left: `${hsv[1]*100}%`, top: `${(1-hsv[2])*100}%`, width: 14, height: 14, borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 4px rgba(0,0,0,0.5)', transform: 'translate(-50%,-50%)', pointerEvents: 'none', background: hex }} />
         </div>
-
-        {/* Hue bar */}
-        <div onMouseDown={e => { updateHue(e);
-          const mv = (me: MouseEvent) => updateHue(me as any);
-          const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
-          window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
-        }} style={{
-          width: '100%', height: 14, borderRadius: 7, cursor: 'pointer', position: 'relative',
-          background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)',
-        }}>
-          <div style={{
-            position: 'absolute', left: `${(hsv[0] / 360) * 100}%`, top: -2,
-            width: 18, height: 18, borderRadius: '50%',
-            border: '2px solid #fff', boxShadow: '0 0 4px rgba(0,0,0,0.5)',
-            transform: 'translateX(-50%)', pointerEvents: 'none',
-          }} />
+        <div ref={hueRef} onMouseDown={hueDown} style={{ width: '100%', height: 14, borderRadius: 7, cursor: 'pointer', position: 'relative', background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)' }}>
+          <div style={{ position: 'absolute', left: `${(hsv[0]/360)*100}%`, top: -2, width: 18, height: 18, borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 4px rgba(0,0,0,0.5)', transform: 'translateX(-50%)', pointerEvents: 'none' }} />
         </div>
-
-        {/* Preview + Hex input */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ width: 36, height: 36, borderRadius: 6, background: hex, border: '1px solid rgba(255,255,255,0.1)' }} />
-          <input value={hex} onChange={e => handleHexInput(e.target.value)}
-            style={{
-              flex: 1, padding: '6px 10px', borderRadius: 6,
-              background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', fontSize: 13, fontFamily: 'monospace', outline: 'none',
-            }} />
+          <input value={hex} onChange={e => handleHexInput(e.target.value)} style={{ flex: 1, padding: '6px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: 13, fontFamily: 'monospace', outline: 'none' }} />
         </div>
-
-        {/* Buttons */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{
-            padding: '8px 16px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.04)', color: '#ccc', cursor: 'pointer', fontSize: 12,
-          }}>取消</button>
-          <button onClick={() => { onConfirm(hex); onClose(); }} style={{
-            padding: '8px 24px', borderRadius: 6, border: 'none',
-            background: '#5EEAD4', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-          }}>确认</button>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#ccc', cursor: 'pointer', fontSize: 12 }}>取消</button>
+          <button onClick={() => { onConfirm(hex); onClose(); }} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: '#5EEAD4', color: '#000', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>确认</button>
         </div>
       </div>
     </div>
