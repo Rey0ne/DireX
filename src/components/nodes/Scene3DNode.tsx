@@ -125,7 +125,7 @@ function FullscreenEditor({objects,selectedId,setObjects,setSelectedId,onSnapsho
   },[]);
   const getTrackCamera=useCallback((prog:number):any=>{
     const r=rigRef.current;if(!r)return null;
-    const sc=r.speedCurve.sort((a,b)=>a.time-b.time);
+    const sc=r.speedCurve.sort((a,b)=>a.time-b.time);const maxSp=sc.length>0?Math.max(...sc.map(k=>k.speed)):1;
     let sp=1;const targetTime=prog*r.duration;
     if(sc.length>=2){let i0=0;for(let i=1;i<sc.length;i++){if(sc[i].time<=targetTime)i0=i;else break;}let i1=Math.min(i0+1,sc.length-1);const st=sc[i1].time>sc[i0].time?(targetTime-sc[i0].time)/(sc[i1].time-sc[i0].time):0;sp=sc[i0].speed+(sc[i1].speed-sc[i0].speed)*st;}
     else if(sc.length===1)sp=sc[0].speed;
