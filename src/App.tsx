@@ -830,6 +830,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
+        proOptions={{ hideAttribution: true }}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
