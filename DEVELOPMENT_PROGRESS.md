@@ -281,3 +281,38 @@ direx-isolated/
 分支: direx-dev
 先读 DEVELOPMENT_PROGRESS.md 了解进度
 ```
+
+---
+
+## 2026-06-19 更新
+
+### 景深系统 (Depth of Field)
+- PiP 取景器集成 `@react-three/postprocessing` DepthOfField
+- 物理公式: `bokehScale = (3/光圈) × (焦段/35) × (40/距离²)` 上限18
+- 光圈T1.3→强虚化, T22→全景深
+- 焦段24mm→深景深, 135mm→浅景深（符合真实光学）
+- 距离越近景深越浅（50/d² 平方衰减）
+- 焦平面平滑lerp 0.25，消除帧间跳动
+- playTime更新500ms→30ms，消除0.5s闪烁
+
+### 地面
+- 主画面：40×40棋盘格，`#c0c0c0`/`#b0b0b8`，保留ExtrudeGeometry倒角
+- PiP：低对比棋盘格CanvasTexture，带砖缝线
+- 阴影恢复soft，地砖1600块(40×40)
+
+### 色彩系统
+- FBX/GLB模型支持颜色着色 (tintModel遍历材质clone)
+- 全链路传递color: LODFigure→SafeModel→FBXModel/GLBModel→PiPFigure
+
+### PiP录制
+- DPR固定2x (1360×760)
+- 视频码率20Mbps
+- 输出到video.generate节点
+
+### 其他修复
+- ReactFlow水印隐藏
+- 相机初始位置统一[0,0.5,0]（地面中央）
+- 模型刷新后base64持久化不丢失
+- 全模型投射阴影
+- auth路由注册修复
+- 测试账号 test@direx.io / direx888
