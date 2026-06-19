@@ -478,7 +478,7 @@ async function runAgent(
     }
   }
 
-  const userMessage = '用户需求: ' + context.userInput +
+  const userMessage = profile.systemPrompt + '\n\n用户需求: ' + context.userInput +
     '\n目标模型: ' + context.model +
     '\n模式: ' + (context.mode || 'text-to-image') +
     (context.referenceUrls?.length ? '\n参考图片数量: ' + context.referenceUrls.length : '') +
@@ -488,13 +488,11 @@ async function runAgent(
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   const gptMsgs = [
-    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
-  if (!output) {
-    // Retry once with GPT-5-4 before falling back
-    await new Promise(r => setTimeout(r, 2000));
+  for (let retry = 0; !output && retry < 3; retry++) {
+    await new Promise(r => setTimeout(r, 3000));
     output = await gpt5Chat(gptMsgs, { effort: 'high' });
   }
   return {
@@ -511,12 +509,6 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   const outputs: Record<string, string> = {};
 
   console.log('[pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
-
-  // Warmup: first Kie call often fails — make a throwaway call to prime the connection
-  await gpt5Chat([
-    { role: 'system', content: [{ type: 'input_text' as const, text: 'ping' }] },
-    { role: 'user', content: [{ type: 'input_text' as const, text: 'pong' }] },
-  ], { effort: 'low' });
 
   // Pre-process: analyze reference images with Gemini Vision
   if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
