@@ -90,7 +90,21 @@ export async function gpt5Chat(
           console.log('[gpt5] Error:', errMsg);
           return null;
         }
-      } catch { /* fall through to SSE parsing */ }
+      } catch { /* fall through to alternative parsing */ }
+        // Fallback: try other JSON structures
+        if (data.choices && data.choices[0]?.message?.content) {
+          const t = data.choices[0].message.content;
+          console.log('[gpt5] Choices output ' + t.length + ' chars: ' + t.slice(0, 120));
+          return t;
+        }
+        if (data.content) { console.log('[gpt5] Direct content ' + String(data.content).slice(0, 120)); return String(data.content); }
+        if (data.text) { console.log('[gpt5] Direct text ' + String(data.text).slice(0, 120)); return String(data.text); }
+      }
+      // Not JSON — check if it's plain text output
+      if (raw.length > 20 && !raw.startsWith('{')) {
+        console.log('[gpt5] Plain text output ' + raw.length + ' chars: ' + raw.slice(0, 120));
+        return raw;
+      }
     }
 
     // Parse SSE (Server-Sent Events) response
