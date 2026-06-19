@@ -264,8 +264,9 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   let compiledPrompt = '';
   let agentTrace = [];
   const isVideo = body.providerId === 'kling-video' || body.providerId === 'seedance-2';
-  // Skip agent pipeline if prompt is already English (no need to compile)
-  const isEnglish = /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
+  // Skip agent pipeline if prompt is already English storyboard or pure English (no need to compile)
+  const isStoryboard = userPrompt.startsWith('Professional film storyboard frame');
+  const isEnglish = isStoryboard || /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
 
   // Build camera kit spec string — inject BEFORE any AI compilation
   const cam = (body as any).camera;
