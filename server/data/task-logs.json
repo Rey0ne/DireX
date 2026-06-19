@@ -4892,6 +4892,44 @@
       ],
       "cost": 0.1,
       "durationMs": 241978
+    },
+    {
+      "id": "69a3d80f-cea5-46ec-94b2-0f02a4ab9701",
+      "timestamp": "2026-06-19T07:48:07.255Z",
+      "providerId": "gpt-image2",
+      "prompt": "Professional film storyboard frame.\n\nScene:\nSnow field\n\nShot Type:\nELS\n\nCamera Angle:\nhigh angle\n\nLens:\n24mm\n\nComposition:\nrule of thirds\n\nForeground:\nsnow\n\nMidground:\nwolves\n\nBackground:\nsky\n\nCharacter Blocking:\nlines\n\nAction Beat:\nstandoff\n\nEmotion:\ntense\n\nCamera Movement:\nstatic\n\nCinematic black-and-white storyboard sketch, professional director storyboard, clear visual storytelling, production-ready storyboard panel, single frame.",
+      "compiledPrompt": "Professional film storyboard frame.\n\nScene:\nSnow field\n\nShot Type:\nELS\n\nCamera Angle:\nhigh angle\n\nLens:\n24mm\n\nComposition:\nrule of thirds\n\nForeground:\nsnow\n\nMidground:\nwolves\n\nBackground:\nsky\n\nCharacter Blocking:\nlines\n\nAction Beat:\nstandoff\n\nEmotion:\ntense\n\nCamera Movement:\nstatic\n\nCinematic black-and-white storyboard sketch, professional director storyboard, clear visual storytelling, production-ready storyboard panel, single frame.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/268e6ae4d7666c58a5cf56a8220b4d9b_1781855215_3x085ub0.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121594
+    },
+    {
+      "id": "efaaa5ed-da4a-4d79-91b8-359a3d25daa6",
+      "timestamp": "2026-06-19T07:50:43.593Z",
+      "providerId": "gpt-image2",
+      "prompt": "test prompt in english",
+      "compiledPrompt": "test prompt in english",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/5e5815af62e829aa09e49ff921a0313f_1781855364_tepvtihu.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 121411
+    },
+    {
+      "id": "f9e9b2fe-f5a1-4bb4-aad3-5c5312b523f3",
+      "timestamp": "2026-06-19T07:55:02.457Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] Scene:\n无边雪原被暴风卷成灰白色幕墙，两支狼族阵营在风中拉开距离，中间留出一块被鲜血浸透的雪地，散落着数具倒伏的狼尸，箭杆从皮肉中斜插而出，像一片被战火撕开的冰冷祭场。\n\nShot Type:\nELS\n\nCamera Angle:\nhigh angle\n\nLens:\n24mm\n\nComposition:\nrule of thirds\n\nForeground:\n被风吹出纹路的积雪与半埋在雪中的断箭\n\nMidground:\n染血空地与数只中箭倒地的狼尸\n\nBackground:\n两侧对峙的狼群轮廓与翻滚的雪幕\n\nCharacter Blocking:\n两支队伍分列画面左右，中央无人区横亘其间\n\nAction Beat:\n镜头扫视战场全貌，交代对峙局势与先前伤亡\n\nEmotion:\n肃杀\n\nCamera Movement:\npan right\n\nCinematic black-and-white storyboard sketch,\nprofessional director storyboard,\nclear visual storytelling,\nproduction-ready storyboard panel,\nstoryboard annotations,\nfilm previsualization,\nclean pencil drawing,\nhigh readability,\nsingle frame.",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] Scene:\n无边雪原被暴风卷成灰白色幕墙，两支狼族阵营在风中拉开距离，中间留出一块被鲜血浸透的雪地，散落着数具倒伏的狼尸，箭杆从皮肉中斜插而出，像一片被战火撕开的冰冷祭场。\n\nShot Type:\nELS\n\nCamera Angle:\nhigh angle\n\nLens:\n24mm\n\nComposition:\nrule of thirds\n\nForeground:\n被风吹出纹路的积雪与半埋在雪中的断箭\n\nMidground:\n染血空地与数只中箭倒地的狼尸\n\nBackground:\n两侧对峙的狼群轮廓与翻滚的雪幕\n\nCharacter Blocking:\n两支队伍分列画面左右，中央无人区横亘其间\n\nAction Beat:\n镜头扫视战场全貌，交代对峙局势与先前伤亡\n\nEmotion:\n肃杀\n\nCamera Movement:\npan right\n\nCinematic black-and-white storyboard sketch,\nprofessional director storyboard,\nclear visual storytelling,\nproduction-ready storyboard panel,\nstoryboard annotations,\nfilm previsualization,\nclean pencil drawing,\nhigh readability,\nsingle frame.",
+      "status": "failed",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 122138,
+      "error": "Kie.ai: Generation failed"
     }
   ]
 }
