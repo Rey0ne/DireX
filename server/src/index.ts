@@ -485,14 +485,9 @@ app.post('/api/agent/script/characters', async (_req, res) => {
   res.json({ success: true, characters: {} });
 });
 
-app.post('/api/agent/script/scene', async (req, res) => {
-  const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
-  if (!scene && !scriptExcerpt) { res.status(400).json({ error: 'Missing scene data' }); return; }
-  try {
-    const result = await runAgentPipeline({ userInput: scriptExcerpt || scene.summary || '', model: 'text', mode: 'script-analysis' });
-    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
-    res.json({ success: true, shots });
-  } catch (err) { res.status(500).json({ error: String(err) }); }
+app.post('/api/agent/script/scene', async (_req, res) => {
+  // Shots are already returned by overview — no need to re-run pipeline
+  res.json({ success: true, shots: [] });
 });
 
 // ─── Kie.ai Callback ──────────────────────────
