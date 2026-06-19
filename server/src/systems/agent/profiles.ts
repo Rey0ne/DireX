@@ -334,8 +334,3 @@ export const PROMPT_ARCHITECT: AgentProfile = {
 - 不要省略任何镜头
 - 负向Prompt统一使用: blurry, low quality, deformed, distorted`,
 };
-
-模型适配:
-- GPT Image2 / NanoBanana: 自然语言，强调镜头参数
-- Seedance/Kling: 视频Prompt，强调运动和时间`,
-};
