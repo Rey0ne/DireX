@@ -441,27 +441,29 @@ function parseShotsFromOutput(output: string): any[] {
 
 function extractCharacters(brief: string, scriptText?: string): Record<string, any> {
   const chars: Record<string, any> = {};
-  const source = brief + '\n' + (scriptText || '');
-  // Extract 2-4 char Chinese names near role keywords
-  const roleKW = /(?:女王|国王|公主|王子|战士|首领|叛徒|母亲|女儿|父亲|儿子|手下|随从|将军|法师|猎人|刺客|守卫)/g;
-  const found = new Set<string>();
+  const source = (scriptText || '') + '\n' + brief;
+  // Strategy: find capitalized/parenthesized names and Chinese 2-3 char frequent nouns
+  // 1. Find patterns like "XX（" or "XX：" that look like character names
+  const nameRe = /([一-鿿]{2,4})(?:[：:（(])/g;
   let m;
-  while ((m = roleKW.exec(source)) !== null) {
-    const title = m[0];
-    if (!chars[title]) {
-      // Find context around this title
-      const idx = m.index;
-      const ctx = source.slice(Math.max(0, idx - 30), idx + 80);
-      chars[title] = ctx.replace(/\n/g, ' ').trim();
-    }
-  }
-  // Also look for 2-3 char Chinese names followed by descriptions
-  const nameRe = /([一-鿿]{2,3})(?:[:：]\s*|\s*[是为的])/g;
   while ((m = nameRe.exec(source)) !== null) {
-    const name = m[0].replace(/[:：\s是为的]/g, '');
-    if (name.length >= 2 && !name.match(/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有)/) && !chars[name]) {
+    const name = m[1];
+    // Filter out common non-name words
+    if (!/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有|应该|必须|可能|需要|那么|这样|那样|怎么|哪里|为什么|的话|场景|镜头|光线|色彩|风格|导演|参考|情绪|功能|符号|空间|声音|节奏|画面|镜头|故事|表面|深层|核心|冲突|欲望|阻碍|结局|获得|牺牲|主题|曲线|高潮|低谷|转折|分析|设计|逻辑|阐述|体系|叙事|爆点|结尾|信息|动作|高潮|重复|变化|留白|检查|笔记|母题|原则|方案)$/.test(name) && !chars[name]) {
       chars[name] = '';
     }
+  }
+  // 2. Fallback: extract all unique 2-3 char combinations appearing 2+ times in script
+  if (Object.keys(chars).length === 0 && scriptText) {
+    const words = new Map<string, number>();
+    for (let i = 0; i < scriptText.length - 1; i++) {
+      for (let len = 2; len <= 3; len++) {
+        const w = scriptText.slice(i, i + len);
+        if (/^[一-鿿]+$/.test(w)) words.set(w, (words.get(w) || 0) + 1);
+      }
+    }
+    const common = [...words.entries()].filter(([,c]) => c >= 2).sort((a,b) => b[1]-a[1]).slice(0, 20);
+    common.forEach(([w]) => { if (!chars[w]) chars[w] = ''; });
   }
   return chars;
 }
