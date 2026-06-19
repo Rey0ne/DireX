@@ -478,20 +478,23 @@ async function runAgent(
     }
   }
 
-  const userMessage = '用户需求: ' + context.userInput +
+  const userMessage = profile.systemPrompt + '\n\n=== 用户需求 ===\n' + context.userInput +
     '\n目标模型: ' + context.model +
     '\n模式: ' + (context.mode || 'text-to-image') +
     (context.referenceUrls?.length ? '\n参考图片数量: ' + context.referenceUrls.length : '') +
     contextBlock +
-    refBlock +
-    '\n\n请按照你的角色职责输出。';
+    refBlock;
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   const gptMsgs = [
-    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
+  if (!output) {
+    console.log('[pipeline] Retrying ' + profile.name + ' after 3s...');
+    await new Promise(r => setTimeout(r, 3000));
+    output = await gpt5Chat(gptMsgs, { effort: 'high' });
+  }
   return {
     agentId: profile.id,
     agentName: profile.name,
@@ -516,6 +519,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
 
   try {
     console.log('[pipeline] Step 1: Director (Creative+Art+Storyboard merged)');
+    await new Promise(r => setTimeout(r, 2000)); // Rate limit delay
     const cp = await runAgent(CREATIVE_PRODUCER, context, outputs);
     outputs['creative-producer'] = cp.output; trace.push(cp);
     // Parse merged output into 3 parts
@@ -525,6 +529,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
     const shots = parts[2] || '';
 
     console.log('[pipeline] Step 2: Prompt Architect');
+    await new Promise(r => setTimeout(r, 2000)); // Rate limit delay
     const pa = await runAgent(PROMPT_ARCHITECT, context, { ...outputs, 'storyboard-director': shots });
     outputs['prompt-architect'] = pa.output; trace.push(pa);
 
@@ -543,7 +548,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
     console.error('[pipeline] Error:', err);
     return {
       creativeBrief: '', visualBible: '', storyboard: '',
-      modelPrompt: context.userInput,
+      modelPrompt: context.userInput, fullPromptOutput: '',
       trace, totalDurationMs: Date.now() - t0,
     };
   }
