@@ -322,40 +322,40 @@ export const PROMPT_ARCHITECT: AgentProfile = {
 Professional film storyboard frame.
 
 Scene:
-{详细的场景描述，必须原创，不能复制剧本原文}
+[详细的场景描述，中文]
 
 Shot Type:
-{ELS / WS / MS / MCU / CU / ECU}
+ELS / WS / MS / MCU / CU / ECU
 
 Camera Angle:
-{eye level / low angle / high angle / bird's eye / worm's eye}
+eye level / low angle / high angle / bird's eye / worm's eye
 
 Lens:
-{24mm / 35mm / 50mm / 85mm / 135mm}
+24mm / 35mm / 50mm / 85mm / 135mm
 
 Composition:
-{rule of thirds / centered composition / symmetrical composition / diagonal composition}
+rule of thirds / centered composition / symmetrical composition / diagonal composition
 
 Foreground:
-{前景的具体元素}
+[前景元素]
 
 Midground:
-{画面的主体内容}
+[主体内容]
 
 Background:
-{背景的具体元素}
+[背景元素]
 
 Character Blocking:
-{人物的位置与站位关系}
+[人物站位]
 
 Action Beat:
-{这一镜发生的关键动作}
+[关键动作]
 
 Emotion:
-{这一镜传达的情绪}
+[情绪]
 
 Camera Movement:
-{static / dolly in / dolly out / pan left / pan right / crane up / crane down / handheld}
+static / dolly in / dolly out / pan left / pan right / crane up / crane down / handheld
 
 Cinematic black-and-white storyboard sketch,
 professional director storyboard,
@@ -371,7 +371,7 @@ single frame.
 铁律：
 - 每个镜号输出一个完整的上述模板
 - 每个模板之间用三个等号分隔：===
-- Scene必须用中文详细描述，禁止复制剧本原文
-- 所有选项从给定的枚举值中选择
+- [ ] 内的内容必须用中文填写实际值
+- 枚举项从给定列表中选择一个，不要保留列表原文
 - 不遗漏任何镜号`,
 };
