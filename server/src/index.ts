@@ -439,26 +439,29 @@ function parseShotsFromOutput(output: string): any[] {
   });
 }
 
-function extractCharacters(brief: string): Record<string, any> {
+function extractCharacters(brief: string, scriptText?: string): Record<string, any> {
   const chars: Record<string, any> = {};
-  // Match lines like "**角色名**: description" or "- 角色名: description"
-  const re = /(?:^|\n)(?:\*\*|[-*]\s*|\d+\.\s*)([^\n:：]{2,12})(?:[:：]\s*)([^\n]{10,200})/gm;
+  const source = brief + '\n' + (scriptText || '');
+  // Extract 2-4 char Chinese names near role keywords
+  const roleKW = /(?:女王|国王|公主|王子|战士|首领|叛徒|母亲|女儿|父亲|儿子|手下|随从|将军|法师|猎人|刺客|守卫)/g;
+  const found = new Set<string>();
   let m;
-  while ((m = re.exec(brief)) !== null) {
-    const name = m[1].replace(/[*#\s]/g, '').trim();
-    if (name && name.length >= 2 && !name.match(/^(主题|核心|场景|镜头|风格|光线|色彩|导演|参考|第.|情绪|功能|符号|空间|声音|节奏)/)) {
-      chars[name] = m[2].trim();
+  while ((m = roleKW.exec(source)) !== null) {
+    const title = m[0];
+    if (!chars[title]) {
+      // Find context around this title
+      const idx = m.index;
+      const ctx = source.slice(Math.max(0, idx - 30), idx + 80);
+      chars[title] = ctx.replace(/\n/g, ' ').trim();
     }
   }
-  if (Object.keys(chars).length === 0) {
-    // Fallback: try simpler pattern
-    const lines = brief.split('\n').filter(l => l.includes(':') && l.length < 120);
-    lines.forEach(l => {
-      const parts = l.split(/[:：]/);
-      if (parts.length === 2 && parts[0].length >= 2 && parts[0].length <= 10 && parts[1].length >= 5) {
-        chars[parts[0].trim()] = parts[1].trim();
-      }
-    });
+  // Also look for 2-3 char Chinese names followed by descriptions
+  const nameRe = /([一-鿿]{2,3})(?:[:：]\s*|\s*[是为的])/g;
+  while ((m = nameRe.exec(source)) !== null) {
+    const name = m[0].replace(/[:：\s是为的]/g, '');
+    if (name.length >= 2 && !name.match(/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有)/) && !chars[name]) {
+      chars[name] = '';
+    }
   }
   return chars;
 }
@@ -470,7 +473,7 @@ app.post('/api/agent/script/overview', async (req, res) => {
     const result = await runAgentPipeline({ userInput: scriptText, model: 'text', mode: 'script-analysis' });
     const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
     const scenes = [{ sceneNumber: 1, sceneHeader: '全剧本', location: '', timeOfDay: '', characters: [], sceneType: '', summary: '', estimatedShots: shots.length, dramaticCore: '' }];
-    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: extractCharacters(result.creativeBrief) });
+    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: extractCharacters(result.creativeBrief, scriptText) });
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
