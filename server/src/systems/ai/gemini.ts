@@ -60,7 +60,7 @@ export async function gpt5Chat(
     const url = 'https://api.kie.ai/codex/v1/responses';
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
     console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
-    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 120000); fetchOpts.signal = ac.signal;
+    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 300000); fetchOpts.signal = ac.signal;
     const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
     if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
 
