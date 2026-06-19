@@ -68,43 +68,29 @@ export async function gpt5Chat(
 
     // Try JSON first (non-streaming or completed response)
     if (raw.trim().startsWith('{')) {
-      try {
-        const data = JSON.parse(raw);
-        if (data.output && Array.isArray(data.output)) {
-          const texts: string[] = [];
-          for (const o of data.output) {
-            if (o.content && Array.isArray(o.content)) {
-              for (const c of o.content) {
-                if (c.text) texts.push(c.text);
-              }
-            }
-          }
-          const outputText = texts.join('').trim();
-          if (outputText) {
-            console.log('[gpt5] JSON output ' + outputText.length + ' chars, credits=' + (data.credits_consumed || '?') + ': ' + outputText.slice(0, 120));
-            return outputText;
-          }
+      let data: any;
+      try { data = JSON.parse(raw); }
+      catch { console.log('[gpt5] JSON parse failed, raw len=' + raw.length); return null; }
+
+      if (data.output && Array.isArray(data.output)) {
+        const texts: string[] = [];
+        for (const o of data.output) {
+          if (o.content && Array.isArray(o.content))
+            for (const c of o.content) if (c.text) texts.push(c.text);
         }
-        if (data.status === 'failed' || data.error) {
-          const errMsg = data.error?.message || data.error?.type || JSON.stringify(data.error || data).slice(0, 200);
-          console.log('[gpt5] Error:', errMsg);
-          return null;
-        }
-      } catch { /* fall through to alternative parsing */ }
-        // Fallback: try other JSON structures
-        if (data.choices && data.choices[0]?.message?.content) {
-          const t = data.choices[0].message.content;
-          console.log('[gpt5] Choices output ' + t.length + ' chars: ' + t.slice(0, 120));
-          return t;
-        }
-        if (data.content) { console.log('[gpt5] Direct content ' + String(data.content).slice(0, 120)); return String(data.content); }
-        if (data.text) { console.log('[gpt5] Direct text ' + String(data.text).slice(0, 120)); return String(data.text); }
+        const outputText = texts.join('').trim();
+        if (outputText) { console.log('[gpt5] Output ' + outputText.length + ' chars'); return outputText; }
       }
-      // Not JSON — check if it's plain text output
-      if (raw.length > 20 && !raw.startsWith('{')) {
-        console.log('[gpt5] Plain text output ' + raw.length + ' chars: ' + raw.slice(0, 120));
-        return raw;
+      if (data.choices && data.choices[0]?.message?.content)
+        return data.choices[0].message.content;
+      if (data.content) return String(data.content);
+      if (data.text) return String(data.text);
+      if (data.status === 'failed' || data.error) {
+        console.log('[gpt5] Error:', JSON.stringify(data.error || data).slice(0, 200));
+        return null;
       }
+      console.log('[gpt5] Unknown JSON format:', JSON.stringify(data).slice(0, 300));
+      return null;
     }
 
     // Parse SSE (Server-Sent Events) response
