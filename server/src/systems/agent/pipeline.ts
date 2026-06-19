@@ -515,28 +515,25 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   }
 
   try {
-    console.log('[pipeline] Step 1: Creative Producer');
+    console.log('[pipeline] Step 1: Director (Creative+Art+Storyboard merged)');
     const cp = await runAgent(CREATIVE_PRODUCER, context, outputs);
     outputs['creative-producer'] = cp.output; trace.push(cp);
+    // Parse merged output into 3 parts
+    const parts = cp.output.split(/===PART\d+:/g).filter(s => s.trim().length > 10);
+    const brief = parts[0] || cp.output;
+    const bible = parts[1] || '';
+    const shots = parts[2] || '';
 
-    console.log('[pipeline] Step 2: Art Director');
-    const ad = await runAgent(ART_DIRECTOR, context, outputs);
-    outputs['art-director'] = ad.output; trace.push(ad);
-
-    console.log('[pipeline] Step 3: Storyboard Director');
-    const sd = await runAgent(STORYBOARD_DIRECTOR, context, outputs);
-    outputs['storyboard-director'] = sd.output; trace.push(sd);
-
-    console.log('[pipeline] Step 4: Prompt Architect');
-    const pa = await runAgent(PROMPT_ARCHITECT, context, outputs);
+    console.log('[pipeline] Step 2: Prompt Architect');
+    const pa = await runAgent(PROMPT_ARCHITECT, context, { ...outputs, 'storyboard-director': shots });
     outputs['prompt-architect'] = pa.output; trace.push(pa);
 
     console.log('[pipeline] Complete in ' + (Date.now() - t0) + 'ms');
 
     return {
-      creativeBrief: cp.output,
-      visualBible: ad.output,
-      storyboard: sd.output,
+      creativeBrief: brief,
+      visualBible: bible,
+      storyboard: shots,
       modelPrompt: extractModelPrompt(pa.output),
       fullPromptOutput: pa.output,
       trace,
