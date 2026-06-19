@@ -518,6 +518,11 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   }
 
   try {
+    // Run Prompt Architect first as it's more reliable
+    console.log('[pipeline] Step 0: Prompt Architect (pre-run for Director)');
+    const paPre = await runAgent(PROMPT_ARCHITECT, context, outputs);
+    outputs['prompt-architect'] = paPre.output; trace.push(paPre);
+
     console.log('[pipeline] Step 1: Director (Creative+Art+Storyboard merged)');
     const cp = await runAgent(CREATIVE_PRODUCER, context, outputs);
     outputs['creative-producer'] = cp.output; trace.push(cp);
@@ -527,7 +532,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
     const bible = parts[1] || '';
     const shots = parts[2] || '';
 
-    console.log('[pipeline] Step 2: Prompt Architect');
+    console.log('[pipeline] Step 2: Prompt Architect (final)');
     const pa = await runAgent(PROMPT_ARCHITECT, context, { ...outputs, 'storyboard-director': shots });
     outputs['prompt-architect'] = pa.output; trace.push(pa);
 
