@@ -29,6 +29,22 @@ app.use(express.json({ limit: '50mb' }));
 app.get('/api/proxy-image', async (req, res) => proxyAsset(req, res));
 app.get('/api/proxy-video', async (req, res) => proxyAsset(req, res));
 
+// Model storage — save to disk, serve statically
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
+const MODELS_DIR = path.join(process.cwd(), 'data', 'models');
+fs.mkdirSync(MODELS_DIR, { recursive: true });
+const upload = multer({ storage: multer.diskStorage({
+  destination: MODELS_DIR,
+  filename: (_req, file, cb) => { const ext = path.extname(file.originalname); cb(null, Date.now() + '_' + Math.random().toString(36).slice(2,8) + ext); }
+}), limits: { fileSize: 200 * 1024 * 1024 } }); // 200MB limit
+app.post('/api/models/upload', upload.single('model'), (req, res) => {
+  if (!req.file) { res.status(400).json({ error: 'No file' }); return; }
+  res.json({ success: true, path: '/api/models/' + req.file.filename, name: req.file.originalname });
+});
+app.use('/api/models', express.static(MODELS_DIR));
+
 async function proxyAsset(req: Request, res: Response) {
   const url = req.query.url as string;
   if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
