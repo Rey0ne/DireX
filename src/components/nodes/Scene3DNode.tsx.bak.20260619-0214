@@ -115,7 +115,7 @@ function FullscreenEditor({objects,selectedId,setObjects,setSelectedId,onSnapsho
   const[zoom,setZoom]=useState(60);
   const rigRef=useRef(rig);rigRef.current=rig;
   const[lookTarget,setLookTarget]=useState<Vec3|null>(null);const onSetLookTarget=useCallback((pos:Vec3|null,modelId?:string)=>{setLookTarget(pos);setTrackModelId(modelId||null);if(!pos)setTrackCpId(null);},[]);
-  const[activeAnimModel,setActiveAnimModel]=useState<string|null>(null);useEffect(()=>{if(playing)return;if((trackMode==='focus'||trackMode==='speed')&&trackModelId&&activeCamRef.current){const obj=objects.find(o=>o.id===trackModelId);if(obj){activeCamRef.current.lookAt(new THREE.Vector3(...obj.position));}}},[trackMode,trackModelId,objects,playing]);
+  const[activeAnimModel,setActiveAnimModel]=useState<string|null>(null);useEffect(()=>{if((trackMode==='focus'||trackMode==='speed')&&trackModelId&&activeCamRef.current){const obj=objects.find(o=>o.id===trackModelId);if(obj){activeCamRef.current.lookAt(new THREE.Vector3(...obj.position));}}},[trackMode,trackModelId,objects]);
   const lookTargetRef=useRef<THREE.Mesh>(null);
   const _pool=useRef({cv:new THREE.Vector3(),cv2:new THREE.Vector3(),cv3:new THREE.Vector3(),camRes:{pos:new THREE.Vector3(),look:new THREE.Vector3(),pitch:0 as number|undefined,yaw:0 as number|undefined},lastCurve:null as THREE.CatmullRomCurve3|null,lastCurveKey:''});const{current:P}=_pool;
   const snapToTrack=useCallback((pos:THREE.Vector3):THREE.Vector3|null=>{
