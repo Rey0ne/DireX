@@ -488,7 +488,7 @@ async function runAgent(
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   const gptMsgs = [
-    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
+    { role: 'developer' as const, content: [{ type: 'input_text' as const, text: profile.systemPrompt }] },
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
@@ -543,7 +543,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
     console.error('[pipeline] Error:', err);
     return {
       creativeBrief: '', visualBible: '', storyboard: '',
-      modelPrompt: context.userInput,
+      modelPrompt: context.userInput, fullPromptOutput: '',
       trace, totalDurationMs: Date.now() - t0,
     };
   }
