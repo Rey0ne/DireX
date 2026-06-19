@@ -478,17 +478,15 @@ async function runAgent(
     }
   }
 
-  const userMessage = '用户需求: ' + context.userInput +
+  const userMessage = profile.systemPrompt + '\n\n=== 用户需求 ===\n' + context.userInput +
     '\n目标模型: ' + context.model +
     '\n模式: ' + (context.mode || 'text-to-image') +
     (context.referenceUrls?.length ? '\n参考图片数量: ' + context.referenceUrls.length : '') +
     contextBlock +
-    refBlock +
-    '\n\n请按照你的角色职责输出。';
+    refBlock;
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   const gptMsgs = [
-    { role: 'developer' as const, content: [{ type: 'input_text' as const, text: profile.systemPrompt }] },
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
