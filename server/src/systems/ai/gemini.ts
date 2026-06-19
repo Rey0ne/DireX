@@ -46,7 +46,6 @@ export async function gpt5Chat(
       input: messages,
       stream: false,
       reasoning: { effort: opts?.effort || 'high' },
-      max_output_tokens: 8000,
     };
     if (opts?.stream !== undefined) body.stream = opts.stream;
 
