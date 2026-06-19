@@ -491,6 +491,7 @@ async function runAgent(
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
+  if (!output) { await new Promise(r => setTimeout(r, 2000)); output = await gpt5Chat(gptMsgs, { effort: 'high' }); }
   return {
     agentId: profile.id,
     agentName: profile.name,
