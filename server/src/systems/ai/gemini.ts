@@ -46,6 +46,7 @@ export async function gpt5Chat(
       input: messages,
       stream: false,
       reasoning: { effort: opts?.effort || 'high' },
+      max_output_tokens: 8000,
     };
     if (opts?.stream !== undefined) body.stream = opts.stream;
 
@@ -136,7 +137,7 @@ export async function gpt5Chat(
 export async function geminiChat(
   systemPrompt: string,
   userContent: string,
-  maxTokens: number = 600
+  maxTokens: number = 4000
 ): Promise<string | null> {
   // Safety: truncate userContent if total input exceeds model context limit
   const sysTokens = estimateTokens(systemPrompt);
