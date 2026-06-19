@@ -439,6 +439,30 @@ function parseShotsFromOutput(output: string): any[] {
   });
 }
 
+function extractCharacters(brief: string): Record<string, any> {
+  const chars: Record<string, any> = {};
+  // Match lines like "**角色名**: description" or "- 角色名: description"
+  const re = /(?:^|\n)(?:\*\*|[-*]\s*|\d+\.\s*)([^\n:：]{2,12})(?:[:：]\s*)([^\n]{10,200})/gm;
+  let m;
+  while ((m = re.exec(brief)) !== null) {
+    const name = m[1].replace(/[*#\s]/g, '').trim();
+    if (name && name.length >= 2 && !name.match(/^(主题|核心|场景|镜头|风格|光线|色彩|导演|参考|第.|情绪|功能|符号|空间|声音|节奏)/)) {
+      chars[name] = m[2].trim();
+    }
+  }
+  if (Object.keys(chars).length === 0) {
+    // Fallback: try simpler pattern
+    const lines = brief.split('\n').filter(l => l.includes(':') && l.length < 120);
+    lines.forEach(l => {
+      const parts = l.split(/[:：]/);
+      if (parts.length === 2 && parts[0].length >= 2 && parts[0].length <= 10 && parts[1].length >= 5) {
+        chars[parts[0].trim()] = parts[1].trim();
+      }
+    });
+  }
+  return chars;
+}
+
 app.post('/api/agent/script/overview', async (req, res) => {
   const { scriptText, visualStyle } = req.body;
   if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
@@ -446,11 +470,12 @@ app.post('/api/agent/script/overview', async (req, res) => {
     const result = await runAgentPipeline({ userInput: scriptText, model: 'text', mode: 'script-analysis' });
     const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
     const scenes = [{ sceneNumber: 1, sceneHeader: '全剧本', location: '', timeOfDay: '', characters: [], sceneType: '', summary: '', estimatedShots: shots.length, dramaticCore: '' }];
-    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: {} });
+    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: extractCharacters(result.creativeBrief) });
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
 app.post('/api/agent/script/characters', async (_req, res) => {
+  // Characters are extracted from the overview creative brief — see overview route
   res.json({ success: true, characters: {} });
 });
 
