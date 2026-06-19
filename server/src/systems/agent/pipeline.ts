@@ -32,6 +32,7 @@ export interface PipelineResult {
   visualBible: string;
   storyboard: string;
   modelPrompt: string;
+  fullPromptOutput: string;
   trace: AgentResult[];
   totalDurationMs: number;
 }
@@ -486,9 +487,15 @@ async function runAgent(
     '\n\n请按照你的角色职责输出。';
 
   // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
-  let output = await gpt5Chat(profile.systemPrompt, userMessage, { effort: 'high' });
+  const gptMsgs = [
+    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
+    { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
+  ];
+  let output = await gpt5Chat(gptMsgs, { effort: 'high' });
   if (!output) {
-    output = await geminiChat(profile.systemPrompt, userMessage);
+    // Retry once with GPT-5-4 before falling back
+    await new Promise(r => setTimeout(r, 2000));
+    output = await gpt5Chat(gptMsgs, { effort: 'high' });
   }
   return {
     agentId: profile.id,
@@ -536,6 +543,7 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
       visualBible: ad.output,
       storyboard: sd.output,
       modelPrompt: extractModelPrompt(pa.output),
+      fullPromptOutput: pa.output,
       trace,
       totalDurationMs: Date.now() - t0,
     };

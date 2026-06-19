@@ -173,7 +173,7 @@ async function callKieGemini(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
       body: JSON.stringify({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },

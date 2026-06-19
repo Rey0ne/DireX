@@ -415,28 +415,6 @@ app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 // ─── Script Analysis ─────────────────────────
 import { runAgentPipeline } from './systems/agent/pipeline.js';
 
-app.post('/api/agent/script/analyze', async (req, res) => {
-  const { scriptText, visualStyle } = req.body;
-  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
-  try {
-    const result = await runAgentPipeline({
-      userInput: scriptText,
-      model: 'text',
-      mode: 'script-analysis',
-      aspect: visualStyle || '',
-    });
-    const shots = parseShotsFromOutput(result.modelPrompt || result.storyboard);
-    res.json({ success: true, result: {
-      creativeBrief: result.creativeBrief,
-      visualBible: result.visualBible,
-      storyboard: result.storyboard,
-      shots,
-      trace: result.trace.map(t => ({ agentId: t.agentId, agentName: t.agentName, durationMs: t.durationMs })),
-      totalDurationMs: result.totalDurationMs,
-    }});
-  } catch (err) { res.status(500).json({ error: String(err) }); }
-});
-
 function parseShotsFromOutput(output: string): any[] {
   const blocks = output.split(/===+/).filter(b => b.trim().length > 20);
   return blocks.map((block, i) => {
@@ -460,6 +438,31 @@ function parseShotsFromOutput(output: string): any[] {
     };
   });
 }
+
+app.post('/api/agent/script/overview', async (req, res) => {
+  const { scriptText, visualStyle } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const result = await runAgentPipeline({ userInput: scriptText, model: 'text', mode: 'script-analysis' });
+    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
+    const scenes = [{ sceneNumber: 1, sceneHeader: '全剧本', location: '', timeOfDay: '', characters: [], sceneType: '', summary: '', estimatedShots: shots.length, dramaticCore: '' }];
+    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: {} });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+app.post('/api/agent/script/characters', async (_req, res) => {
+  res.json({ success: true, characters: {} });
+});
+
+app.post('/api/agent/script/scene', async (req, res) => {
+  const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
+  if (!scene && !scriptExcerpt) { res.status(400).json({ error: 'Missing scene data' }); return; }
+  try {
+    const result = await runAgentPipeline({ userInput: scriptExcerpt || scene.summary || '', model: 'text', mode: 'script-analysis' });
+    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
+    res.json({ success: true, shots });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
 
 // ─── Kie.ai Callback ──────────────────────────
 app.post('/api/kie-callback', (req, res) => {
