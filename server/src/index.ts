@@ -43,6 +43,12 @@ app.post('/api/models/upload', upload.single('model'), (req, res) => {
   if (!req.file) { res.status(400).json({ error: 'No file' }); return; }
   res.json({ success: true, path: '/api/models/' + req.file.filename, name: req.file.originalname });
 });
+app.post('/api/models/delete', (req, res) => {
+  const { p } = req.body; if (!p || !p.startsWith('/api/models/')) { res.status(400).json({ error: 'Invalid path' }); return; }
+  const filepath = path.join(MODELS_DIR, p.replace('/api/models/', ''));
+  fs.unlink(filepath, (err) => { if (err && err.code !== 'ENOENT') console.error('[models] Delete error:', err.message); });
+  res.json({ success: true });
+});
 app.use('/api/models', express.static(MODELS_DIR));
 
 async function proxyAsset(req: Request, res: Response) {
