@@ -447,24 +447,30 @@ function parseShotsFromOutput(output: string): any[] {
 
 function extractCharacters(brief: string): Record<string, any> {
   const chars: Record<string, any> = {};
-  // Match lines like "**角色名**: description" or "- 角色名: description"
-  const re = /(?:^|\n)(?:\*\*|[-*]\s*|\d+\.\s*)([^\n:：]{2,12})(?:[:：]\s*)([^\n]{10,200})/gm;
+  // Extract Chinese names (2-4 chars) appearing near role words
+  const roleWords = /(?:女王|王|公主|叛徒|反派|主角|母亲|女儿|孩子|手下|随从|姐妹|父亲|儿子|国王|战士|首领|酋长)/g;
+  const names = new Set<string>();
+  // Find unique 2-4 char Chinese sequences (names)
+  const nameRe = /[一-鿿]{2,4}/g;
   let m;
-  while ((m = re.exec(brief)) !== null) {
-    const name = m[1].replace(/[*#\s]/g, '').trim();
-    if (name && name.length >= 2 && !name.match(/^(主题|核心|场景|镜头|风格|光线|色彩|导演|参考|第.|情绪|功能|符号|空间|声音|节奏)/)) {
-      chars[name] = m[2].trim();
+  while ((m = nameRe.exec(brief)) !== null) {
+    const w = m[0];
+    if (!roleWords.test(w) && w.length >= 2 && !w.match(/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有|另外|其他|应该|必须|可能|可以|需要|这个|那么|这样|那样|怎么|什么|哪里|为什么)/)) {
+      names.add(w);
     }
   }
+  // Try to find descriptions for names
+  names.forEach(name => {
+    const descRe = new RegExp(name + '[^。\\n]{5,100}', 'g');
+    const descs: string[] = [];
+    let dm;
+    while ((dm = descRe.exec(brief)) !== null) descs.push(dm[0]);
+    if (descs.length > 0) chars[name] = descs[0].replace(name, '').replace(/^[,，:：\s]+/, '').trim();
+    else chars[name] = '';
+  });
   if (Object.keys(chars).length === 0) {
-    // Fallback: try simpler pattern
-    const lines = brief.split('\n').filter(l => l.includes(':') && l.length < 120);
-    lines.forEach(l => {
-      const parts = l.split(/[:：]/);
-      if (parts.length === 2 && parts[0].length >= 2 && parts[0].length <= 10 && parts[1].length >= 5) {
-        chars[parts[0].trim()] = parts[1].trim();
-      }
-    });
+    // Fallback: use the entire brief as context
+    chars['角色'] = brief.slice(0, 500);
   }
   return chars;
 }

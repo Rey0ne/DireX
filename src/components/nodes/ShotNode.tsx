@@ -260,6 +260,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   🎭 生成角色设定图，共{Object.keys(getOverview().characterProfiles).length}个角色
                 </div>
               </>)}
+              {/* 导演分析摘要 */}
+              {getOverview().creativeBrief && getOverview().creativeBrief.length > 20 && (
+                <details style={{fontSize:9,color:'var(--tap-text-3)',cursor:'pointer',padding:'4px 0'}}>
+                  <summary style={{color:'var(--tap-accent)'}}>🎬 导演分析 (点击展开)</summary>
+                  <div style={{maxHeight:200,overflowY:'auto',whiteSpace:'pre-wrap',padding:'4px 8px',background:'rgba(0,0,0,0.2)',borderRadius:4,marginTop:4,lineHeight:1.5}}>{getOverview().creativeBrief.slice(0, 3000)}</div>
+                </details>
+              )}
               {/* 段落分镜按钮 */}
               {getOverview().scenes && getOverview().scenes.length>0 && <>
                 <div style={{ fontSize:10,color:'var(--tap-accent)',fontWeight:600 }}>📝 分镜段落 — {getOverview().scenes.length} 段</div>
