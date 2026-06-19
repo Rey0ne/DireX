@@ -52,7 +52,7 @@ export async function gpt5Chat(
 
     const fetchOpts: any = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey, 'Connection': 'close' },
       body: JSON.stringify(body),
     };
     if (proxy) fetchOpts.dispatcher = new ProxyAgent(proxy);

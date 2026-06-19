@@ -518,10 +518,6 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   }
 
   try {
-    // Warmup: a quick call to establish connection
-    console.log('[pipeline] Warmup...');
-    await gpt5Chat([{ role: 'user', content: [{ type: 'input_text' as const, text: 'hi' }] }], { effort: 'low' });
-
     console.log('[pipeline] Step 1: Director (Creative+Art+Storyboard merged)');
     const cp = await runAgent(CREATIVE_PRODUCER, context, outputs);
     outputs['creative-producer'] = cp.output; trace.push(cp);
