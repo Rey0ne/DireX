@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
 			'/api': {
 				target: 'http://localhost:3001',
 				changeOrigin: true,
-				timeout: 600000,
-				proxyTimeout: 600000,
+				timeout: 1200000,
+				proxyTimeout: 1200000,
 			},
 			'/ue5-ws': {
 				target: 'ws://localhost:3001',
