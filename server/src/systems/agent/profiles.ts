@@ -159,6 +159,7 @@ single frame.
 === TEMPLATE END ===
 
 Rules:
+- ALL output MUST be in English. Scene descriptions, Action Beat, Emotion — everything in English. No Chinese.
 - Output one complete template per shot
 - Separate templates with three equal signs: ===
 - Replace [bracketed] content with actual values
