@@ -513,7 +513,10 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   console.log('[pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
 
   // Warmup: first Kie call often fails — make a throwaway call to prime the connection
-  await gpt5Chat([{ role: 'user', content: [{ type: 'input_text' as const, text: 'ping' }] }], { effort: 'low' });
+  await gpt5Chat([
+    { role: 'system', content: [{ type: 'input_text' as const, text: 'ping' }] },
+    { role: 'user', content: [{ type: 'input_text' as const, text: 'pong' }] },
+  ], { effort: 'low' });
 
   // Pre-process: analyze reference images with Gemini Vision
   if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
