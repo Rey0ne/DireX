@@ -417,25 +417,30 @@ app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 import { runAgentPipeline } from './systems/agent/pipeline.js';
 
 function parseShotsFromOutput(output: string): any[] {
-  const blocks = output.split(/===+/).filter(b => b.trim().length > 20);
-  return blocks.map((block, i) => {
-    const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
+  // Try storyboard template blocks first (=== separated)
+  const blocks = output.split(/===+/).filter(b => b.trim().length > 20 && b.includes('Professional film storyboard'));
+  if (blocks.length > 0) {
+    return blocks.map((block, i) => {
+      const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
+      return {
+        shotNumber: i + 1, shotType: extract('Shot Type') || 'MS', cameraMovement: extract('Camera Movement') || 'static',
+        angle: extract('Camera Angle') || 'eye level', lens: extract('Lens') || '50mm', aperture: extract('Aperture') || '2.8',
+        composition: extract('Composition') || '', visualPrompt: block.trim(), scene: extract('Scene') || '',
+        emotion: extract('Emotion') || '', action: extract('Action Beat') || '',
+        foreground: extract('Foreground') || '', midground: extract('Midground') || '',
+        background: extract('Background') || '', blocking: extract('Character Blocking') || '',
+      };
+    });
+  }
+  // Fallback: parse storyboard markdown table
+  const lines = output.split('\n').filter(l => l.match(/^\|\s*\d+/));
+  return lines.map((line, i) => {
+    const cells = line.split('|').map(c => c.trim()).filter(c => c);
     return {
-      shotNumber: i + 1,
-      shotType: extract('Shot Type') || 'MS',
-      cameraMovement: extract('Camera Movement') || 'static',
-      angle: extract('Camera Angle') || 'eye level',
-      lens: extract('Lens') || '50mm',
-      aperture: extract('Aperture') || '2.8',
-      composition: extract('Composition') || '',
-      visualPrompt: block.trim(),
-      scene: extract('Scene') || '',
-      emotion: extract('Emotion') || '',
-      action: extract('Action Beat') || '',
-      foreground: extract('Foreground') || '',
-      midground: extract('Midground') || '',
-      background: extract('Background') || '',
-      blocking: extract('Character Blocking') || '',
+      shotNumber: i + 1, shotType: cells[1] || 'MS', cameraMovement: cells[3] || 'static',
+      angle: 'eye level', lens: cells[2] || '50mm', aperture: cells[4] || '2.8',
+      composition: '', visualPrompt: cells[0] ? `Shot ${cells[0]}: ${cells[5] || ''}` : output.slice(i*200,(i+1)*200),
+      scene: '', emotion: cells[6] || '', action: '', foreground: '', midground: cells[5] || '', background: '', blocking: '',
     };
   });
 }
