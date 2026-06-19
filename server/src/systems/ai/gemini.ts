@@ -65,6 +65,7 @@ export async function gpt5Chat(
     if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
 
     const raw = await resp.text();
+      console.log('[gpt5] RAW first 500: ' + raw.slice(0,500));
 
     // Try JSON first (non-streaming or completed response)
     if (raw.trim().startsWith('{')) {
