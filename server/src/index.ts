@@ -412,6 +412,55 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
 app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled || { en: '(no generation yet)' }, kieReq: (globalThis as any).__lastKieReq || null }));
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 
+// ─── Script Analysis ─────────────────────────
+import { runAgentPipeline } from './systems/agent/pipeline.js';
+
+app.post('/api/agent/script/analyze', async (req, res) => {
+  const { scriptText, visualStyle } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const result = await runAgentPipeline({
+      userInput: scriptText,
+      model: 'text',
+      mode: 'script-analysis',
+      aspect: visualStyle || '',
+    });
+    const shots = parseShotsFromOutput(result.modelPrompt || result.storyboard);
+    res.json({ success: true, result: {
+      creativeBrief: result.creativeBrief,
+      visualBible: result.visualBible,
+      storyboard: result.storyboard,
+      shots,
+      trace: result.trace.map(t => ({ agentId: t.agentId, agentName: t.agentName, durationMs: t.durationMs })),
+      totalDurationMs: result.totalDurationMs,
+    }});
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+function parseShotsFromOutput(output: string): any[] {
+  const blocks = output.split(/===+/).filter(b => b.trim().length > 20);
+  return blocks.map((block, i) => {
+    const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
+    return {
+      shotNumber: i + 1,
+      shotType: extract('Shot Type') || 'MS',
+      cameraMovement: extract('Camera Movement') || 'static',
+      angle: extract('Camera Angle') || 'eye level',
+      lens: extract('Lens') || '50mm',
+      aperture: extract('Aperture') || '2.8',
+      composition: extract('Composition') || '',
+      visualPrompt: block.trim(),
+      scene: extract('Scene') || '',
+      emotion: extract('Emotion') || '',
+      action: extract('Action Beat') || '',
+      foreground: extract('Foreground') || '',
+      midground: extract('Midground') || '',
+      background: extract('Background') || '',
+      blocking: extract('Character Blocking') || '',
+    };
+  });
+}
+
 // ─── Kie.ai Callback ──────────────────────────
 app.post('/api/kie-callback', (req, res) => {
   console.log('[kie-callback] Received:', JSON.stringify(req.body).slice(0, 300));
