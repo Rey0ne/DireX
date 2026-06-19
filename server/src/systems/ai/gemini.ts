@@ -52,7 +52,7 @@ export async function gpt5Chat(
 
     const fetchOpts: any = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey, 'Connection': 'close' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey },
       body: JSON.stringify(body),
     };
     if (proxy) fetchOpts.dispatcher = new ProxyAgent(proxy);
@@ -60,45 +60,37 @@ export async function gpt5Chat(
     const url = 'https://api.kie.ai/codex/v1/responses';
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
     console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
-    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 300000); fetchOpts.signal = ac.signal;
-    let resp;
-    try { resp = await fetch(url, fetchOpts); }
-    catch(e: any) {
-      console.log('[gpt5] Fetch error:', e?.cause?.code || e?.code || e?.message || String(e).slice(0,100));
-      clearTimeout(tm);
-      return null;
-    }
-    clearTimeout(tm);
+    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 120000); fetchOpts.signal = ac.signal;
+    const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
     if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
 
     const raw = await resp.text();
-      console.log('[gpt5] RAW first 500: ' + raw.slice(0,500));
 
     // Try JSON first (non-streaming or completed response)
     if (raw.trim().startsWith('{')) {
-      let data: any;
-      try { data = JSON.parse(raw); }
-      catch { console.log('[gpt5] JSON parse failed, raw len=' + raw.length); return null; }
-
-      if (data.output && Array.isArray(data.output)) {
-        const texts: string[] = [];
-        for (const o of data.output) {
-          if (o.content && Array.isArray(o.content))
-            for (const c of o.content) if (c.text) texts.push(c.text);
+      try {
+        const data = JSON.parse(raw);
+        if (data.output && Array.isArray(data.output)) {
+          const texts: string[] = [];
+          for (const o of data.output) {
+            if (o.content && Array.isArray(o.content)) {
+              for (const c of o.content) {
+                if (c.text) texts.push(c.text);
+              }
+            }
+          }
+          const outputText = texts.join('').trim();
+          if (outputText) {
+            console.log('[gpt5] JSON output ' + outputText.length + ' chars, credits=' + (data.credits_consumed || '?') + ': ' + outputText.slice(0, 120));
+            return outputText;
+          }
         }
-        const outputText = texts.join('').trim();
-        if (outputText) { console.log('[gpt5] Output ' + outputText.length + ' chars'); return outputText; }
-      }
-      if (data.choices && data.choices[0]?.message?.content)
-        return data.choices[0].message.content;
-      if (data.content) return String(data.content);
-      if (data.text) return String(data.text);
-      if (data.status === 'failed' || data.error) {
-        console.log('[gpt5] Error:', JSON.stringify(data.error || data).slice(0, 200));
-        return null;
-      }
-      console.log('[gpt5] Unknown JSON format:', JSON.stringify(data).slice(0, 300));
-      return null;
+        if (data.status === 'failed' || data.error) {
+          const errMsg = data.error?.message || data.error?.type || JSON.stringify(data.error || data).slice(0, 200);
+          console.log('[gpt5] Error:', errMsg);
+          return null;
+        }
+      } catch { /* fall through to SSE parsing */ }
     }
 
     // Parse SSE (Server-Sent Events) response

@@ -478,18 +478,25 @@ async function runAgent(
     }
   }
 
-  const userMessage = profile.systemPrompt + '\n\n=== 用户需求 ===\n' + context.userInput +
+  const userMessage = '用户需求: ' + context.userInput +
     '\n目标模型: ' + context.model +
     '\n模式: ' + (context.mode || 'text-to-image') +
     (context.referenceUrls?.length ? '\n参考图片数量: ' + context.referenceUrls.length : '') +
     contextBlock +
-    refBlock;
+    refBlock +
+    '\n\n请按照你的角色职责输出。';
 
+  // Try GPT-5 (reasoning=high) first, fall back to Gemini/DeepSeek
   const gptMsgs = [
+    { role: 'system', content: [{ type: 'input_text', text: profile.systemPrompt }] },
     { role: 'user', content: [{ type: 'input_text', text: userMessage }] },
   ];
   let output = await gpt5Chat(gptMsgs, { effort: 'high' });
-  if (!output) { output = await gpt5Chat(gptMsgs, { effort: 'high' }); }
+  if (!output) {
+    // Retry once with GPT-5-4 before falling back
+    await new Promise(r => setTimeout(r, 2000));
+    output = await gpt5Chat(gptMsgs, { effort: 'high' });
+  }
   return {
     agentId: profile.id,
     agentName: profile.name,
@@ -505,6 +512,9 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
 
   console.log('[pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
 
+  // Warmup: first Kie call often fails — make a throwaway call to prime the connection
+  await gpt5Chat([{ role: 'user', content: [{ type: 'input_text' as const, text: 'ping' }] }], { effort: 'low' });
+
   // Pre-process: analyze reference images with Gemini Vision
   if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
     console.log('[pipeline] Analyzing ' + context.referenceUrls.length + ' reference image(s) with Vision...');
@@ -513,25 +523,28 @@ export async function runAgentPipeline(context: PipelineContext): Promise<Pipeli
   }
 
   try {
-    console.log('[pipeline] Step 1: Director (Creative+Art+Storyboard merged)');
+    console.log('[pipeline] Step 1: Creative Producer');
     const cp = await runAgent(CREATIVE_PRODUCER, context, outputs);
     outputs['creative-producer'] = cp.output; trace.push(cp);
-    // Parse merged output into 3 parts
-    const parts = cp.output.split(/===PART\d+:/g).filter(s => s.trim().length > 10);
-    const brief = parts[0] || cp.output;
-    const bible = parts[1] || '';
-    const shots = parts[2] || '';
 
-    console.log('[pipeline] Step 2: Prompt Architect');
-    const pa = await runAgent(PROMPT_ARCHITECT, context, { ...outputs, 'storyboard-director': shots });
+    console.log('[pipeline] Step 2: Art Director');
+    const ad = await runAgent(ART_DIRECTOR, context, outputs);
+    outputs['art-director'] = ad.output; trace.push(ad);
+
+    console.log('[pipeline] Step 3: Storyboard Director');
+    const sd = await runAgent(STORYBOARD_DIRECTOR, context, outputs);
+    outputs['storyboard-director'] = sd.output; trace.push(sd);
+
+    console.log('[pipeline] Step 4: Prompt Architect');
+    const pa = await runAgent(PROMPT_ARCHITECT, context, outputs);
     outputs['prompt-architect'] = pa.output; trace.push(pa);
 
     console.log('[pipeline] Complete in ' + (Date.now() - t0) + 'ms');
 
     return {
-      creativeBrief: brief,
-      visualBible: bible,
-      storyboard: shots,
+      creativeBrief: cp.output,
+      visualBible: ad.output,
+      storyboard: sd.output,
       modelPrompt: extractModelPrompt(pa.output),
       fullPromptOutput: pa.output,
       trace,

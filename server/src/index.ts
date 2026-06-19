@@ -264,9 +264,8 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   let compiledPrompt = '';
   let agentTrace = [];
   const isVideo = body.providerId === 'kling-video' || body.providerId === 'seedance-2';
-  // Skip agent pipeline if prompt is already a storyboard prompt or pure English
-  const isStoryboard = userPrompt.includes('Professional film storyboard frame') || (userPrompt.includes('Scene:') && userPrompt.includes('Shot Type:'));
-  const isEnglish = isStoryboard || /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
+  // Skip agent pipeline if prompt is already English (no need to compile)
+  const isEnglish = /^[a-zA-Z0-9\s.,!?;:'"()\-\[\]{}$@#%^&*+=<>/\\|~`\n\r]+$/.test(userPrompt);
 
   // Build camera kit spec string — inject BEFORE any AI compilation
   const cam = (body as any).camera;
@@ -417,60 +416,49 @@ app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 import { runAgentPipeline } from './systems/agent/pipeline.js';
 
 function parseShotsFromOutput(output: string): any[] {
-  // Try storyboard template blocks first (=== separated)
-  const blocks = output.split(/===+/).filter(b => b.trim().length > 20 && b.includes('Professional film storyboard'));
-  if (blocks.length > 0) {
-    return blocks.map((block, i) => {
-      const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
-      return {
-        shotNumber: i + 1, shotType: extract('Shot Type') || 'MS', cameraMovement: extract('Camera Movement') || 'static',
-        angle: extract('Camera Angle') || 'eye level', lens: extract('Lens') || '50mm', aperture: extract('Aperture') || '2.8',
-        composition: extract('Composition') || '', visualPrompt: block.trim(), scene: extract('Scene') || '',
-        emotion: extract('Emotion') || '', action: extract('Action Beat') || '',
-        foreground: extract('Foreground') || '', midground: extract('Midground') || '',
-        background: extract('Background') || '', blocking: extract('Character Blocking') || '',
-      };
-    });
-  }
-  // Fallback: parse storyboard markdown table
-  const lines = output.split('\n').filter(l => l.match(/^\|\s*\d+/));
-  return lines.map((line, i) => {
-    const cells = line.split('|').map(c => c.trim()).filter(c => c);
+  const blocks = output.split(/===+/).filter(b => b.trim().length > 20);
+  return blocks.map((block, i) => {
+    const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
     return {
-      shotNumber: i + 1, shotType: cells[1] || 'MS', cameraMovement: cells[3] || 'static',
-      angle: 'eye level', lens: cells[2] || '50mm', aperture: cells[4] || '2.8',
-      composition: '', visualPrompt: cells[0] ? `Shot ${cells[0]}: ${cells[5] || ''}` : output.slice(i*200,(i+1)*200),
-      scene: '', emotion: cells[6] || '', action: '', foreground: '', midground: cells[5] || '', background: '', blocking: '',
+      shotNumber: i + 1,
+      shotType: extract('Shot Type') || 'MS',
+      cameraMovement: extract('Camera Movement') || 'static',
+      angle: extract('Camera Angle') || 'eye level',
+      lens: extract('Lens') || '50mm',
+      aperture: extract('Aperture') || '2.8',
+      composition: extract('Composition') || '',
+      visualPrompt: block.trim(),
+      scene: extract('Scene') || '',
+      emotion: extract('Emotion') || '',
+      action: extract('Action Beat') || '',
+      foreground: extract('Foreground') || '',
+      midground: extract('Midground') || '',
+      background: extract('Background') || '',
+      blocking: extract('Character Blocking') || '',
     };
   });
 }
 
 function extractCharacters(brief: string): Record<string, any> {
   const chars: Record<string, any> = {};
-  // Extract Chinese names (2-4 chars) appearing near role words
-  const roleWords = /(?:女王|王|公主|叛徒|反派|主角|母亲|女儿|孩子|手下|随从|姐妹|父亲|儿子|国王|战士|首领|酋长)/g;
-  const names = new Set<string>();
-  // Find unique 2-4 char Chinese sequences (names)
-  const nameRe = /[一-鿿]{2,4}/g;
+  // Match lines like "**角色名**: description" or "- 角色名: description"
+  const re = /(?:^|\n)(?:\*\*|[-*]\s*|\d+\.\s*)([^\n:：]{2,12})(?:[:：]\s*)([^\n]{10,200})/gm;
   let m;
-  while ((m = nameRe.exec(brief)) !== null) {
-    const w = m[0];
-    if (!roleWords.test(w) && w.length >= 2 && !w.match(/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有|另外|其他|应该|必须|可能|可以|需要|这个|那么|这样|那样|怎么|什么|哪里|为什么)/)) {
-      names.add(w);
+  while ((m = re.exec(brief)) !== null) {
+    const name = m[1].replace(/[*#\s]/g, '').trim();
+    if (name && name.length >= 2 && !name.match(/^(主题|核心|场景|镜头|风格|光线|色彩|导演|参考|第.|情绪|功能|符号|空间|声音|节奏)/)) {
+      chars[name] = m[2].trim();
     }
   }
-  // Try to find descriptions for names
-  names.forEach(name => {
-    const descRe = new RegExp(name + '[^。\\n]{5,100}', 'g');
-    const descs: string[] = [];
-    let dm;
-    while ((dm = descRe.exec(brief)) !== null) descs.push(dm[0]);
-    if (descs.length > 0) chars[name] = descs[0].replace(name, '').replace(/^[,，:：\s]+/, '').trim();
-    else chars[name] = '';
-  });
   if (Object.keys(chars).length === 0) {
-    // Fallback: use the entire brief as context
-    chars['角色'] = brief.slice(0, 500);
+    // Fallback: try simpler pattern
+    const lines = brief.split('\n').filter(l => l.includes(':') && l.length < 120);
+    lines.forEach(l => {
+      const parts = l.split(/[:：]/);
+      if (parts.length === 2 && parts[0].length >= 2 && parts[0].length <= 10 && parts[1].length >= 5) {
+        chars[parts[0].trim()] = parts[1].trim();
+      }
+    });
   }
   return chars;
 }
@@ -491,9 +479,14 @@ app.post('/api/agent/script/characters', async (_req, res) => {
   res.json({ success: true, characters: {} });
 });
 
-app.post('/api/agent/script/scene', async (_req, res) => {
-  // Shots are already returned by overview — no need to re-run pipeline
-  res.json({ success: true, shots: [] });
+app.post('/api/agent/script/scene', async (req, res) => {
+  const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
+  if (!scene && !scriptExcerpt) { res.status(400).json({ error: 'Missing scene data' }); return; }
+  try {
+    const result = await runAgentPipeline({ userInput: scriptExcerpt || scene.summary || '', model: 'text', mode: 'script-analysis' });
+    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
+    res.json({ success: true, shots });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
 // ─── Kie.ai Callback ──────────────────────────
