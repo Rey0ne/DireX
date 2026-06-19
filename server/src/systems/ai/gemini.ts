@@ -61,7 +61,14 @@ export async function gpt5Chat(
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
     console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
     const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 300000); fetchOpts.signal = ac.signal;
-    const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
+    let resp;
+    try { resp = await fetch(url, fetchOpts); }
+    catch(e: any) {
+      console.log('[gpt5] Fetch error:', e?.cause?.code || e?.code || e?.message || String(e).slice(0,100));
+      clearTimeout(tm);
+      return null;
+    }
+    clearTimeout(tm);
     if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
 
     const raw = await resp.text();
