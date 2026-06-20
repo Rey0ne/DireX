@@ -559,6 +559,265 @@ function extractModelPrompt(output: string): string {
   return lines.length > 0 ? lines[lines.length - 1].trim() : output.slice(-500).trim();
 }
 
+// ─── Script Analysis Pipeline (two-phase: character extraction → storyboard) ──
+import { CHARACTER_EXTRACTION, SCRIPT_ANALYSIS } from './profiles.js';
+
+export interface ScriptAnalysisResult {
+  shots: Array<{
+    shotNumber: number;
+    scene: string;
+    shotType: string;
+    angle: string;
+    lens: string;
+    composition: string;
+    foreground: string;
+    midground: string;
+    background: string;
+    blocking: string;
+    action: string;
+    emotion: string;
+    cameraMovement: string;
+    focusPoint: string;
+    visualPrompt: string;    // assembled Chinese prompt for image generation
+    contentCN: string;       // alias — full assembled prompt
+  }>;
+  characters: Record<string, string>;
+  rawOutput: string;
+  durationMs: number;
+}
+
+// ─── Phase 1: Character Extraction (详尽角色设计，输出长) ──
+export async function runCharacterExtraction(scriptText: string, visualStyle?: string): Promise<Record<string, string>> {
+  const t0 = Date.now();
+  console.log('[char-extract] Starting, script length=' + scriptText.length);
+
+  const styleHint = visualStyle ? `\n用户指定风格：${visualStyle}。请在角色外观设计中体现此风格。` : '';
+  const userMessage = CHARACTER_EXTRACTION.systemPrompt + `\n\n${styleHint}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个角色输出完整设计方案。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
+  } catch (err: any) {
+    console.log('[char-extract] Failed:', String(err).slice(0, 100));
+    return {};
+  }
+
+  if (!rawOutput) {
+    console.log('[char-extract] No output');
+    return {};
+  }
+
+  console.log('[char-extract] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  // Parse characters — format: === separated blocks, each starting with ## {角色名}
+  const characters: Record<string, string> = {};
+  const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
+  for (const block of blocks) {
+    const headerMatch = block.match(/^##\s+(.+)/m);
+    if (!headerMatch) continue;
+    const name = headerMatch[1].trim();
+    if (!name || name.length > 30 || /无明确角色/i.test(name)) continue;
+    // Store complete block (including ## header)
+    characters[name] = block;
+  }
+
+  console.log('[char-extract] Parsed ' + Object.keys(characters).length + ' characters');
+  return characters;
+}
+
+// ─── Phase 2: Storyboard Generation (receives character profiles) ──
+export async function runScriptAnalysis(
+  scriptText: string,
+  visualStyle?: string,
+  characterProfiles?: Record<string, string>,
+): Promise<ScriptAnalysisResult> {
+  const t0 = Date.now();
+  console.log('[script-analysis] Starting, script length=' + scriptText.length + ' chars=' + (characterProfiles ? Object.keys(characterProfiles).length : 0));
+
+  const styleHint = visualStyle ? `\n用户指定风格：${visualStyle}` : '';
+
+  // Embed pre-extracted character profiles (truncated to save storyboard token budget)
+  let charBlock = '';
+  if (characterProfiles && Object.keys(characterProfiles).length > 0) {
+    charBlock = '\n## 已提取的角色清单（完整角色设计方案详见角色文档，此处仅提供分镜所需的角色识别信息）\n';
+    for (const [name, desc] of Object.entries(characterProfiles)) {
+      // Extract: name + 基本信息 + 服装概要 (first ~300 chars of each character)
+      const summary = desc.replace(/^##\s*.+/m, '').trim().slice(0, 350);
+      charBlock += `**${name}**：${summary}\n`;
+    }
+  }
+
+  const userMessage = SCRIPT_ANALYSIS.systemPrompt + `\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  // 单次调用，不重试。
+  // 原因：超时重试 = 同一份提示词发给 kie.ai 多份，产生重复计费。
+  // 网络瞬时错误由 gpt5Chat 内部的 AbortController 处理即可。
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 900000 });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      console.log('[script-analysis] 超时（15分钟）— kie.ai 仍在处理中，不重试');
+    } else {
+      console.log('[script-analysis] 网络错误:', String(err).slice(0, 100));
+    }
+  }
+
+  if (!rawOutput) {
+    console.log('[script-analysis] GPT-5 call failed');
+    return { shots: [], characters: {}, rawOutput: '', durationMs: Date.now() - t0 };
+  }
+
+  console.log('[script-analysis] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  // Use pre-extracted character profiles (no longer parsed from the same output)
+  const characters = characterProfiles || {};
+
+  // Parse shots from detailed template
+  const shots = parseShotBlocks(rawOutput);
+
+  console.log('[script-analysis] Parsed ' + shots.length + ' shots, ' + Object.keys(characters).length + ' characters');
+
+  return {
+    shots,
+    characters,
+    rawOutput,
+    durationMs: Date.now() - t0,
+  };
+}
+
+function parseShotBlocks(output: string): ScriptAnalysisResult['shots'] {
+  const shots: ScriptAnalysisResult['shots'] = [];
+
+  // Find the storyboard section
+  const boardStart = output.search(/###?\s*分镜表/);
+  const section = boardStart >= 0 ? output.slice(boardStart) : output;
+
+  // Split by ===
+  const blocks = section.split(/===+/).filter(b => {
+    const t = b.trim();
+    return t.length > 50; // real content blocks only
+  });
+
+  blocks.forEach((block, i) => {
+    const extract = (label: string): string => {
+      const patterns = [
+        new RegExp(label + '[：:]\\s*\\n?([^\\n]+)', 'i'),
+        new RegExp(label + '[：:]\\s*\\n?([\\s\\S]*?)(?=\\n[^\\s]{1,8}[：:]|\\n===|$)', 'i'),
+      ];
+      for (const re of patterns) {
+        const m = block.match(re);
+        if (m) {
+          const val = m[1].trim();
+          if (val.length > 0 && val.length < 200) return val;
+        }
+      }
+      return '';
+    };
+
+    // Try both full and abbreviated field names
+    const shotType = extract('景别') || 'MS';
+    const angle = extract('机位角度') || '平视';
+    const lens = extract('焦段') || extract('镜头焦段') || '50mm';
+    const composition = extract('构图') || extract('构图方式') || '';
+    const foreground = extract('前景') || '';
+    const midground = extract('中景') || extract('中景主体') || '';
+    const background = extract('背景') || '';
+    const blocking = extract('调度') || extract('人物调度') || '';
+    const action = extract('动作') || extract('动作节点') || '';
+    const emotion = extract('情绪') || extract('情绪表达') || '';
+    const cameraMovement = extract('运镜') || extract('镜头运动') || '固定镜头';
+    const focusPoint = extract('画面重点') || '';
+    const scene = extract('场景') || '';
+    const visualKeywords = extract('提示词') || extract('视觉提示词') || '';
+
+    // Assemble full Chinese prompt
+    const parts: string[] = [];
+    if (scene) parts.push(`场景：${scene}`);
+    if (shotType) parts.push(`景别：${shotType}`);
+    if (angle) parts.push(`机位角度：${angle}`);
+    if (lens) parts.push(`镜头焦段：${lens}`);
+    if (composition) parts.push(`构图方式：${composition}`);
+    if (foreground) parts.push(`前景：${foreground}`);
+    if (midground) parts.push(`中景主体：${midground}`);
+    if (background) parts.push(`背景：${background}`);
+    if (blocking) parts.push(`人物调度：${blocking}`);
+    if (action) parts.push(`动作节点：${action}`);
+    if (emotion) parts.push(`情绪表达：${emotion}`);
+    if (cameraMovement) parts.push(`镜头运动：${cameraMovement}`);
+    if (focusPoint) parts.push(`画面重点：${focusPoint}`);
+    if (visualKeywords) parts.push(`视觉提示词：${visualKeywords}`);
+
+    const visualPrompt = parts.join('\n\n');
+
+    shots.push({
+      shotNumber: i + 1,
+      scene,
+      shotType,
+      angle,
+      lens,
+      composition,
+      foreground,
+      midground,
+      background,
+      blocking,
+      action,
+      emotion,
+      cameraMovement,
+      focusPoint,
+      visualPrompt,
+      contentCN: visualPrompt,
+    });
+  });
+
+  // Fallback: try markdown table parsing if no block results
+  if (shots.length === 0) {
+    return parseFallbackTable(output);
+  }
+
+  return shots;
+}
+
+function parseFallbackTable(output: string): ScriptAnalysisResult['shots'] {
+  const shots: ScriptAnalysisResult['shots'] = [];
+  const lines = output.split('\n');
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/\|.*镜号.*\|/.test(lines[i])) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) return shots;
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith('|')) continue;
+    if (/^\|[\s\-:]+\|$/.test(line)) continue;
+    const cells = line.split('|').map(c => c.trim()).filter(c => c !== '');
+    if (cells.length < 2) continue;
+    const contentCell = cells.length >= 4 ? cells[Math.min(cells.length - 1, 3)] : cells[cells.length - 1];
+    if (!contentCell || contentCell.length < 5) continue;
+    shots.push({
+      shotNumber: shots.length + 1,
+      scene: contentCell, shotType: cells[1] || 'MS', angle: '平视',
+      lens: cells.length > 2 ? cells[2] : '50mm', composition: '',
+      foreground: '', midground: '', background: '', blocking: '',
+      action: '', emotion: cells[cells.length - 1] || '',
+      cameraMovement: cells.length > 3 ? cells[3] : '固定镜头',
+      focusPoint: '',
+      visualPrompt: contentCell,
+      contentCN: contentCell,
+    });
+  }
+  return shots;
+}
+
 // ─── Fast Text Pipeline (single agent, for TEXT nodes) ──
 export interface TextPipelineResult {
   textOutput: string;

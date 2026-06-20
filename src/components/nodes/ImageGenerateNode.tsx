@@ -985,7 +985,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         }}>
           {/* Unified input panel — textarea wrapping all controls */}
           <div style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: '#24272e',
             border: '1px solid rgba(255,255,255,0.10)',
             borderRadius: 'var(--tap-r-xl)',
             pointerEvents: 'auto',

@@ -113,7 +113,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
     const node: CanvasNode = {
       id,
       type,
-      title: title || type,
+      title: title || (type === 'shot' ? '' : type),
       pos,
       size: type==='scene.3d'?{w:500,h:300}:type==='world.3d'?{w:500,h:300}:{w:380,h:200},
       ports: [],
@@ -136,7 +136,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
       if (!existing) return s;
       const next = new Map(s.nodes);
       next.set(id, { ...existing, ...patch, updatedAt: now() });
-      return { nodes: next };
+      return { nodes: next, syncTick: s.syncTick + 1 };
     });
   },
 
@@ -159,7 +159,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
       if (!existing) return s;
       const next = new Map(s.nodes);
       next.set(id, { ...existing, status, updatedAt: now() });
-      return { nodes: next };
+      return { nodes: next, syncTick: s.syncTick + 1 };
     });
   },
 

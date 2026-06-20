@@ -1,5 +1,16 @@
 /* === LLM Router — DeepSeek (cheap, text) + Gemini 3.1 Pro (expensive, vision) === */
-import { ProxyAgent } from 'undici';
+import { ProxyAgent, Agent } from 'undici';
+
+// Keep-alive agent for direct (non-proxy) connections.
+// Prevents routers/firewalls from dropping idle TCP sockets during long kie.ai generation (5-10 min).
+const kieKeepAliveAgent = new Agent({
+  connect: {
+    keepAlive: true,
+    keepAliveInitialDelay: 30_000,  // send TCP keep-alive probe after 30s idle
+  },
+  headersTimeout: 900_000,          // wait up to 15 min for response headers
+  bodyTimeout: 900_000,             // wait up to 15 min for response body
+});
 
 // Rough token estimate: Chinese ~1.5 chars/token, English ~4 chars/token
 // Use 2 chars/token as a conservative bound for mixed text
@@ -34,7 +45,7 @@ export interface Gpt5ContentItem {
 
 export async function gpt5Chat(
   messages: Gpt5Message[],
-  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean },
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
@@ -44,7 +55,7 @@ export async function gpt5Chat(
     const body: any = {
       model: 'gpt-5-4',
       input: messages,
-      stream: false,
+      stream: true, // 持续推送 SSE，防止 Cloudflare/路由器将空闲 TCP 断开
       reasoning: { effort: opts?.effort || 'high' },
     };
     if (opts?.stream !== undefined) body.stream = opts.stream;
@@ -54,14 +65,20 @@ export async function gpt5Chat(
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + kieKey },
       body: JSON.stringify(body),
     };
-    if (proxy) fetchOpts.dispatcher = new ProxyAgent(proxy);
+    if (proxy) { fetchOpts.dispatcher = new ProxyAgent(proxy); }
+    else { fetchOpts.dispatcher = kieKeepAliveAgent; }
 
     const url = 'https://api.kie.ai/codex/v1/responses';
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
     console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
-    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 120000); fetchOpts.signal = ac.signal;
+    const timeoutMs = opts?.timeoutMs || 120000;
+    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), timeoutMs); fetchOpts.signal = ac.signal;
     const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
-    if (!resp.ok) { console.log('[gpt5] Error:', resp.status); return null; }
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => '');
+      console.log('[gpt5] HTTP', resp.status, 'body:', errBody.slice(0, 300));
+      return null;
+    }
 
     const raw = await resp.text();
 
@@ -128,9 +145,15 @@ export async function gpt5Chat(
       console.log('[gpt5] SSE output ' + outputText.length + ' chars: ' + outputText.slice(0, 120));
       return outputText;
     }
-    console.log('[gpt5] Empty output, raw: ' + raw.slice(0, 300));
+    console.log('[gpt5] Empty output after parse, status=' + resp.status + ' rawLen=' + raw.length + ' first=' + raw.slice(0, 300));
     return null;
-  } catch (err) { console.log('[gpt5] Failed:', String(err).slice(0, 100)); return null; }
+  } catch (err: any) {
+    const detail = err?.cause?.code || err?.cause?.message || err?.code || '';
+    console.log('[gpt5] Failed:', String(err).slice(0, 100), detail ? '| cause: ' + String(detail).slice(0, 80) : '');
+    // Timeout → don't swallow; caller must NOT retry because kie.ai still processes the first request
+    if (err?.name === 'AbortError') throw err;
+    return null;
+  }
 }
 
 // ─── Text LLM (Kie.ai Gemini preferred, DeepSeek fallback) ──
@@ -181,7 +204,7 @@ async function callKieGemini(
         temperature: 0.5, max_tokens: maxTokens,
       }),
     };
-    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
     const resp = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', opts);
     if (!resp.ok) { console.log('[kie-gemini] Error:', resp.status); return null; }
     const data = await resp.json();
@@ -218,7 +241,7 @@ export async function visionAnalyze(
         max_tokens: 2000,
       }),
     };
-    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); }
+    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
 
     // Kie.ai routes Gemini models via URL path: /{model}/v1/chat/completions
     const url = `https://api.kie.ai/${model}/v1/chat/completions`;
@@ -284,7 +307,7 @@ async function callKieDeepSeek(
         temperature: 0.5, max_tokens: maxTokens,
       }),
     };
-    if (proxy) opts.dispatcher = new ProxyAgent(proxy);
+    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
     const resp = await fetch(base + '/chat/completions', opts);
     if (!resp.ok) { console.log('[kie-ds] Error:', resp.status); return null; }
     const data = await resp.json();

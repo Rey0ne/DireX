@@ -13,7 +13,7 @@ import authRouter from './routes/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
-import { geminiChat } from './systems/ai/gemini.js';
+import { geminiChat, gpt5Chat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -313,35 +313,77 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   } else if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
-      // I2I: GPT-5.4 directly analyzes reference images + compiles prompt
+      // I2I: GPT-5.4 看图分析角色 → Gemini Flash 编译英文 prompt
       try {
         const refUrls = (body as any).referenceUrls as string[] | undefined;
         if (refUrls?.length) {
-          // GPT-5.4 sees the actual images — no separate Gemini Vision step needed
-          const gpt5Result = await compileI2IWithGPT5(enrichedPrompt, refUrls);
-          if (gpt5Result) {
-            compiledPrompt = gpt5Result;
-            console.log('[agent] I2I GPT-5.4 compiled ' + gpt5Result.length + ' chars');
+          // Step 1: GPT-5.4 analyzes reference images (vision only, cheap)
+          let characterAnalysis = '';
+          try {
+            const { uploadDataUrl } = await import('./systems/ai/kie-provider.js');
+            const publicUrls: string[] = [];
+            for (const url of refUrls) {
+              if (url.startsWith('data:')) {
+                const uploaded = await uploadDataUrl(url);
+                if (uploaded) publicUrls.push(uploaded);
+              } else {
+                publicUrls.push(url);
+              }
+            }
+            if (publicUrls.length > 0) {
+              const gpt5Content: Array<{type: 'input_text'; text: string} | {type: 'input_image'; image_url: string}> = [
+                { type: 'input_text' as const, text: 'Analyze these reference images. For each person/character visible, describe in detail: face shape, eye shape and color, nose shape, lip thickness, skin tone, hair style and color, body type, clothing style and color, and any distinctive accessories. Output as plain descriptive text, no formatting.' },
+              ];
+              publicUrls.slice(0, 8).forEach(url => {
+                gpt5Content.push({ type: 'input_image', image_url: url });
+              });
+              const t1 = Date.now();
+              characterAnalysis = await gpt5Chat(
+                [{ role: 'user' as const, content: gpt5Content }],
+                { effort: 'medium', timeoutMs: 120000 },
+              ) || '';
+              console.log('[agent] I2I GPT-5.4 analyzed ' + publicUrls.length + ' ref images in ' + (Date.now() - t1) + 'ms, ' + characterAnalysis.length + ' chars');
+            }
+          } catch(e) { console.log('[agent] I2I image analysis failed:', String(e).slice(0, 80)); }
+
+          // Step 2: Gemini Flash compiles English prompt (fuses character analysis + Chinese shot direction)
+          const compileInput = characterAnalysis
+            ? `角色外观分析：\n${characterAnalysis}\n\n分镜描述：\n${enrichedPrompt}\n\n将以上融合为一整段英文图像生成提示词。角色身份用"Character identity — see reference images exactly as shown"引用，其余部分描述构图、光影、情绪、动作。`
+            : enrichedPrompt;
+          const translated = await geminiChat(
+            'You are a visual prompt compiler. Fuse character appearance descriptions with shot direction into a single cohesive English image generation prompt.',
+            compileInput,
+            800,
+          );
+          if (translated) {
+            compiledPrompt = translated;
+            console.log('[agent] I2I compiled via Gemini Flash, ' + translated.length + ' chars');
           } else {
-            compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + enrichedPrompt;
-            console.log('[agent] I2I GPT-5.4 failed, using fallback');
+            compiledPrompt = 'Character identity — see reference images exactly as shown. ' + enrichedPrompt;
           }
         } else {
           compiledPrompt = enrichedPrompt;
         }
       } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = enrichedPrompt; }
     } else {
-      // T2I mode: full cinematic compilation
+      // T2I: simple Gemini Flash translation (Chinese → English), NOT 4-agent pipeline
       try {
-        const pipelineResult = await runAgentPipeline({
-          userInput: enrichedPrompt, model: body.providerId, mode: body.mode,
-          referenceUrls: (body as any).referenceUrls,
-          referencePrompts: (body as any).referencePrompts,
-          aspect: body.aspect, resolution: body.resolution,
-        });
-        compiledPrompt = pipelineResult.modelPrompt || userPrompt;
-        agentTrace = pipelineResult.trace;
-      } catch(e) { compiledPrompt = userPrompt; console.error('[pipeline] Error:', e); }
+        const t0 = Date.now();
+        const translated = await geminiChat(
+          'You are a visual prompt translator. Translate the Chinese image generation prompt into English. Preserve all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.',
+          enrichedPrompt,
+          500, // max output tokens, enough for a prompt
+        );
+        if (translated) {
+          compiledPrompt = translated;
+          console.log('[agent] T2I translated via Gemini Flash in ' + (Date.now() - t0) + 'ms, ' + translated.length + ' chars');
+        } else {
+          compiledPrompt = enrichedPrompt; // fallback: use Chinese directly
+        }
+      } catch(e) {
+        console.log('[agent] T2I translation failed:', String(e).slice(0, 80));
+        compiledPrompt = enrichedPrompt;
+      }
     }
   } else {
     compiledPrompt = enrichedPrompt;
@@ -435,78 +477,72 @@ app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled |
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 
 // ─── Script Analysis ─────────────────────────
-import { runAgentPipeline } from './systems/agent/pipeline.js';
+import { runCharacterExtraction, runScriptAnalysis, type ScriptAnalysisResult } from './systems/agent/pipeline.js';
 
-function parseShotsFromOutput(output: string): any[] {
-  const blocks = output.split(/===+/).filter(b => b.trim().length > 20);
-  return blocks.map((block, i) => {
-    const extract = (label: string) => { const m = block.match(new RegExp(label + ':\\s*\\n?([^\\n]+)', 'i')); return m ? m[1].trim() : ''; };
-    return {
-      shotNumber: i + 1,
-      shotType: extract('Shot Type') || 'MS',
-      cameraMovement: extract('Camera Movement') || 'static',
-      angle: extract('Camera Angle') || 'eye level',
-      lens: extract('Lens') || '50mm',
-      aperture: extract('Aperture') || '2.8',
-      composition: extract('Composition') || '',
-      visualPrompt: block.trim(),
-      scene: extract('Scene') || '',
-      emotion: extract('Emotion') || '',
-      action: extract('Action Beat') || '',
-      foreground: extract('Foreground') || '',
-      midground: extract('Midground') || '',
-      background: extract('Background') || '',
-      blocking: extract('Character Blocking') || '',
-    };
-  });
-}
+// 异步任务存储：taskId → { status, result }
+const scriptTasks = new Map<string, { status: 'processing'|'done'; result?: ScriptAnalysisResult; error?: string; createdAt: number }>();
 
-function extractCharacters(brief: string, scriptText?: string): Record<string, any> {
-  const chars: Record<string, any> = {};
-  const source = (scriptText || '') + '\n' + brief;
-  // Strategy: find capitalized/parenthesized names and Chinese 2-3 char frequent nouns
-  // 1. Find patterns like "XX（" or "XX：" that look like character names
-  const nameRe = /([一-鿿]{2,4})(?:[：:（(])/g;
-  let m;
-  while ((m = nameRe.exec(source)) !== null) {
-    const name = m[1];
-    // Filter out common non-name words
-    if (!/^(这是|一个|什么|所有|他们|我们|这个|那个|已经|可以|没有|因为|所以|但是|如果|虽然|然而|于是|或者|并且|而且|不过|只是|还是|就是|不是|也是|都是|还有|应该|必须|可能|需要|那么|这样|那样|怎么|哪里|为什么|的话|场景|镜头|光线|色彩|风格|导演|参考|情绪|功能|符号|空间|声音|节奏|画面|镜头|故事|表面|深层|核心|冲突|欲望|阻碍|结局|获得|牺牲|主题|曲线|高潮|低谷|转折|分析|设计|逻辑|阐述|体系|叙事|爆点|结尾|信息|动作|高潮|重复|变化|留白|检查|笔记|母题|原则|方案)$/.test(name) && !chars[name]) {
-      chars[name] = '';
-    }
-  }
-  // 2. Fallback: extract all unique 2-3 char combinations appearing 2+ times in script
-  if (Object.keys(chars).length === 0 && scriptText) {
-    const words = new Map<string, number>();
-    for (let i = 0; i < scriptText.length - 1; i++) {
-      for (let len = 2; len <= 3; len++) {
-        const w = scriptText.slice(i, i + len);
-        if (/^[一-鿿]+$/.test(w)) words.set(w, (words.get(w) || 0) + 1);
-      }
-    }
-    const common = [...words.entries()].filter(([,c]) => c >= 2).sort((a,b) => b[1]-a[1]).slice(0, 20);
-    common.forEach(([w]) => { if (!chars[w]) chars[w] = ''; });
-  }
-  return chars;
-}
-
+// 提交分析任务 → 立即返回 taskId，后台异步处理
 app.post('/api/agent/script/overview', async (req, res) => {
   const { scriptText, visualStyle } = req.body;
   if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  const taskId = uuid();
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  console.log('[script-analysis] Task ' + taskId + ' started, scriptLen=' + scriptText.length);
+  // 后台异步两阶段处理
+  // Phase 1: 角色提取（快，输出短）
+  // Phase 2: 分镜生成（基于角色 + 镜头规范，输出稳定完整）
+  (async () => {
+    try {
+      const characters = await runCharacterExtraction(scriptText, visualStyle);
+      console.log('[script-analysis] Task ' + taskId + ' chars extracted: ' + Object.keys(characters).length);
+      const result = await runScriptAnalysis(scriptText, visualStyle, characters);
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.result = result; }
+      console.log('[script-analysis] Task ' + taskId + ' done, shots=' + result.shots.length + ' chars=' + result.rawOutput.length);
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); }
+      console.log('[script-analysis] Task ' + taskId + ' failed:', String(err).slice(0, 200));
+    }
+  })();
+  res.json({ taskId, status: 'processing' });
+});
+
+// 轮询任务结果
+app.get('/api/agent/script/result/:taskId', (req, res) => {
+  const task = scriptTasks.get(req.params.taskId);
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
+  if (task.status === 'processing') { res.json({ status: 'processing' }); return; }
+  const r = task.result;
+  res.json({
+    status: 'done',
+    success: !task.error,
+    shots: r?.shots || [],
+    characterProfiles: r?.characters || {},
+    rawOutput: r?.rawOutput || '',
+    durationMs: r?.durationMs || 0,
+    error: task.error,
+  });
+});
+
+// 清理过期任务（每 30 分钟清一次）
+setInterval(() => {
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const [id, t] of scriptTasks) { if (t.createdAt < cutoff) scriptTasks.delete(id); }
+}, 600_000);
+
+app.post('/api/agent/script/characters', async (req, res) => {
+  const { scriptText } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
   try {
-    const result = await runAgentPipeline({ userInput: scriptText, model: 'text', mode: 'script-analysis' });
-    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
-    const scenes = [{ sceneNumber: 1, sceneHeader: '全剧本', location: '', timeOfDay: '', characters: [], sceneType: '', summary: '', estimatedShots: shots.length, dramaticCore: '' }];
-    res.json({ success: true, creativeBrief: result.creativeBrief, visualBible: result.visualBible, storyboard: result.storyboard, allShots: shots.length > 0 ? [{ sceneNumber: 1, shots }] : [], scenes: shots.length > 0 ? scenes : [], characterProfiles: extractCharacters(result.creativeBrief, scriptText) });
+    const characters = await runCharacterExtraction(scriptText);
+    res.json({ success: true, characters });
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
-app.post('/api/agent/script/characters', async (_req, res) => {
-  // Characters are extracted from the overview creative brief — see overview route
-  res.json({ success: true, characters: {} });
-});
-
 app.post('/api/agent/script/scene', async (req, res) => {
+  req.setTimeout(600000); // 10 min — per-scene pipeline
   const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
   if (!scene && !scriptExcerpt) { res.status(400).json({ error: 'Missing scene data' }); return; }
   try {
@@ -554,6 +590,10 @@ app.use('/', createProxyMiddleware({
 // Create HTTP server explicitly for WebSocket upgrade proxying
 import http from 'node:http';
 const server = http.createServer(app);
+server.timeout = 0;           // 禁用空闲超时，允许长请求（kie.ai 生成需要 5-10 分钟无数据传输）
+server.requestTimeout = 0;    // 禁用请求体超时
+server.headersTimeout = 0;    // 禁用请求头超时
+server.keepAliveTimeout = 0;  // 禁用 keep-alive 超时
 
 // UE5 Pixel Streaming WebSocket proxy (created once, reused)
 const ue5WsProxy = createProxyMiddleware({

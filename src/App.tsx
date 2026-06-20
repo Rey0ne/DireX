@@ -877,6 +877,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         zoomOnDoubleClick={false}
         zoomActivationKeyCode="Control"
         panOnScroll={true}
+        noWheelClassName="no-wheel"
         zoomOnScroll={false}
         minZoom={0.01}
         maxZoom={5}
