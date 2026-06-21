@@ -676,6 +676,21 @@ export const NARRATIVE_SCENES: NarrativeScene[] = [
   { name: 'Shamanic Journey', nameCN: '萨满之旅', description: 'Shaman enters the spirit world', genre: ['African Ritual', 'Nordic Ritual'], instruments: ['Djembe', 'Frame Drum', 'Rattle', 'Chant', 'Bullroarer'], mood: ['Mysterious', 'Spiritual'], bpm: [60, 120], template: 'Shamanic Ritual, Spirit journey, Djembe trance, Frame drum, Rattle, Chant, Bullroarer, entering the unseen, tribal' },
 ];
 
+// ═══════════════════════════════════════════════════════════
+// SEMANTIC HINTS — GPT-extracted structured metadata for matching
+// ═══════════════════════════════════════════════════════════
+
+export interface MusicMetadata {
+  enrichedQuery: string;    // English keywords for KB matching
+  genres: string[];         // English genre names
+  emotions: string[];       // English emotion names
+  sceneTypes: string[];     // English scene type keywords
+  instruments: string[];    // English instrument names
+  ethnicStyles: string[];   // English ethnic/regional style names
+  bpmEstimate: [number, number];
+  analysis: string;         // GPT's music analysis summary (Chinese)
+}
+
 // ═══════════════════════════════════════════════════════
 // QUERY ENGINE: match scene description → music prescription
 // ═══════════════════════════════════════════════════════
@@ -689,12 +704,31 @@ function keywordScore(text: string, keywords: string[]): number {
   return score;
 }
 
+/** Score hints against target fields — semantic bonus for GPT-extracted keywords */
+function hintScore(hints: string[] | undefined, targets: string[]): number {
+  if (!hints || hints.length === 0) return 0;
+  let score = 0;
+  for (const h of hints) {
+    const hl = h.toLowerCase();
+    for (const t of targets) {
+      if (t.toLowerCase().includes(hl)) { score += hl.length >= 4 ? 3 : 2; break; }
+    }
+  }
+  return score;
+}
+
 /** Search genres by text — returns top matches with sub-genres flattened */
 export function searchGenres(query: string, topN: number = 5): GenreNode[] {
+  return searchGenresWithHints(query, undefined, topN);
+}
+
+export function searchGenresWithHints(query: string, hints?: MusicMetadata, topN: number = 5): GenreNode[] {
   const results: { genre: GenreNode; score: number }[] = [];
+  const hintKeywords = hints ? [...hints.genres, ...hints.sceneTypes, ...hints.emotions] : [];
 
   function walk(g: GenreNode) {
-    const score = keywordScore(query, [g.name, g.nameCN, ...(g.tags || [])]);
+    let score = keywordScore(query, [g.name, g.nameCN, ...(g.tags || [])]);
+    score += hintScore(hintKeywords, [g.name, g.nameCN, ...(g.tags || [])]);
     if (score > 0) results.push({ genre: g, score });
     if (g.sub) g.sub.forEach(walk);
   }
@@ -706,8 +740,14 @@ export function searchGenres(query: string, topN: number = 5): GenreNode[] {
 
 /** Search ethnic styles by text */
 export function searchEthnicStyles(query: string, topN: number = 3): EthnicStyle[] {
+  return searchEthnicStylesWithHints(query, undefined, topN);
+}
+
+export function searchEthnicStylesWithHints(query: string, hints?: MusicMetadata, topN: number = 3): EthnicStyle[] {
+  const hintKeywords = hints ? [...hints.ethnicStyles, ...hints.sceneTypes] : [];
   const results = ETHNIC_STYLES.map(s => {
-    const score = keywordScore(query, [s.name, s.nameCN, s.region, s.regionCN, ...s.tags]);
+    let score = keywordScore(query, [s.name, s.nameCN, s.region, s.regionCN, ...s.tags]);
+    score += hintScore(hintKeywords, [s.name, s.nameCN, s.region, s.regionCN, ...s.tags]);
     return { style: s, score };
   }).filter(r => r.score > 0);
   results.sort((a, b) => b.score - a.score);
@@ -716,8 +756,14 @@ export function searchEthnicStyles(query: string, topN: number = 3): EthnicStyle
 
 /** Search emotions by text */
 export function searchEmotions(query: string, topN: number = 3): EmotionEntry[] {
+  return searchEmotionsWithHints(query, undefined, topN);
+}
+
+export function searchEmotionsWithHints(query: string, hints?: MusicMetadata, topN: number = 3): EmotionEntry[] {
+  const hintKeywords = hints ? hints.emotions : [];
   const results = EMOTIONS.map(e => {
-    const score = keywordScore(query, [e.name, e.nameCN, e.category]);
+    let score = keywordScore(query, [e.name, e.nameCN, e.category]);
+    score += hintScore(hintKeywords, [e.name, e.nameCN, e.category]);
     return { emotion: e, score };
   }).filter(r => r.score > 0);
   results.sort((a, b) => b.score - a.score);
@@ -726,9 +772,15 @@ export function searchEmotions(query: string, topN: number = 3): EmotionEntry[] 
 
 /** Search instruments by text and emotion */
 export function searchInstruments(query: string, emotion?: string, topN: number = 5): InstrumentEntry[] {
+  return searchInstrumentsWithHints(query, emotion, undefined, topN);
+}
+
+export function searchInstrumentsWithHints(query: string, emotion?: string, hints?: MusicMetadata, topN: number = 5): InstrumentEntry[] {
+  const hintKeywords = hints ? hints.instruments : [];
   const results = INSTRUMENTS.map(inst => {
     let score = keywordScore(query, [inst.name, inst.nameCN, inst.family, inst.region || '', inst.role, ...inst.emotions]);
     if (emotion && inst.emotions.some(e => e.toLowerCase() === emotion.toLowerCase())) score += 3;
+    score += hintScore(hintKeywords, [inst.name, inst.nameCN, inst.family, ...inst.emotions]);
     return { inst, score };
   }).filter(r => r.score > 0);
   results.sort((a, b) => b.score - a.score);
@@ -737,8 +789,14 @@ export function searchInstruments(query: string, emotion?: string, topN: number 
 
 /** Match narrative scene — returns the closest scene template */
 export function matchNarrativeScene(description: string, topN: number = 3): NarrativeScene[] {
+  return matchNarrativeSceneWithHints(description, undefined, topN);
+}
+
+export function matchNarrativeSceneWithHints(description: string, hints?: MusicMetadata, topN: number = 3): NarrativeScene[] {
+  const hintKeywords = hints ? [...hints.sceneTypes, ...hints.emotions, ...hints.genres] : [];
   const results = NARRATIVE_SCENES.map(s => {
-    const score = keywordScore(description, [s.name, s.nameCN, s.description, ...s.genre, ...s.mood]);
+    let score = keywordScore(description, [s.name, s.nameCN, s.description, ...s.genre, ...s.mood]);
+    score += hintScore(hintKeywords, [s.name, s.nameCN, s.description, ...s.genre, ...s.mood]);
     return { scene: s, score };
   }).filter(r => r.score > 0);
   results.sort((a, b) => b.score - a.score);
@@ -759,21 +817,33 @@ export interface MusicPrescription {
 }
 
 export function queryMusicKB(sceneDescription: string): MusicPrescription {
-  const genres = searchGenres(sceneDescription, 4);
-  const ethnicStyles = searchEthnicStyles(sceneDescription, 2);
-  const emotions = searchEmotions(sceneDescription, 3);
-  const primaryEmotion = emotions[0]?.name;
-  const instruments = searchInstruments(sceneDescription, primaryEmotion, 6);
-  const narrativeMatches = matchNarrativeScene(sceneDescription, 3);
+  return queryMusicKBWithHints(sceneDescription, undefined);
+}
 
-  // Derive BPM range from matched genres and emotions
-  let bpmMin = 60, bpmMax = 120;
-  const allTempos: [number, number][] = [];
-  genres.forEach(g => { if (g.tempo) allTempos.push(g.tempo); });
-  emotions.forEach(e => { if (e.tempo) allTempos.push(e.tempo); });
-  if (allTempos.length > 0) {
-    bpmMin = Math.min(...allTempos.map(t => t[0]));
-    bpmMax = Math.max(...allTempos.map(t => t[1]));
+export function queryMusicKBWithHints(sceneDescription: string, hints?: MusicMetadata): MusicPrescription {
+  // Enrich query: prepend GPT-extracted English keywords for better matching
+  const enrichedQuery = hints?.enrichedQuery
+    ? `${hints.enrichedQuery} ${sceneDescription}`
+    : sceneDescription;
+
+  const genres = searchGenresWithHints(enrichedQuery, hints, 4);
+  const ethnicStyles = searchEthnicStylesWithHints(enrichedQuery, hints, 2);
+  const emotions = searchEmotionsWithHints(enrichedQuery, hints, 3);
+  const primaryEmotion = emotions[0]?.name;
+  const instruments = searchInstrumentsWithHints(enrichedQuery, primaryEmotion, hints, 6);
+  const narrativeMatches = matchNarrativeSceneWithHints(enrichedQuery, hints, 3);
+
+  // Derive BPM range — prioritize GPT estimate if available
+  let bpmMin = hints?.bpmEstimate?.[0] ?? 60;
+  let bpmMax = hints?.bpmEstimate?.[1] ?? 120;
+  if (!hints?.bpmEstimate) {
+    const allTempos: [number, number][] = [];
+    genres.forEach(g => { if (g.tempo) allTempos.push(g.tempo); });
+    emotions.forEach(e => { if (e.tempo) allTempos.push(e.tempo); });
+    if (allTempos.length > 0) {
+      bpmMin = Math.min(...allTempos.map(t => t[0]));
+      bpmMax = Math.max(...allTempos.map(t => t[1]));
+    }
   }
 
   // Use narrative match template if available, else build from genres/emotions

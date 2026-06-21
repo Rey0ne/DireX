@@ -2271,13 +2271,79 @@ export function searchComposers(query: string, topN: number = 5): ComposerProfil
   return scored.slice(0, topN).map(r => r.composer);
 }
 
+/** Search hints for semantic matching — mirrors MusicMetadata fields */
+export interface ComposerSearchHints {
+  genres?: string[];
+  emotions?: string[];
+  sceneTypes?: string[];
+  instruments?: string[];
+  ethnicStyles?: string[];
+  enrichedQuery?: string;
+}
+
+/** Search composers with optional semantic hints */
+export function searchComposersWithHints(query: string, hints?: ComposerSearchHints, topN: number = 5): ComposerProfile[] {
+  const lower = query.toLowerCase();
+  const hintWords = hints?.enrichedQuery?.toLowerCase().split(/\s+/).filter(w => w.length >= 2) || [];
+  const allHintWords = [
+    ...hintWords,
+    ...(hints?.genres || []).map(w => w.toLowerCase()),
+    ...(hints?.emotions || []).map(w => w.toLowerCase()),
+    ...(hints?.sceneTypes || []).map(w => w.toLowerCase()),
+    ...(hints?.instruments || []).map(w => w.toLowerCase()),
+  ];
+
+  const scored = ALL_COMPOSERS.map(c => {
+    let score = 0;
+    const searchFields = [
+      c.name.toLowerCase(), c.nameCN, c.type.toLowerCase(), c.country.toLowerCase(), c.countryCN, c.era,
+      ...c.styles.map(s => s.toLowerCase()), ...c.stylesCN,
+      ...c.emotions.map(s => s.toLowerCase()), ...c.emotionsCN,
+      ...c.instruments.map(s => s.toLowerCase()), ...c.instrumentsCN,
+      ...c.scenes.map(s => s.toLowerCase()), ...c.scenesCN,
+      ...c.sunoKeywords.map(s => s.toLowerCase()),
+      ...c.tags.map(s => s.toLowerCase()),
+    ];
+
+    // Original keyword matching
+    for (const f of searchFields) {
+      for (const word of lower.split(/\s+/)) {
+        if (word.length < 2) continue;
+        if (f.includes(word)) score += word.length >= 4 ? 2 : 1;
+      }
+    }
+
+    // Semantic hint matching — higher weight for GPT-extracted keywords
+    for (const hw of allHintWords) {
+      for (const f of searchFields) {
+        if (f.includes(hw)) { score += hw.length >= 4 ? 3 : 2; break; }
+      }
+    }
+
+    // Influence bonus
+    if (c.influence === 'SSS') score += 2;
+    else if (c.influence === 'SS') score += 1;
+    return { composer: c, score };
+  }).filter(r => r.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topN).map(r => r.composer);
+}
+
 /** Get top composers for a specific scene type + emotion + genre combo */
 export function recommendComposers(sceneDescription: string, topN: number = 3): {
   composers: ComposerProfile[];
   aggregatedKeywords: string[];
   aggregatedInstruments: string[];
 } {
-  const composers = searchComposers(sceneDescription, topN);
+  return recommendComposersWithHints(sceneDescription, undefined, topN);
+}
+
+export function recommendComposersWithHints(sceneDescription: string, hints?: ComposerSearchHints, topN: number = 3): {
+  composers: ComposerProfile[];
+  aggregatedKeywords: string[];
+  aggregatedInstruments: string[];
+} {
+  const composers = searchComposersWithHints(sceneDescription, hints, topN);
   const keywords = [...new Set(composers.flatMap(c => c.sunoKeywords))].slice(0, 10);
   const instruments = [...new Set(composers.flatMap(c => c.instruments))].slice(0, 8);
   return { composers, aggregatedKeywords: keywords, aggregatedInstruments: instruments };

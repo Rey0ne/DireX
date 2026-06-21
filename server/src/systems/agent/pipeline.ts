@@ -744,26 +744,125 @@ export async function runPropDesigner(scriptText: string): Promise<Record<string
   return props;
 }
 
+// ─── Semantic Music Metadata Extractor ──
+// GPT analyzes Chinese script → outputs English structured keywords → feeds into KB matching
+
+const MUSIC_EXTRACTION_PROMPT = `You are a music supervisor analyzing a film script. Output ONLY valid JSON, no markdown, no explanation.
+
+Analyze the script and output:
+{
+  "enrichedQuery": "English keywords string for searching music knowledge base",
+  "genres": ["Epic Orchestral", "Dark Ambient", ...],
+  "emotions": ["Heroic", "Melancholic", ...],
+  "sceneTypes": ["Battle", "Sunset Farewell", ...],
+  "instruments": ["Strings", "Brass", "Taiko", ...],
+  "ethnicStyles": ["Chinese Folk", "Nordic", ...],
+  "bpmEstimate": [80, 140],
+  "analysis": "Chinese text summarizing what kind of music this scene needs and why"
+}
+
+Rules:
+- genres/emotions/instruments/ethnicStyles: MUST be in English, use standard music terminology
+- enrichedQuery: space-separated English keywords covering all extracted concepts
+- sceneTypes: descriptive English labels for the scene type
+- bpmEstimate: [min, max] based on scene energy level
+- analysis: 2-3 Chinese sentences explaining your music choice
+- If the script has multiple distinct scenes, analyze the dominant/most important one
+- Only output the JSON object, nothing else`;
+
+async function extractMusicMetadata(scriptText: string): Promise<{
+  enrichedQuery: string;
+  genres: string[];
+  emotions: string[];
+  sceneTypes: string[];
+  instruments: string[];
+  ethnicStyles: string[];
+  bpmEstimate: [number, number];
+  analysis: string;
+} | null> {
+  try {
+    const msgs = [
+      { role: 'user' as const, content: [{ type: 'input_text' as const, text: `${MUSIC_EXTRACTION_PROMPT}\n\n剧本内容:\n${scriptText.slice(0, 3000)}` }] },
+    ];
+    const raw = await gpt5Chat(msgs, { effort: 'low', timeoutMs: 30000, maxOutputTokens: 1024 });
+    if (!raw) { console.log('[extract-metadata] No GPT output'); return null; }
+
+    // Extract JSON from response (handle markdown code blocks)
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) { console.log('[extract-metadata] No JSON found in:', raw.slice(0, 200)); return null; }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    console.log('[extract-metadata] Extracted:', {
+      genres: parsed.genres?.join(',') || 'none',
+      emotions: parsed.emotions?.join(',') || 'none',
+      instruments: parsed.instruments?.join(',') || 'none',
+      bpm: parsed.bpmEstimate?.join('-') || 'none',
+    });
+
+    return {
+      enrichedQuery: parsed.enrichedQuery || '',
+      genres: parsed.genres || [],
+      emotions: parsed.emotions || [],
+      sceneTypes: parsed.sceneTypes || [],
+      instruments: parsed.instruments || [],
+      ethnicStyles: parsed.ethnicStyles || [],
+      bpmEstimate: Array.isArray(parsed.bpmEstimate) && parsed.bpmEstimate.length === 2
+        ? [parsed.bpmEstimate[0], parsed.bpmEstimate[1]] as [number, number]
+        : [60, 120] as [number, number],
+      analysis: parsed.analysis || '',
+    };
+  } catch (err: any) {
+    console.log('[extract-metadata] Failed:', String(err).slice(0, 150));
+    return null;
+  }
+}
+
 // ─── Sound Composer (声音与音乐设计，GPT-5.4 → Suno) ──
 export async function runSoundComposer(scriptText: string): Promise<{ scenes: Record<string, string>; sunoPrompts: Record<string, string> }> {
   const t0 = Date.now();
   console.log('[sound-composer] Starting, script length=' + scriptText.length);
 
-  // Query music KB for relevant context
-  const { queryMusicKB, formatKBContext, generateKBSummary } = await import('./music-kb.js');
-  const kbResult = queryMusicKB(scriptText);
+  // Step 1: Semantic extraction — GPT analyzes Chinese script → English keywords
+  const metadata = await extractMusicMetadata(scriptText);
+
+  // Step 2: Query music KB with semantic hints
+  const { queryMusicKBWithHints, formatKBContext, generateKBSummary } = await import('./music-kb.js');
+  const kbResult = metadata
+    ? queryMusicKBWithHints(scriptText, metadata)
+    : queryMusicKBWithHints(scriptText);
   const kbContext = formatKBContext(kbResult);
   const kbSummary = generateKBSummary();
-  console.log('[sound-composer] KB matches: genres=' + kbResult.genres.map(g => g.name).join(',') + ' emotions=' + kbResult.emotions.map(e => e.name).join(','));
+  console.log('[sound-composer] KB matches:', {
+    genres: kbResult.genres.map(g => g.name).join(','),
+    emotions: kbResult.emotions.map(e => e.name).join(','),
+    instruments: kbResult.instruments.map(i => i.name).join(','),
+    hints: metadata ? `genres=${metadata.genres.join(',')} emotions=${metadata.emotions.join(',')}` : 'none',
+  });
 
-  // Query composer KB for reference styles
-  const { recommendComposers, formatComposerContext, composerStats } = await import('./composer-kb.js');
+  // Step 3: Query composer KB with semantic hints
+  const { recommendComposersWithHints, formatComposerContext, composerStats } = await import('./composer-kb.js');
+  const composerHints = metadata ? {
+    genres: metadata.genres,
+    emotions: metadata.emotions,
+    sceneTypes: metadata.sceneTypes,
+    instruments: metadata.instruments,
+    ethnicStyles: metadata.ethnicStyles,
+    enrichedQuery: metadata.enrichedQuery,
+  } : undefined;
+  const composerResult = recommendComposersWithHints(scriptText, composerHints, 5);
   const composerContext = formatComposerContext(scriptText, 5);
   const cStats = composerStats();
-  console.log('[sound-composer] Composer matches: ' + recommendComposers(scriptText, 3).composers.map(c => c.name).join(', '));
+  console.log('[sound-composer] Composer matches:', composerResult.composers.map(c => c.name).join(', '));
+
+  // Step 4: Build enriched prompt with GPT analysis + KB + composer context
+  const gptAnalysisBlock = metadata?.analysis
+    ? `\n\n## GPT 语义分析 (中文)\n${metadata.analysis}\n\n## GPT 提取关键词 (英文)\n${metadata.enrichedQuery}`
+    : '';
 
   const userMessage = SOUND_COMPOSER.systemPrompt
-    + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
+    + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})`
+    + gptAnalysisBlock
+    + `\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
 
   const gptMsgs = [
     { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
