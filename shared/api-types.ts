@@ -26,6 +26,14 @@ export interface GenerateRequest {
   genMode?: string;  // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
   firstFrameUrl?: string;
   lastFrameUrl?: string;
+  // Audio (Suno)
+  instrumental?: boolean; // true=纯音乐, false=人声
+  lyrics?: string;        // 歌词文本（人声模式下作为 prompt 发送）
+  // Audio (ElevenLabs)
+  voice?: string;         // ElevenLabs 语音 ID
+  language?: string;      // 语言代码（如 zh/en/ja），默认自动检测
+  stability?: number;     // 稳定性 0.0 | 0.5 | 1.0
+  dialogue?: { text: string; voice: string }[]; // ElevenLabs multi-dialogue
 }
 
 export interface GenerateResult {
@@ -40,7 +48,7 @@ export interface GenerateResult {
 // ─── Provider IDs ──────────────────────────────
 // Image models
 // Video models
-// Audio models (future)
+// Audio
 
 export const PROVIDER_IDS = [
   // Image
@@ -75,6 +83,7 @@ export function mapModelNameToProviderId(modelName: string): string {
     'Suno v4': 'suno-v4',
     'Udio': 'udio',
     'Stable Audio': 'stable-audio',
+    'ElevenLabs Dialogue v3': 'elevenlabs-text-to-dialogue-v3',
   };
   return map[modelName] || modelName.toLowerCase().replace(/\s+/g, '-');
 }

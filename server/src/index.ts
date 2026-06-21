@@ -441,6 +441,9 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     fixedCamera: (body as any).fixedCamera,
     generateAudio: (body as any).generateAudio,
     webSearch: (body as any).webSearch,
+    // Suno audio
+    instrumental: (body as any).instrumental as boolean | undefined,
+    lyrics: (body as any).lyrics as string | undefined,
   });
   result.durationMs = Date.now() - t0;
   addLog({
@@ -477,7 +480,7 @@ app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled |
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 
 // ─── Script Analysis ─────────────────────────
-import { runCharacterExtraction, runScriptAnalysis, type ScriptAnalysisResult } from './systems/agent/pipeline.js';
+import { runCharacterExtraction, runSceneExtraction, runSceneArchitect, runPropDesigner, runSoundComposer, runScriptAnalysis, type ScriptAnalysisResult } from './systems/agent/pipeline.js';
 
 // 异步任务存储：taskId → { status, result }
 const scriptTasks = new Map<string, { status: 'processing'|'done'; result?: ScriptAnalysisResult; error?: string; createdAt: number }>();
@@ -541,6 +544,45 @@ app.post('/api/agent/script/characters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
+app.post('/api/agent/script/scenes', async (req, res) => {
+  const { scriptText } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const scenes = await runSceneExtraction(scriptText);
+    res.json({ success: true, scenes });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+// ─── Scene Architect (场景空间设计) ──
+app.post('/api/agent/script/scene-architect', async (req, res) => {
+  const { scriptText } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const designs = await runSceneArchitect(scriptText);
+    res.json({ success: true, designs });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+// ─── Prop Designer (道具设计) ──
+app.post('/api/agent/script/props', async (req, res) => {
+  const { scriptText } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const props = await runPropDesigner(scriptText);
+    res.json({ success: true, props });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+// ─── Sound Composer (声音与音乐 → Suno) ──
+app.post('/api/agent/script/sound', async (req, res) => {
+  const { scriptText } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  try {
+    const result = await runSoundComposer(scriptText);
+    res.json({ success: true, soundScenes: result.scenes, sunoPrompts: result.sunoPrompts });
+  } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
 app.post('/api/agent/script/scene', async (req, res) => {
   req.setTimeout(600000); // 10 min — per-scene pipeline
   const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
@@ -556,6 +598,24 @@ app.post('/api/agent/script/scene', async (req, res) => {
 app.post('/api/kie-callback', (req, res) => {
   console.log('[kie-callback] Received:', JSON.stringify(req.body).slice(0, 300));
   res.json({ code: 200, msg: 'ok' });
+});
+
+// ─── Kie.ai Suno Callback ─────────────────────
+const sunoCallbacks = new Map<string, any>();
+app.post('/api/kie/suno-callback', (req, res) => {
+  console.log('[suno-callback] Received:', JSON.stringify(req.body).slice(0, 500));
+  const taskId = req.body?.taskId || req.body?.data?.taskId || '';
+  if (taskId) {
+    sunoCallbacks.set(taskId, { data: req.body, receivedAt: Date.now() });
+    console.log('[suno-callback] Stored result for taskId:', taskId);
+  }
+  res.json({ received: true });
+});
+// Poll endpoint — frontend can check callback results
+app.get('/api/kie/suno-callback/:taskId', (req, res) => {
+  const data = sunoCallbacks.get(req.params.taskId);
+  if (!data) { res.json({ ready: false }); return; }
+  res.json({ ready: true, data: data.data });
 });
 
 // ─── Download ────────────────────────────────

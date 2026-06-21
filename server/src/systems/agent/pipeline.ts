@@ -560,7 +560,7 @@ function extractModelPrompt(output: string): string {
 }
 
 // ─── Script Analysis Pipeline (two-phase: character extraction → storyboard) ──
-import { CHARACTER_EXTRACTION, SCRIPT_ANALYSIS } from './profiles.js';
+import { CHARACTER_EXTRACTION, SCENE_EXTRACTION, SCRIPT_ANALYSIS, SCENE_ARCHITECT, PROP_DESIGNER, SOUND_COMPOSER } from './profiles.js';
 
 export interface ScriptAnalysisResult {
   shots: Array<{
@@ -627,6 +627,189 @@ export async function runCharacterExtraction(scriptText: string, visualStyle?: s
 
   console.log('[char-extract] Parsed ' + Object.keys(characters).length + ' characters');
   return characters;
+}
+
+// ─── Scene Extraction (独立场景提取，GPT-5.4) ──
+export async function runSceneExtraction(scriptText: string): Promise<Record<string, string>> {
+  const t0 = Date.now();
+  console.log('[scene-extract] Starting, script length=' + scriptText.length);
+
+  const userMessage = SCENE_EXTRACTION.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
+  } catch (err: any) {
+    console.log('[scene-extract] Failed:', String(err).slice(0, 100));
+    return {};
+  }
+
+  if (!rawOutput) {
+    console.log('[scene-extract] No output');
+    return {};
+  }
+
+  console.log('[scene-extract] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  // Parse scenes — format: === separated blocks, each starting with ## {场景名}
+  const scenes: Record<string, string> = {};
+  const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
+  for (const block of blocks) {
+    const headerMatch = block.match(/^##\s+(.+)/m);
+    if (!headerMatch) continue;
+    const name = headerMatch[1].trim();
+    if (!name || name.length > 30 || /无明确场景/i.test(name)) continue;
+    scenes[name] = block;
+  }
+
+  console.log('[scene-extract] Parsed ' + Object.keys(scenes).length + ' scenes');
+  return scenes;
+}
+
+// ─── Scene Architect (场景空间设计，GPT-5.4) ──
+export async function runSceneArchitect(scriptText: string): Promise<Record<string, string>> {
+  const t0 = Date.now();
+  console.log('[scene-architect] Starting, script length=' + scriptText.length);
+
+  const userMessage = SCENE_ARCHITECT.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
+  } catch (err: any) {
+    console.log('[scene-architect] Failed:', String(err).slice(0, 100));
+    return {};
+  }
+
+  if (!rawOutput) { console.log('[scene-architect] No output'); return {}; }
+
+  console.log('[scene-architect] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  const designs: Record<string, string> = {};
+  const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
+  for (const block of blocks) {
+    const headerMatch = block.match(/【场景名称】\s*\n?\s*(.+)/);
+    if (!headerMatch) continue;
+    const name = headerMatch[1].trim();
+    if (!name || name.length > 50) continue;
+    designs[name] = block;
+  }
+
+  console.log('[scene-architect] Parsed ' + Object.keys(designs).length + ' spatial designs');
+  return designs;
+}
+
+// ─── Prop Designer (道具设计，GPT-5.4) ──
+export async function runPropDesigner(scriptText: string): Promise<Record<string, string>> {
+  const t0 = Date.now();
+  console.log('[prop-designer] Starting, script length=' + scriptText.length);
+
+  const userMessage = PROP_DESIGNER.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请识别所有关键道具，为每个道具输出完整设计方案（材质/结构/时代背景/使用痕迹/象征意义/角色关联性）。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
+  } catch (err: any) {
+    console.log('[prop-designer] Failed:', String(err).slice(0, 100));
+    return {};
+  }
+
+  if (!rawOutput) { console.log('[prop-designer] No output'); return {}; }
+
+  console.log('[prop-designer] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  const props: Record<string, string> = {};
+  const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
+  for (const block of blocks) {
+    const headerMatch = block.match(/【道具名称】\s*\n?\s*(.+)/);
+    if (!headerMatch) continue;
+    const name = headerMatch[1].trim();
+    if (!name || name.length > 50) continue;
+    props[name] = block;
+  }
+
+  console.log('[prop-designer] Parsed ' + Object.keys(props).length + ' props');
+  return props;
+}
+
+// ─── Sound Composer (声音与音乐设计，GPT-5.4 → Suno) ──
+export async function runSoundComposer(scriptText: string): Promise<{ scenes: Record<string, string>; sunoPrompts: Record<string, string> }> {
+  const t0 = Date.now();
+  console.log('[sound-composer] Starting, script length=' + scriptText.length);
+
+  // Query music KB for relevant context
+  const { queryMusicKB, formatKBContext, generateKBSummary } = await import('./music-kb.js');
+  const kbResult = queryMusicKB(scriptText);
+  const kbContext = formatKBContext(kbResult);
+  const kbSummary = generateKBSummary();
+  console.log('[sound-composer] KB matches: genres=' + kbResult.genres.map(g => g.name).join(',') + ' emotions=' + kbResult.emotions.map(e => e.name).join(','));
+
+  // Query composer KB for reference styles
+  const { recommendComposers, formatComposerContext, composerStats } = await import('./composer-kb.js');
+  const composerContext = formatComposerContext(scriptText, 5);
+  const cStats = composerStats();
+  console.log('[sound-composer] Composer matches: ' + recommendComposers(scriptText, 3).composers.map(c => c.name).join(', '));
+
+  const userMessage = SOUND_COMPOSER.systemPrompt
+    + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
+
+  const gptMsgs = [
+    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+  ];
+
+  let rawOutput: string | null = null;
+  try {
+    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
+  } catch (err: any) {
+    console.log('[sound-composer] Failed:', String(err).slice(0, 100));
+    return { scenes: {}, sunoPrompts: {} };
+  }
+
+  if (!rawOutput) { console.log('[sound-composer] No output'); return { scenes: {}, sunoPrompts: {} }; }
+
+  console.log('[sound-composer] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+
+  // Parse blocks — each === block contains both sound design + embedded 【Suno Prompt】
+  const scenes: Record<string, string> = {};
+  const sunoPrompts: Record<string, string> = {};
+  const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
+
+  for (const block of blocks) {
+    // Extract scene name from 【场景名称】
+    const nameMatch = block.match(/【场景名称】\s*\n?\s*(.+)/);
+    if (!nameMatch) continue;
+    const name = nameMatch[1].trim();
+    if (!name || name.length > 60) continue;
+
+    // Store full sound design block
+    scenes[name] = block;
+
+    // Extract Suno Prompt from within the same block
+    const sunoMatch = block.match(/【Suno Prompt】\s*\n?\s*(?:⚠️[^\n]*\n?)?\s*(?:格式：[^\n]*\n?)?\s*([\s\S]+?)(?=\n【|\n===|$)/);
+    if (sunoMatch) {
+      let prompt = sunoMatch[1].trim();
+      // Clean instruction lines if captured
+      prompt = prompt.replace(/^⚠️[^\n]*\n?/gm, '').replace(/^格式：[^\n]*\n?/gm, '').trim();
+      if (prompt.length > 0 && prompt.length < 500) {
+        sunoPrompts[name] = prompt;
+      }
+    }
+  }
+
+  console.log('[sound-composer] Parsed ' + Object.keys(scenes).length + ' sound scenes, ' + Object.keys(sunoPrompts).length + ' suno prompts');
+  return { scenes, sunoPrompts };
 }
 
 // ─── Phase 2: Storyboard Generation (receives character profiles) ──

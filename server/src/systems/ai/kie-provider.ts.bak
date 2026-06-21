@@ -11,31 +11,8 @@ import { join } from 'path';
 const BASE_URL = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
 
 // Create fetch with proxy support — reads env dynamically
-let _proxyAgentClass: any = undefined;
-let _proxyAgentLoaded = false;
-
-async function getProxyAgent(): Promise<any> {
-  if (_proxyAgentLoaded) return _proxyAgentClass;
-  _proxyAgentLoaded = true;
-  try {
-    const undici = await import("undici");
-    _proxyAgentClass = undici.ProxyAgent;
-  } catch (e: any) {
-    console.log("[kie] undici import failed:", e.message);
-  }
-  return _proxyAgentClass;
-}
-
-async function kieFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
-  console.log("[kie] proxy=" + (proxy ? proxy.slice(0,40) : "none"));
-  if (proxy) {
-    const ProxyAgent = await getProxyAgent();
-    if (ProxyAgent) {
-      console.log("[kie] using ProxyAgent");
-      return fetch(url, { ...options, dispatcher: new ProxyAgent(proxy) } as any);
-    }
-  }
+function kieFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  // Use system-level proxy — undici ProxyAgent unreliable with local proxies
   return fetch(url, options);
 }
 
@@ -445,20 +422,13 @@ async function pollSunoTask(taskId: string, apiKey: string, startTime: number): 
         const resultObj = record.result || resultData || record;
 
         // Extract audio URLs — check all common field names
-        // Suno v4: response.sunoData[].audioUrl
-        const sunoData = resultObj?.response?.sunoData || resultObj?.sunoData;
-        if (sunoData?.length) {
-          urls = sunoData.map((s: any) => s.audioUrl || s.streamAudioUrl || s.sourceAudioUrl).filter(Boolean);
-        }
-        if (urls.length === 0) {
-          urls = resultObj?.audio_urls
-            || resultObj?.audioUrls
-            || resultObj?.assetUrls
-            || resultObj?.resultUrls
-            || resultObj?.data?.map((d: any) => d.url || d)
-            || resultObj?.audio?.map((a: any) => a.url || a)
-            || [];
-        }
+        urls = resultObj?.audio_urls
+          || resultObj?.audioUrls
+          || resultObj?.assetUrls
+          || resultObj?.resultUrls
+          || resultObj?.data?.map((d: any) => d.url || d)
+          || resultObj?.audio?.map((a: any) => a.url || a)
+          || [];
 
         // Single URL string
         if (urls.length === 0 && typeof resultData === 'string' && resultData.startsWith('http')) {

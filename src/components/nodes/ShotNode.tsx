@@ -65,8 +65,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const [sceneRunning, setSceneRunning] = useState(false);
+  const [charRunning, setCharRunning] = useState(false);
+  const [spaceRunning, setSpaceRunning] = useState(false);
+  const [propRunning, setPropRunning] = useState(false);
+  const [soundRunning, setSoundRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
   const getOverview = () => (data as any).scriptOverview || (gen as any).scriptOverview || null;
+  const getScenes = () => (data as any).scriptScenes || null;
+  const getCharacters = () => (data as any).scriptCharacters || getOverview()?.characterProfiles || null;
+  const getSpatialDesigns = () => (data as any).scriptSpatialDesigns || null;
+  const getProps = () => (data as any).scriptProps || null;
+  const getSound = () => (data as any).scriptSound || null;
+  const getSunoPrompts = () => (data as any).scriptSunoPrompts || null;
   const analysisDoneRef = useRef(!!getOverview());
   const [phase, setPhase] = useState<'input'|'overview'|'shots'>(analysisDoneRef.current?'overview':'input');
   const zoom = useStore(s => s.transform[2]);
@@ -142,6 +153,97 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       console.error('[analysis] Timeout after 50 polls (~25 min)');
     } catch (err) { console.error('[analysis] Error:', err); }
     finally { genRunningRef.current = false; setGenRunning(false); }
+  };
+
+  const handleSceneExtraction = async () => {
+    if (!prompt.trim() || sceneRunning) return;
+    setSceneRunning(true);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const resp = await fetch(`${apiBase}/api/agent/script/scenes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success && json.scenes) {
+        patch('scriptScenes', json.scenes);
+      }
+    } catch (err) { console.error('[scenes] Error:', err); }
+    finally { setSceneRunning(false); }
+  };
+
+  const handleCharacterExtraction = async () => {
+    if (!prompt.trim() || charRunning) return;
+    setCharRunning(true);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const resp = await fetch(`${apiBase}/api/agent/script/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success && json.characters) {
+        patch('scriptCharacters', json.characters);
+      }
+    } catch (err) { console.error('[chars] Error:', err); }
+    finally { setCharRunning(false); }
+  };
+
+  const handleSceneArchitect = async () => {
+    if (!prompt.trim() || spaceRunning) return;
+    setSpaceRunning(true);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const resp = await fetch(`${apiBase}/api/agent/script/scene-architect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success && json.designs) {
+        patch('scriptSpatialDesigns', json.designs);
+      }
+    } catch (err) { console.error('[space] Error:', err); }
+    finally { setSpaceRunning(false); }
+  };
+
+  const handlePropDesigner = async () => {
+    if (!prompt.trim() || propRunning) return;
+    setPropRunning(true);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const resp = await fetch(`${apiBase}/api/agent/script/props`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success && json.props) {
+        patch('scriptProps', json.props);
+      }
+    } catch (err) { console.error('[props] Error:', err); }
+    finally { setPropRunning(false); }
+  };
+
+  const handleSoundComposer = async () => {
+    if (!prompt.trim() || soundRunning) return;
+    setSoundRunning(true);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const resp = await fetch(`${apiBase}/api/agent/script/sound`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({ scriptText: prompt }),
+      });
+      const json = await resp.json();
+      if (json.success) {
+        if (json.soundScenes) patch('scriptSound', json.soundScenes);
+        if (json.sunoPrompts) patch('scriptSunoPrompts', json.sunoPrompts);
+      }
+    } catch (err) { console.error('[sound] Error:', err); }
+    finally { setSoundRunning(false); }
   };
 
   return (
@@ -228,6 +330,174 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             }}
             onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
           />
+
+          {/* Scene extraction result */}
+          {getScenes() && (() => {
+            const scenes = getScenes()!;
+            const sceneCount = Object.keys(scenes).length;
+            if (sceneCount === 0) return null;
+            const createSceneNodes = () => {
+              const entries = Object.entries(scenes) as [string, string][];
+              if (!entries.length) return;
+              const next = new Map(canvasStore.nodes);
+              const nextEdges = new Map(canvasStore.edges);
+              const baseX = (canvasStore.nodes.get(id)?.pos?.x || 0) + 340;
+              const baseY = (canvasStore.nodes.get(id)?.pos?.y || 0) + 200;
+              const COLS = 3; const ts = Date.now(); const newEdgeList: any[] = [];
+              entries.forEach(([name, desc], si) => {
+                const nid = 'sc_' + ts + '_' + si;
+                const prompt = `场景概念设计：${name}。${desc.slice(0, 500)}。电影级场景设定。`;
+                next.set(nid, { id: nid, type: 'image.generate', title: name,
+                  pos: { x: baseX + (si % COLS) * 340, y: baseY + Math.floor(si / COLS) * 400 },
+                  size: { w: 380, h: 200 }, ports: [], status: 'idle',
+                  meta: { gen: { prompt, model: 'GPT Image2', aspect: '16:9', resolution: '2K', quality: 'high' } },
+                  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                const eid = 'e_' + ts + '_sc_' + si;
+                nextEdges.set(eid, { id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+                newEdgeList.push({ id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+              });
+              useCanvasStore.setState({ nodes: next, edges: nextEdges }); canvasStore.triggerSync();
+              fetch('/api/canvas/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' },
+                body: JSON.stringify({ nodes: Array.from(next.values()).map((n: any) => ({ id: n.id, type: n.type, title: n.title, pos: n.pos, size: n.size, ports: n.ports, status: n.status, meta: n.meta })), edges: newEdgeList }) }).catch(() => {});
+            };
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div onClick={createSceneNodes} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)', border: '1px solid rgba(245,158,11,0.25)', transition: 'all 0.15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.20) 0%, rgba(245,158,11,0.08) 100%)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.25)'; }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>🏛️ 场景 {sceneCount}场</span>
+                  <span style={{ fontSize: 9, color: 'var(--tap-text-4)' }}>点击生成 →</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Spatial Design result */}
+          {getSpatialDesigns() && (() => {
+            const designs = getSpatialDesigns()!;
+            const count = Object.keys(designs).length;
+            if (count === 0) return null;
+            const createSpaceNodes = () => {
+              const entries = Object.entries(designs) as [string, string][];
+              if (!entries.length) return;
+              const next = new Map(canvasStore.nodes);
+              const nextEdges = new Map(canvasStore.edges);
+              const baseX = (canvasStore.nodes.get(id)?.pos?.x || 0) + 340;
+              const baseY = (canvasStore.nodes.get(id)?.pos?.y || 0) + 200;
+              const COLS = 3; const ts = Date.now(); const newEdgeList: any[] = [];
+              entries.forEach(([name, desc], i) => {
+                const nid = 'sp_' + ts + '_' + i;
+                const prompt = `场景空间设计：${name}。${desc.slice(0, 500)}。电影级场景概念设计。`;
+                next.set(nid, { id: nid, type: 'image.generate', title: '🏗️ ' + name,
+                  pos: { x: baseX + (i % COLS) * 340, y: baseY + Math.floor(i / COLS) * 400 },
+                  size: { w: 380, h: 200 }, ports: [], status: 'idle',
+                  meta: { gen: { prompt, model: 'GPT Image2', aspect: '16:9', resolution: '2K', quality: 'high' } },
+                  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                const eid = 'e_' + ts + '_sp_' + i;
+                nextEdges.set(eid, { id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+                newEdgeList.push({ id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+              });
+              useCanvasStore.setState({ nodes: next, edges: nextEdges }); canvasStore.triggerSync();
+              fetch('/api/canvas/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' },
+                body: JSON.stringify({ nodes: Array.from(next.values()).map((n: any) => ({ id: n.id, type: n.type, title: n.title, pos: n.pos, size: n.size, ports: n.ports, status: n.status, meta: n.meta })), edges: newEdgeList }) }).catch(() => {});
+            };
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div onClick={createSpaceNodes} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.04) 100%)', border: '1px solid rgba(16,185,129,0.25)', transition: 'all 0.15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.08) 100%)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.04) 100%)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.25)'; }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>🏗️ 空间 {count}场</span>
+                  <span style={{ fontSize: 9, color: 'var(--tap-text-4)' }}>点击生成 →</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Prop Design result */}
+          {getProps() && (() => {
+            const props = getProps()!;
+            const count = Object.keys(props).length;
+            if (count === 0) return null;
+            const createPropNodes = () => {
+              const entries = Object.entries(props) as [string, string][];
+              if (!entries.length) return;
+              const next = new Map(canvasStore.nodes);
+              const nextEdges = new Map(canvasStore.edges);
+              const baseX = (canvasStore.nodes.get(id)?.pos?.x || 0) + 340;
+              const baseY = (canvasStore.nodes.get(id)?.pos?.y || 0) + 200;
+              const COLS = 4; const ts = Date.now(); const newEdgeList: any[] = [];
+              entries.forEach(([name, desc], i) => {
+                const nid = 'pr_' + ts + '_' + i;
+                const prompt = `道具设计：${name}。${desc.slice(0, 500)}。白色背景。产品级道具设定图。`;
+                next.set(nid, { id: nid, type: 'image.generate', title: '🪄 ' + name,
+                  pos: { x: baseX + (i % COLS) * 220, y: baseY + Math.floor(i / COLS) * 220 },
+                  size: { w: 200, h: 200 }, ports: [], status: 'idle',
+                  meta: { gen: { prompt, model: 'GPT Image2', aspect: '1:1', resolution: '2K', quality: 'high' } },
+                  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                const eid = 'e_' + ts + '_pr_' + i;
+                nextEdges.set(eid, { id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+                newEdgeList.push({ id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+              });
+              useCanvasStore.setState({ nodes: next, edges: nextEdges }); canvasStore.triggerSync();
+              fetch('/api/canvas/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' },
+                body: JSON.stringify({ nodes: Array.from(next.values()).map((n: any) => ({ id: n.id, type: n.type, title: n.title, pos: n.pos, size: n.size, ports: n.ports, status: n.status, meta: n.meta })), edges: newEdgeList }) }).catch(() => {});
+            };
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div onClick={createPropNodes} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(236,72,153,0.04) 100%)', border: '1px solid rgba(236,72,153,0.25)', transition: 'all 0.15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(236,72,153,0.20) 0%, rgba(236,72,153,0.08) 100%)'; e.currentTarget.style.borderColor = 'rgba(236,72,153,0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(236,72,153,0.04) 100%)'; e.currentTarget.style.borderColor = 'rgba(236,72,153,0.25)'; }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#ec4899' }}>🪄 道具 {count}件</span>
+                  <span style={{ fontSize: 9, color: 'var(--tap-text-4)' }}>点击生成 →</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Sound / Suno result */}
+          {getSunoPrompts() && (() => {
+            const sunoPrompts = getSunoPrompts()!;
+            const count = Object.keys(sunoPrompts).length;
+            if (count === 0) return null;
+            const createMusicNodes = () => {
+              const entries = Object.entries(sunoPrompts) as [string, string][];
+              if (!entries.length) return;
+              const next = new Map(canvasStore.nodes);
+              const nextEdges = new Map(canvasStore.edges);
+              const baseX = (canvasStore.nodes.get(id)?.pos?.x || 0) + 340;
+              const baseY = (canvasStore.nodes.get(id)?.pos?.y || 0) + 200;
+              const COLS = 3; const ts = Date.now(); const newEdgeList: any[] = [];
+              entries.forEach(([name, desc], i) => {
+                const nid = 'mu_' + ts + '_' + i;
+                const sunoPrompt = desc.replace(/^##\s*.+\n?/m, '').trim().slice(0, 200);
+                next.set(nid, { id: nid, type: 'audio.generate', title: '🎵 ' + name,
+                  pos: { x: baseX + (i % COLS) * 340, y: baseY + Math.floor(i / COLS) * 240 },
+                  size: { w: 300, h: 160 }, ports: [], status: 'idle',
+                  meta: { gen: { prompt: sunoPrompt, model: 'Suno v4', duration: '60s' } },
+                  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                const eid = 'e_' + ts + '_mu_' + i;
+                nextEdges.set(eid, { id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+                newEdgeList.push({ id: eid, from: { nodeId: id, portId: 'shot-out' }, to: { nodeId: nid, portId: 'refs-in' }, dataType: 'any', style: { animated: false }, meta: { semantic: 'dataflow' } });
+              });
+              useCanvasStore.setState({ nodes: next, edges: nextEdges }); canvasStore.triggerSync();
+              fetch('/api/canvas/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tapnow-dev-key' },
+                body: JSON.stringify({ nodes: Array.from(next.values()).map((n: any) => ({ id: n.id, type: n.type, title: n.title, pos: n.pos, size: n.size, ports: n.ports, status: n.status, meta: n.meta })), edges: newEdgeList }) }).catch(() => {});
+            };
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div onClick={createMusicNodes} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(250,204,21,0.04) 100%)', border: '1px solid rgba(250,204,21,0.25)', transition: 'all 0.15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(250,204,21,0.20) 0%, rgba(250,204,21,0.08) 100%)'; e.currentTarget.style.borderColor = 'rgba(250,204,21,0.5)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(250,204,21,0.04) 100%)'; e.currentTarget.style.borderColor = 'rgba(250,204,21,0.25)'; }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#facc15' }}>🎵 Suno {count}曲</span>
+                  <span style={{ fontSize: 9, color: 'var(--tap-text-4)' }}>点击生成 →</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Phase 1 result: Two action buttons */}
           {phase === 'overview' && getOverview() && (() => {
@@ -388,10 +658,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           })()}
 
           {/* Loading / Status */}
-          {genRunning && phase !== 'overview' && (
+          {(genRunning || sceneRunning || charRunning || spaceRunning || propRunning || soundRunning) && (
             <div style={{ minHeight:40,display:'flex',alignItems:'center',justifyContent:'center',gap:8 }}>
               <div style={{ width:16,height:16,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.1)',borderTopColor:'var(--tap-accent)',animation:'tap-spin 0.8s linear infinite' }} />
-              <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>Agent 分析中…</span>
+              <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>
+                {spaceRunning ? '空间设计中…' : propRunning ? '道具设计中…' : soundRunning ? '声音设计中…' : sceneRunning ? '提取场景中…' : charRunning ? '提取角色中…' : 'Agent 分析中…'}
+              </span>
             </div>
           )}
         </div>
@@ -484,28 +756,77 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 </div>,
                 document.body
               )}
-              {/* Send — glass pill */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '4px 10px 8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '50px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 10px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.03)', flexShrink: 0, paddingRight: '2px' }}>
-                  <button
-                    onClick={handleGenerate}
-                    disabled={genRunning}
-                    style={{
-                      width: '16px', height: '16px', borderRadius: '50%',
-                      background: genRunning ? 'var(--tap-warning)' : '#fff',
-                      color: genRunning ? '#fff' : '#1a1a1a',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 800, fontSize: genRunning ? '8px' : '9px',
-                      cursor: genRunning ? 'wait' : 'pointer', border: 'none',
-                      boxShadow: '0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',
-                      transition: 'transform 0.15s,box-shadow 0.15s',
-                    }}
-                    onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)'; }}
-                  >
-                    {genRunning ? '⏳' : '↑'}
-                  </button>
-                </div>
+              {/* Three action buttons */}
+              <div style={{ display: 'flex', gap: 8, padding: '8px 14px 12px' }}>
+                <button onClick={handleSceneExtraction} disabled={sceneRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 0', borderRadius: 8, cursor: sceneRunning ? 'wait' : 'pointer', border: 'none',
+                    background: sceneRunning ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.10)',
+                    color: sceneRunning ? '#fbbf24' : '#f59e0b', fontSize: 12, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: sceneRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!sceneRunning) { e.currentTarget.style.background = 'rgba(245,158,11,0.22)'; } }}
+                  onMouseLeave={e => { if (!sceneRunning) { e.currentTarget.style.background = 'rgba(245,158,11,0.10)'; } }}
+                >{sceneRunning ? '⏳' : '🏛️'} 场景</button>
+                <button onClick={handleCharacterExtraction} disabled={charRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 0', borderRadius: 8, cursor: charRunning ? 'wait' : 'pointer', border: 'none',
+                    background: charRunning ? 'rgba(129,140,248,0.15)' : 'rgba(129,140,248,0.10)',
+                    color: charRunning ? '#a5b4fc' : '#818cf8', fontSize: 12, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: charRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!charRunning) { e.currentTarget.style.background = 'rgba(129,140,248,0.22)'; } }}
+                  onMouseLeave={e => { if (!charRunning) { e.currentTarget.style.background = 'rgba(129,140,248,0.10)'; } }}
+                >{charRunning ? '⏳' : '🎭'} 演员</button>
+                <button onClick={handleGenerate} disabled={genRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 0', borderRadius: 8, cursor: genRunning ? 'wait' : 'pointer', border: 'none',
+                    background: genRunning ? 'rgba(94,234,212,0.15)' : 'rgba(94,234,212,0.10)',
+                    color: genRunning ? '#99f6e4' : '#5eead4', fontSize: 12, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: genRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.background = 'rgba(94,234,212,0.22)'; } }}
+                  onMouseLeave={e => { if (!genRunning) { e.currentTarget.style.background = 'rgba(94,234,212,0.10)'; } }}
+                >{genRunning ? '⏳' : '🎬'} 分镜</button>
+              </div>
+              {/* Second row: World Building */}
+              <div style={{ display: 'flex', gap: 8, padding: '0px 14px 12px' }}>
+                <button onClick={handleSceneArchitect} disabled={spaceRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    padding: '7px 0', borderRadius: 8, cursor: spaceRunning ? 'wait' : 'pointer', border: 'none',
+                    background: spaceRunning ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.10)',
+                    color: spaceRunning ? '#6ee7b7' : '#10b981', fontSize: 11, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: spaceRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!spaceRunning) { e.currentTarget.style.background = 'rgba(16,185,129,0.22)'; } }}
+                  onMouseLeave={e => { if (!spaceRunning) { e.currentTarget.style.background = 'rgba(16,185,129,0.10)'; } }}
+                >{spaceRunning ? '⏳' : '🏗️'} 空间</button>
+                <button onClick={handlePropDesigner} disabled={propRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    padding: '7px 0', borderRadius: 8, cursor: propRunning ? 'wait' : 'pointer', border: 'none',
+                    background: propRunning ? 'rgba(236,72,153,0.15)' : 'rgba(236,72,153,0.10)',
+                    color: propRunning ? '#f9a8d4' : '#ec4899', fontSize: 11, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: propRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!propRunning) { e.currentTarget.style.background = 'rgba(236,72,153,0.22)'; } }}
+                  onMouseLeave={e => { if (!propRunning) { e.currentTarget.style.background = 'rgba(236,72,153,0.10)'; } }}
+                >{propRunning ? '⏳' : '🪄'} 道具</button>
+                <button onClick={handleSoundComposer} disabled={soundRunning || !prompt.trim()}
+                  style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    padding: '7px 0', borderRadius: 8, cursor: soundRunning ? 'wait' : 'pointer', border: 'none',
+                    background: soundRunning ? 'rgba(250,204,21,0.15)' : 'rgba(250,204,21,0.10)',
+                    color: soundRunning ? '#fde68a' : '#facc15', fontSize: 11, fontWeight: 700,
+                    transition: 'all 0.15s ease', opacity: soundRunning ? 0.7 : 1,
+                  }}
+                  onMouseEnter={e => { if (!soundRunning) { e.currentTarget.style.background = 'rgba(250,204,21,0.22)'; } }}
+                  onMouseLeave={e => { if (!soundRunning) { e.currentTarget.style.background = 'rgba(250,204,21,0.10)'; } }}
+                >{soundRunning ? '⏳' : '🎵'} 音乐</button>
               </div>
           </div>
         </div>

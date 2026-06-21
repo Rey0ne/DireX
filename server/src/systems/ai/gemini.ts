@@ -45,7 +45,7 @@ export interface Gpt5ContentItem {
 
 export async function gpt5Chat(
   messages: Gpt5Message[],
-  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number },
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number; maxOutputTokens?: number },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
@@ -57,6 +57,7 @@ export async function gpt5Chat(
       input: messages,
       stream: true, // 持续推送 SSE，防止 Cloudflare/路由器将空闲 TCP 断开
       reasoning: { effort: opts?.effort || 'high' },
+      max_output_tokens: opts?.maxOutputTokens || 16000,
     };
     if (opts?.stream !== undefined) body.stream = opts.stream;
 

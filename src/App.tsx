@@ -436,7 +436,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
             // ── Route: TEXT node → fast text pipeline, others → full image pipeline ──
             const isTextNode = n.type === 'shot';
-            const actualModel = (meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2');
+            const isAudio = n.type === 'audio.generate';
+            const actualModel = (meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : isAudio ? 'Suno v4' : 'GPT Image2');
             console.log('[onGenerate] nodeType:', n.type, 'model:', actualModel, 'providerId:', mapModelNameToProviderId(actualModel), 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length);
             const agentResult = isTextNode
               ? await analyzeText({
@@ -469,6 +470,14 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                   fixedCamera: meta.fixedCamera as boolean | undefined,
                   generateAudio: meta.generateAudio as boolean | undefined,
                   webSearch: meta.webSearch as boolean | undefined,
+                  // Audio (Suno)
+                  instrumental: meta.instrumental as boolean | undefined,
+                  lyrics: meta.lyrics as string | undefined,
+                  // Audio (ElevenLabs)
+                  voice: meta.voice as string | undefined,
+                  language: meta.language as string | undefined,
+                  stability: meta.stability as number | undefined,
+                  dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
                   // Camera kit
                   camera: meta.camera as string | undefined,
                   lens: meta.lens as string | undefined,
@@ -485,7 +494,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               const genPatch: Record<string, unknown> = { compiledPrompt: compiledEn, compiledPromptCn: compiledCn };
               if (result.assetUrls.length > 0) {
                 const isVideo = n.type === 'video.generate';
-                const urlField = isVideo ? 'videoUrl' : 'imageUrl';
+                const isAudio = n.type === 'audio.generate';
+                const urlField = isVideo ? 'videoUrl' : isAudio ? 'audioUrl' : 'imageUrl';
                 Object.assign(genPatch, { [urlField]: result.assetUrls[0], resultAssetIds: result.assetUrls });
               }
               store.updateNode(n.id, {
