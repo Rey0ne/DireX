@@ -452,26 +452,124 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     setVertAngle(Math.round(v / 5) * 5);
   };
 
-  // Build light-direction label for prompt
-  const dirLabel = (() => {
-    const h = horizAngle, v = vertAngle;
-    if (v > 60) return 'top light';
-    if (v < -60) return 'bottom light';
-    if (h < -60) return 'left side light';
-    if (h > 60) return 'right side light';
-    if (h > -30 && h < 30) return 'front light';
-    if (Math.abs(h) > 150) return 'backlight / rim light';
-    if (h < 0) return 'front-left 3/4 light';
-    return 'front-right 3/4 light';
-  })();
-  const tempLabel = colorTemp < 4000 ? 'warm tungsten' : colorTemp < 6000 ? 'neutral daylight' : 'cool skylight';
+  // ═══════════════════════════════════════════════════
+  //  Lighting Agent — 球体坐标 → 视觉结果语言
+  //  不描述光源在哪里，描述画面必须发生什么变化
+  // ═══════════════════════════════════════════════════
+  const buildLightingPrompt = (): string => {
+    const az = horizAngle;          // -180 ~ 180
+    const el = vertAngle;           // -180 ~ 180
+    const intens = brightness;      // 5 ~ 100
+    const kelvin = colorTemp;       // 2000 ~ 10000
+
+    // ── 1. 光源方向 → 摄影灯光风格 ──
+    const absAz = Math.abs(az);
+    let lightStyle = '';
+    let shadowDir = '';
+    let highlightZone = '';
+    let rimDesc = '';
+
+    if (el > 60) {
+      // 顶光
+      lightStyle = 'overhead dramatic lighting';
+      shadowDir = 'cast downward, eyes in shadow, strong brow shadow';
+      highlightZone = 'top of head, shoulders, and nose bridge';
+      rimDesc = 'hair light from above, crown glow';
+    } else if (el < -60) {
+      // 底光
+      lightStyle = 'low-angle horror lighting';
+      shadowDir = 'cast upward, unnatural upward shadows on face';
+      highlightZone = 'underside of chin, cheekbones, and brow ridge';
+      rimDesc = 'under-glow along jawline';
+    } else if (absAz > 150) {
+      // 逆光 / 轮廓光
+      lightStyle = 'dramatic backlight / rim light photography';
+      shadowDir = 'cast forward toward the viewer, subject in deep shadow';
+      highlightZone = 'edges facing the light — hair, shoulders, outline silhouette';
+      rimDesc = 'strong glowing rim light around the entire subject silhouette, edge glow, hair light';
+    } else if (absAz < 15) {
+      // 正面光
+      lightStyle = 'flat front lighting, beauty / fashion key light';
+      shadowDir = 'cast directly behind the subject, minimal visible shadow';
+      highlightZone = 'center of face — forehead, nose bridge, chin, catchlights in both eyes';
+      rimDesc = 'subtle edge definition, no strong rim';
+    } else if (az > 60 && az <= 150) {
+      // 右侧光
+      lightStyle = 'dramatic side lighting from the right';
+      shadowDir = 'cast toward the left, strong falloff on the left side of the face and body';
+      highlightZone = 'right cheek, right shoulder, right-side hair and clothing texture';
+      rimDesc = 'right-side rim light defining the profile edge';
+    } else if (az < -60 && az >= -150) {
+      // 左侧光
+      lightStyle = 'dramatic side lighting from the left';
+      shadowDir = 'cast toward the right, strong falloff on the right side of the face and body';
+      highlightZone = 'left cheek, left shoulder, left-side hair and clothing texture';
+      rimDesc = 'left-side rim light defining the profile edge';
+    } else if (az < 0) {
+      // 左前 3/4
+      lightStyle = 'classic Rembrandt / 3/4 portrait lighting from front-left';
+      shadowDir = 'cast toward the right-front, triangular cheek highlight on the shadow side';
+      highlightZone = 'left side of face, left eye catchlight, cheekbone, collarbone';
+      rimDesc = 'subtle left-side hair light, depth separation from background';
+    } else {
+      // 右前 3/4 (default)
+      lightStyle = 'classic Rembrandt / 3/4 portrait lighting from front-right';
+      shadowDir = 'cast toward the left-front, triangular cheek highlight on the shadow side';
+      highlightZone = 'right side of face, right eye catchlight, cheekbone, collarbone';
+      rimDesc = 'subtle right-side hair light, depth separation from background';
+    }
+
+    // ── 2. 高度 → 灯光高度描述 ──
+    let heightDesc = '';
+    if (el > 60) heightDesc = 'high-angle overhead';
+    else if (el > 30) heightDesc = 'elevated';
+    else if (el > -30) heightDesc = 'eye-level';
+    else if (el > -60) heightDesc = 'low-angle';
+    else heightDesc = 'extreme low-angle';
+
+    // ── 3. 强度 → 光质与距离 ──
+    let intensityDesc = '';
+    if (intens >= 90) intensityDesc = 'very strong, hard light with sharp shadows, short falloff, close source distance';
+    else if (intens >= 70) intensityDesc = 'strong key light with defined shadows, moderate falloff';
+    else if (intens >= 40) intensityDesc = 'medium-soft light, diffused shadows, medium falloff';
+    else intensityDesc = 'soft gentle light, very diffused shadows, long falloff, distant source';
+
+    // ── 4. 色温 → 灯光颜色与情绪 ──
+    let colorDesc = '';
+    if (kelvin < 2800) colorDesc = 'very warm candlelight / tungsten orange glow, intimate atmosphere';
+    else if (kelvin < 3800) colorDesc = 'warm tungsten golden light, cinematic warm amber tone';
+    else if (kelvin < 4800) colorDesc = 'early morning / late afternoon warm white, natural golden hour feel';
+    else if (kelvin < 5800) colorDesc = 'neutral daylight white, clean balanced color';
+    else if (kelvin < 7000) colorDesc = 'cool daylight, overcast sky tone, slightly blue cast';
+    else colorDesc = 'cold blue skylight / moonlight, cool crisp atmosphere';
+
+    // ── 5. 组合 → 完整视觉结果指令 ──
+    const parts = [
+      `Convert the lighting setup to: ${lightStyle}.`,
+      `${heightDesc} ${colorDesc}.`,
+      `${intensityDesc}.`,
+      `Highlights concentrated on: ${highlightZone}.`,
+      `Shadows: ${shadowDir}.`,
+      `Rim lighting: ${rimDesc}.`,
+      'Recalculate all highlights, contact shadows, and ambient occlusion according to the new lighting direction.',
+      'Recalculate reflections on all reflective surfaces (eyes, skin, metal, glass).',
+      'Rebuild facial shading and form shadows based on the new key light position.',
+      'Preserve subject identity, composition, pose, and all non-lighting content.',
+    ];
+
+    const full = parts.join(' ');
+
+    // ── 6. 用户自定义叠加 ──
+    if (relightPrompt.trim()) {
+      return `${full} Additional instructions: ${relightPrompt.trim()}`;
+    }
+    return full;
+  };
 
   const handleSend = () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    const autoPrompt = `cinematic relighting: ${dirLabel} at ${horizAngle}° azimuth ${vertAngle}° elevation, ${brightness}% intensity, ${colorTemp}K ${tempLabel}`;
-    const finalPrompt = relightPrompt.trim() ? `${autoPrompt}. ${relightPrompt.trim()}` : autoPrompt;
-    onApply({ tool: 'relight', horizAngle, vertAngle, brightness, colorTemp, prompt: finalPrompt });
+    onApply({ tool: 'relight', horizAngle, vertAngle, brightness, colorTemp, prompt: buildLightingPrompt() });
   };
 
   return (

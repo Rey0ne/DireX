@@ -1140,7 +1140,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             }} onClose={closeTool} />}
             {activeImageTool === 'relight' && <RelightTool imageUrl={imgUrl} onApply={async (r) => {
               const rObj = r as Record<string,unknown>;
-              const fullPrompt = (rObj.prompt as string) || `cinematic relighting from ${rObj.horizAngle || 45}° azimuth ${rObj.vertAngle || 45}° elevation`;
+              const fullPrompt = (rObj.prompt as string) || 'cinematic relighting';
               try {
                 const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl } as any);
                 applyTool({ ...rObj, tool: 'relight', imageUrl: result.result.assetUrls?.[0] });
