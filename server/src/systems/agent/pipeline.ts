@@ -9,6 +9,12 @@ import {
 
 const MAX_PREV_OUTPUT_CHARS = 600; // tight summary of each previous agent output
 
+// ─── Global Image Analysis Cache ─────────────────
+// Avoids re-fetching + re-analyzing the same image URL across all pipelines
+const imageFetchCache = new Map<string, { mimeType: string; base64: string } | null>();
+const imageAnalysisCache = new Map<string, string>(); // url → analysis text
+const MAX_CACHE_SIZE = 200; // prevent unbounded growth
+
 export interface PipelineContext {
   userInput: string;
   model: string;
@@ -51,10 +57,22 @@ Describe in detail:
 Output as structured paragraphs. Do NOT summarize in 2-3 sentences — include ALL observable details.`;
 
 async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
+  // Cache hit — skip re-fetch
+  const cached = imageFetchCache.get(url);
+  if (cached !== undefined) {
+    if (cached) console.log('[vision] Fetch cache hit: ' + url.slice(0, 60));
+    return cached;
+  }
   if (url.startsWith('data:')) {
     const match = url.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) { console.log('[vision] Extracted data URL, length=' + match[2].length); return { mimeType: match[1], base64: match[2] }; }
+    if (match) {
+      const result = { mimeType: match[1], base64: match[2] };
+      if (imageFetchCache.size < MAX_CACHE_SIZE) imageFetchCache.set(url, result);
+      console.log('[vision] Extracted data URL, length=' + match[2].length);
+      return result;
+    }
     console.log('[vision] Invalid data URL format');
+    imageFetchCache.set(url, null);
     return null;
   }
   try {
@@ -72,18 +90,35 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeTy
     const buffer = Buffer.from(await resp.arrayBuffer());
     const contentType = resp.headers.get('content-type') || 'image/png';
     console.log('[vision] Fetched image, size=' + buffer.length + ' type=' + contentType);
-    return { mimeType: contentType, base64: buffer.toString('base64') };
-  } catch (err) { console.log('[vision] Fetch error: ' + String(err).slice(0, 100)); return null; }
+    const result = { mimeType: contentType, base64: buffer.toString('base64') };
+    if (imageFetchCache.size < MAX_CACHE_SIZE) imageFetchCache.set(url, result);
+    return result;
+  } catch (err) {
+    console.log('[vision] Fetch error: ' + String(err).slice(0, 100));
+    if (imageFetchCache.size < MAX_CACHE_SIZE) imageFetchCache.set(url, null);
+    return null;
+  }
 }
 
 export async function analyzeReferenceImages(urls: string[]): Promise<string[]> {
+  // Deduplicate — same URL in one batch only analyzed once
+  const uniqueUrls = [...new Set(urls)];
   const results: string[] = [];
-  for (let i = 0; i < urls.length; i++) {
-    console.log('[vision] Analyzing reference image ' + (i + 1) + '/' + urls.length);
-    const img = await fetchImageAsBase64(urls[i]);
+  for (let i = 0; i < uniqueUrls.length; i++) {
+    const url = uniqueUrls[i];
+    // Check analysis cache first
+    if (imageAnalysisCache.has(url)) {
+      console.log('[vision] Analysis cache hit: ' + url.slice(0, 60));
+      results.push(imageAnalysisCache.get(url)!);
+      continue;
+    }
+    console.log('[vision] Analyzing reference image ' + (i + 1) + '/' + uniqueUrls.length);
+    const img = await fetchImageAsBase64(url);
     if (!img) { results.push('[Unable to fetch image]'); continue; }
     const analysis = await visionAnalyze(VISION_ANALYSIS_PROMPT, img.base64, img.mimeType);
-    results.push(analysis || '[Vision analysis failed]');
+    const result = analysis || '[Vision analysis failed]';
+    if (imageAnalysisCache.size < MAX_CACHE_SIZE) imageAnalysisCache.set(url, result);
+    results.push(result);
   }
   return results;
 }
@@ -164,15 +199,25 @@ export interface CharacterProfile {
 }
 
 export async function extractCharacterProfile(url: string): Promise<CharacterProfile> {
+  // Check analysis cache (prefixed to separate from reference analysis)
+  const cacheKey = 'char:' + url;
+  if (imageAnalysisCache.has(cacheKey)) {
+    const cached = imageAnalysisCache.get(cacheKey)!;
+    console.log('[char] Analysis cache hit');
+    if (cached === 'NO_PERSON') return { hasPerson: false, description: '' };
+    return { hasPerson: true, description: cached };
+  }
   console.log('[char] Extracting character profile: ' + url.slice(0, 80));
   const img = await fetchImageAsBase64(url);
-  if (!img) return { hasPerson: false, description: '' };
+  if (!img) { imageAnalysisCache.set(cacheKey, 'NO_PERSON'); return { hasPerson: false, description: '' }; }
   const result = await visionAnalyze(CHARACTER_EXTRACT_PROMPT, img.base64, img.mimeType);
   if (!result || result.includes('NO_PERSON') || result.includes('[Vision analysis failed]')) {
     console.log('[char] No person detected or analysis failed');
+    if (imageAnalysisCache.size < MAX_CACHE_SIZE) imageAnalysisCache.set(cacheKey, 'NO_PERSON');
     return { hasPerson: false, description: '' };
   }
   console.log('[char] Profile extracted: ' + result.slice(0, 100));
+  if (imageAnalysisCache.size < MAX_CACHE_SIZE) imageAnalysisCache.set(cacheKey, result);
   return { hasPerson: true, description: result };
 }
 
@@ -1101,10 +1146,96 @@ function parseFallbackTable(output: string): ScriptAnalysisResult['shots'] {
 }
 
 // ─── Fast Text Pipeline (single agent, for TEXT nodes) ──
-export interface TextPipelineResult {
-  textOutput: string;
+export interface FullPipelineResult {
+  shots: ScriptAnalysisResult | null;
+  shotsError?: string;
+  characters: Record<string, string> | null;
+  charactersError?: string;
+  scenes: Record<string, string> | null;
+  scenesError?: string;
+  sceneArchitecture: Record<string, string> | null;
+  sceneArchError?: string;
+  props: Record<string, string> | null;
+  propsError?: string;
+  music: { scenes: Record<string, string>; sunoPrompts: Record<string, string> } | null;
+  musicError?: string;
   trace: AgentResult[];
   totalDurationMs: number;
+}
+
+export async function runFullPipeline(
+  scriptText: string,
+  visualStyle?: string,
+): Promise<FullPipelineResult> {
+  const t0 = Date.now();
+  const trace: AgentResult[] = [];
+
+  console.log('[full-pipeline] Starting with script length:', scriptText.length);
+
+  // Run all 6 agents in parallel
+  const [
+    shotsResult, charsResult, scenesResult,
+    archResult, propsResult, musicResult,
+  ] = await Promise.allSettled([
+    runScriptAnalysis(scriptText, visualStyle),
+    runCharacterExtraction(scriptText, visualStyle),
+    runSceneExtraction(scriptText),
+    runSceneArchitect(scriptText),
+    runPropDesigner(scriptText),
+    runSoundComposer(scriptText),
+  ]);
+
+  const result: FullPipelineResult = {
+    shots: null, characters: null, scenes: null,
+    sceneArchitecture: null, props: null, music: null,
+    trace,
+    totalDurationMs: Date.now() - t0,
+  };
+
+  if (shotsResult.status === 'fulfilled') {
+    result.shots = shotsResult.value;
+  } else {
+    result.shotsError = String(shotsResult.reason);
+    console.error('[full-pipeline] Shots failed:', shotsResult.reason);
+  }
+
+  if (charsResult.status === 'fulfilled') {
+    result.characters = charsResult.value;
+  } else {
+    result.charactersError = String(charsResult.reason);
+    console.error('[full-pipeline] Characters failed:', charsResult.reason);
+  }
+
+  if (scenesResult.status === 'fulfilled') {
+    result.scenes = scenesResult.value;
+  } else {
+    result.scenesError = String(scenesResult.reason);
+    console.error('[full-pipeline] Scenes failed:', scenesResult.reason);
+  }
+
+  if (archResult.status === 'fulfilled') {
+    result.sceneArchitecture = archResult.value;
+  } else {
+    result.sceneArchError = String(archResult.reason);
+    console.error('[full-pipeline] SceneArch failed:', archResult.reason);
+  }
+
+  if (propsResult.status === 'fulfilled') {
+    result.props = propsResult.value;
+  } else {
+    result.propsError = String(propsResult.reason);
+    console.error('[full-pipeline] Props failed:', propsResult.reason);
+  }
+
+  if (musicResult.status === 'fulfilled') {
+    result.music = musicResult.value;
+  } else {
+    result.musicError = String(musicResult.reason);
+    console.error('[full-pipeline] Music failed:', musicResult.reason);
+  }
+
+  console.log('[full-pipeline] Complete in', result.totalDurationMs, 'ms');
+  return result;
 }
 
 export async function runTextPipeline(context: PipelineContext): Promise<TextPipelineResult> {
@@ -1164,4 +1295,167 @@ export async function runTextPipeline(context: PipelineContext): Promise<TextPip
       totalDurationMs: Date.now() - t0,
     };
   }
+}
+
+// ─── Unified Pipeline — single GPT-5 call outputs all 6 categories ───
+const UNIFIED_PROMPT = `你是一位顶级电影导演兼视觉开发总监。阅读以下剧本，一次性完成六项分析。每项用 ===SECTION_NAME=== 开始标记。禁止输出思考过程，直接输出结构化内容。
+
+===CHARACTERS===
+提取每个角色（有名字/有台词），为每个输出：
+- 人种/年龄/身高/体型
+- 面部特征（五官/肤色/伤疤/妆容）
+- 发型/发色
+- 服装（逐层：内衣→上衣→外套→下装→鞋履，含颜色/材质）
+- 配饰（首饰/腰带/头饰/眼镜/纹身）
+- 武器/工具（含材质与磨损）
+- 三视图关键点（正面/侧面/背面）
+- 表情集（8种关键表情描述）
+- 身份/阵营推断[标注]
+用 --- 分隔每个角色。
+
+===SCENES===
+列出所有场景，每个包含：
+- 场景名称/位置
+- 时间（时刻/季节）
+- 天气/氛围
+- 光线条件（方向/色温/强度）
+- 色彩基调
+- 关键环境元素
+用 --- 分隔每个场景。
+
+===SCENE_ARCHITECTURE===
+为每个场景输出空间设计方案：
+- 建筑风格/空间类型
+- 空间尺度（层高/面积/纵深）
+- 材质体系（墙面/地面/天花/家具）
+- 光照方案（光源位置/类型/色温）
+- 色彩体系
+- 空间叙事功能
+用 --- 分隔每个场景。
+
+===PROPS===
+列出所有关键道具，每个包含：
+- 道具名称
+- 材质与结构
+- 时代背景
+- 使用痕迹/老化程度
+- 象征意义
+- 关联角色
+用 --- 分隔每个道具。
+
+===MUSIC===
+为全片设计音乐方案，每个场景包含：
+- 音乐风格（流派/乐器/BPM/情绪）
+- Suno格式音乐提示词（英文）
+- 关键音效设计要点
+用 --- 分隔每个场景的音乐设计。
+
+===STORYBOARD===
+输出完整中文分镜表。全片统一1-2个导演风格。每镜用 === 分隔：
+场景：{中文详述}
+景别：{ELS/LS/WS/MS/MCU/CU/ECU}
+机位角度：{平视/仰拍/俯拍}
+焦段：{24/35/50/85mm}
+构图：{三分法/中心/对称/对角线/引导线}
+前景：{前景元素}
+中景：{主体内容与人物}
+背景：{环境元素}
+调度：{站位/朝向/运动}
+动作：{关键瞬间}
+情绪：{情绪与氛围}
+运镜：{固定/推/拉/摇/升降/手持}
+画面重点：{核心视觉}
+提示词：{中文整句，融合导演风格，禁英文}
+
+导演风格参考（全片选1-2个统一）：
+- 史诗/战争 → 诺兰冷灰史诗+黑泽明天气情绪
+- 黑暗/犯罪 → 维伦纽瓦巨物压迫+雷德利高反差粗粝
+- 情感/文艺 → 王家卫霓虹忧郁+新海诚光斑眩光
+- 赛博/科幻 → 押井守哲学静止+大友克洋饱和密度
+- 童话/寓言 → 韦斯安德森极致对称+宫崎骏自然敬畏`;
+
+export async function runUnifiedPipeline(
+  scriptText: string,
+  visualStyle?: string,
+): Promise<FullPipelineResult> {
+  const t0 = Date.now();
+  const styleHint = visualStyle ? '\n用户指定视觉风格：' + visualStyle : '';
+  console.log('[unified] Starting single GPT call, script=' + scriptText.length + 'chars');
+
+  const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: UNIFIED_PROMPT + '\n\n===== 剧本 =====\n' + scriptText + styleHint }] }];
+
+  let raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 });
+  if (!raw) { await new Promise(r => setTimeout(r, 3000)); raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 }); }
+  if (!raw) return { shots: null, characters: null, scenes: null, sceneArchitecture: null, props: null, music: null, trace: [], totalDurationMs: Date.now() - t0 };
+
+  console.log('[unified] Output ' + raw.length + 'chars');
+
+  // Parse 6 sections
+  const SECTIONS = ['CHARACTERS','SCENES','SCENE_ARCHITECTURE','PROPS','MUSIC','STORYBOARD'] as const;
+  const parsed: Record<string,string> = {};
+  for (const sec of SECTIONS) {
+    const m = raw.indexOf('===' + sec + '===');
+    if (m === -1) { parsed[sec] = ''; continue; }
+    const start = m + sec.length + 6;
+    let end = raw.length;
+    for (const s2 of SECTIONS) {
+      const nm = raw.indexOf('===' + s2 + '===', start);
+      if (nm !== -1 && nm < end) end = nm;
+    }
+    parsed[sec] = raw.slice(start, end).trim();
+  }
+  console.log('[unified] Sections:', SECTIONS.map(s => s + ':' + parsed[s].length).join(' '));
+
+  // Parse blocks within each section (--- separated)
+  const parseBlocks = (t: string): Record<string,string> => {
+    if (!t) return {};
+    const r: Record<string,string> = {};
+    t.split(/^---$/m).filter(b => b.trim()).forEach((b,i) => {
+      const first = b.trim().split('\n')[0].replace(/^#+\s*/,'').trim();
+      r[first || ('item' + (i+1))] = b.trim();
+    });
+    return r;
+  };
+
+  // Parse storyboard shots
+  let shots: ScriptAnalysisResult | null = null;
+  if (parsed.STORYBOARD) {
+    const shotList: ScriptAnalysisResult['shots'] = [];
+    const blocks = parsed.STORYBOARD.split(/^===$/m).filter(b => b.trim());
+    (blocks.length > 0 ? blocks : [parsed.STORYBOARD]).forEach((b, i) => {
+      const t = b.trim();
+      const ext = (re: RegExp) => { const m = t.match(re); return m ? (m[1]||'').trim() : ''; };
+      const s: any = {
+        shotNumber: i + 1,
+        scene: ext(/场景[：:]\s*(.+)/) || ext(/Scene[：:]\s*(.+)/i) || '',
+        shotType: ext(/景别[：:]\s*(.+)/) || '',
+        angle: ext(/机位角度[：:]\s*(.+)/) || ext(/角度[：:]\s*(.+)/) || '',
+        lens: ext(/焦段[：:]\s*(.+)/) || '',
+        composition: ext(/构图[：:]\s*(.+)/) || '',
+        foreground: ext(/前景[：:]\s*(.+)/) || '',
+        midground: ext(/中景[：:]\s*(.+)/) || '',
+        background: ext(/背景[：:]\s*(.+)/) || '',
+        blocking: ext(/调度[：:]\s*(.+)/) || '',
+        action: ext(/动作[：:]\s*(.+)/) || '',
+        emotion: ext(/情绪[：:]\s*(.+)/) || '',
+        cameraMovement: ext(/运镜[：:]\s*(.+)/) || '',
+        focusPoint: ext(/画面重点[：:]\s*(.+)/) || '',
+        visualPrompt: ext(/提示词[：:]\s*(.+)/) || '',
+      };
+      s.contentCN = s.visualPrompt || s.scene;
+      shotList.push(s);
+    });
+    if (shotList.length > 0) shots = { shots: shotList, characters: {}, rawOutput: parsed.STORYBOARD, durationMs: 0 };
+  }
+
+  return {
+    shots,
+    characters: parseBlocks(parsed.CHARACTERS),
+    scenes: parseBlocks(parsed.SCENES),
+    sceneArchitecture: parseBlocks(parsed.SCENE_ARCHITECTURE),
+    props: parseBlocks(parsed.PROPS),
+    music: { scenes: parseBlocks(parsed.MUSIC), sunoPrompts: {} },
+    trace: [],
+    totalDurationMs: Date.now() - t0,
+  };
 }
