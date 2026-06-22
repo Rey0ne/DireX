@@ -323,33 +323,17 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
 }
 
 // ─── Relight Tool ──────────────────────────────────
-const LIGHT_PRESETS = [
-  { id: 'top', label: '顶光', icon: '↑', angle: 90 },
-  { id: 'side', label: '侧光', icon: '→', angle: 0 },
-  { id: 'bottom', label: '底光', icon: '↓', angle: -90 },
-  { id: 'rim', label: '逆光', icon: '←', angle: 180 },
-  { id: 'soft', label: '柔光', icon: '◈', angle: 45 },
-  { id: 'neon', label: '霓虹', icon: '✦', angle: 30 },
-];
-
-const COLOR_TEMPS = [
-  { label: '暖色', color: '#ffb74d' },
-  { label: '中性', color: '#ffffff' },
-  { label: '冷色', color: '#90caf9' },
-  { label: '霓虹紫', color: '#ce93d8' },
-  { label: '霓虹蓝', color: '#42a5f5' },
-  { label: '金色', color: '#ffd54f' },
-];
-
 const HORIZONTAL_ANGLES = [0, 45, 90, 135, 180, -45, -90, -135];
 const VERTICAL_ANGLES = [0, 45, 90, 135, 180];
 
 export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   const sphereSize = 220;
-  const [horizAngle, setHorizAngle] = useState(45);
+  const [horizAngle, setHorizAngle] = useState(45);   // light direction
   const [vertAngle, setVertAngle] = useState(45);
-  const [distance, setDistance] = useState(60); // 0-100, affects intensity
-  const [colorTemp, setColorTemp] = useState('neutral');
+  const [viewH, setViewH] = useState(0);                // camera/view angle (fixed by presets)
+  const [viewV, setViewV] = useState(0);
+  const [colorTemp, setColorTemp] = useState(5500); // Kelvin 2000-10000
+  const [brightness, setBrightness] = useState(70); // 0-100
   const [showHPresets, setShowHPresets] = useState(false);
   const [showVPresets, setShowVPresets] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -363,8 +347,75 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   const r = sphereSize / 2 - 10;
   const dotX = r * Math.cos(vRad) * Math.sin(hRad);
   const dotY = -r * Math.sin(vRad);
-  const dotZ = r * Math.cos(vRad) * Math.cos(hRad); // for brightness
-  const dotBrightness = 0.3 + 0.7 * Math.max(0, dotZ / r);
+  const dotZ = r * Math.cos(vRad) * Math.cos(hRad);
+
+  // Map light direction → thumbnail 3D rotation (top-right view for perspective presets)
+  // ── 3D orthographic projection of wireframe (uses view angle, NOT light angle) ──
+  const vHRad = (viewH * Math.PI) / 180;
+  const vVRad = (viewV * Math.PI) / 180;
+  // Equator: circle in XZ plane → projects as horizontal ellipse, controlled by vertical view angle
+  const eqRy = Math.max(2, r * Math.abs(Math.sin(vVRad)) + 2);
+  // Meridian: circle in YZ plane → projects as vertical ellipse, controlled by horizontal view angle
+  const mRx = Math.max(2, r * Math.abs(Math.sin(vHRad)) + 2);
+  // Front intersection of equator & meridian — the point facing the viewer
+  const fx = sphereSize/2 + r * Math.sin(vHRad);
+  const fy = sphereSize/2 - r * Math.cos(vHRad) * Math.sin(vVRad);
+  // Back intersection — opposite side of the sphere
+  const bx = sphereSize/2 - r * Math.sin(vHRad);
+  const by = sphereSize/2 + r * Math.cos(vHRad) * Math.sin(vVRad);
+
+  // Image card rotation — faces front intersection, scaled for natural look
+  const thumbRotateY = -viewH * 0.55;
+  const thumbRotateX = -viewV * 0.45;
+
+  // Color temperature (K) → RGB
+  const kelvinRgb = (k: number): [number,number,number] => {
+    const t = k / 100;
+    let r: number, g: number, b: number;
+    if (t <= 66) {
+      r = 255;
+      g = Math.max(0, Math.min(255, 99.47 * Math.log(t) - 161.12));
+      b = t <= 19 ? 0 : Math.max(0, Math.min(255, 138.52 * Math.log(t - 10) - 305.04));
+    } else {
+      r = Math.max(0, Math.min(255, 329.7 * Math.pow(t - 60, -0.1332)));
+      g = Math.max(0, Math.min(255, 288.12 * Math.pow(t - 60, -0.0755)));
+      b = 255;
+    }
+    return [Math.round(r), Math.round(g), Math.round(b)];
+  };
+  const [lr, lg, lb] = kelvinRgb(colorTemp);
+  const dotSize = 10; // fixed small dot
+  const fanAlpha = brightness / 100 * 0.85; // fan sector opacity driven by brightness
+  const glowIntensity = 0.2 + (brightness / 100) * 0.8; // still used for dot glow
+
+  // Precompute fan polygon points + gradient
+  const fanData = (() => {
+    const cx = sphereSize/2;
+    const cy = sphereSize/2;
+    const lx = cx + dotX;
+    const ly = cy + dotY;
+    const dx = cx - lx;
+    const dy = cy - ly;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    if (d < 1 || !isFinite(d)) return null;
+    const ux = dx/d, uy = dy/d;        // unit vector from light dot → center
+    const px = -uy, py = ux;            // perpendicular
+    const fanW = d * Math.tan(25 * Math.PI / 180); // half-width at distance d
+    const ext = 1.15;                   // extend past center
+    // Apex at light dot, two wing tips extend past center
+    const ax = lx, ay = ly;
+    const ex1 = lx + dx*ext + px*fanW;
+    const ey1 = ly + dy*ext + py*fanW;
+    const ex2 = lx + dx*ext - px*fanW;
+    const ey2 = ly + dy*ext - py*fanW;
+    if (![ax,ay,ex1,ey1,ex2,ey2].every(isFinite)) return null;
+    // Gradient: bright at light dot, fades toward wing-tip midpoint
+    const gx1 = ax, gy1 = ay;
+    const gx2 = (ex1 + ex2) / 2;
+    const gy2 = (ey1 + ey2) / 2;
+    return { ax, ay, ex1, ey1, ex2, ey2, gx1, gy1, gx2, gy2 };
+  })();
+  const fanVisible = fanData !== null;
 
   const getDotPosition = (e: React.MouseEvent) => {
     const el = sphereRef.current;
@@ -375,7 +426,7 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const clampedR = Math.min(dist, r);
+    const clampedR = Math.min(dist, r - 4); // 4px margin avoids atan2 singularity at sphere edge
     const scale = dist > 0 ? clampedR / dist : 0;
     return { dx: dx * scale, dy: dy * scale, cx, cy, r };
   };
@@ -404,9 +455,7 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   const handleSend = () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    const ctemp = colorTemp === 'warm' ? '暖色' : colorTemp === 'cool' ? '冷色' : '中性';
-    const prompt = relightPrompt || `relight from h${horizAngle}° v${vertAngle}° distance ${distance}% tone ${ctemp}`;
-    onApply({ tool: 'relight', horizAngle, vertAngle, distance, colorTemp, prompt });
+    onApply({ tool: 'relight', horizAngle, vertAngle, brightness, colorTemp, prompt: relightPrompt });
   };
 
   return (
@@ -414,7 +463,7 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
       <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
         {/* 3D Light Sphere */}
         <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px',
           background: '#1a1a1e', borderRadius: 'var(--tap-r-lg)',
           position: 'relative', overflow: 'hidden',
           cursor: isDragging ? 'grabbing' : 'grab',
@@ -425,41 +474,104 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
+          {/* View angle toggles */}
+          <div style={{ display: 'flex', gap: '6px', zIndex: 10 }}>
+            <button onClick={() => { setViewH(0); setViewV(0); }} style={{
+              padding: '4px 14px', borderRadius: '14px', fontSize: '12px', fontWeight: 500,
+              background: (viewH===0 && viewV===0) ? 'var(--tap-active)' : 'rgba(255,255,255,0.05)',
+              color: (viewH===0 && viewV===0) ? '#fff' : 'var(--tap-text-3)',
+              border: (viewH===0 && viewV===0) ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+              cursor: 'pointer',
+            }}>正面</button>
+            <button onClick={() => { setViewH(35); setViewV(45); }} style={{
+              padding: '4px 14px', borderRadius: '14px', fontSize: '12px', fontWeight: 500,
+              background: (viewH===35 && viewV===45) ? 'var(--tap-active)' : 'rgba(255,255,255,0.05)',
+              color: (viewH===35 && viewV===45) ? '#fff' : 'var(--tap-text-3)',
+              border: (viewH===35 && viewV===45) ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+              cursor: 'pointer',
+            }}>透视</button>
+          </div>
           <div ref={sphereRef} style={{
             width: sphereSize, height: sphereSize, position: 'relative',
           }}>
-            {/* Outer sphere rings */}
-            <svg width={sphereSize} height={sphereSize} style={{ position: 'absolute', top: 0, left: 0 }}>
-              {/* Main circle */}
-              <circle cx={sphereSize/2} cy={sphereSize/2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
-              {/* Horizontal ellipse guides */}
-              {[-r*0.6, -r*0.2, r*0.2, r*0.6].map((vy, i) => {
-                const w = Math.sqrt(Math.max(0, r*r - vy*vy));
-                return <ellipse key={i} cx={sphereSize/2} cy={sphereSize/2} rx={w} ry={Math.abs(vy)*0.3+2}
-                  fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
-              })}
-              {/* Vertical ellipse guides */}
-              {[-r*0.75, -r*0.35, r*0.05, r*0.45, r*0.85].map((vx, i) => {
-                const h = Math.sqrt(Math.max(0, r*r - vx*vx));
-                return <ellipse key={'v'+i} cx={sphereSize/2+vx} cy={sphereSize/2} rx={Math.abs(vx)*0.15+2} ry={h}
-                  fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
-              })}
-              {/* Cross lines */}
-              <line x1={sphereSize/2-r} y1={sphereSize/2} x2={sphereSize/2+r} y2={sphereSize/2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-              <line x1={sphereSize/2} y1={sphereSize/2-r} x2={sphereSize/2} y2={sphereSize/2+r} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            {/* Shading + wireframe as SVG — outer circle always round, internals rotate */}
+            <svg width={sphereSize} height={sphereSize} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'none' }}>
+              <defs>
+                <radialGradient id="sphShade" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0)" />
+                  <stop offset="70%" stopColor="rgba(180,180,180,0.06)" />
+                  <stop offset="85%" stopColor="rgba(180,180,180,0.18)" />
+                  <stop offset="100%" stopColor="rgba(170,170,170,0.32)" />
+                </radialGradient>
+                <clipPath id="sphClip">
+                  <circle cx={sphereSize/2} cy={sphereSize/2} r={r} />
+                </clipPath>
+                {fanData && (
+                  <linearGradient id="fanGrad" gradientUnits="userSpaceOnUse"
+                    x1={fanData.gx1} y1={fanData.gy1} x2={fanData.gx2} y2={fanData.gy2}>
+                    <stop offset="0%" stopColor={`rgba(${lr},${lg},${lb},${fanAlpha})`} />
+                    <stop offset="50%" stopColor={`rgba(${lr},${lg},${lb},${fanAlpha * 0.25})`} />
+                    <stop offset="100%" stopColor={`rgba(${lr},${lg},${lb},0)`} />
+                  </linearGradient>
+                )}
+              </defs>
+              {/* Volume shading — static, always circular */}
+              <circle cx={sphereSize/2} cy={sphereSize/2} r={r} fill="url(#sphShade)" />
+              {/* Wireframe — equator + meridian with proper 3D projection */}
+              <g clipPath="url(#sphClip)">
+                {/* Fan sector — gradient fill, bright at light dot, fades to transparent; base invisible */}
+                <polygon
+                  points={fanData ? `${fanData.ax},${fanData.ay} ${fanData.ex1},${fanData.ey1} ${fanData.ex2},${fanData.ey2}` : '0,0 0,0 0,0'}
+                  fill="url(#fanGrad)"
+                  style={{ opacity: fanVisible ? 1 : 0 }}
+                />
+                {/* Equator — horizontal ellipse */}
+                <ellipse cx={sphereSize/2} cy={sphereSize/2} rx={r} ry={eqRy}
+                  fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" />
+                {/* Meridian — vertical ellipse */}
+                <ellipse cx={sphereSize/2} cy={sphereSize/2} rx={mRx} ry={r}
+                  fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.6" />
+                {/* Front intersection dot — where lines cross on front surface */}
+                <circle cx={fx} cy={fy} r={3.5}
+                  fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+                {/* Back intersection dot — opposite side, dimmer */}
+                <circle cx={bx} cy={by} r={2.5}
+                  fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+              </g>
+              {/* Outer silhouette — always a perfect circle */}
+              <circle cx={sphereSize/2} cy={sphereSize/2} r={r} fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="1.6" />
             </svg>
+
+            {/* Thumbnail at sphere center — rotates to face the front intersection */}
+            {imageUrl && <div style={{
+              position: 'absolute',
+              left: '50%', top: '50%',
+              transform: `translate(-50%, -50%) perspective(400px) rotateY(${thumbRotateY}deg) rotateX(${thumbRotateX}deg)`,
+              transition: 'transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1)',
+              width: 65, height: 65,
+              borderRadius: '6px', overflow: 'hidden',
+              border: '2px solid rgba(255,255,255,0.4)',
+              boxShadow: '4px 8px 20px rgba(0,0,0,0.65)',
+              pointerEvents: 'none',
+              zIndex: 2,
+              background: '#1a1a1a',
+            }}>
+              <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            </div>}
 
             {/* Light dot on the sphere */}
             <div style={{
               position: 'absolute',
-              left: sphereSize/2 + dotX - 8,
-              top: sphereSize/2 + dotY - 8,
-              width: 16, height: 16, borderRadius: '50%',
-              background: `rgba(255,255,200,${0.5 + dotBrightness * 0.5})`,
-              boxShadow: `0 0 ${12 + dotBrightness * 16}px rgba(255,255,200,${0.3 + dotBrightness * 0.5})`,
-              border: '2px solid rgba(255,255,255,0.8)',
+              left: sphereSize/2 + dotX - dotSize/2,
+              top: sphereSize/2 + dotY - dotSize/2,
+              width: dotSize, height: dotSize, borderRadius: '50%',
+              background: `rgba(${lr},${lg},${lb},${glowIntensity})`,
+              boxShadow: `0 0 ${6 + fanAlpha * 40}px rgba(${lr},${lg},${lb},${glowIntensity})`,
+              border: `2px solid rgba(${lr},${lg},${lb},${Math.min(1, glowIntensity + 0.2)})`,
               pointerEvents: 'none',
               transition: isDragging ? 'none' : 'all 0.15s',
+              zIndex: 3,
             }} />
             {/* Center dot */}
             <div style={{
@@ -468,11 +580,12 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
               width: 4, height: 4, borderRadius: '50%',
               background: 'rgba(255,255,255,0.3)',
               pointerEvents: 'none',
+              zIndex: 3,
             }} />
           </div>
           {/* Hint */}
           <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', fontSize: '11px', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>
-            拖拽光点调整方向 · H:{horizAngle}° V:{vertAngle}° D:{distance}%
+            拖拽光点调整方向 · H:{horizAngle}° V:{vertAngle}°
           </div>
         </div>
 
@@ -534,66 +647,70 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
             )}
           </div>
 
-          {/* Distance slider */}
+          {/* Direction presets */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--tap-text-3)' }}>光源方向</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '4px' }}>
+              {([
+                ['左侧', -90, 0],
+                ['顶部', 0, 90],
+                ['右侧', 90, 0],
+                ['前方', 0, 0],
+                ['底部', 0, -90],
+                ['后方', 180, 0],
+                ['轮廓光', 180, 30],
+              ] as [string, number, number][]).map(([label, h, v]) => {
+                const active = horizAngle === h && vertAngle === v;
+                return (
+                  <button key={label} onClick={() => { setHorizAngle(h); setVertAngle(v); }}
+                    style={{
+                      padding: '5px 0', borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+                      background: active ? 'var(--tap-active)' : 'rgba(255,255,255,0.04)',
+                      color: active ? 'var(--tap-text-1)' : 'var(--tap-text-3)',
+                      border: active ? '1px solid var(--tap-border-light)' : '1px solid var(--tap-border)',
+                      cursor: 'pointer',
+                    }}
+                  >{label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Brightness slider */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ fontSize: '11px', color: 'var(--tap-text-3)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>光源距离</span><span>{distance}%</span>
+              <span>亮度</span><span>{brightness}%</span>
             </div>
-            <input type="range" min={10} max={100} value={distance}
-              onChange={e => setDistance(Number(e.target.value))}
+            <input type="range" min={5} max={100} step={5} value={brightness}
+              onChange={e => setBrightness(Number(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--tap-accent)' }}
             />
           </div>
 
-          {/* Color temperature */}
+          {/* Color temperature slider */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--tap-text-3)' }}>色温</div>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {[{id:'warm',label:'暖色',color:'#ffb74d'},{id:'neutral',label:'中性',color:'#fff'},{id:'cool',label:'冷色',color:'#90caf9'}].map(ct => (
-                <button key={ct.id} onClick={() => setColorTemp(ct.id)} style={{
-                  flex: 1, display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 8px', borderRadius: '6px', fontSize: '11px',
-                  background: colorTemp === ct.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  border: colorTemp === ct.id ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
-                  color: colorTemp === ct.id ? '#fff' : 'var(--tap-text-3)',
-                  cursor: 'pointer',
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: ct.color }} />
-                  {ct.label}
-                </button>
-              ))}
+            <div style={{ fontSize: '11px', color: 'var(--tap-text-3)', display: 'flex', justifyContent: 'space-between' }}>
+              <span>色温</span><span>{colorTemp}K</span>
+            </div>
+            <input type="range" min={2000} max={10000} step={100} value={colorTemp}
+              onChange={e => setColorTemp(Number(e.target.value))}
+              style={{ width: '100%', accentColor: colorTemp < 4000 ? '#ffb74d' : colorTemp < 6000 ? '#fff' : '#90caf9' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--tap-text-4)' }}>
+              <span>暖光</span><span>日光</span><span>冷光</span>
             </div>
           </div>
 
           <div style={{ flex: 1 }} />
 
-          {/* Prompt + send */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '8px 10px',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 'var(--tap-r-lg)',
-          }}>
-            <textarea value={relightPrompt} onChange={e => setRelightPrompt(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="描述光照效果…"
-              rows={2}
-              style={{
-                flex: 1, background: 'transparent', border: 'none', padding: '4px 0',
-                fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)',
-                resize: 'none', outline: 'none', lineHeight: 1.5,
-              }}
-            />
-            <button onClick={handleSend} disabled={isProcessing} style={{
-              width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-              background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 700, fontSize: isProcessing ? '16px' : '13px',
-              cursor: 'pointer', border: 'none',
-              animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
-            }}>{isProcessing ? '⏳' : '↑'}</button>
-          </div>
+          {/* Apply button */}
+          <button onClick={handleSend} disabled={isProcessing} style={{
+            width: '100%', padding: '10px 0',
+            background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
+            color: '#fff', borderRadius: 'var(--tap-r-md)', border: 'none',
+            fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+            animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
+          }}>{isProcessing ? '⏳ 重打光中…' : '重打光'}</button>
         </div>
       </div>
     </ToolOverlay>
@@ -601,122 +718,114 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
 }
 
 // ─── Multi-Angle Tool ──────────────────────────────
-const ANGLE_PRESETS = [
-  { id: 'front', label: '正面', icon: '👤', desc: '正前方视角' },
-  { id: 'side', label: '侧面', icon: '👤', desc: '左侧45°' },
-  { id: 'back', label: '背面', icon: '👤', desc: '正后方视角' },
-  { id: 'top', label: '俯视', icon: '🔽', desc: '自上而下' },
-  { id: 'bottom', label: '仰视', icon: '🔼', desc: '自下而上' },
-  { id: 'isometric', label: '等轴侧', icon: '💎', desc: '30°等轴侧' },
-  { id: 'closeup', label: '特写', icon: '🔍', desc: '局部特写' },
-  { id: 'wide', label: '广角', icon: '🌐', desc: '超广角视野' },
+// Camera/view angle presets for multi-angle sphere
+const CAMERA_PRESETS: [string, number, number][] = [
+  ['正面', 0, 0],
+  ['左前45°', -45, 0],
+  ['右前45°', 45, 0],
+  ['左侧', -90, 0],
+  ['右侧', 90, 0],
+  ['后方', 180, 0],
+  ['俯视', 0, 60],
+  ['仰视', 0, -60],
 ];
 
 export function MultiAngleTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
-  const [selected, setSelected] = useState<string[]>([]);
-  const [count, setCount] = useState(4);
+  const sphereSize = 220;
+  const [horizAngle, setHorizAngle] = useState(0);
+  const [vertAngle, setVertAngle] = useState(0);
+  const [count, setCount] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const sphereRef = useRef<HTMLDivElement>(null);
 
-  const toggleAngle = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+  const hRad = (horizAngle * Math.PI) / 180;
+  const vRad = (vertAngle * Math.PI) / 180;
+  const r = sphereSize / 2 - 10;
+  const dotX = r * Math.cos(vRad) * Math.sin(hRad);
+  const dotY = -r * Math.sin(vRad);
+
+  const vHRad = hRad; const vVRad = vRad;
+  const eqRy = Math.max(2, r * Math.abs(Math.sin(vVRad)) + 2);
+  const mRx = Math.max(2, r * Math.abs(Math.sin(vHRad)) + 2);
+  const fx = sphereSize/2 + r * Math.sin(vHRad);
+  const fy = sphereSize/2 - r * Math.cos(vHRad) * Math.sin(vVRad);
+  const bx = sphereSize/2 - r * Math.sin(vHRad);
+  const by = sphereSize/2 + r * Math.cos(vHRad) * Math.sin(vVRad);
+  const thumbRotateY = -horizAngle * 0.55;
+  const thumbRotateX = -vertAngle * 0.45;
+  const dotSize = 10;
+
+  const getDotPosition = (e: React.MouseEvent) => {
+    const el = sphereRef.current; if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx, dy = e.clientY - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const clampedR = Math.min(dist, r - 4);
+    const scale = dist > 0 ? clampedR / dist : 0;
+    return { dx: dx*scale, dy: dy*scale, cx, cy, r };
   };
+
+  const updateAnglesFromPos = (pos: { dx: number; dy: number; r: number }) => {
+    const h = Math.atan2(pos.dx, Math.sqrt(pos.r*pos.r - pos.dx*pos.dx - pos.dy*pos.dy)) * 180 / Math.PI;
+    const v = -Math.asin(Math.max(-1, Math.min(1, pos.dy / pos.r))) * 180 / Math.PI;
+    setHorizAngle(Math.round(h/5)*5); setVertAngle(Math.round(v/5)*5);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => { setIsDragging(true); const p = getDotPosition(e); if (p) updateAnglesFromPos(p); };
+  const handleMouseMove = (e: React.MouseEvent) => { if (!isDragging) return; const p = getDotPosition(e); if (p) updateAnglesFromPos(p); };
+  const handleMouseUp = () => setIsDragging(false);
+  useEffect(() => { if (!isDragging) return; const up = () => setIsDragging(false); window.addEventListener('mouseup', up); return () => window.removeEventListener('mouseup', up); }, [isDragging]);
+
+  const handleApply = () => { if (isProcessing) return; setIsProcessing(true); onApply({ tool: 'multiAngle', horizAngle, vertAngle, count }); };
 
   return (
     <ToolOverlay title="多角度生成" onClose={onClose}>
-      <div style={{ display: 'flex', gap: '16px', flex: 1, minHeight: 0 }}>
-        {/* Preview */}
-        <div style={{
-          flex: 1,
-          background: '#000',
-          borderRadius: 'var(--tap-r-lg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          minHeight: '300px',
-        }}>
-          {imageUrl ? (
-            <img src={imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 'var(--tap-r-md)' }} />
-          ) : (
-            <div style={{ textAlign: 'center', color: 'var(--tap-text-3)' }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔄</div>
-              <div style={{ fontSize: 'var(--tap-fs-body)' }}>选择视角生成多角度图像</div>
-              <div style={{ fontSize: 'var(--tap-fs-xs)', marginTop: '4px', color: 'var(--tap-text-4)' }}>
-                已选 {selected.length} 个视角
-              </div>
-            </div>
-          )}
+      <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
+        {/* 3D Camera Sphere */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#1a1a1e', borderRadius: 'var(--tap-r-lg)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '4px', width: `${sphereSize}px` }}>
+            {CAMERA_PRESETS.map(([label, h, v]) => {
+              const active = horizAngle === h && vertAngle === v;
+              return (<button key={label} onClick={() => { setHorizAngle(h); setVertAngle(v); }} style={{ padding: '3px 6px', fontSize: '11px', borderRadius: 'var(--tap-r-sm)', background: active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.06)', color: active ? '#fff' : 'var(--tap-text-3)', border: active ? '1px solid var(--tap-accent)' : '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'all 0.15s' }}>{label}</button>);
+            })}
+          </div>
+          <div ref={sphereRef} style={{ width: sphereSize, height: sphereSize, position: 'relative', cursor: isDragging ? 'grabbing' : 'grab' }}
+            onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+            <svg width={sphereSize} height={sphereSize} style={{ position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'none' }}>
+              <defs>
+                <radialGradient id="maShade" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0)" /><stop offset="50%" stopColor="rgba(255,255,255,0)" />
+                  <stop offset="70%" stopColor="rgba(180,180,180,0.06)" /><stop offset="85%" stopColor="rgba(180,180,180,0.18)" />
+                  <stop offset="100%" stopColor="rgba(170,170,170,0.32)" />
+                </radialGradient>
+                <clipPath id="maClip"><circle cx={sphereSize/2} cy={sphereSize/2} r={r} /></clipPath>
+              </defs>
+              <circle cx={sphereSize/2} cy={sphereSize/2} r={r} fill="url(#maShade)" />
+              <g clipPath="url(#maClip)">
+                <ellipse cx={sphereSize/2} cy={sphereSize/2} rx={r} ry={eqRy} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" />
+                <ellipse cx={sphereSize/2} cy={sphereSize/2} rx={mRx} ry={r} fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.6" />
+                <circle cx={fx} cy={fy} r={3.5} fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+                <circle cx={bx} cy={by} r={2.5} fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+              </g>
+              <circle cx={sphereSize/2} cy={sphereSize/2} r={r} fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="1.6" />
+            </svg>
+            {imageUrl && <div style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) perspective(400px) rotateY(${thumbRotateY}deg) rotateX(${thumbRotateX}deg)`, transition: 'transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1)', width: 65, height: 65, borderRadius: '6px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '4px 8px 20px rgba(0,0,0,0.65)', pointerEvents: 'none', zIndex: 2, background: '#1a1a1a' }}><img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /></div>}
+            <div style={{ position: 'absolute', left: sphereSize/2 + dotX - dotSize/2, top: sphereSize/2 + dotY - dotSize/2, width: dotSize, height: dotSize, borderRadius: '50%', background: 'rgba(100,180,255,0.85)', boxShadow: '0 0 12px rgba(100,180,255,0.6)', border: '2px solid rgba(180,220,255,0.9)', pointerEvents: 'none', transition: isDragging ? 'none' : 'all 0.15s', zIndex: 3 }} />
+            <div style={{ position: 'absolute', left: sphereSize/2 - 2, top: sphereSize/2 - 2, width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', pointerEvents: 'none', zIndex: 3 }} />
+          </div>
+          <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', fontSize: '11px', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>拖拽光点选择相机视角 · H:{horizAngle}° V:{vertAngle}°</div>
         </div>
-
-        {/* Angle grid */}
-        <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{
-            fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)', fontWeight: 600,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span>视角预设</span>
-            <span style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)' }}>
-              {selected.length}/{ANGLE_PRESETS.length}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, overflowY: 'auto' }}>
-            {ANGLE_PRESETS.map(angle => (
-              <button
-                key={angle.id}
-                onClick={() => toggleAngle(angle.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px', borderRadius: 'var(--tap-r-md)',
-                  background: selected.includes(angle.id) ? 'var(--tap-accent-bg)' : 'transparent',
-                  border: selected.includes(angle.id) ? '1px solid var(--tap-accent-border)' : '1px solid var(--tap-border)',
-                  color: selected.includes(angle.id) ? 'var(--tap-accent)' : 'var(--tap-text-2)',
-                  cursor: 'pointer', textAlign: 'left',
-                  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                }}
-              >
-                <span style={{ fontSize: '20px', flexShrink: 0 }}>{angle.icon}</span>
-                <div>
-                  <div style={{ fontSize: 'var(--tap-fs-body)', fontWeight: 500 }}>{angle.label}</div>
-                  <div style={{ fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-3)' }}>{angle.desc}</div>
-                </div>
-                {selected.includes(angle.id) && (
-                  <span style={{ marginLeft: 'auto', color: 'var(--tap-accent)', fontSize: '14px' }}>✓</span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Batch count */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 'var(--tap-fs-meta)', color: 'var(--tap-text-3)' }}>每视角数量</span>
-            <div style={{ display: 'flex', gap: '2px' }}>
-              {[1, 2, 4, 6].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setCount(n)}
-                  style={{
-                    width: '28px', height: '28px', borderRadius: 'var(--tap-r-sm)',
-                    background: count === n ? 'var(--tap-active)' : 'transparent',
-                    color: count === n ? 'var(--tap-text-1)' : 'var(--tap-text-2)',
-                    fontSize: 'var(--tap-fs-xs)', cursor: 'pointer', border: 'none',
-                  }}
-                >
-                  {n}x
-                </button>
-              ))}
+        {/* Controls */}
+        <div style={{ width: '160px', display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--tap-text-3)' }}>生成数量</div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {[1,2,4].map(n => (<button key={n} onClick={() => setCount(n)} style={{ flex: 1, padding: '6px 0', borderRadius: 'var(--tap-r-sm)', background: count===n ? 'var(--tap-accent)' : 'rgba(255,255,255,0.06)', color: count===n ? '#fff' : 'var(--tap-text-2)', fontSize: '13px', fontWeight: count===n?600:400, cursor: 'pointer', border: count===n ? '1px solid var(--tap-accent)' : '1px solid rgba(255,255,255,0.08)' }}>{n}张</button>))}
             </div>
           </div>
-
-          <button
-            onClick={() => onApply({ tool: 'multiAngle', angles: selected, count })}
-            disabled={selected.length === 0}
-            style={{
-              ...applyBtnStyle,
-              opacity: selected.length === 0 ? 0.4 : 1,
-              cursor: selected.length === 0 ? 'default' : 'pointer',
-            }}
-          >
-            生成 {selected.length * count} 张
-          </button>
+          <button onClick={handleApply} disabled={isProcessing} style={{ ...applyBtnStyle, opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'default' : 'pointer', marginTop: 'auto' }}>{isProcessing ? '生成中...' : `生成 ${count} 张`}</button>
         </div>
       </div>
     </ToolOverlay>
