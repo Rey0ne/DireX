@@ -452,10 +452,26 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     setVertAngle(Math.round(v / 5) * 5);
   };
 
+  // Build light-direction label for prompt
+  const dirLabel = (() => {
+    const h = horizAngle, v = vertAngle;
+    if (v > 60) return 'top light';
+    if (v < -60) return 'bottom light';
+    if (h < -60) return 'left side light';
+    if (h > 60) return 'right side light';
+    if (h > -30 && h < 30) return 'front light';
+    if (Math.abs(h) > 150) return 'backlight / rim light';
+    if (h < 0) return 'front-left 3/4 light';
+    return 'front-right 3/4 light';
+  })();
+  const tempLabel = colorTemp < 4000 ? 'warm tungsten' : colorTemp < 6000 ? 'neutral daylight' : 'cool skylight';
+
   const handleSend = () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    onApply({ tool: 'relight', horizAngle, vertAngle, brightness, colorTemp, prompt: relightPrompt });
+    const autoPrompt = `cinematic relighting: ${dirLabel} at ${horizAngle}° azimuth ${vertAngle}° elevation, ${brightness}% intensity, ${colorTemp}K ${tempLabel}`;
+    const finalPrompt = relightPrompt.trim() ? `${autoPrompt}. ${relightPrompt.trim()}` : autoPrompt;
+    onApply({ tool: 'relight', horizAngle, vertAngle, brightness, colorTemp, prompt: finalPrompt });
   };
 
   return (
@@ -701,16 +717,40 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
             </div>
           </div>
 
-          <div style={{ flex: 1 }} />
-
-          {/* Apply button */}
-          <button onClick={handleSend} disabled={isProcessing} style={{
-            width: '100%', padding: '10px 0',
-            background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
-            color: '#fff', borderRadius: 'var(--tap-r-md)', border: 'none',
-            fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-            animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
-          }}>{isProcessing ? '⏳ 重打光中…' : '重打光'}</button>
+          {/* Prompt + send */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '8px 10px', flexShrink: 0,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 'var(--tap-r-lg)',
+          }}>
+            <textarea
+              value={relightPrompt}
+              onChange={e => setRelightPrompt(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="描述光照效果（可选，留空自动生成）…"
+              rows={2}
+              style={{
+                flex: 1, background: 'transparent', border: 'none',
+                padding: '4px 0', fontSize: 'var(--tap-fs-body)',
+                color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
+                lineHeight: 1.5,
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={isProcessing}
+              style={{
+                width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
+                background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: isProcessing ? '16px' : '13px',
+                cursor: 'pointer', border: 'none',
+                animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
+              }}
+            >{isProcessing ? '⏳' : '↑'}</button>
+          </div>
         </div>
       </div>
     </ToolOverlay>

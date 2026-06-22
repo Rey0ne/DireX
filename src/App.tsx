@@ -1140,13 +1140,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             }} onClose={closeTool} />}
             {activeImageTool === 'relight' && <RelightTool imageUrl={imgUrl} onApply={async (r) => {
               const rObj = r as Record<string,unknown>;
-              const horizAngle = rObj.horizAngle ?? 45;
-              const vertAngle = rObj.vertAngle ?? 45;
-              const brightness = rObj.brightness ?? 70;
-              const colorTempK = rObj.colorTemp ?? 5500;
-              const userPrompt = (rObj.prompt as string) || '';
-              const tempLabel = Number(colorTempK) < 4000 ? '暖光' : Number(colorTempK) < 6000 ? '日光' : '冷光';
-              const fullPrompt = userPrompt || `relight: horizontal ${horizAngle}°, vertical ${vertAngle}°, brightness ${brightness}%, color temp ${colorTempK}K (${tempLabel})`;
+              const fullPrompt = (rObj.prompt as string) || `cinematic relighting from ${rObj.horizAngle || 45}° azimuth ${rObj.vertAngle || 45}° elevation`;
               try {
                 const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl } as any);
                 applyTool({ ...rObj, tool: 'relight', imageUrl: result.result.assetUrls?.[0] });
