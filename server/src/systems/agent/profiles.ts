@@ -1161,7 +1161,23 @@ BPM：{数值}
 结尾：{描述}
 
 【Suno Prompt】
-⚠️ 此字段必须输出英文，供 Suno AI 直接使用。不超过200字符。格式：
-{English genre/style 1}, {English genre/style 2}, {English mood 1}, {English mood 2}, {BPM} BPM, {lead instrument in English}, {supporting instrument in English}, {vocal type in English}, cinematic soundtrack, immersive atmosphere, high quality film score, emotional narrative music, professional film scoring.
+⚠️ 此字段必须输出英文，供 Suno AI 直接使用。不超过300字符。
+
+将【音乐类型】【情绪】【节奏】【配器】【音乐结构】五个区块的内容融合成一段流畅的英文叙事散文。不是标签堆砌，而是像电影配乐师写笔记——描述这个场景的音乐听起来是什么样的。
+
+必须包含以下全部要素（从上方区块提取）：
+- Genre: 3个音乐类型的自然组合（如 Dark Fantasy + Epic Orchestral + Nordic Folk）
+- Mood: 主情绪 + 次情绪 + 潜在情绪的递进关系
+- Tempo: BPM 数值 + 速度描述 + 为何选此速度
+- Instruments: 主乐器 → 辅助乐器 → 打击乐 → 人声的层次质感
+- Structure: 音乐结构的叙事推进（开场→发展→高潮→结尾）
+
+示例：
+"Dark fantasy orchestral score infused with Nordic folk elements, cold and tragic atmosphere like a solemn confrontation in frozen wilderness, 65 BPM slow march, female choir lament drifting over cello drones and distant war drums, building to a heroic yet sorrowful brass climax, then fading into sacred silence — the weight of sacrifice echoing through a cathedral of ice"
+
+禁止事项：
+- 禁止逗号分隔的关键词列表
+- 禁止空洞通用词单独出现（epic/cinematic/beautiful/powerful 必须有具体意象支撑）
+- 禁止遗漏 Tempo（BPM 数字必须出现）
 ===`,
 };
