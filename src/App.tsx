@@ -42,17 +42,17 @@ import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
 import { ScissorEdge } from './components/edges/ScissorEdge';
 
-// ─── Node type registry ──────────────────────────
-const nodeTypes: NodeTypes = {
+// ─── Node type registry (memoize to survive HMR) ──
+import { useMemo as _useMemo } from 'react';
+const useNodeTypes = () => _useMemo<NodeTypes>(() => ({
   shot: ShotNode,
   'image.generate': ImageGenerateNode,
   'image.editor': ImageGenerateNode,
   'video.generate': VideoGenerateNode,
   'audio.generate': AudioGenerateNode,
   'scene.3d': Scene3DNode,
-} as unknown as NodeTypes;
-
-const edgeTypes = { default: ScissorEdge };
+} as unknown as NodeTypes), []);
+const useEdgeTypes = () => _useMemo(() => ({ default: ScissorEdge }), []);
 
 // ── Handle mapping per node type (auto-fix wrong handles) ──
 const NODE_HANDLES: Record<string, { out: string; in: string }> = {
@@ -176,6 +176,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     check();
   }, [expiryTime]);
 
+  const nodeTypes = useNodeTypes();
+  const edgeTypes = useEdgeTypes();
   const addNode = useCanvasStore(s => s.addNode);
   const removeNode = useCanvasStore(s => s.removeNode);
   const addEdge = useCanvasStore(s => s.addEdge);
