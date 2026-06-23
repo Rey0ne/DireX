@@ -1,157 +1,125 @@
-/* === DireX Cinematic Lighting System ===
-   PMREMGenerator-based environment lighting + PCFSoft shadows + exposure control */
-import { useEffect, useMemo, useRef } from 'react';
+/* === CinematicLighting — 电影灯光系统 R3F 组件 === */
+import React, { useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { type LightingPreset, kelvinToRGB } from './LightingPresets';
+import type { CinematicLightingState } from '../../data/lightingPresets';
 
-/* ── Procedural equirectangular env map from preset ── */
-function buildEquirect(preset: LightingPreset, sunColor: THREE.Color): HTMLCanvasElement {
-  const W = 512, H = 256;
-  const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  const ctx = c.getContext('2d')!;
-
-  // Sky gradient (top half)
-  const skyTop = new THREE.Color(preset.skyColor);
-  const skyMid = new THREE.Color('#8899bb');
-  const gnd = new THREE.Color(preset.groundColor);
-  const horizonY = H * 0.48;
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-  skyGrad.addColorStop(0, `rgb(${Math.floor(skyTop.r * 255)},${Math.floor(skyTop.g * 255)},${Math.floor(skyTop.b * 255)})`);
-  skyGrad.addColorStop(0.7, `rgb(${Math.floor(skyMid.r * 255)},${Math.floor(skyMid.g * 255)},${Math.floor(skyMid.b * 255)})`);
-  skyGrad.addColorStop(1, `rgb(${Math.floor(gnd.r * 160)},${Math.floor(gnd.g * 160)},${Math.floor(gnd.b * 160)})`);
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, W, horizonY);
-
-  // Ground gradient (bottom half)
-  const gndGrad = ctx.createLinearGradient(0, horizonY, 0, H);
-  gndGrad.addColorStop(0, `rgb(${Math.floor(gnd.r * 160)},${Math.floor(gnd.g * 160)},${Math.floor(gnd.b * 160)})`);
-  gndGrad.addColorStop(1, `rgb(0,0,0)`);
-  ctx.fillStyle = gndGrad;
-  ctx.fillRect(0, horizonY, W, H - horizonY);
-
-  // Sun hotspot on equirect
-  const elRad = THREE.MathUtils.degToRad(preset.sunElevation);
-  const azRad = THREE.MathUtils.degToRad(preset.sunAzimuth);
-  const u = ((azRad / (Math.PI * 2)) * W + W * 0.25) % W;
-  const v = (1 - elRad / (Math.PI / 2)) * horizonY;
-  const spotR = W * 0.12;
-  const sg = ctx.createRadialGradient(u, v, 0, u, v, spotR);
-  const sr = Math.floor(sunColor.r * 255), sgC = Math.floor(sunColor.g * 255), sb = Math.floor(sunColor.b * 255);
-  sg.addColorStop(0, `rgba(${sr},${sgC},${sb},0.9)`);
-  sg.addColorStop(0.3, `rgba(${sr},${sgC},${sb},0.4)`);
-  sg.addColorStop(0.6, `rgba(${sr},${sgC},${sb},0.1)`);
-  sg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = sg;
-  ctx.fillRect(0, 0, W, horizonY);
-
-  // Subtle horizon glow
-  const hg = ctx.createLinearGradient(0, horizonY - 6, 0, horizonY + 3);
-  hg.addColorStop(0, 'rgba(255,255,255,0)');
-  hg.addColorStop(0.5, `rgba(${sr},${Math.floor(sgC*0.7)},${Math.floor(sb*0.4)},0.3)`);
-  hg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = hg;
-  ctx.fillRect(0, horizonY - 6, W, 9);
-
-  return c;
+interface Props {
+  state: CinematicLightingState;
 }
 
-/* ── Main lighting component ── */
-interface CinematicLightingProps {
-  preset: LightingPreset;
-}
+export function CinematicLighting({ state }: Props) {
+  const { gl } = useThree();
 
-export function CinematicLighting({ preset }: CinematicLightingProps) {
-  const { gl, scene } = useThree();
-  const pmremRef = useRef<THREE.PMREMGenerator | null>(null);
-  const prevEnvRef = useRef<THREE.Texture | null>(null);
-
-  // Compute light parameters from preset
-  const { sunColor, sunDir } = useMemo(() => {
-    const rgb = kelvinToRGB(preset.sunColorTemp);
-    const color = new THREE.Color(rgb.r, rgb.g, rgb.b);
-    const elRad = THREE.MathUtils.degToRad(preset.sunElevation);
-    const azRad = THREE.MathUtils.degToRad(preset.sunAzimuth);
-    const dir = new THREE.Vector3().setFromSphericalCoords(20, Math.PI / 2 - elRad, azRad);
-    return { sunColor: color, sunDir: dir };
-  }, [preset.sunColorTemp, preset.sunElevation, preset.sunAzimuth]);
-
-  // Configure renderer (shadow map type, tone mapping, exposure)
+  // ── Renderer 配置 (toneMapping / exposure / shadowMap) ──
   useEffect(() => {
+    // PCFSoft shadow map
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-  }, [gl]);
 
-  useEffect(() => {
-    gl.toneMappingExposure = preset.exposure;
-  }, [gl, preset.exposure]);
-
-  // Generate environment map via PMREMGenerator
-  useEffect(() => {
-    if (!pmremRef.current) {
-      pmremRef.current = new THREE.PMREMGenerator(gl);
+    // Tone mapping
+    switch (state.toneMapping) {
+      case 'ACESFilmic':
+        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        break;
+      case 'Cineon':
+        gl.toneMapping = THREE.CineonToneMapping;
+        break;
+      case 'Reinhard':
+        gl.toneMapping = THREE.ReinhardToneMapping;
+        break;
+      default:
+        gl.toneMapping = THREE.LinearToneMapping;
     }
-    const pmrem = pmremRef.current;
+    gl.toneMappingExposure = state.exposure;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+  }, [gl, state.exposure, state.toneMapping]);
 
-    // Dispose previous env map
-    if (prevEnvRef.current) {
-      prevEnvRef.current.dispose();
-      prevEnvRef.current = null;
-    }
+  // ── 太阳方向向量 ──
+  const sunDir = useMemo(() => {
+    if (!state.directional) return new THREE.Vector3(0, 1, 0);
+    const az = THREE.MathUtils.degToRad(state.directional.azimuth);
+    const el = THREE.MathUtils.degToRad(state.directional.elevation);
+    const r = 20;
+    return new THREE.Vector3(
+      r * Math.cos(el) * Math.sin(az),
+      r * Math.sin(el),
+      r * Math.cos(el) * Math.cos(az),
+    );
+  }, [state.directional?.azimuth, state.directional?.elevation]);
 
-    // Build procedural equirect canvas
-    const canvas = buildEquirect(preset, sunColor);
-    const equiTex = new THREE.CanvasTexture(canvas);
-    equiTex.colorSpace = THREE.SRGBColorSpace;
-    equiTex.needsUpdate = true;
-
-    // Generate PMREM
-    const rt = pmrem.fromEquirectangular(equiTex);
-    equiTex.dispose(); // Canvas source no longer needed
-
-    scene.environment = rt.texture;
-    // Set neutral background — ProcSky handles the visible sky
-    scene.background = null;
-    prevEnvRef.current = rt.texture;
-
-    return () => {
-      // Cleanup handled next time preset changes (above) or in component cleanup below
-    };
-  }, [preset.sunColorTemp, preset.sunElevation, preset.sunAzimuth, preset.skyColor, preset.groundColor, gl, scene, sunColor]);
-
-  // Final cleanup on unmount
-  useEffect(() => {
-    return () => {
-      scene.environment = null;
-      if (prevEnvRef.current) { prevEnvRef.current.dispose(); prevEnvRef.current = null; }
-      if (pmremRef.current) { pmremRef.current.dispose(); pmremRef.current = null; }
-    };
-  }, [scene]);
+  const { directional, point, spot, environment, fakeGI } = state;
 
   return (
     <>
-      {/* Hemisphere ambient */}
+      {/* ═══ Fake GI: Ambient + Hemisphere ═══ */}
+      <ambientLight intensity={fakeGI.ambientIntensity} color={fakeGI.ambientColor} />
       <hemisphereLight
-        args={[preset.skyColor, preset.groundColor, preset.ambientIntensity]}
+        color={fakeGI.hemisphereSkyColor}
+        groundColor={fakeGI.hemisphereGroundColor}
+        intensity={fakeGI.hemisphereSkyIntensity}
       />
-      {/* Main directional sun */}
-      <directionalLight
-        position={[sunDir.x, sunDir.y, sunDir.z]}
-        intensity={preset.sunIntensity}
-        color={sunColor}
-        castShadow
-        shadow-mapSize-width={preset.shadowMapSize}
-        shadow-mapSize-height={preset.shadowMapSize}
-        shadow-camera-left={-60}
-        shadow-camera-right={60}
-        shadow-camera-top={60}
-        shadow-camera-bottom={-60}
-        shadow-camera-near={0.5}
-        shadow-camera-far={200}
-        shadow-bias={preset.shadowBias}
-      />
+
+      {/* ═══ Directional (太阳/主光) ═══ */}
+      {directional && (
+        <directionalLight
+          position={[sunDir.x, sunDir.y, sunDir.z]}
+          intensity={directional.intensity}
+          color={directional.color}
+          castShadow={directional.castShadow}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-left={-30}
+          shadow-camera-right={30}
+          shadow-camera-top={30}
+          shadow-camera-bottom={-30}
+          shadow-camera-near={0.5}
+          shadow-camera-far={80}
+          shadow-bias={directional.shadowBias ?? -0.0001}
+        />
+      )}
+
+      {/* ═══ Point Light (灯泡/蜡烛) ═══ */}
+      {point && (
+        <pointLight
+          position={point.position}
+          intensity={point.intensity}
+          color={point.color}
+          distance={point.distance}
+          decay={point.decay}
+          castShadow={point.castShadow}
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
+        />
+      )}
+
+      {/* ═══ Spot Light (聚光灯/舞台) ═══ */}
+      {spot && (
+        <spotLight
+          position={spot.position}
+          intensity={spot.intensity}
+          color={spot.color}
+          angle={spot.angle}
+          penumbra={spot.penumbra}
+          distance={spot.distance}
+          decay={spot.decay}
+          castShadow={spot.castShadow}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          lookAt={spot.target}
+        />
+      )}
+
+      {/* ═══ HDRI Environment (PMREMGenerator) ═══ */}
+      {environment.preset !== 'none' && (
+        <Environment
+          preset={environment.preset as any}
+          environmentIntensity={environment.intensity}
+          environmentBlur={environment.blur}
+          background={false}
+        />
+      )}
     </>
   );
 }
