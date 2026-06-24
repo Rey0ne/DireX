@@ -12,7 +12,7 @@ import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { geminiChat, gpt5Chat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
@@ -49,7 +49,7 @@ app.post('/api/models/delete', (req, res) => {
   fs.unlink(filepath, (err) => { if (err && err.code !== 'ENOENT') console.error('[models] Delete error:', err.message); });
   res.json({ success: true });
 });
-app.use('/api/models', express.static(MODELS_DIR));
+app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
 
 async function proxyAsset(req: Request, res: Response) {
   const url = req.query.url as string;
@@ -275,6 +275,32 @@ app.post('/api/agent/text', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Full Pipeline: one call → characters + scenes + props + music + storyboard ───
+app.post('/api/agent/full', async (req: Request, res: Response) => {
+  const body = req.body;
+  const scriptText = body.rawText || '';
+  const visualStyle = body.visualStyle as string | undefined;
+  console.log('[full-api] Request: script=' + scriptText.slice(0, 80) + ' style=' + (visualStyle || 'none'));
+  if (!scriptText) { res.status(400).json({ error: 'Missing script text' }); return; }
+
+  try {
+    const pipelineResult = await runUnifiedPipeline(scriptText, visualStyle);
+    res.json({
+      success: true,
+      characters: pipelineResult.characters,
+      scenes: pipelineResult.scenes,
+      sceneArchitecture: pipelineResult.sceneArchitecture,
+      props: pipelineResult.props,
+      music: pipelineResult.music,
+      shots: pipelineResult.shots?.shots || [],
+      totalDurationMs: pipelineResult.totalDurationMs,
+    });
+  } catch (err) {
+    console.error('[full-api] Error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
@@ -452,10 +478,10 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     status: result.success ? 'succeeded' : 'failed',
     assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
   });
-  // Auto-cache generated images for future @mention use
-  if (result.success && result.assetUrls.length > 0) {
-    result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
-  }
+  // Auto-cache disabled — unused @mention feature wasted Gemini Vision calls
+  // if (result.success && result.assetUrls.length > 0) {
+  //   result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
+  // }
   const debugInfo = agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
   debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
   debugInfo.push({field:'providerId-received', contribution: body.providerId});
