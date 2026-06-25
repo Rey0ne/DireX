@@ -12,8 +12,7 @@ export type NodeType =
   | 'audio.generate'
   | 'world.3d'
   | 'scene.3d'
-  | 'scene.3d.babylon'
-  | 'tripo.3d';
+  | 'scene.3d.babylon';
 
 export interface Port {
   id: string;
@@ -43,7 +42,6 @@ export type PortDataType =
   | 'asset.image'
   | 'asset.mask'
   | 'asset.style'
-  | 'asset.model'
   | 'any';
 
 export type EdgeSemantic = 'reference' | 'trigger' | 'dataflow';
@@ -70,8 +68,7 @@ export const PORT_COMPAT: Record<PortDataType, PortDataType[]> = {
   'asset.image': ['asset.image', 'any'],
   'asset.mask': ['asset.mask', 'any'],
   'asset.style': ['asset.style', 'any'],
-  'asset.model': ['asset.model', 'any'],
-  'any': ['shot.struct', 'prompt.text', 'asset.image', 'asset.mask', 'asset.style', 'asset.model', 'any'],
+  'any': ['shot.struct', 'prompt.text', 'asset.image', 'asset.mask', 'asset.style', 'any'],
 };
 
 export function arePortsCompatible(source: PortDataType, target: PortDataType): boolean {

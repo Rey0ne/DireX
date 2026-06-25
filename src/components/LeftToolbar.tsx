@@ -19,7 +19,7 @@ const TOOLS: ToolDef[] = [
   { id: 'crop', icon: 'crop-svg', label: '裁切', shortcut: 'C', divider: true },
   { id: 'inpaint', icon: '◐', label: '擦除 / 重绘', shortcut: 'B' },
   { id: 'relight', icon: 'relight-svg', label: '重打光', shortcut: 'L' },
-  { id: 'multiAngle', icon: '⊿', label: '多角度', shortcut: 'A' },
+  { id: 'multiAngle', icon: 'multiangle-svg', label: '多角度', shortcut: 'A' },
   { id: 'expand', icon: '↕', label: '扩图', shortcut: 'E', divider: true },
   { id: 'extract', icon: '◌', label: '抠图', shortcut: 'X' },
   { id: 'enhance', icon: '◇', label: '画质增强', shortcut: 'U' },
@@ -101,6 +101,21 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
                   strokeWidth="1.1">
                   <circle cx="12" cy="13" r="7" />
                   <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
+                </svg>
+              ) : tool.icon === 'multiangle-svg' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                  stroke={activeTool === tool.id ? 'var(--tap-accent)' : hoveredTool === tool.id ? 'var(--tap-text-1)' : 'var(--tap-text-3)'}
+                  strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+                  {/* Perspective cube — wireframe hexagon + 3 interior edges, rotated 45° right */}
+                  <g transform="rotate(45, 12, 11)">
+                    <polygon points="12,4 18,7.5 18,14.5 12,18 6,14.5 6,7.5" />
+                    <line x1="12" y1="11" x2="6" y2="7.5" />
+                    <line x1="12" y1="11" x2="12" y2="4" />
+                    <line x1="12" y1="11" x2="18" y2="7.5" />
+                  </g>
+                  {/* Curved arrow around right side */}
+                  <path d="M20 9 A5 5 0 0 1 20 16" />
+                  <polyline points="18,14 20,16 22,13.5" fill="none" />
                 </svg>
               ) : (
                 tool.icon

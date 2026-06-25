@@ -49,7 +49,7 @@ export function ModelPanel({ objects, selectedId, onSelect, onImport, onDeleteSe
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:8 }}>
                 <div style={{ width:16, height:16, borderRadius:3, background:o.color||'#8899aa', flexShrink:0 }}/>
                 <span style={{ fontSize:11, color: selectedId===o.id?'#5EEAD4':'#fff', textAlign:'center', lineHeight:1.2, overflow:'hidden', wordBreak:'break-word', maxHeight:28 }}>
-                  {o.type==='figure'?poseRegistry.get(o.figurePose||'')?.name||'人物':o.type==='box'?'立方体':o.type==='sphere'?'球体':o.type==='cylinder'?'圆柱':'平面'}
+                  {o.type==='figure'?o.figureName||(o.figureSrc||'').split('/').pop()||'人物':o.type==='box'?'立方体':o.type==='sphere'?'球体':o.type==='cylinder'?'圆柱':'平面'}
                 </span>
               </div>
             )}

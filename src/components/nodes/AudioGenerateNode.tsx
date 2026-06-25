@@ -271,6 +271,18 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
   }, [stabDragging]); // eslint-disable-line
 
   return (
+    <>
+      <style>{`
+        @keyframes direx-light-wash {
+          0%,100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes direx-light-rim {
+          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+        }
+      `}</style>
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>AUDIO</div>
@@ -299,11 +311,14 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
             : data.isPickMode ? '1px dashed rgba(180,180,185,0.3)'
             : data.isConnectTarget ? '1px solid rgba(180,180,185,0.5)'
             : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
-          background: 'var(--tap-panel)',
+          background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
           boxShadow: data.isPickTarget ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget ? '0 0 32px rgba(180,180,185,0.2)'
             : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
           transition: `border var(--tap-dur-fast) var(--tap-ease), box-shadow var(--tap-dur-fast) var(--tap-ease)`,
+          backgroundSize: selected ? '250% 250%' : undefined,
+          animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined,
+          willChange: selected ? 'box-shadow' : undefined,
         }}>
           <div style={{
             width: '100%', minHeight: '140px',
@@ -355,7 +370,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
 
           {/* === SUNO: Prompt textarea === */}
           {!isElevenLabs && (
-            <textarea value={prompt} onChange={e => { const v=e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart||0); }}
+            <textarea className="no-wheel" value={prompt} onChange={e => { const v=e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart||0); }}
               onPointerDownCapture={e => { e.stopPropagation() }} onMouseDownCapture={e => { e.stopPropagation() }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
               placeholder="描述你想要生成的内容"
@@ -367,7 +382,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
           {!isElevenLabs && !instrumental && (
             <>
               <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
-              <textarea value={lyrics} onChange={e => { setLyrics(e.target.value); patch('lyrics', e.target.value); }}
+              <textarea className="no-wheel" value={lyrics} onChange={e => { setLyrics(e.target.value); patch('lyrics', e.target.value); }}
                 placeholder="输入或粘贴歌词…"
                 maxLength={3000} rows={expanded ? 8 : 3}
                 style={{ width: '100%', background: 'transparent', border: 'none', padding: '10px 12px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }} />
@@ -381,7 +396,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                 <div key={d.id}>
                   {i > 0 && <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />}
                   {/* Textarea */}
-                  <textarea value={d.text}
+                  <textarea className="no-wheel" value={d.text}
                     onChange={e => {
                       setDialogueEntries(prev => prev.map((de, idx) => idx === i ? { ...de, text: e.target.value } : de));
                     }}
@@ -598,6 +613,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
         </div>
       )}
     </div>
+  </>
   );
 }
 

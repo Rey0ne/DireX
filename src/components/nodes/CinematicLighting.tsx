@@ -68,14 +68,14 @@ export function CinematicLighting({ state }: Props) {
           intensity={directional.intensity}
           color={directional.color}
           castShadow={directional.castShadow}
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-left={-30}
-          shadow-camera-right={30}
-          shadow-camera-top={30}
-          shadow-camera-bottom={-30}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-left={-15}
+          shadow-camera-right={15}
+          shadow-camera-top={15}
+          shadow-camera-bottom={-15}
           shadow-camera-near={0.5}
-          shadow-camera-far={80}
+          shadow-camera-far={40}
           shadow-bias={directional.shadowBias ?? -0.0001}
         />
       )}

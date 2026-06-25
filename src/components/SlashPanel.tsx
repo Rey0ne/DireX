@@ -36,7 +36,7 @@ export function SlashPanel({ onSelect, onCommand, onClose }: SlashPanelProps) {
     { id: 'crop', icon: '✂️', title: '裁切工具', desc: 'PS-like 裁切模式', action: () => onCommand('crop') },
     { id: 'inpaint', icon: '🖌️', title: '擦除/重绘', desc: '涂抹遮罩后重绘', action: () => onCommand('inpaint') },
     { id: 'relight', icon: '💡', title: '打光', desc: '调整光源方向与色温', action: () => onCommand('relight') },
-    { id: 'multi-angle', icon: '🔄', title: '多角度', desc: '批量生成不同视角', action: () => onCommand('multiAngle') },
+    { id: 'multi-angle', icon: '⬡', title: '多角度', desc: '选择视角生成新角度图像', action: () => onCommand('multiAngle') },
     { id: 'auto-layout', icon: '📐', title: '自动排布', desc: '按类型网格排列所有节点', action: () => onCommand('autoLayout') },
     { id: 'export', icon: '📥', title: '导出资产', desc: '导出选定资产为 PNG/MP4', action: () => onCommand('export') },
   ];

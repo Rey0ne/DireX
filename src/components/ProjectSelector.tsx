@@ -94,10 +94,10 @@ export function ProjectSelector({ onSelectProject, onCreateNew }: ProjectSelecto
             fontSize: '16px', fontWeight: 600,
             cursor: 'pointer', border: 'none',
             transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 20px rgba(74,158,255,0.3)',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.4)'; }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(74,158,255,0.45)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(74,158,255,0.3)'; }}
         >
           <span style={{ fontSize: '20px' }}>+</span>
           <span>新建画布</span>

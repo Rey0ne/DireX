@@ -1,7 +1,7 @@
 /* === CreditPanel — 订阅 + 积分充值 === */
 import { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import type { UserProfile } from '../../../shared/api-types.js';
+import type { UserProfile } from '../../shared/api-types.js';
 
 interface CreditPanelProps {
   onClose: () => void;

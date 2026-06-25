@@ -70,7 +70,6 @@ const KLING_RESOLUTIONS = ['720P', '1080P'];
 const SEEDANCE_RESOLUTIONS = ['480P', '720P', '1080P'];
 
 
-const _vidLocks = new Map<string, boolean>();
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const panelRef = useRef<HTMLDivElement>(null);
@@ -120,8 +119,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   }, [curRes, patch]);
 
   const handleGenerate = () => {
-    if (_vidLocks.get(id) || genRunning) return;
-    _vidLocks.set(id, true);
+    if (genRunning) return;
     setGenRunning(true);
     const map: Record<string, unknown> = {
       prompt, model: curModel, genMode, duration: curDuration,
@@ -138,7 +136,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
       map.webSearch = false;
     }
     Object.keys(map).forEach(k => patch(k, map[k]));
-    Promise.resolve(data.onGenerate?.()).finally(() => { _vidLocks.set(id, false); setGenRunning(false); });
+    Promise.resolve(data.onGenerate?.()).finally(() => setGenRunning(false));
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,6 +183,18 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   );};
 
   return (
+    <>
+      <style>{`
+        @keyframes direx-light-wash {
+          0%,100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes direx-light-rim {
+          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+        }
+      `}</style>
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>VIDEO</div>
@@ -208,23 +218,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           )
         )}
 
-                <div className={selected ? 'direx-node-selected' : undefined} style={selected
-          ? {
-              width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden',
-              border: '1px solid var(--tap-border)',
-              background: 'linear-gradient(115deg, rgba(186,230,253,0.07) 0%, rgba(125,211,252,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
-              backgroundSize: '250% 250%',
-              animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
-              boxShadow: 'var(--tap-shadow-sm)',
-              transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-            }
-          : {
-              width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden',
-              border: '1px solid var(--tap-border)',
-              background: 'var(--tap-panel)',
-              boxShadow: 'var(--tap-shadow-sm)',
-              transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-            }}>
+        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)', backgroundSize: selected ? '250% 250%' : undefined, animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
               <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -241,7 +235,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
       {selected && !data.multiSelect && (
         <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: 'var(--tap-node-width)', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
-        <div style={{ background: '#24272e', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
 
           {/* ── Ref thumbnails row ── */}
           <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
@@ -286,7 +280,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                   onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
                   onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '11px' }}>{m.name}</span>
-                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(125,211,252,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
+                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
                 </div>))}</PD>}
             </div>
 
@@ -330,7 +324,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                       <div key={a} onClick={() => { setCurAspect(a); patch('aspect', a); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', background: active ? 'var(--tap-hover)' : 'transparent', border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent' }}>
                         <div style={{ width: B, height: B, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(125,211,252,0.06)' : 'transparent' }} />
+                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(74,158,255,0.06)' : 'transparent' }} />
                         </div>
                         <span style={{ fontSize: '10px', color: active ? 'var(--tap-text-1)' : 'var(--tap-text-3)', fontWeight: active ? 600 : 400 }}>{a}</span>
                       </div>
@@ -395,6 +389,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         </div>
       )}
     </div>
+  </>
   );
 }
 

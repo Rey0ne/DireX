@@ -114,7 +114,7 @@ export function UE5Node({ id, data, selected }: { id: string; data: UE5NodeData;
             : selected
               ? '2px solid rgba(100,255,180,0.4)'
               : '1px solid var(--tap-border)',
-          background: '#2a2d33',
+          background: '#0a0a10',
           boxShadow: selected ? '0 0 32px rgba(100,255,180,0.15)' : 'var(--tap-shadow-sm)',
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}>
@@ -181,7 +181,7 @@ export function UE5Node({ id, data, selected }: { id: string; data: UE5NodeData;
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '8px 14px',
-            background: '#1e2128',
+            background: 'rgba(255,255,255,0.02)',
             borderTop: '1px solid rgba(255,255,255,0.06)',
             fontSize: 'var(--tap-fs-xs)', color: 'var(--tap-text-4)',
             minHeight: '36px',

@@ -239,7 +239,7 @@ export function Chip({ label, active, onClick, icon }: {
 export function StatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, { bg: string; color: string; dot: string }> = {
     idle: { bg: 'rgba(255,255,255,0.06)', color: 'var(--tap-text-3)', dot: 'var(--tap-text-4)' },
-    running: { bg: 'rgba(125,211,252,0.12)', color: 'var(--tap-accent)', dot: 'var(--tap-accent)' },
+    running: { bg: 'rgba(74,158,255,0.12)', color: 'var(--tap-accent)', dot: 'var(--tap-accent)' },
     succeeded: { bg: 'rgba(82,196,26,0.12)', color: 'var(--tap-success)', dot: 'var(--tap-success)' },
     failed: { bg: 'rgba(255,77,79,0.12)', color: 'var(--tap-danger)', dot: 'var(--tap-danger)' },
     blocked: { bg: 'rgba(250,173,20,0.12)', color: 'var(--tap-warning)', dot: 'var(--tap-warning)' },

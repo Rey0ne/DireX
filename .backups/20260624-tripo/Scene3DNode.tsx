@@ -1,7 +1,7 @@
 /* === Scene3DNode v2 — clean rewrite === */
 import React,{useState,useCallback,useMemo,useRef,useEffect,Suspense}from'react';
 import{createPortal}from'react-dom';
-import{Handle,Position,useStore}from'@xyflow/react';
+import{Handle,Position}from'@xyflow/react';
 import{Canvas,useThree,useFrame}from'@react-three/fiber';
 import{OrbitControls,Grid,TransformControls,useGLTF,useFBX,useTexture,useAnimations,Text}from'@react-three/drei';
 import{EffectComposer,DepthOfField}from'@react-three/postprocessing';
@@ -251,48 +251,6 @@ export function Scene3DNode({id,data,selected}:{id:string;data:{title?:string;is
   const[loaded,setLoaded]=useState(false);
   const[selId,setSelId]=useState<string|null>(null);const[fs,setFs]=useState(false);const[gizmoMode,setGizmoMode]=useState<GizmoMode>('translate');
   const[rigsMap,setRigsMap]=useState<Record<string,CameraRig>>({});const ctr=useRef(Date.now());
-  // Track imported model paths to avoid duplicates from model-in connections
-  const importedModelPaths = useRef<Set<string>>(new Set());
-  // Read model-in connected data from Tripo3D nodes
-  const connectedModel = useStore((s) => {
-    const store = useCanvasStore.getState();
-    for (const e of s.edges) {
-      if (e.target === id && e.targetHandle === 'model-in') {
-        const sourceNode = store.nodes.get(e.source);
-        const m = sourceNode?.meta as any;
-        return {
-          savedPath: (m?.savedPath || m?.tripo3d?.savedPath || '') as string,
-          savedName: (m?.savedName || m?.tripo3d?.savedName || '') as string,
-          modelUrl: (m?.modelUrl || m?.tripo3d?.modelUrl || '') as string,
-        };
-      }
-    }
-    return null;
-  });
-  // Auto-import model when Tripo3D connection provides a savedPath
-  useEffect(() => {
-    if (!connectedModel?.savedPath || !loaded) return;
-    const path = connectedModel.savedPath;
-    if (importedModelPaths.current.has(path)) return;
-    // Check file exists before importing — avoids crash on missing GLB
-    fetch(path, { method: 'HEAD' }).then(resp => {
-      if (!resp.ok) { console.log('[Scene3D] Model not found, skipping auto-import:', path); return; }
-      importedModelPaths.current.add(path);
-      const name = connectedModel.savedName || path.split('/').pop() || 'tripo_model';
-      const ext = path.endsWith('.fbx') ? 'fbx' : 'glb';
-      ctr.current++;
-      const obj: SceneObject = {
-        id: `o_${ctr.current}`, type: 'figure',
-        position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
-        color: pickColor(), figurePose: undefined,
-        figureSrc: path, figureFmt: ext,
-      };
-      addPoseEntry(`tripo_${ctr.current}`, name, path, ext);
-      setObjects(prev => [...prev, obj]);
-      setSelId(obj.id);
-      console.log('[Scene3D] Auto-imported model from Tripo3D:', path);
-    }).catch(() => { console.log('[Scene3D] Model check failed, skipping:', path); });
-  }, [connectedModel?.savedPath, loaded]);
   useEffect(()=>{if(loaded)return;let tries=0;const tryLoad=()=>{tries++;const store=useCanvasStore.getState();const node=store.nodes.get(id);if(!node&&tries<30){setTimeout(tryLoad,100);return;}const m=(node?.meta as any)?.scene3d;if(m?.objects&&m.objects.length>0){const seen=new Set();const deduped=m.objects.filter((o:any)=>seen.has(o.id)?false:(seen.add(o.id),true));setObjects(deduped);let maxId=0;deduped.forEach((o:any)=>{const n=parseInt(o.id?.split('_')[1]);if(n>maxId)maxId=n;});ctr.current=Math.max(maxId,1000);if(m?.rigs)setRigsMap(m.rigs);else if(m?.rig)setRigsMap({legacy:m.rig});}setLoaded(true);};tryLoad();},[id,loaded]);
   useEffect(()=>{if(!loaded)return;const seen=new Set();const deduped=objects.filter(o=>seen.has(o.id)?false:(seen.add(o.id),true));if(deduped.length<objects.length)setObjects(deduped);const store=useCanvasStore.getState();store.updateNode(id,{meta:{...((data as any)?.meta||{}),scene3d:{objects:deduped,rigs:rigsMap}}});},[objects,rigsMap,id,loaded]);
   useEffect(()=>{initPoseRegistry();},[]);
@@ -307,30 +265,6 @@ export function Scene3DNode({id,data,selected}:{id:string;data:{title?:string;is
       </div>
       <Handle type="target" position={Position.Left} id="image-in" style={{background:'rgba(180,180,200,0.4)',width:9,height:9,border:'none',borderRadius:5}}/>
       <Handle type="source" position={Position.Right} id="image-out" style={{background:'rgba(180,180,200,0.4)',width:9,height:9,border:'none',borderRadius:5}}/>
-      <Handle type="target" position={Position.Bottom} id="model-in"
-        style={{
-          width: 19, height: 19, background: 'var(--tap-panel)',
-          border: '2px solid rgba(94,234,212,0.45)', borderRadius: '50%',
-          bottom: '-10px', left: '50%', transform: 'translateX(-50%)',
-          opacity: selected || data.isConnecting ? 1 : 0,
-          pointerEvents: 'all', transition: 'opacity 0.15s',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: 'rgba(94,234,212,0.7)',
-        }}
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}>
-          <line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/>
-          <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/>
-        </svg>
-      </Handle>
-      {/* model-in tooltip label */}
-      {selected && (
-        <div style={{
-          position: 'absolute', bottom: '-28px', left: '50%', transform: 'translateX(-50%)',
-          fontSize: '8px', color: 'rgba(94,234,212,0.35)', letterSpacing: '0.05em',
-          pointerEvents: 'none', whiteSpace: 'nowrap',
-        }}>模型输入</div>
-      )}
     </div>
   </>);
 }

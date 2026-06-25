@@ -1,7 +1,7 @@
 /* === ImageGenerateNode — TapNow-style image generation === */
 /* Phase 2 refined: borderless tools, distant handles, fullscreen overlay */
 
-import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, memo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
@@ -277,17 +277,16 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   useEffect(() => { if (showRatioPicker && ratioChipRef.current) setRatioChipRect(ratioChipRef.current.getBoundingClientRect()); }, [showRatioPicker]);
   useEffect(() => { if (showResolutionPicker && resolutionChipRef.current) setResolutionChipRect(resolutionChipRef.current.getBoundingClientRect()); }, [showResolutionPicker]);
 
-  // Sync measurement before paint — no flash
-  useLayoutEffect(() => {
-    if (!selected || !cardRef.current) { setCardRect(null); return; }
-    setCardRect(cardRef.current.getBoundingClientRect());
-  }, [selected, data.imageUrl, (data as any).videoUrl]);
-  // Keep cardRect updated during scroll/resize
   useEffect(() => {
-    if (!selected || !cardRef.current) return;
+    if (!selected || !cardRef.current) { setCardRect(null); readyRef.current = false; return; }
+    readyRef.current = false;
+    setCardRect(null);
     let raf = 0;
     const update = () => {
-      if (cardRef.current) setCardRect(cardRef.current.getBoundingClientRect());
+      if (cardRef.current) {
+        setCardRect(cardRef.current.getBoundingClientRect());
+        readyRef.current = true;
+      }
       raf = requestAnimationFrame(update);
     };
     raf = requestAnimationFrame(update);
@@ -665,48 +664,36 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* ── Upload bar (inline absolute, no measurement, no flash) ── */}
-        {selected && !data.multiSelect && !data.imageUrl && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 24px)', left: '50%',
-          transform: `translateX(-50%) scale(${1.5/zoom})`,
-          transformOrigin: 'bottom center', zIndex: 50,
-        }}>
-          <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 20px', background: 'rgba(22,26,34,0.92)',
-              borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer',
-              border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none',
-              animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
-            }}>
-            <span style={{ fontSize: '16px' }}>↑</span>
-            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
-          </div>
-        </div>
+        {/* ── Upload bar (portal) — shown when no image */}
+        {selected && !data.multiSelect && cardRect && !data.imageUrl && createPortal(
+        <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
+          style={{ position: 'fixed', left: cardRect.left + cardRect.width / 2, top: cardRect.top - 8, transform: 'translateX(-50%) translateY(-100%)', zIndex: 9998, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 20px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}>
+          <span style={{ fontSize: '16px' }}>↑</span>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
+        </div>,
+        document.body
         )}
-        {/* ── Floating Toolbar (inline absolute, no measurement, no flash) ── */}
-        {selected && !data.multiSelect && data.imageUrl && (
+        {/* ── Floating Toolbar (portal) — shown when has image */}
+        {selected && !data.multiSelect && cardRect && data.imageUrl && createPortal(
         <div style={{
-          position: 'absolute', bottom: 'calc(100% + 24px)', left: '50%',
-          transform: `translateX(-50%) scale(${1.5/zoom})`,
-          transformOrigin: 'bottom center', zIndex: 50,
+          position: 'fixed',
+          left: cardRect ? cardRect.left + cardRect.width / 2 : -9999,
+          top: cardRect ? cardRect.top - 40 : -9999,
+          transform: 'translateX(-50%) translateY(-100%)',
+          zIndex: 9998,
+          opacity: 1,
+          pointerEvents: 'auto',
+          transition: 'opacity 0.1s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px',
+          padding: '4px',
+          background: 'rgba(22,26,34,0.92)',
+          borderRadius: '12px',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
+          animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
         }}>
-          <div style={{
-            opacity: 1,
-            pointerEvents: 'auto',
-            transition: 'opacity 0.1s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            padding: '4px',
-            background: 'rgba(22,26,34,0.92)',
-            borderRadius: '12px',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
-            animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
-          }}>
             {toolbarActions.map((a, i) => (
               <span key={a.label} style={{ display: 'flex' }}>
                 <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} />
@@ -760,8 +747,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} />
               </span>
             ))}
-          </div>
-        </div>
+        </div>,
+        document.body
       )}
 
         {/* ── Image Card (width based on aspect ratio) ── */}
