@@ -21,7 +21,7 @@ import '@xyflow/react/dist/style.css';
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
 import { loadFromDB, startAutoSave, saveNow } from './store/persistence';
-import { generateWithAgent, analyzeText, mapModelNameToProviderId } from './api/gateway';
+import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
@@ -40,6 +40,7 @@ import { ImageGenerateNode } from './components/nodes/ImageGenerateNode';
 import { VideoGenerateNode } from './components/nodes/VideoGenerateNode';
 import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
+import { Tripo3DNode } from './components/nodes/Tripo3DNode';
 import { ScissorEdge } from './components/edges/ScissorEdge';
 
 // ─── Node type registry (memoize to survive HMR) ──
@@ -51,26 +52,29 @@ const useNodeTypes = () => _useMemo<NodeTypes>(() => ({
   'video.generate': VideoGenerateNode,
   'audio.generate': AudioGenerateNode,
   'scene.3d': Scene3DNode,
+  'tripo.3d': Tripo3DNode,
 } as unknown as NodeTypes), []);
 const useEdgeTypes = () => _useMemo(() => ({ default: ScissorEdge }), []);
 
 // ── Handle mapping per node type (auto-fix wrong handles) ──
-const NODE_HANDLES: Record<string, { out: string; in: string }> = {
-  'image.generate': { out: 'image-out', in: 'image-in' },
-  'image.editor': { out: 'image-out', in: 'image-in' },
-  'video.generate': { out: 'video-out', in: 'video-in' },
-  'audio.generate': { out: 'audio-out', in: 'audio-in' },
-  'shot': { out: 'shot-out', in: 'refs-in' },
-  'scene.3d': { out: 'scene-out', in: 'scene-in' },
-  'world.3d': { out: 'scene-out', in: 'scene-in' },
+// Each node type can have multiple valid input/output handle IDs.
+const NODE_HANDLES: Record<string, { out: string[]; in: string[] }> = {
+  'image.generate': { out: ['image-out'], in: ['image-in'] },
+  'image.editor': { out: ['image-out'], in: ['image-in'] },
+  'video.generate': { out: ['video-out'], in: ['video-in'] },
+  'audio.generate': { out: ['audio-out'], in: ['audio-in'] },
+  'shot': { out: ['shot-out'], in: ['refs-in'] },
+  'scene.3d': { out: ['image-out'], in: ['image-in', 'model-in'] },
+  'world.3d': { out: ['image-out'], in: ['image-in', 'model-in'] },
+  'tripo.3d': { out: ['model-out'], in: ['tripo-in'] },
 };
-function fixEdgeHandles(edge: { from: { nodeId: string; portId: string }; to: { nodeId: string; portId: string } }, nodes: Map<string, string>) {
+function fixEdgeHandles(edge: { id: string; from: { nodeId: string; portId: string }; to: { nodeId: string; portId: string } }, nodes: Map<string, string>) {
   const st = nodes.get(edge.from.nodeId);
   const tt = nodes.get(edge.to.nodeId);
   const fromH = st ? NODE_HANDLES[st] : null;
   const toH = tt ? NODE_HANDLES[tt] : null;
-  if (fromH && edge.from.portId !== fromH.out) edge.from.portId = fromH.out;
-  if (toH && edge.to.portId !== toH.in) edge.to.portId = toH.in;
+  if (fromH && !fromH.out.includes(edge.from.portId)) edge.from.portId = fromH.out[0];
+  if (toH && !toH.in.includes(edge.to.portId)) edge.to.portId = toH.in[0];
   return edge;
 }
 
@@ -436,23 +440,65 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               });
             }
 
-            // ── Route: TEXT node → fast text pipeline, others → full image pipeline ──
+            // ── Route: TEXT node → fast text pipeline, extraction → visual parser, others → full image pipeline ──
             const isTextNode = n.type === 'shot';
             const isAudio = n.type === 'audio.generate';
             const actualModel = (meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : isAudio ? 'Suno v4' : 'GPT Image2');
-            console.log('[onGenerate] nodeType:', n.type, 'model:', actualModel, 'providerId:', mapModelNameToProviderId(actualModel), 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length);
+            const promptText = (meta.prompt as string) || '';
+            const useExtraction = !isTextNode && refUrls?.length && hasExtractionIntent(promptText);
+            console.log('[onGenerate] nodeType:', n.type, 'model:', actualModel, 'providerId:', mapModelNameToProviderId(actualModel), 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length, 'extraction:', useExtraction);
             const agentResult = isTextNode
               ? await analyzeText({
                   providerId: 'text',
                   mode: 'text-analysis' as any,
-                  rawText: (meta.prompt as string) || '',
+                  rawText: promptText,
                   referenceUrls: refUrls,
                   referencePrompts: refPrompts,
                 } as any)
-              : await generateWithAgent({
+              : useExtraction
+                ? await visualExtract({
+                    providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
+                    mode: 'image-to-image',
+                    rawText: promptText,
+                    aspect: meta.aspect as string | undefined,
+                    resolution: meta.resolution as string || '2K',
+                    referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
+                    referenceUrls: refUrls,
+                    referencePrompts: refPrompts,
+                    styleImageUrl: meta.styleImageUrl as string | undefined,
+                    seed: meta.seed as number | undefined,
+                    negativePrompt: meta.negativePrompt as string | undefined,
+                    duration: meta.duration as string | undefined,
+                    videoUrls: videoUrls as string[] | undefined,
+                    extractMode: meta.extractMode as string || 'auto',
+                    // Model-specific params
+                    genMode: meta.genMode as string | undefined,
+                    firstFrameUrl: meta.firstFrameUrl as string | undefined,
+                    lastFrameUrl: meta.lastFrameUrl as string | undefined,
+                    characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
+                    keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
+                    fixedCamera: meta.fixedCamera as boolean | undefined,
+                    generateAudio: meta.generateAudio as boolean | undefined,
+                    webSearch: meta.webSearch as boolean | undefined,
+                    // Audio (Suno)
+                    instrumental: meta.instrumental as boolean | undefined,
+                    lyrics: meta.lyrics as string | undefined,
+                    // Audio (ElevenLabs)
+                    voice: meta.voice as string | undefined,
+                    language: meta.language as string | undefined,
+                    stability: meta.stability as number | undefined,
+                    dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
+                    // Camera kit
+                    camera: meta.camera as string | undefined,
+                    lens: meta.lens as string | undefined,
+                    focalLength: meta.focalLength as string | undefined,
+                    aperture: meta.aperture as string | undefined,
+                    filmStock: meta.filmStock as string | undefined,
+                  } as any)
+                : await generateWithAgent({
                   providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
                   mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
-                  rawText: (meta.prompt as string) || '',
+                  rawText: promptText,
                   aspect: meta.aspect as string | undefined,
                   resolution: meta.resolution as string || '2K',
                   referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
@@ -614,7 +660,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
   const handleMenuSelect = useCallback((nodeType: string) => {
     if (!menu) return;
-    addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'scene.3d', { x: menu.flowX, y: menu.flowY });
+    addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'scene.3d' | 'tripo.3d', { x: menu.flowX, y: menu.flowY });
     setMenu(null);
   }, [menu, addNode]);
 
@@ -1004,7 +1050,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       {/* ── Double-click Menu (grid) ── */}
       {dblMenu && <DoubleClickMenu x={dblMenu.x} y={dblMenu.y}
         onSelect={(type) => {
-          addNode(type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d', { x: dblMenu.flowX, y: dblMenu.flowY });
+          addNode(type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'tripo.3d', { x: dblMenu.flowX, y: dblMenu.flowY });
           setDblMenu(null);
         }}
         onClose={() => setDblMenu(null)} />}
@@ -1016,7 +1062,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           flowX={connectMenu.flowX} flowY={connectMenu.flowY}
           sourceNodeId={connectMenu.sourceNodeId} sourcePortId={connectMenu.sourcePortId}
           onSelect={(nodeType) => {
-            const newId = addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d', { x: connectMenu.flowX - 190, y: connectMenu.flowY - 100 });
+            const newId = addNode(nodeType as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'tripo.3d', { x: connectMenu.flowX - 190, y: connectMenu.flowY - 100 });
             addEdge(
               { nodeId: connectMenu.sourceNodeId, portId: connectMenu.sourcePortId },
               { nodeId: newId, portId: nodeType === 'shot' ? 'refs-in' : 'image-in' }, 'any'
@@ -1043,7 +1089,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         <SlashPanel
           onSelect={(type) => {
             const vp = useCanvasStore.getState().viewport;
-            addNode(type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d', { x: (window.innerWidth / 2 - vp.x) / vp.zoom - 190, y: (window.innerHeight / 2 - vp.y) / vp.zoom - 100 });
+            addNode(type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'audio.generate' | 'world.3d' | 'tripo.3d', { x: (window.innerWidth / 2 - vp.x) / vp.zoom - 190, y: (window.innerHeight / 2 - vp.y) / vp.zoom - 100 });
             useCanvasStore.getState().toggleCommandPalette();
           }}
           onCommand={(cmd) => {

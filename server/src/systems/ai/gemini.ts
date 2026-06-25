@@ -1,4 +1,5 @@
-/* === LLM Router — DeepSeek (cheap, text) + Gemini 3.1 Pro (expensive, vision) === */
+/* === LLM Router — GPT-5.4 (text + vision) via Kie.ai === */
+
 import { ProxyAgent, Agent } from 'undici';
 
 // Keep-alive agent for direct (non-proxy) connections.
@@ -157,7 +158,8 @@ export async function gpt5Chat(
   }
 }
 
-// ─── Text LLM (Kie.ai Gemini preferred, DeepSeek fallback) ──
+// ─── Text LLM (GPT-5.4 via Kie.ai) ──
+// Thin wrapper — converts simple (systemPrompt, userContent) to gpt5Chat message format.
 export async function geminiChat(
   systemPrompt: string,
   userContent: string,
@@ -171,149 +173,24 @@ export async function geminiChat(
     userContent = truncateContent(userContent, availableTokens);
   }
 
-  // Kie.ai Gemini (preferred — works with proxy, fast)
-  const kieKey = process.env.KIE_API_KEY;
-  if (kieKey) {
-    const r = await callKieGemini(kieKey, systemPrompt, userContent, maxTokens);
-    if (r) return r;
-  }
-  // DeepSeek Official (fallback)
-  const dsKey = process.env.DEEPSEEK_API_KEY;
-  if (dsKey) {
-    const r = await callDeepSeek(dsKey, systemPrompt, userContent, maxTokens);
-    if (r) return r;
-  }
-  console.log('[llm] No text LLM configured');
-  return null;
+  return gpt5Chat([
+    { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
+    { role: 'user', content: [{ type: 'input_text', text: userContent }] },
+  ], { effort: 'low', timeoutMs: 60000, maxOutputTokens: maxTokens });
 }
 
-// ─── Kie.ai Gemini text ───────────────────────
-async function callKieGemini(
-  apiKey: string, systemPrompt: string, userContent: string, maxTokens: number
-): Promise<string | null> {
-  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
-  try {
-    const opts: any = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'gemini-2.5-pro',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.5, max_tokens: maxTokens,
-      }),
-    };
-    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
-    const resp = await fetch('https://api.kie.ai/gemini-2.5-flash/v1/chat/completions', opts);
-    if (!resp.ok) { console.log('[kie-gemini] Error:', resp.status); return null; }
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) { console.log('[kie-gemini]', text.slice(0, 60)); return text; }
-    return null;
-  } catch (err) { console.log('[kie-gemini] Failed:', String(err).slice(0, 60)); return null; }
-}
-
-// ─── Vision LLM (Kie.ai Gemini — for image analysis) ──
-// Model configured via GEMINI_VISION_MODEL env, defaults to gemini-2.5-flash
+// ─── Vision LLM (GPT-5.4 multimodal — for image analysis) ──
 export async function visionAnalyze(
   systemPrompt: string,
   imageBase64: string,
   mimeType: string = 'image/png'
 ): Promise<string | null> {
-  const gmKey = process.env.GEMINI_API_KEY;
-  if (!gmKey) { console.log('[vision] No GEMINI_API_KEY'); return null; }
-
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash';
-  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
-  try {
-    const opts: any = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + gmKey },
-      body: JSON.stringify({
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: systemPrompt },
-            { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + imageBase64 } },
-          ],
-        }],
-        max_tokens: 2000,
-      }),
-    };
-    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
-
-    // Kie.ai routes Gemini models via URL path: /{model}/v1/chat/completions
-    const url = `https://api.kie.ai/${model}/v1/chat/completions`;
-    const resp = await fetch(url, opts);
-    if (!resp.ok) {
-      const errBody = await resp.text().catch(() => '');
-      console.log('[vision] Error ' + resp.status + ': ' + errBody.slice(0, 200));
-      return null;
-    }
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) { console.log('[vision] Analyzed:', text.slice(0, 60)); return text; }
-    console.log('[vision] Unexpected response:', JSON.stringify(data).slice(0, 200));
-    return null;
-  } catch (err) { console.log('[vision] Failed:', String(err).slice(0, 200)); return null; }
-}
-
-// ─── DeepSeek Official ─────────────────────────
-async function callDeepSeek(
-  apiKey: string, systemPrompt: string, userContent: string, maxTokens: number
-): Promise<string | null> {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 10000);
-    const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.5, max_tokens: maxTokens,
-      }),
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    if (!resp.ok) { console.log('[deepseek] Error:', resp.status); return null; }
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) { console.log('[deepseek]', text.slice(0, 60)); return text; }
-    return null;
-  } catch (err) { console.log('[deepseek] Failed:', String(err).slice(0, 60)); return null; }
-}
-
-// ─── Kie.ai DeepSeek ───────────────────────────
-async function callKieDeepSeek(
-  apiKey: string, systemPrompt: string, userContent: string, maxTokens: number
-): Promise<string | null> {
-  const base = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
-  const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
-  try {
-    const opts: any = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        temperature: 0.5, max_tokens: maxTokens,
-      }),
-    };
-    if (proxy) { opts.dispatcher = new ProxyAgent(proxy); } else { opts.dispatcher = kieKeepAliveAgent; }
-    const resp = await fetch(base + '/chat/completions', opts);
-    if (!resp.ok) { console.log('[kie-ds] Error:', resp.status); return null; }
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content?.trim();
-    if (text) { console.log('[kie-ds]', text.slice(0, 60)); return text; }
-    return null;
-  } catch (err) { console.log('[kie-ds] Failed:', String(err).slice(0, 60)); return null; }
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+  return gpt5Chat([
+    { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
+    { role: 'user', content: [
+      { type: 'input_text', text: 'Analyze the attached image per the system instructions.' },
+      { type: 'input_image', image_url: dataUrl },
+    ]},
+  ], { effort: 'medium', timeoutMs: 90000, maxOutputTokens: 2000 });
 }

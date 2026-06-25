@@ -7,13 +7,14 @@ import { readJSON, writeJSON } from './systems/db/store.js';
 import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
+import { submitTask, pollTask, downloadModel as downloadTripoModel } from './systems/ai/tripo-provider.js';
 import { authMiddleware } from './middleware/auth.js';
 import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
-import { geminiChat, gpt5Chat } from './systems/ai/gemini.js';
+import { gpt5Chat } from './systems/ai/gemini.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -51,6 +52,46 @@ app.post('/api/models/delete', (req, res) => {
 });
 app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
 
+// ─── Tripo3D Routes ────────────────────────────
+app.post('/api/tripo/generate', async (req, res) => {
+  try {
+    const body = req.body;
+    const result = await submitTask({
+      mode: body.mode || 'text-to-model',
+      prompt: body.prompt,
+      input: body.input,
+      model: body.model,
+      face_limit: body.face_limit,
+      texture: body.texture,
+      pbr: body.pbr,
+      texture_quality: body.texture_quality,
+      auto_size: body.auto_size,
+      compress: body.compress,
+    });
+    res.json({ success: true, task_id: result.task_id });
+  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/tripo/task/:taskId', async (req, res) => {
+  try {
+    const result = await pollTask(req.params.taskId);
+    res.json(result);
+  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/tripo/save-model', async (req, res) => {
+  try {
+    const { model_url, name } = req.body;
+    if (!model_url) { res.status(400).json({ success: false, error: 'No model_url' }); return; }
+    const safeName = (name || 'tripo_model').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_');
+    const dest = path.join(MODELS_DIR, `tripo_${Date.now()}_${safeName}.glb`);
+    await downloadTripoModel(model_url, dest);
+    const relPath = '/api/models/' + path.basename(dest);
+    const stat = fs.statSync(dest);
+    res.json({ success: true, path: relPath, name: safeName + '.glb', size: stat.size });
+  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
+});
+
 async function proxyAsset(req: Request, res: Response) {
   const url = req.query.url as string;
   if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
@@ -76,11 +117,13 @@ app.use('/api/auth', authRouter);
 app.use(authMiddleware);
 
 // ─── Image Analysis Cache ──────────────────────
-// Stores Gemini Vision analysis for every image URL
-const imageCache = new Map<string, string>(); // url → description
+// Persistent vision cache — survives server restarts so images aren't re-analyzed
+const VISION_CACHE_FILE = 'data/vision-cache.json';
+const imageCache: Map<string, string> = new Map(Object.entries((readJSON(VISION_CACHE_FILE) as Record<string, string>) || {}));
+console.log('[vision-cache] Loaded ' + imageCache.size + ' cached analyses from disk');
 let lastCompiled: any = null; // last compiled prompt for debugging
 
-// Analyze a single image and cache the result
+// Analyze a single image and cache the result (disk-persisted)
 async function analyzeAndCache(url: string): Promise<string> {
   if (imageCache.has(url)) return imageCache.get(url)!;
   try {
@@ -89,7 +132,9 @@ async function analyzeAndCache(url: string): Promise<string> {
     // Use full detailed analysis (materials, facial features, clothing, weathering, etc.)
     const summary = desc.slice(0, 800);
     imageCache.set(url, summary);
-    console.log('[vision-cache] Cached:', summary.slice(0, 60) + '... (' + summary.length + ' chars)');
+    // Persist to disk so restart doesn't re-trigger analysis
+    writeJSON(VISION_CACHE_FILE, Object.fromEntries(imageCache));
+    console.log('[vision-cache] Cached (' + imageCache.size + ' total):', summary.slice(0, 60) + '...');
     return summary;
   } catch (err) {
     console.log('[vision-cache] Failed:', String(err).slice(0, 60));
@@ -115,15 +160,8 @@ console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
 app.post('/api/canvas/sync', (req, res) => {
   canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
   writeJSON(CANVAS_FILE, canvasState);
-  const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
-  const imageUrls: string[] = [];
-  imgNodes.forEach((n: any) => {
-    const u = n.meta?.gen?.imageUrl || n.meta?.gen?.videoUrl;
-    if (u) imageUrls.push(u);
-  });
-  imageUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
   console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
-  res.json({ ok: true, imagesAnalyzing: imageUrls.length });
+  res.json({ ok: true });
 });
 app.get('/api/canvas/state', (_req, res) => {
   const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
@@ -339,70 +377,34 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   } else if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
-      // I2I: GPT-5.4 看图分析角色 → Gemini Flash 编译英文 prompt
+      // I2I: GPT-5.4 directly analyzes reference images + compiles prompt
       try {
         const refUrls = (body as any).referenceUrls as string[] | undefined;
         if (refUrls?.length) {
-          // Step 1: GPT-5.4 analyzes reference images (vision only, cheap)
-          let characterAnalysis = '';
-          try {
-            const { uploadDataUrl } = await import('./systems/ai/kie-provider.js');
-            const publicUrls: string[] = [];
-            for (const url of refUrls) {
-              if (url.startsWith('data:')) {
-                const uploaded = await uploadDataUrl(url);
-                if (uploaded) publicUrls.push(uploaded);
-              } else {
-                publicUrls.push(url);
-              }
-            }
-            if (publicUrls.length > 0) {
-              const gpt5Content: Array<{type: 'input_text'; text: string} | {type: 'input_image'; image_url: string}> = [
-                { type: 'input_text' as const, text: 'Analyze these reference images. For each person/character visible, describe in detail: face shape, eye shape and color, nose shape, lip thickness, skin tone, hair style and color, body type, clothing style and color, and any distinctive accessories. Output as plain descriptive text, no formatting.' },
-              ];
-              publicUrls.slice(0, 8).forEach(url => {
-                gpt5Content.push({ type: 'input_image', image_url: url });
-              });
-              const t1 = Date.now();
-              characterAnalysis = await gpt5Chat(
-                [{ role: 'user' as const, content: gpt5Content }],
-                { effort: 'medium', timeoutMs: 120000 },
-              ) || '';
-              console.log('[agent] I2I GPT-5.4 analyzed ' + publicUrls.length + ' ref images in ' + (Date.now() - t1) + 'ms, ' + characterAnalysis.length + ' chars');
-            }
-          } catch(e) { console.log('[agent] I2I image analysis failed:', String(e).slice(0, 80)); }
-
-          // Step 2: Gemini Flash compiles English prompt (fuses character analysis + Chinese shot direction)
-          const compileInput = characterAnalysis
-            ? `角色外观分析：\n${characterAnalysis}\n\n分镜描述：\n${enrichedPrompt}\n\n将以上融合为一整段英文图像生成提示词。角色身份用"Character identity — see reference images exactly as shown"引用，其余部分描述构图、光影、情绪、动作。`
-            : enrichedPrompt;
-          const translated = await geminiChat(
-            'You are a visual prompt compiler. Fuse character appearance descriptions with shot direction into a single cohesive English image generation prompt.',
-            compileInput,
-            800,
-          );
-          if (translated) {
-            compiledPrompt = translated;
-            console.log('[agent] I2I compiled via Gemini Flash, ' + translated.length + ' chars');
+          // GPT-5.4 sees the actual images — no separate Gemini Vision step needed
+          const gpt5Result = await compileI2IWithGPT5(enrichedPrompt, refUrls);
+          if (gpt5Result) {
+            compiledPrompt = gpt5Result;
+            console.log('[agent] I2I GPT-5.4 compiled ' + gpt5Result.length + ' chars');
           } else {
-            compiledPrompt = 'Character identity — see reference images exactly as shown. ' + enrichedPrompt;
+            compiledPrompt = 'Character identity, facial features, hair, body, skin tone, ethnicity, age, clothing — see reference images EXACTLY as shown. Do NOT change, beautify, or reinterpret any physical features. Only modify: pose, expression, background, lighting, camera angle as instructed below.\n\n' + enrichedPrompt;
+            console.log('[agent] I2I GPT-5.4 failed, using fallback');
           }
         } else {
           compiledPrompt = enrichedPrompt;
         }
       } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = enrichedPrompt; }
     } else {
-      // T2I: simple Gemini Flash translation (Chinese → English), NOT 4-agent pipeline
+      // T2I: GPT-5.4 translates Chinese → English
       try {
         const t0 = Date.now();
-        const translated = await geminiChat(
-          'You are a visual prompt translator. Translate the Chinese image generation prompt into English. Preserve all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.',
-          enrichedPrompt,
-          500, // max output tokens, enough for a prompt
+        const translated = await gpt5Chat(
+          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. Preserve all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
+          { effort: 'low', timeoutMs: 60000, maxOutputTokens: 500 },
         );
         if (translated) {
           compiledPrompt = translated;
-          console.log('[agent] T2I translated via Gemini Flash in ' + (Date.now() - t0) + 'ms, ' + translated.length + ' chars');
+          console.log('[agent] T2I GPT-5.4 translated in ' + (Date.now() - t0) + 'ms, ' + translated.length + ' chars');
         } else {
           compiledPrompt = enrichedPrompt; // fallback: use Chinese directly
         }
@@ -646,6 +648,159 @@ app.get('/api/kie/suno-callback/:taskId', (req, res) => {
 
 // ─── Download ────────────────────────────────
 app.get('/api/download', handleDownload);
+
+// ─── Visual Extraction Agent ──────────────────
+import { parseVisualIntent, detectExtractionIntent, type ExtractMode } from './systems/agent/visual-parser.js';
+
+app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
+  console.log('[visual-extract] ===== ROUTE HIT =====');
+  const body = req.body as AgentGenerateRequest;
+  if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
+
+  // Collect all image sources: @mention refs + uploaded primary image
+  const refUrls = (body as any).referenceUrls as string[] | undefined;
+  const primaryImage = body.referenceImage as string | undefined;
+  const allRefUrls: string[] = [...(refUrls || [])];
+  if (primaryImage && !allRefUrls.includes(primaryImage)) {
+    allRefUrls.push(primaryImage);
+  }
+  if (!allRefUrls.length) {
+    // No image sources at all → fallback to normal generate
+    console.log('[visual-extract] No image sources, redirecting to /api/agent/generate');
+    try {
+      const resp = await fetch(`http://localhost:${PORT}/api/agent/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      res.json(data);
+    } catch (e) {
+      res.status(500).json({ error: 'Generate fallback failed: ' + String(e) });
+    }
+    return;
+  }
+
+  console.log('[visual-extract] image sources: refUrls=' + (refUrls?.length || 0) + ' + primaryImage=' + (primaryImage ? 1 : 0));
+
+  const handler = getProvider(body.providerId);
+  if (!handler) { res.status(400).json({ error: 'Unknown provider: ' + body.providerId }); return; }
+
+  const config = getProfile();
+  const userPrompt = body.rawText || (body.shot && body.shot.intent_cn) || '';
+  const extractMode = ((body as any).extractMode as string) || 'auto';
+  let compiledPrompt = '';
+
+  // Camera kit
+  const cam = (body as any).camera;
+  const lens = (body as any).lens;
+  const focal = (body as any).focalLength;
+  const apt = (body as any).aperture;
+  const film = (body as any).filmStock;
+  let camBlock = '';
+  if (cam || lens || focal || apt || film) {
+    const parts: string[] = [];
+    if (cam) parts.push(`Camera: ${cam}`);
+    if (lens) parts.push(`Lens: ${lens}`);
+    if (focal) parts.push(`Focal length: ${focal}`);
+    if (apt) parts.push(`Aperture: ${apt}`);
+    if (film) parts.push(`Film stock: ${film}`);
+    camBlock = '[' + parts.join(', ') + '] ';
+  }
+  const enrichedPrompt = camBlock ? camBlock + userPrompt : userPrompt;
+
+  console.log('[visual-extract] mode=' + extractMode + ' refs=' + allRefUrls.length + ' prompt=' + userPrompt.slice(0, 80));
+
+  // Run visual parser
+  const parsed = await parseVisualIntent(enrichedPrompt, allRefUrls, extractMode as ExtractMode);
+
+  if (!parsed) {
+    // GPT-5.4 failed (kie.ai transient error) → fallback to local I2I compile, no extra HTTP hop
+    console.log('[visual-extract] Parser failed, compiling locally via compileI2IWithGPT5');
+    const fallback = await compileI2IWithGPT5(enrichedPrompt, allRefUrls);
+    if (!fallback) {
+      res.status(502).json({
+        compiled: { en: '', cn: userPrompt, negative: '', debug: [] },
+        result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: 'Visual parser and fallback both failed — kie.ai server error. Please retry.' },
+      });
+      return;
+    }
+    compiledPrompt = fallback;
+    console.log('[visual-extract] Fallback compiled ' + fallback.length + ' chars');
+  } else {
+    compiledPrompt = parsed.compiledPrompt;
+  }
+
+  // Apply camera kit to compiled prompt
+  if (camBlock && compiledPrompt) {
+    compiledPrompt = camBlock + compiledPrompt;
+  }
+
+  console.log('[visual-extract] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
+  const t0 = Date.now();
+
+  const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details';
+
+  const result: GenerateResult = await handler({
+    providerId: body.providerId,
+    mode: 'image-to-image',
+    prompt: compiledPrompt,
+    negativePrompt: i2iNegPrompt,
+    aspect: body.aspect || '16:9',
+    resolution: body.resolution || config.defaultResolution,
+    referenceImage: body.referenceImage,
+    referenceUrls: allRefUrls,
+    maskImage: body.maskImage,
+    styleImageUrl: body.styleImageUrl,
+    videoUrls: (body as any).videoUrls,
+    duration: (body as any).duration,
+    genMode: (body as any).genMode,
+    firstFrameUrl: (body as any).firstFrameUrl,
+    lastFrameUrl: (body as any).lastFrameUrl,
+    characterOrientation: (body as any).characterOrientation,
+    keepOriginalSound: (body as any).keepOriginalSound,
+    fixedCamera: (body as any).fixedCamera,
+    generateAudio: (body as any).generateAudio,
+    webSearch: (body as any).webSearch,
+    instrumental: (body as any).instrumental as boolean | undefined,
+    lyrics: (body as any).lyrics as string | undefined,
+  });
+  result.durationMs = Date.now() - t0;
+
+  addLog({
+    id: uuid(), timestamp: new Date().toISOString(), providerId: body.providerId,
+    prompt: compiledPrompt, compiledPrompt: compiledPrompt,
+    status: result.success ? 'succeeded' : 'failed',
+    assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
+  });
+
+  const debugInfo = [
+    { field: 'extractMode', contribution: extractMode },
+    { field: 'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' mode=image-to-image hasRefs=' + allRefUrls.length + ' text=' + compiledPrompt.slice(0, 500) },
+    { field: 'providerId', contribution: body.providerId },
+    { field: 'extractTarget', contribution: parsed.intent.extractTarget },
+    { field: 'preserve', contribution: parsed.intent.preserve.join(', ') },
+    { field: 'remove', contribution: parsed.intent.remove.join(', ') },
+  ];
+
+  lastCompiled = {
+    en: compiledPrompt,
+    cn: userPrompt,
+    mode: 'image-to-image',
+    refs: allRefUrls.length,
+    method: 'visual-extract-' + extractMode,
+    time: new Date().toISOString(),
+  };
+
+  console.log('[visual-extract] ===== COMPILED EN PROMPT =====');
+  console.log(compiledPrompt);
+  console.log('[visual-extract] ===== END COMPILED PROMPT =====');
+
+  res.json({
+    compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo },
+    result,
+  });
+});
 
 // ─── Proxy Image (for CORS-free canvas crop)
 

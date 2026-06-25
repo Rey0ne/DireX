@@ -147,6 +147,8 @@ export interface AgentGenerateRequest {
   focalLength?: string;
   aperture?: string;
   filmStock?: string;
+  // Visual extraction mode: 'character' | 'prop' | 'scene' | 'auto'
+  extractMode?: string;
 }
 
 export interface AgentGenerateResult {

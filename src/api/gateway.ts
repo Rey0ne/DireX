@@ -114,6 +114,51 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
   }
 }
 
+// ─── Visual Extraction (GPT-5.4 analyzes refs → extracts subject → compiles prompt → generates) ──
+// Routes to /api/agent/visual-extract when the user prompt indicates extraction intent
+// Extraction intent detection — requires BOTH image reference + extraction action
+const IMAGE_SOURCE_RE = /图中|图里|这张|那张|参考图|第.?[张个幅]|宫格|九宫格|某.?[张个幅]/i;
+const EXTRACTION_ACTION_RE = /提取|抠出|单独抠|单独提取|单独提出|单独生成|单独拿|分离出|去除背景|去掉背景/i;
+const STRONG_EXTRACTION_RE = /^提取|^抠出|^单独抠|^把.*提取|^把.*抠/i;
+
+export function hasExtractionIntent(prompt: string): boolean {
+  if (STRONG_EXTRACTION_RE.test((prompt || '').trim())) return true;
+  if (IMAGE_SOURCE_RE.test(prompt || '') && EXTRACTION_ACTION_RE.test(prompt || '')) return true;
+  // @mention 引用图片 + 提取动作 → 如 "将图片@xxx中右侧的小刀提取出来"
+  if (/@\S+/.test(prompt || '') && EXTRACTION_ACTION_RE.test(prompt || '')) return true;
+  return false;
+}
+
+export async function visualExtract(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
+  const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/visual-extract` : '/api/agent/visual-extract';
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getSharedApiKey()}`,
+      },
+      body: JSON.stringify(req),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return {
+        compiled: { en: '', cn: '', negative: '', debug: [] },
+        result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
+      };
+    }
+
+    return await response.json() as AgentGenerateResult;
+  } catch (err) {
+    return {
+      compiled: { en: '', cn: '', negative: '', debug: [] },
+      result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) },
+    };
+  }
+}
+
 // ─── Text analysis (single Agent, fast) ──
 export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/text` : '/api/agent/text';
@@ -144,36 +189,61 @@ export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGener
   }
 }
 
-// ─── Auth token: JWT if logged in, otherwise shared dev key ──
-export function getSharedApiKey(): string {
-  // 动态读取，避免 zustand import 循环依赖 — 直接从 localStorage 读
+// ─── Full pipeline (one GPT-5 call → 6 categories) ──────────
+export interface FullPipelineApiResponse {
+  success: boolean;
+  characters?: Record<string, string> | null;
+  scenes?: Record<string, string> | null;
+  sceneArchitecture?: Record<string, string> | null;
+  props?: Record<string, string> | null;
+  music?: { scenes: Record<string, string>; sunoPrompts: Record<string, string> } | null;
+  shots?: Array<{
+    shotNumber: number;
+    scene: string;
+    shotType: string;
+    angle: string;
+    lens: string;
+    composition: string;
+    foreground: string;
+    midground: string;
+    background: string;
+    blocking: string;
+    action: string;
+    emotion: string;
+    cameraMovement: string;
+    focusPoint: string;
+    visualPrompt: string;
+    contentCN: string;
+  }>;
+  totalDurationMs?: number;
+  error?: string;
+}
+
+export async function analyzeFull(scriptText: string, visualStyle?: string): Promise<FullPipelineApiResponse> {
+  const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/full` : '/api/agent/full';
+
   try {
-    const saved = localStorage.getItem('direx_auth');
-    if (saved) {
-      const { token } = JSON.parse(saved);
-      if (token) return token;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getSharedApiKey()}`,
+      },
+      body: JSON.stringify({ rawText: scriptText, visualStyle }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { success: false, error: `Server: ${response.status} ${text}` };
     }
-  } catch {}
+
+    return await response.json() as FullPipelineApiResponse;
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+// ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
+export function getSharedApiKey(): string {
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';
-}
-
-// ─── Auth API helpers ──
-const BACKEND = import.meta.env.VITE_API_URL || '';
-
-export async function spendCredits(amount: number, type: string, description: string) {
-  const key = getSharedApiKey();
-  const resp = await fetch(`${BACKEND}/api/auth/credits/spend`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ amount, type, description }),
-  });
-  return resp.json();
-}
-
-export async function fetchCredits() {
-  const key = getSharedApiKey();
-  const resp = await fetch(`${BACKEND}/api/auth/credits`, {
-    headers: { Authorization: `Bearer ${key}` },
-  });
-  return resp.json();
 }
