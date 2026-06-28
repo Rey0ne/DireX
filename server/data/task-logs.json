@@ -4864,6 +4864,39 @@
       ],
       "cost": 0.1,
       "durationMs": 122906
+    },
+    {
+      "id": "8203a042-280f-46f8-8aa4-9ca2c42b97f1",
+      "timestamp": "2026-06-27T07:21:51.507Z",
+      "providerId": "seedance-2",
+      "prompt": "",
+      "compiledPrompt": "",
+      "status": "succeeded",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 0
+    },
+    {
+      "id": "984843e0-e1a7-4266-9f68-d2e0d0971796",
+      "timestamp": "2026-06-27T07:22:07.827Z",
+      "providerId": "seedance-2",
+      "prompt": "",
+      "compiledPrompt": "",
+      "status": "succeeded",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 0
+    },
+    {
+      "id": "6dd342e6-2a3e-4f37-b1af-b86508eec4c6",
+      "timestamp": "2026-06-27T15:28:13.755Z",
+      "providerId": "seedance-2",
+      "prompt": "Use the provided reference image(s) as the sole identity reference for the girl. Preserve exact facial proportions, features, skin tone, and body type.\nMatch clothing and accessories from the provided reference image(s) exactly.\nUse the provided scene reference image(s) as the environment.\nFollow the camera language, trajectory, lens movement, timing, and speed from the provided reference video(s) exactly.\nFollow the body performance, action timing, and rhythm from the provided reference video(s), replacing the original video character with the girl from the provided reference image(s).\nA young girl performs violin inside a towering, ornate cathedral filled with holy light. As she plays, graceful and lonely music seems to summon pure white doves that rise one by one into the air, then circle around her for an extended time without dispersing. The video should replace the original character with the provided girl reference and replace the original scene with the provided cathedral scene reference, while strictly preserving the reference video's cinematography and movement structure.\nLighting should be radiant and sacred, with beams of holy light filling the cathedral and creating a majestic, ethereal atmosphere. The mood is elegant, solitary, reverent, and emotionally stirring. Ultra photorealistic, cinematic, 24fps, film grain, natural motion blur.\nUse the provided reference image(s) as the sole identity reference for the girl, preserving exact facial proportions, features, skin tone, and body type, and match clothing and accessories from the reference image(s) exactly. Use the provided scene reference image(s) as the environment. Follow the camera language, trajectory, lens movement, timing, and speed from the provided reference video(s) exactly, and follow the body performance, action timing, and rhythm from the reference video(s), replacing the original video character with the referenced girl. Show a young girl performing violin inside a towering, ornate cathedral filled with holy light; as she plays, graceful and lonely music appears to summon pure white doves that rise one by one into the air and circle around her for a long time without dispersing. Replace the original scene with the provided cathedral scene reference while strictly preserving the reference video's cinematography and movement structure. Lighting is radiant, sacred, and filled with heavenly beams through the cathedral, creating a majestic and ethereal atmosphere. The mood is elegant, solitary, reverent, and emotionally stirring. Ultra photorealistic, cinematic, 24fps, film grain, natural motion blur.",
+      "compiledPrompt": "Use the provided reference image(s) as the sole identity reference for the girl. Preserve exact facial proportions, features, skin tone, and body type.\nMatch clothing and accessories from the provided reference image(s) exactly.\nUse the provided scene reference image(s) as the environment.\nFollow the camera language, trajectory, lens movement, timing, and speed from the provided reference video(s) exactly.\nFollow the body performance, action timing, and rhythm from the provided reference video(s), replacing the original video character with the girl from the provided reference image(s).\nA young girl performs violin inside a towering, ornate cathedral filled with holy light. As she plays, graceful and lonely music seems to summon pure white doves that rise one by one into the air, then circle around her for an extended time without dispersing. The video should replace the original character with the provided girl reference and replace the original scene with the provided cathedral scene reference, while strictly preserving the reference video's cinematography and movement structure.\nLighting should be radiant and sacred, with beams of holy light filling the cathedral and creating a majestic, ethereal atmosphere. The mood is elegant, solitary, reverent, and emotionally stirring. Ultra photorealistic, cinematic, 24fps, film grain, natural motion blur.\nUse the provided reference image(s) as the sole identity reference for the girl, preserving exact facial proportions, features, skin tone, and body type, and match clothing and accessories from the reference image(s) exactly. Use the provided scene reference image(s) as the environment. Follow the camera language, trajectory, lens movement, timing, and speed from the provided reference video(s) exactly, and follow the body performance, action timing, and rhythm from the reference video(s), replacing the original video character with the referenced girl. Show a young girl performing violin inside a towering, ornate cathedral filled with holy light; as she plays, graceful and lonely music appears to summon pure white doves that rise one by one into the air and circle around her for a long time without dispersing. Replace the original scene with the provided cathedral scene reference while strictly preserving the reference video's cinematography and movement structure. Lighting is radiant, sacred, and filled with heavenly beams through the cathedral, creating a majestic and ethereal atmosphere. The mood is elegant, solitary, reverent, and emotionally stirring. Ultra photorealistic, cinematic, 24fps, film grain, natural motion blur.",
+      "status": "succeeded",
+      "assetUrls": [],
+      "cost": 0,
+      "durationMs": 0
     }
   ]
 }

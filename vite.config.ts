@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => ({
 		__API_URL__: JSON.stringify(process.env.VITE_API_URL || ''),
 	},
 	server: {
+		allowedHosts: true,
 		proxy: {
 			'/api': {
 				target: 'http://localhost:3001',

@@ -114,6 +114,20 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
   }
 }
 
+// ─── Client-side task polling (for long video generation) ──
+export async function pollVideoTask(taskId: string): Promise<{ status: string; assetUrls?: string[]; compiledPrompt?: string; error?: string }> {
+  const url = BACKEND_URL ? `${BACKEND_URL}/api/task/${taskId}/poll` : `/api/task/${taskId}/poll`;
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${getSharedApiKey()}` },
+    });
+    if (!response.ok) return { status: 'error', error: `HTTP ${response.status}` };
+    return await response.json();
+  } catch (err) {
+    return { status: 'error', error: String(err) };
+  }
+}
+
 // ─── Visual Extraction (GPT-5.4 analyzes refs → extracts subject → compiles prompt → generates) ──
 // Routes to /api/agent/visual-extract when the user prompt indicates extraction intent
 // Extraction intent detection — requires BOTH image reference + extraction action

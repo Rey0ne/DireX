@@ -15,6 +15,8 @@ import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { gpt5Chat } from './systems/ai/gemini.js';
+import { compileVideoPrompt } from './systems/agent/video-analyzer.js';
+import { pollStoredTask, initVideoTask } from './systems/ai/kie-provider.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -371,10 +373,52 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   }
   const enrichedPrompt = camBlock ? camBlock + userPrompt : userPrompt;
 
-  // ── Video models: pass through as-is (Kling/Seedance are Chinese-native, no translation needed) ──
+  // ── Video models: Agent compiles prompt (text only) → Kie gets URLs directly → Seedance does visual understanding ──
   if (isVideo) {
-    compiledPrompt = enrichedPrompt;
-  } else if (config.promptEnhancement && !isEnglish) {
+    const videoUrls = (body as any).videoUrls as string[] | undefined;
+    const refUrls = (body as any).referenceUrls as string[] | undefined;
+    const hasRefs = !!(videoUrls?.length || refUrls?.length);
+
+    // Lightweight prompt compilation (text-only, no image/video analysis — Seedance sees refs directly)
+    if (hasRefs && !isEnglish && config.promptEnhancement) {
+      try {
+        const compiled = await compileVideoPrompt(enrichedPrompt, !!(refUrls?.length), !!(videoUrls?.length));
+        if (compiled) compiledPrompt = compiled;
+      } catch (e) {
+        console.log('[agent] Video compile failed:', String(e).slice(0, 80));
+      }
+    }
+
+    // Submit to Kie — passes image/video URLs directly so Seedance can analyze them
+    const clientTaskId = uuid();
+    initVideoTask(clientTaskId, body.providerId);
+    const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo';
+    const result: GenerateResult = await handler({
+      providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
+      negativePrompt: i2iNegPrompt,
+      aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
+      referenceImage: body.referenceImage, referenceUrls: refUrls, maskImage: body.maskImage,
+      styleImageUrl: body.styleImageUrl,
+      videoUrls: videoUrls, duration: (body as any).duration,
+      genMode: (body as any).genMode,
+      firstFrameUrl: (body as any).firstFrameUrl, lastFrameUrl: (body as any).lastFrameUrl,
+      characterOrientation: (body as any).characterOrientation,
+      keepOriginalSound: (body as any).keepOriginalSound,
+      fixedCamera: (body as any).fixedCamera,
+      generateAudio: (body as any).generateAudio,
+      webSearch: (body as any).webSearch,
+      clientTaskId,
+    });
+    // Seedance generation is async — client polls for result
+    const videoT0 = Date.now();
+    addLog({ id: uuid(), timestamp: new Date().toISOString(), providerId: body.providerId, prompt: compiledPrompt, compiledPrompt, status: 'succeeded', assetUrls: result.assetUrls, cost: result.cost, durationMs: Date.now() - videoT0 });
+    console.log('[agent] ===== COMPILED EN PROMPT =====');
+    console.log(compiledPrompt);
+    console.log('[agent] ===== END COMPILED PROMPT =====');
+    res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: [] }, result: { ...result, taskId: clientTaskId, needsPoll: true }, agentTrace: [] });
+    return;
+  }
+  if (config.promptEnhancement && !isEnglish) {
     const isI2I = body.mode === 'image-to-image' && ((body as any).referenceUrls?.length > 0 || body.referenceImage);
     if (isI2I) {
       // I2I: GPT-5.4 directly analyzes reference images + compiles prompt
@@ -502,6 +546,15 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   console.log(compiledPrompt);
   console.log('[agent] ===== END COMPILED PROMPT =====');
   res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo }, result, agentTrace });
+});
+
+// ─── Client-side task polling (for long video generation) ──
+app.get('/api/task/:taskId/poll', async (req, res) => {
+  const { taskId } = req.params;
+  if (!taskId) { res.status(400).json({ error: 'Missing taskId' }); return; }
+  console.log('[poll] Client polling ' + taskId);
+  const result = await pollStoredTask(taskId);
+  res.json(result);
 });
 
 app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled || { en: '(no generation yet)' }, kieReq: (globalThis as any).__lastKieReq || null }));

@@ -34,6 +34,7 @@ export interface GenerateRequest {
   language?: string;      // 语言代码（如 zh/en/ja），默认自动检测
   stability?: number;     // 稳定性 0.0 | 0.5 | 1.0
   dialogue?: { text: string; voice: string }[]; // ElevenLabs multi-dialogue
+  clientTaskId?: string;    // for video: client's polling task ID
 }
 
 export interface GenerateResult {
@@ -43,6 +44,8 @@ export interface GenerateResult {
   durationMs: number;
   seed: number;
   error?: string;
+  taskId?: string;
+  needsPoll?: boolean;
 }
 
 // ─── Provider IDs ──────────────────────────────
@@ -160,6 +163,8 @@ export interface AgentGenerateResult {
     durationMs: number;
     seed: number;
     error?: string;
+    taskId?: string;
+    needsPoll?: boolean;
   };
 }
 

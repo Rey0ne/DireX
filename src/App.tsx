@@ -21,7 +21,7 @@ import '@xyflow/react/dist/style.css';
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
 import { loadFromDB, startAutoSave, saveNow } from './store/persistence';
-import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract } from './api/gateway';
+import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
@@ -536,7 +536,41 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                 } as any);
 
             const result = agentResult.result;
-            if (result.success) {
+            if (result.needsPoll && result.taskId) {
+              // Video generation — server submitted, client polls
+              // compiledPrompt will be updated from poll response when compilation finishes
+              const taskId = result.taskId;
+              const genPatch: Record<string, unknown> = { compiledPrompt: '(compiling…)', compiledPromptCn: agentResult.compiled?.cn || '' };
+              console.log('[poll] Starting client poll for ' + taskId);
+              const pollInterval = setInterval(async () => {
+                try {
+                  const pollResult = await pollVideoTask(taskId);
+                  // Update compiledPrompt as soon as it's available (after background compilation)
+                  if (pollResult.compiledPrompt) {
+                    genPatch.compiledPrompt = pollResult.compiledPrompt;
+                  }
+                  if (pollResult.status === 'succeeded' && pollResult.assetUrls?.length) {
+                    clearInterval(pollInterval);
+                    const isVideo2 = n.type === 'video.generate';
+                    const urlField2 = isVideo2 ? 'videoUrl' : 'imageUrl';
+                    Object.assign(genPatch, { [urlField2]: pollResult.assetUrls[0], resultAssetIds: pollResult.assetUrls });
+                    store.updateNode(n.id, { meta: { ...node!.meta, gen: { ...meta, ...genPatch } } });
+                    store.setNodeStatus(n.id, 'succeeded');
+                    store.triggerSync();
+                    console.log('[poll] ' + taskId + ' done: ' + pollResult.assetUrls.length + ' assets, prompt=' + (genPatch.compiledPrompt as string).slice(0, 80));
+                  } else if (pollResult.status === 'failed') {
+                    clearInterval(pollInterval);
+                    store.setNodeStatus(n.id, 'failed');
+                    console.log('[poll] ' + taskId + ' failed: ' + pollResult.error);
+                  }
+                  // else: still processing, keep polling
+                } catch {
+                  // network error, keep polling
+                }
+              }, 30000); // every 30 seconds
+              // Cleanup after 30 minutes (video generation can take 15-25 min total)
+              setTimeout(() => { clearInterval(pollInterval); if (store.getNodeStatus(n.id) === 'running') store.setNodeStatus(n.id, 'failed'); }, 30 * 60 * 1000);
+            } else if (result.success) {
               store.setNodeStatus(n.id, 'succeeded');
               const compiledEn = agentResult.compiled?.en || '';
               const compiledCn = agentResult.compiled?.cn || '';

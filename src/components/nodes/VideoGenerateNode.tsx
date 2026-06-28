@@ -112,7 +112,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
     const defaultMode = 'multi-ref';
     setGenMode(defaultMode);
     patch('genMode', defaultMode);
-    if (!(newIsKling ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS).includes(curRes)) {
+    if (!((m === 'Kling 3.0') ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS).includes(curRes)) {
       setCurRes('1080P');
       patch('resolution', '1080P');
     }

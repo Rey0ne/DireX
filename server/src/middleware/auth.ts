@@ -24,7 +24,7 @@ export function requireUser(req: Request, res: Response, next: NextFunction) {
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   // Skip auth for public routes
-  if (!req.path.startsWith('/api/') || req.path === '/api/health' || req.path === '/api/download' || req.path === '/api/proxy-image' || req.path === '/api/last-compiled' || req.path.startsWith('/admin') || req.path === '/api/kie-callback' || req.path.startsWith('/api/auth') || req.path.startsWith('/api/agent/script') || req.path.startsWith('/api/agent/generate') || req.path.startsWith('/api/agent/visual-extract') || req.path.startsWith('/api/tripo/') || req.path.startsWith('/api/models/')) return next();
+  if (!req.path.startsWith('/api/') || req.path === '/api/health' || req.path === '/api/download' || req.path === '/api/proxy-image' || req.path === '/api/last-compiled' || req.path.startsWith('/admin') || req.path === '/api/kie-callback' || req.path.startsWith('/api/auth') || req.path.startsWith('/api/agent/script') || req.path.startsWith('/api/agent/generate') || req.path.startsWith('/api/agent/visual-extract') || req.path.startsWith('/api/tripo/') || req.path.startsWith('/api/task/') || req.path.startsWith('/api/models/')) return next();
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

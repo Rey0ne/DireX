@@ -74,6 +74,8 @@ const CONNECT_ACTIONS: { type: string; icon: string; label: string }[] = [
   { type: 'video.generate', icon: 'vid', label: '视频' },
   { type: 'audio.generate', icon: 'aud', label: '音频' },
   { type: 'shot', icon: 'txt', label: '文本' },
+  { type: 'scene.3d', icon: '3d', label: '3D 世界' },
+  { type: 'tripo.3d', icon: 'tripo', label: 'AI 建模' },
 ];
 
 interface ConnectCreateMenuProps {
@@ -119,6 +121,7 @@ const DOUBLE_CLICK_ACTIONS: { type: string; icon: string; label: string }[] = [
   { type: 'audio.generate', icon: 'aud', label: '音频' },
   { type: 'shot', icon: 'txt', label: '文本' },
   { type: 'scene.3d', icon: '3d', label: '3D 世界' },
+  { type: 'tripo.3d', icon: 'tripo', label: 'AI 建模' },
 ];
 
 function MiniIcon({ type }: { type: string }) {
