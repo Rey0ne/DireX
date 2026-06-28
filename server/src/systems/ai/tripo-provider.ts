@@ -40,6 +40,7 @@ export interface TripoRequest {
   texture_quality?: 'standard' | 'detailed' | 'extreme';
   auto_size?: boolean;
   compress?: 'geometry';
+  format?: string;       // glb, fbx, obj, usd, stl, 3mf
 }
 
 export interface TripoTaskResult {

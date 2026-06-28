@@ -83,14 +83,27 @@ app.get('/api/tripo/task/:taskId', async (req, res) => {
 
 app.post('/api/tripo/save-model', async (req, res) => {
   try {
-    const { model_url, name } = req.body;
+    const { model_url, name, format, texResolution } = req.body;
     if (!model_url) { res.status(400).json({ success: false, error: 'No model_url' }); return; }
+    const ext = format || 'glb';
     const safeName = (name || 'tripo_model').replace(/[^a-zA-Z0-9一-鿿_-]/g, '_');
-    const dest = path.join(MODELS_DIR, `tripo_${Date.now()}_${safeName}.glb`);
-    await downloadTripoModel(model_url, dest);
+    const dest = path.join(MODELS_DIR, `tripo_${Date.now()}_${safeName}.${ext}`);
+
+    // Tripo3D supports format conversion via URL query params
+    let downloadUrl = model_url;
+    const params = new URLSearchParams();
+    if (format && format !== 'glb') params.set('format', format);
+    if (texResolution) {
+      const sizeMap: Record<string, string> = { '512': '512', '1K': '1024', '2K': '2048', '4K': '4096', '8K': '8192' };
+      params.set('texture_size', sizeMap[texResolution] || '2048');
+    }
+    if (params.toString()) downloadUrl += (model_url.includes('?') ? '&' : '?') + params.toString();
+
+    console.log('[tripo] save-model: ' + downloadUrl.slice(0, 100));
+    await downloadTripoModel(downloadUrl, dest);
     const relPath = '/api/models/' + path.basename(dest);
     const stat = fs.statSync(dest);
-    res.json({ success: true, path: relPath, name: safeName + '.glb', size: stat.size });
+    res.json({ success: true, path: relPath, name: safeName + '.' + ext, size: stat.size });
   } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
 });
 

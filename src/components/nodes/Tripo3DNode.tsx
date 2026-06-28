@@ -17,10 +17,12 @@ interface TripoNodeData {
   texture?: boolean;
   pbr?: boolean;
   textureQuality?: 'standard' | 'detailed' | 'extreme';
+  texResolution?: '512' | '1K' | '2K' | '4K' | '8K';
   geometryQuality?: 'standard' | 'detailed';
   faceLimit?: number;
   autoSize?: boolean;
   compress?: boolean;
+  format?: 'glb' | 'fbx' | 'obj' | 'usd' | 'stl' | '3mf';
   isConnecting?: boolean;
   isConnectTarget?: boolean;
   hasConnections?: boolean;
@@ -103,6 +105,9 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const [faceLimit, setFaceLimit] = useState(data.faceLimit || 50000);
   const [autoSize, setAutoSize] = useState(data.autoSize || false);
   const [compress, setCompress] = useState(data.compress || false);
+  const [format, setFormat] = useState<'glb' | 'fbx' | 'obj' | 'usd' | 'stl' | '3mf'>(data.format || 'glb');
+  const [texResolution, setTexResolution] = useState<'512' | '1K' | '2K' | '4K' | '8K'>(data.texResolution || '2K');
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [status, setStatus] = useState(data.status || 'idle');
   const [progress, setProgress] = useState(data.progress || 0);
   const [taskId, setTaskId] = useState(data.taskId || '');
@@ -208,39 +213,51 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     }
   }, [genRunning, effectivePrompt, effectiveInput, modelVer, texture, pbr, texQuality, faceLimit, autoSize, compress]);
 
-  // ─── Save Model ──────────────────────────────────
-  const handleSave = useCallback(async () => {
+  // ─── Download model to local disk (save + download with selected format/texResolution) ───
+  const handleDownload = useCallback(async () => {
     if (!modelUrl) return;
     try {
-      const name = effectivePrompt?.slice(0, 30).replace(/[^a-zA-Z0-9一-鿿]/g, '_') || 'tripo_model';
-      const resp = await fetch('/api/tripo/save-model', {
+      // Step 1: Save to server with chosen format + texture resolution
+      const name = effectivePrompt?.slice(0, 30).replace(/[^a-zA-Z0-9一-鿿_-]/g, '_') || 'tripo_model';
+      const saveResp = await fetch('/api/tripo/save-model', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model_url: modelUrl, name }),
+        body: JSON.stringify({ model_url: modelUrl, name, format, texResolution }),
       });
-      const json = await resp.json();
-      if (json.success) { setSavedPath(json.path); setSavedName(json.name); setSavedSize(json.size); }
-      else { setError(json.error || 'Save failed'); }
-    } catch (e: any) { setError(String(e).slice(0, 200)); }
-  }, [modelUrl, effectivePrompt]);
+      const saveJson = await saveResp.json();
+      if (!saveJson.success) { setError(saveJson.error || 'Save failed'); return; }
+      setSavedPath(saveJson.path); setSavedName(saveJson.name); setSavedSize(saveJson.size);
 
-  // ─── Download model to local disk ─────────────
-  const downloadUrl = savedPath ? savedPath : modelUrl;
-  const handleDownload = useCallback(async () => {
-    if (!downloadUrl) return;
-    try {
-      const resp = await fetch(downloadUrl);
+      // Step 2: Download the saved file
+      const resp = await fetch(saveJson.path);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = (savedName || effectivePrompt?.slice(0, 20)?.replace(/[^a-zA-Z0-9一-鿿]/g, '_') || 'model') + '.glb';
+      a.download = saveJson.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e: any) { setError(String(e).slice(0, 200)); }
-  }, [downloadUrl, savedName, effectivePrompt]);
+  }, [modelUrl, effectivePrompt, format, texResolution]);
+
+  const downloadUrl = savedPath || modelUrl;
+
+  // ─── Save to library (no download) ────────────
+  const handleSave = useCallback(async () => {
+    if (!modelUrl) return;
+    try {
+      const name = effectivePrompt?.slice(0, 30).replace(/[^a-zA-Z0-9一-鿿_-]/g, '_') || 'tripo_model';
+      const resp = await fetch('/api/tripo/save-model', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_url: modelUrl, name, format, texResolution }),
+      });
+      const json = await resp.json();
+      if (json.success) { setSavedPath(json.path); setSavedName(json.name); setSavedSize(json.size); }
+      else { setError(json.error || 'Save failed'); }
+    } catch (e: any) { setError(String(e).slice(0, 200)); }
+  }, [modelUrl, effectivePrompt, format, texResolution]);
 
   // ─── Upload image ────────────────────────────
   const handleImageUpload = useCallback(async (file: File) => {
@@ -366,7 +383,8 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                   </svg>
                 </span>
                 <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
-                <span onClick={downloadUrl ? handleDownload : undefined} title={downloadUrl ? '下载模型' : '暂无模型可下载'}
+                <span onClick={e => { if (!downloadUrl) return; setAnchorRect((e.target as HTMLElement).getBoundingClientRect()); setDownloadOpen(!downloadOpen); }}
+                  title="导出模型"
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: '28px', height: '28px', borderRadius: '8px',
@@ -379,6 +397,30 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                   </svg>
                 </span>
+                {downloadOpen && (
+                  <PD onClose={() => setDownloadOpen(false)} anchorRect={anchorRect}>
+                    <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 150 }}>
+                      <div style={{ fontSize: 9, color: 'var(--tap-text-3)', padding: '0 4px', fontWeight: 600 }}>导出设置</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px' }}>
+                        <span style={{ fontSize: 8, color: 'var(--tap-text-4)', flexShrink: 0 }}>格式</span>
+                        <select value={format} onChange={e => setFormat(e.target.value as any)}
+                          style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                          {['glb','fbx','obj','usd','stl','3mf'].map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px' }}>
+                        <span style={{ fontSize: 8, color: 'var(--tap-text-4)', flexShrink: 0 }}>贴图</span>
+                        <select value={texResolution} onChange={e => setTexResolution(e.target.value as any)}
+                          style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                          {['512','1K','2K','4K','8K'].map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div onClick={e => { e.stopPropagation(); setDownloadOpen(false); handleDownload(); }}
+                        style={{ margin: '0 4px', padding: '4px 0', background: 'rgba(94,234,212,0.12)', color: '#5EEAD4', borderRadius: 6, textAlign: 'center', fontSize: 9, fontWeight: 600, cursor: 'pointer' }}
+                      >下载 {format.toUpperCase()} · {texResolution}</div>
+                    </div>
+                  </PD>
+                )}
               </div>
             </div>
           )}
@@ -484,21 +526,45 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
               borderRadius: 'var(--tap-r-xl)',
               overflow: 'hidden',
             }}>
-                {/* Ref / image upload row (when in image-to-model mode) */}
-                {mode === 'image-to-model' && effectiveInput && (
+                {/* Ref row: single image (canvas connection or local upload), + to pick canvas node, X to remove */}
+                {mode === 'image-to-model' && (
                   <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div onClick={() => fileRef.current?.click()} title="换参考图"
-                      style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-                    >＋</div>
-                    <div style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
-                      <img src={effectiveInput} alt="ref" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
+                    {!effectiveInput ? (
+                      /* No ref yet — + triggers canvas node connection */
+                      <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
+                        title="从画布选取参考图"
+                        style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+                      >＋</div>
+                    ) : (
+                      /* Has ref — show thumbnail with X to remove */
+                      <div style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                        <img src={effectiveInput} alt="ref" style={{ width: '100%', height: '100%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        <span onClick={e => {
+                          e.stopPropagation(); e.preventDefault();
+                          // Remove connected edge if ref came from canvas node
+                          if (connectedData.image) {
+                            const store = useCanvasStore.getState();
+                            store.edges.forEach(edge => {
+                              if (edge.to.nodeId === id && edge.to.portId === 'tripo-in') store.removeEdge(edge.id);
+                            });
+                            setInputImage('');
+                          } else {
+                            setInputImage('');
+                          }
+                        }}
+                          onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                          onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                          style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'pointer', lineHeight: 1 }}
+                        >✕</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Prompt textarea + expand toggle */}
+                {/* Prompt textarea — text-to-model only */}
+                {mode === 'text-to-model' && (
                 <div style={{ position: 'relative' }}>
                   <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
                     onPointerDownCapture={e => e.stopPropagation()}
@@ -527,6 +593,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     {textExpanded ? '∧' : '∨'}
                   </span>
                 </div>
+                )}
 
                 {/* Advanced params (expanded) */}
                 {paramsOpen && (
