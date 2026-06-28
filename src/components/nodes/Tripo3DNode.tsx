@@ -121,6 +121,128 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const [inputImage, setInputImage] = useState(data.inputImageUrl || '');
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ─── Rig & Animation state ────────────────────
+  const [rigStatus, setRigStatus] = useState<'idle' | 'checking' | 'checked' | 'rigging' | 'rigged' | 'animating' | 'done'>('idle');
+  const [rigTaskId, setRigTaskId] = useState('');
+  const [riggable, setRiggable] = useState(false);
+  const [rigType, setRigType] = useState<string>('biped');
+  const [rigSpec, setRigSpec] = useState<'tripo' | 'mixamo'>('tripo');
+  const [rigModelVer, setRigModelVer] = useState('v2.5-20260210');
+  const [selectedAnim, setSelectedAnim] = useState('preset:idle');
+  const [animatedUrl, setAnimatedUrl] = useState('');
+  const [rigPollingRef, setRigPollingRef] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [showRigPanel, setShowRigPanel] = useState(false);
+
+  const RIG_TYPES = ['biped', 'quadruped', 'hexapod', 'octopod', 'avian', 'serpentine', 'aquatic'] as const;
+  const RIG_TYPE_LABELS: Record<string, string> = {
+    biped: '双足人形', quadruped: '四足动物', hexapod: '六足生物',
+    octopod: '八足生物', avian: '鸟类/有翼', serpentine: '蛇形', aquatic: '鱼类/水生',
+  };
+  const ANIM_PRESETS: Record<string, string[]> = {
+    'v2.5-20260210': ['preset:idle','preset:walk','preset:run','preset:dive','preset:climb','preset:jump','preset:slash','preset:shoot','preset:hurt','preset:fall','preset:turn','preset:quadruped:walk','preset:hexapod:walk','preset:octopod:walk','preset:serpentine:march','preset:aquatic:march'],
+    'v1.0-20240301': ['preset:idle','preset:walk','preset:run','preset:dive','preset:climb','preset:jump','preset:slash','preset:shoot','preset:hurt','preset:fall','preset:turn'],
+  };
+  const animList = ANIM_PRESETS[rigModelVer] || ANIM_PRESETS['v2.5-20260210'];
+
+  // ─── Rig Check ────────────────────────────────
+  const handleRigCheck = useCallback(async () => {
+    if (rigStatus !== 'idle' && rigStatus !== 'checked') return;
+    const src = taskId || modelUrl;
+    if (!src) { setError('需要先生成3D模型'); return; }
+    setRigStatus('checking'); setError('');
+    try {
+      const resp = await fetch('/api/tripo/rig-check', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: src }),
+      });
+      const json = await resp.json();
+      if (!json.success) { setRigStatus('idle'); setError(json.error); return; }
+      setRigTaskId(json.task_id);
+      // Poll for result
+      const iv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/tripo/task/${json.task_id}`);
+          if (!pr.ok) { clearInterval(iv); setRigStatus('idle'); setError('Rig-check 过期'); return; }
+          const pj = await pr.json();
+          if (pj.status === 'success') {
+            clearInterval(iv);
+            setRiggable(pj.output?.riggable || false);
+            if (pj.output?.rig_type) setRigType(pj.output.rig_type);
+            setRigStatus('checked');
+          } else if (['failed','cancelled','expired'].includes(pj.status)) {
+            clearInterval(iv); setRigStatus('idle'); setError('Rig-check 失败: ' + pj.status);
+          }
+        } catch { /* retry */ }
+      }, 2000);
+      setRigPollingRef(iv);
+    } catch (e: any) { setRigStatus('idle'); setError(String(e).slice(0, 200)); }
+  }, [rigStatus, taskId, modelUrl]);
+
+  // ─── Auto Rig ─────────────────────────────────
+  const handleAutoRig = useCallback(async () => {
+    if (rigStatus !== 'checked' || !riggable) return;
+    setRigStatus('rigging'); setError('');
+    try {
+      const resp = await fetch('/api/tripo/rig', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: taskId, model: rigModelVer, rig_type: rigType, spec: rigSpec, out_format: 'glb' }),
+      });
+      const json = await resp.json();
+      if (!json.success) { setRigStatus('checked'); setError(json.error); return; }
+      setRigTaskId(json.task_id);
+      const iv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/tripo/task/${json.task_id}`);
+          if (!pr.ok) { clearInterval(iv); setRigStatus('checked'); setError('绑骨任务过期'); return; }
+          const pj = await pr.json();
+          if (pj.status === 'success') {
+            clearInterval(iv);
+            if (pj.output?.model_url) setModelUrl(pj.output.model_url);
+            if (pj.output?.rendered_image_url) setRenderedUrl(pj.output.rendered_image_url);
+            setRigStatus('rigged');
+          } else if (['failed','cancelled','expired'].includes(pj.status)) {
+            clearInterval(iv); setRigStatus('checked'); setError('绑骨失败: ' + pj.status);
+          }
+        } catch { /* retry */ }
+      }, 2000);
+      setRigPollingRef(iv);
+    } catch (e: any) { setRigStatus('checked'); setError(String(e).slice(0, 200)); }
+  }, [rigStatus, riggable, taskId, rigModelVer, rigType, rigSpec]);
+
+  // ─── Apply Animation ───────────────────────────
+  const handleRetarget = useCallback(async () => {
+    if (rigStatus !== 'rigged' || !rigTaskId) return;
+    setRigStatus('animating'); setError('');
+    try {
+      const resp = await fetch('/api/tripo/retarget', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: rigTaskId, animation: selectedAnim, out_format: 'glb', bake_animation: true, export_with_geometry: true }),
+      });
+      const json = await resp.json();
+      if (!json.success) { setRigStatus('rigged'); setError(json.error); return; }
+      const animTaskId = json.task_id;
+      const iv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/tripo/task/${animTaskId}`);
+          if (!pr.ok) { clearInterval(iv); setRigStatus('rigged'); setError('动画任务过期'); return; }
+          const pj = await pr.json();
+          if (pj.status === 'success') {
+            clearInterval(iv);
+            if (pj.output?.model_url) { setAnimatedUrl(pj.output.model_url); setModelUrl(pj.output.model_url); }
+            if (pj.output?.rendered_image_url) setRenderedUrl(pj.output.rendered_image_url);
+            setRigStatus('done');
+          } else if (['failed','cancelled','expired'].includes(pj.status)) {
+            clearInterval(iv); setRigStatus('rigged'); setError('动画失败: ' + pj.status);
+          }
+        } catch { /* retry */ }
+      }, 2000);
+      setRigPollingRef(iv);
+    } catch (e: any) { setRigStatus('rigged'); setError(String(e).slice(0, 200)); }
+  }, [rigStatus, rigTaskId, selectedAnim]);
+
+  // Cleanup rig polling
+  useEffect(() => () => { if (rigPollingRef) clearInterval(rigPollingRef); }, [rigPollingRef]);
+
   // Dropdown state
   const [open, setOpen] = useState<string | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -774,6 +896,92 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     </button>
                   </div>
                 </div>
+
+                {/* ── Rig & Animation panel (only when 3D model is done) ── */}
+                {status === 'done' && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '4px 8px 6px' }}>
+                    <div onClick={() => setShowRigPanel(!showRigPanel)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '2px 0', fontSize: 9, color: 'var(--tap-text-3)' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--tap-text-3)'; }}>
+                      <span style={{ fontSize: 10 }}>{showRigPanel ? '▾' : '▸'}</span> 骨骼动画
+                      {rigStatus === 'done' && <span style={{ fontSize: 8, color: '#22c55e' }}>✅</span>}
+                      {(rigStatus === 'checking' || rigStatus === 'rigging' || rigStatus === 'animating') && <span style={{ fontSize: 8, color: '#f59e0b' }}>⏳</span>}
+                    </div>
+
+                    {showRigPanel && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
+                        {/* Step 1: Rig Check */}
+                        {rigStatus === 'idle' && (
+                          <button onClick={handleRigCheck}
+                            style={{ padding: '4px 0', borderRadius: 6, border: '1px solid rgba(94,234,212,0.2)', background: 'rgba(94,234,212,0.08)', color: '#5EEAD4', cursor: 'pointer', fontSize: 9, fontWeight: 600 }}>
+                            🔍 检查绑骨兼容性
+                          </button>
+                        )}
+                        {rigStatus === 'checking' && <span style={{ fontSize: 9, color: 'var(--tap-text-3)' }}>⏳ 检查中...</span>}
+
+                        {/* Step 2: Rig Check result */}
+                        {rigStatus === 'checked' && (
+                          <>
+                            <div style={{ fontSize: 9, color: riggable ? '#22c55e' : '#ef4444', padding: '2px 4px', borderRadius: 4, background: riggable ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)' }}>
+                              {riggable ? `✅ 可绑骨 — 推荐: ${RIG_TYPE_LABELS[rigType] || rigType}` : '❌ 该模型不支持绑骨'}
+                            </div>
+                            {riggable && (
+                              <>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 9, flexWrap: 'wrap' }}>
+                                  <span style={{ color: 'var(--tap-text-4)' }}>骨骼:</span>
+                                  <select value={rigType} onChange={e => setRigType(e.target.value)}
+                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    {RIG_TYPES.map(t => <option key={t} value={t}>{RIG_TYPE_LABELS[t]}</option>)}
+                                  </select>
+                                  <span style={{ color: 'var(--tap-text-4)' }}>规范:</span>
+                                  <select value={rigSpec} onChange={e => setRigSpec(e.target.value as any)}
+                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    <option value="tripo">Tripo</option><option value="mixamo">Mixamo</option>
+                                  </select>
+                                  <span style={{ color: 'var(--tap-text-4)' }}>版本:</span>
+                                  <select value={rigModelVer} onChange={e => setRigModelVer(e.target.value)}
+                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    <option value="v2.5-20260210">v2.5 (全类型)</option><option value="v1.0-20240301">v1.0 (双足)</option>
+                                  </select>
+                                </div>
+                                <button onClick={handleAutoRig}
+                                  style={{ padding: '4px 0', borderRadius: 6, border: '1px solid rgba(168,85,247,0.3)', background: 'rgba(168,85,247,0.1)', color: '#a855f7', cursor: 'pointer', fontSize: 9, fontWeight: 600 }}>
+                                  🦴 自动绑骨
+                                </button>
+                              </>
+                            )}
+                            <button onClick={() => setRigStatus('idle')}
+                              style={{ padding: '2px 0', borderRadius: 4, border: 'none', background: 'transparent', color: 'var(--tap-text-5)', cursor: 'pointer', fontSize: 8 }}>重置</button>
+                          </>
+                        )}
+                        {rigStatus === 'rigging' && <span style={{ fontSize: 9, color: 'var(--tap-text-3)' }}>⏳ 绑骨中...</span>}
+
+                        {/* Step 3: Animation selection (after rigged) */}
+                        {(rigStatus === 'rigged' || rigStatus === 'animating' || rigStatus === 'done') && (
+                          <>
+                            {rigStatus === 'rigged' && <span style={{ fontSize: 9, color: '#22c55e', padding: '2px 4px', borderRadius: 4, background: 'rgba(34,197,94,0.08)' }}>✅ 骨骼已绑定</span>}
+                            {rigStatus === 'done' && <span style={{ fontSize: 9, color: '#22c55e', padding: '2px 4px', borderRadius: 4, background: 'rgba(34,197,94,0.08)' }}>✅ 动画已应用</span>}
+                            {rigStatus === 'animating' && <span style={{ fontSize: 9, color: 'var(--tap-text-3)' }}>⏳ 生成动画...</span>}
+
+                            {rigStatus !== 'animating' && (
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <select value={selectedAnim} onChange={e => setSelectedAnim(e.target.value)}
+                                  style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                                  {animList.map(a => <option key={a} value={a}>{a.replace('preset:', '').replace('quadruped:','').replace('hexapod:','').replace('octopod:','').replace('serpentine:','').replace('aquatic:','')}</option>)}
+                                </select>
+                                <button onClick={handleRetarget} disabled={rigStatus === 'animating'}
+                                  style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(250,204,21,0.3)', background: 'rgba(250,204,21,0.1)', color: '#facc15', cursor: 'pointer', fontSize: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  ▶ 应用
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) { handleImageUpload(f); e.target.value = ''; } }} />
