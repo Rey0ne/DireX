@@ -16,7 +16,7 @@ import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
 import { gpt5Chat } from './systems/ai/gemini.js';
 import { compileVideoPrompt } from './systems/agent/video-analyzer.js';
-import { pollStoredTask, initVideoTask } from './systems/ai/kie-provider.js';
+import { pollStoredTask, initVideoTask, uploadDataUrl } from './systems/ai/kie-provider.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
@@ -58,10 +58,44 @@ app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
 app.post('/api/tripo/generate', async (req, res) => {
   try {
     const body = req.body;
+
+    // Convert data URLs & local paths to public HTTP URLs (Tripo needs accessible URLs)
+    const toPublicUrl = async (url: string): Promise<string> => {
+      if (!url) return url;
+      if (url.startsWith('data:')) {
+        const uploaded = await uploadDataUrl(url);
+        if (uploaded) { console.log('[tripo] Converted data URL →', uploaded.slice(0, 60)); return uploaded; }
+        throw new Error('Failed to upload reference image — Tripo needs a public URL, not base64 data');
+      }
+      if (url.startsWith('/api/') || url.startsWith('/models/')) {
+        // Read local file and upload to public host
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const filePath = path.join(process.cwd(), 'server/data', url.replace(/^\/api\/models?\//, ''));
+          if (fs.existsSync(filePath)) {
+            const buf = fs.readFileSync(filePath);
+            const dataUrl = `data:image/png;base64,${buf.toString('base64')}`;
+            const uploaded = await uploadDataUrl(dataUrl);
+            if (uploaded) { console.log('[tripo] Uploaded local file →', uploaded.slice(0, 60)); return uploaded; }
+          }
+        } catch (e) { console.log('[tripo] Failed to upload local file:', (e as Error).message); }
+        // Fallback: resolve to absolute URL via host
+        const host = req.get('host') || 'localhost:3001';
+        const proto = host.startsWith('localhost') ? 'http' : 'https';
+        return `${proto}://${host}${url}`;
+      }
+      return url;
+    };
+
+    let inputUrl = body.input ? await toPublicUrl(body.input) : undefined;
+    let inputUrls = body.inputs ? await Promise.all(body.inputs.map((u: string) => toPublicUrl(u))) : undefined;
+
     const result = await submitTask({
       mode: body.mode || 'text-to-model',
       prompt: body.prompt,
-      input: body.input,
+      input: inputUrl,
+      inputs: inputUrls,
       model: body.model,
       face_limit: body.face_limit,
       texture: body.texture,

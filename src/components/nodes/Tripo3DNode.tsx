@@ -11,7 +11,7 @@ import { TripoModelPreview } from '../TripoModelPreview';
 interface TripoNodeData {
   prompt?: string;
   inputImageUrl?: string;
-  mode?: 'text-to-model' | 'image-to-model';
+  mode?: 'text-to-model' | 'image-to-model';  // multiview is auto-detected when 2+ images connected
   modelVersion?: string;
   modelSeries?: 'H' | 'P';
   texture?: boolean;
@@ -102,7 +102,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const [texture, setTexture] = useState(data.texture !== false);
   const [pbr, setPbr] = useState(data.pbr !== false);
   const [texQuality, setTexQuality] = useState(data.textureQuality || 'standard');
-  const [faceLimit, setFaceLimit] = useState(data.faceLimit || 50000);
+  const [faceLimit, setFaceLimit] = useState(data.faceLimit || 20000);
   const [autoSize, setAutoSize] = useState(data.autoSize || false);
   const [compress, setCompress] = useState(data.compress || false);
   const [format, setFormat] = useState<'glb' | 'fbx' | 'obj' | 'usd' | 'stl' | '3mf'>(data.format || 'glb');
@@ -127,29 +127,47 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const zoom = useStore(s => s.transform[2]);
   const genRunning = status === 'generating';
 
-  // Read incoming edge data from single tripo-in handle
+  const VIEW_LABELS = ['front', 'left', 'back', 'right'] as const;
+
+  // Read ALL incoming edges from tripo-in handle (multiview support: 1-4 images)
   const connectedData = useStore((s) => {
     const store = useCanvasStore.getState();
+    const images: { url: string; view: string }[] = [];
+    let connPrompt = '';
     for (const e of s.edges) {
       if (e.target === id && e.targetHandle === 'tripo-in') {
         const sourceNode = store.nodes.get(e.source);
         const m = sourceNode?.meta as any;
-        return {
-          image: m?.gen?.imageUrl || m?.imageUrl || '',
-          prompt: m?.shot?.intent_cn || m?.gen?.prompt || '',
-        };
+        const url = m?.gen?.imageUrl || m?.imageUrl || '';
+        if (url) images.push({ url, view: VIEW_LABELS[images.length] || 'ref' });
+        if (!connPrompt) connPrompt = m?.shot?.intent_cn || m?.gen?.prompt || '';
       }
     }
-    return { image: '', prompt: '' };
+    return { images, prompt: connPrompt };
   });
 
   useEffect(() => {
-    if (connectedData.image && !inputImage) setInputImage(connectedData.image);
+    if (connectedData.images.length && !inputImage) setInputImage(connectedData.images[0].url);
     if (connectedData.prompt && !prompt) setPrompt(connectedData.prompt);
-  }, [connectedData.image, connectedData.prompt]);
+  }, [connectedData.images, connectedData.prompt]);
 
+  // Build effective image list: local upload first, then connected (deduped)
+  const effectiveImages = (() => {
+    const seen = new Set<string>();
+    const list: { url: string; view: string }[] = [];
+    if (inputImage) { list.push({ url: inputImage, view: 'front' }); seen.add(inputImage); }
+    for (const img of connectedData.images) {
+      if (!seen.has(img.url)) { list.push(img); seen.add(img.url); }
+    }
+    return list;
+  })();
+  const effectiveInput = effectiveImages[0]?.url || '';
   const effectivePrompt = prompt || connectedData.prompt;
-  const effectiveInput = inputImage || connectedData.image;
+
+  // Auto-switch from text→3D to image→3D when images connect
+  useEffect(() => {
+    if (effectiveInput && mode === 'text-to-model') setMode('image-to-model');
+  }, [effectiveImages.length, effectiveInput]);
 
   // Cleanup
   useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
@@ -160,13 +178,18 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     setStatus('generating'); setProgress(0); setError(''); setSavedPath(''); setSavedName('');
 
     try {
+      const isMultiview = effectiveImages.length >= 4;
       const body: Record<string, unknown> = {
-        mode: effectiveInput ? 'image-to-model' : 'text-to-model',
+        mode: isMultiview ? 'multiview-to-model' : mode,
         model: modelVer, texture, pbr, texture_quality: texQuality,
         face_limit: faceLimit, auto_size: autoSize,
       };
       if (effectivePrompt) body.prompt = effectivePrompt;
-      if (effectiveInput) body.input = effectiveInput;
+      if (isMultiview) {
+        body.inputs = effectiveImages.map(img => img.url);
+      } else if (effectiveInput) {
+        body.input = effectiveInput;
+      }
       if (compress) body.compress = 'geometry';
 
       const resp = await fetch('/api/tripo/generate', {
@@ -303,7 +326,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const outputLocked = !isSaved && status === 'done';
   const outputActive = isSaved;
 
-  const modeLabel = mode === 'text-to-model' ? '文本→3D' : '图片→3D';
+  const modeLabel = mode === 'image-to-model' ? '图片→3D' : '文本→3D';
   const seriesLabel = series === 'H' ? 'H 系列' : 'P 系列';
   const verLabel = (series === 'P' ? P_MODELS : H_MODELS).find(m => m.value === modelVer)?.label || modelVer;
 
@@ -526,42 +549,45 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
               borderRadius: 'var(--tap-r-xl)',
               overflow: 'hidden',
             }}>
-                {/* Ref row: single image (canvas connection or local upload), + to pick canvas node, X to remove */}
-                {mode === 'image-to-model' && (
-                  <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {!effectiveInput ? (
-                      /* No ref yet — + triggers canvas node connection */
-                      <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
-                        title="从画布选取参考图"
-                        style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-                      >＋</div>
-                    ) : (
-                      /* Has ref — show thumbnail with X to remove */
-                      <div style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                        <img src={effectiveInput} alt="ref" style={{ width: '100%', height: '100%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <span onClick={e => {
-                          e.stopPropagation(); e.preventDefault();
-                          // Remove connected edge if ref came from canvas node
-                          if (connectedData.image) {
-                            const store = useCanvasStore.getState();
-                            store.edges.forEach(edge => {
-                              if (edge.to.nodeId === id && edge.to.portId === 'tripo-in') store.removeEdge(edge.id);
-                            });
-                            setInputImage('');
-                          } else {
-                            setInputImage('');
-                          }
-                        }}
-                          onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                          onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-                          style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'pointer', lineHeight: 1 }}
-                        >✕</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Ref row: always visible (text mode shows + to switch, image modes show thumbnails) */}
+                <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                  {effectiveImages.map((img, i) => (
+                    <div key={i} style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                      <img src={img.url} alt={img.view} style={{ width: '100%', height: '100%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)' }} />
+                      <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', color: 'rgba(255,255,255,0.8)', fontSize: '5px', textAlign: 'center', lineHeight: '9px' }}>{img.view}</span>
+                      <span onClick={e => {
+                        e.stopPropagation(); e.preventDefault();
+                        if (i === 0 && inputImage) {
+                          setInputImage('');
+                        } else {
+                          const store = useCanvasStore.getState();
+                          const targetUrl = img.url;
+                          store.edges.forEach(edge => {
+                            if (edge.to.nodeId === id && edge.to.portId === 'tripo-in') {
+                              const src = store.nodes.get(edge.from.nodeId);
+                              const srcUrl = (src?.meta?.gen as any)?.imageUrl || (src?.meta as any)?.imageUrl || '';
+                              if (srcUrl === targetUrl) store.removeEdge(edge.id);
+                            }
+                          });
+                          if (i === 0 && inputImage) setInputImage('');
+                        }
+                      }}
+                        onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                        onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                        style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: 'rgba(0,0,0,0.75)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'pointer', lineHeight: 1 }}
+                      >✕</span>
+                    </div>
+                  ))}
+                  {/* + to add references (max 4). Always visible so user can switch from text→3D to image mode */}
+                  {effectiveImages.length < 4 && (
+                    <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
+                      title={effectiveImages.length === 0 ? '从画布选取参考图' : '添加更多视角 (' + effectiveImages.length + '/4)'}
+                      style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
+                    >＋</div>
+                  )}
+                </div>
 
                 {/* Prompt textarea — text-to-model only */}
                 {mode === 'text-to-model' && (
@@ -637,7 +663,8 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                           <div key={m.id} onClick={() => { setMode(m.id as any); setOpen(null); }}
                             style={{
                               height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)',
-                              cursor: 'pointer', color: 'var(--tap-text-1)',
+                              cursor: 'pointer',
+                              color: 'var(--tap-text-1)',
                               background: mode === m.id ? 'var(--tap-hover)' : 'transparent',
                               display: 'flex', alignItems: 'center', fontSize: '11px',
                             }}

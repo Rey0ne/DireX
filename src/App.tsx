@@ -774,8 +774,12 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       store.setPendingConnection(null);
       if (node.id !== targetId) {
         const targetNode = store.nodes.get(targetId);
-        const toPort = targetNode?.type === 'shot' ? 'refs-in' : 'image-in';
-        const fromPort = node.type === 'shot' ? 'shot-out' : 'image-out';
+        const toPort = targetNode?.type === 'shot' ? 'refs-in'
+          : targetNode?.type === 'tripo.3d' ? 'tripo-in'
+          : 'image-in';
+        const fromPort = node.type === 'shot' ? 'shot-out'
+          : node.type === 'tripo.3d' ? 'model-out'
+          : 'image-out';
         addEdge(
           { nodeId: node.id, portId: fromPort },
           { nodeId: targetId, portId: toPort },

@@ -2,7 +2,7 @@
 import { Suspense, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF } from '@react-three/drei';
+import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Props {
@@ -17,13 +17,23 @@ function ModelView({ url }: { url: string }) {
     const c = scene.clone(true);
     c.traverse((ch: any) => {
       if (ch.isMesh) {
-        ch.material = new THREE.MeshStandardMaterial({
-          color: ch.material?.color || '#aaaaaa',
-          roughness: 0.35, metalness: 0.25,
-        });
+        const mat = ch.material;
+        if (mat) {
+          // Ensure texture maps are properly assigned and sRGB-aware
+          if (mat.map) { mat.map.colorSpace = THREE.SRGBColorSpace; mat.map.needsUpdate = true; }
+          if (mat.emissiveMap) { mat.emissiveMap.colorSpace = THREE.SRGBColorSpace; }
+          if (mat.roughnessMap || mat.metalnessMap) {
+            // These are grayscale, no colorSpace needed
+          }
+          // Default PBR values if not set
+          mat.roughness = mat.roughness ?? 0.4;
+          mat.metalness = mat.metalness ?? 0.1;
+          mat.needsUpdate = true;
+        }
         ch.castShadow = true; ch.receiveShadow = true;
       }
     });
+    // Scale + center
     const box = new THREE.Box3().setFromObject(c);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
@@ -66,17 +76,29 @@ export function TripoModelPreview({ modelUrl, modelName, onClose }: Props) {
       </div>
       <div style={{ flex:1,minHeight:0 }}>
         <Canvas camera={{ position:[3,2,5],fov:45 }}
-          gl={{ preserveDrawingBuffer:false,antialias:true,outputColorSpace:THREE.SRGBColorSpace }}
+          gl={{
+            preserveDrawingBuffer:false, antialias:true,
+            outputColorSpace:THREE.SRGBColorSpace,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.1,
+          }}
+          shadows
           style={{ background:'radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%)' }}>
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[5,8,5]} intensity={1.5} castShadow />
-          <directionalLight position={[-3,2,-3]} intensity={0.4} />
-          <hemisphereLight color="#8899cc" groundColor="#334455" intensity={0.5} />
+          {/* Studio lighting */}
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5,8,5]} intensity={2.5} castShadow
+            shadow-mapSize-width={1024} shadow-mapSize-height={1024}
+            shadow-camera-far={50} shadow-camera-left={-10} shadow-camera-right={10}
+            shadow-camera-top={10} shadow-camera-bottom={-10} />
+          <directionalLight position={[-3,2,-3]} intensity={0.6} />
+          <directionalLight position={[0,1,5]} intensity={0.8} />
+          {/* PBR environment map for realistic reflections */}
+          <Environment preset="studio" environmentIntensity={0.8} />
+          <ContactShadows position={[0,-0.5,0]} opacity={0.5} scale={10} blur={2} far={4} />
           <Suspense fallback={<mesh><sphereGeometry args={[0.5,16,16]} /><meshStandardMaterial color="#333" wireframe /></mesh>}>
             <ModelView url={modelUrl} />
           </Suspense>
           <OrbitControls enableDamping dampingFactor={0.1} />
-          <gridHelper args={[10,20,'#222','#111']} position={[0,-0.5,0]} />
         </Canvas>
       </div>
       <div style={{ padding:'8px 20px',flexShrink:0,borderTop:'1px solid rgba(255,255,255,0.06)',display:'flex',justifyContent:'center',gap:30,fontSize:11,color:'rgba(255,255,255,0.25)' }}>
