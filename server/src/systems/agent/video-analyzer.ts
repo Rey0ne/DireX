@@ -1,66 +1,66 @@
-/* === Video Prompt Compiler === */
+/* === Video Prompt Enricher === */
 /* Agent does NOT analyze images/videos — Seedance sees them directly via API.
-   Agent only compiles user's fuzzy instructions into structured English prompt
-   with reference role mapping. */
+   Agent only enriches user's Chinese prompt with cinematic visual detail:
+   motion, physics, lighting, atmosphere, micro-expressions — without changing original intent. */
 
 import { gpt5Chat } from '../ai/gemini.js';
 
-const VIDEO_COMPILE_SYSTEM = `You are a Video Generation Prompt Compiler. You receive:
-1. User's instruction in Chinese (may reference images/videos)
-2. Information about what references are available (images, videos)
+const VIDEO_ENRICH_SYSTEM = `你是一个视频生成提示词优化器。用户会给你一段中文场景描述，你需要将其润色为更适合视频生成模型的详细提示词。
 
-Your job: compile the user's instruction into a structured English prompt for Seedance 2.0.
+核心原则：
+1. 你绝不翻译 — 输入中文，输出中文。Seedance 2.0 原生支持中文。
+2. 你绝不改变原意 — 不新增人物、不改变场景设定、不魔改故事。
+3. 你只是「补全画面」— 把用户没说但画面中理应存在的视觉细节补上。
 
-CRITICAL: You do NOT describe reference images or videos. The model (Seedance) will see them directly via API. Your job is to map them to roles and describe what the OUTPUT should look like.
+你需要补充的维度：
+- 物理动态：发丝飘动方向、衣摆/裙摆随动作的摆动、布料褶皱变化、坠感
+- 粒子与氛围：空气中的微尘/光点/花瓣/萤火虫、圣光中的丁达尔效应、雾气流动
+- 光线细节：光源方向、光的颜色温度、阴影柔硬度、逆光/侧光/顶光、体积光
+- 微表情与肢体：眼神方向、嘴角微动、指尖动作、呼吸起伏、步伐节奏
+- 材质质感：丝绸反光、金属锈迹、木质纹理、水面波纹、玻璃折射
+- 环境纵深：前景/中景/远景层次、背景虚化程度、空间透视
 
-Rules:
-1. IDENTITY → "Use the provided reference image(s) as the sole identity reference. Preserve exact facial proportions, features, skin tone, body type."
-2. WARDROBE → "Match clothing, accessories from reference image(s) exactly."
-3. ENVIRONMENT → "Use the provided scene reference image(s) as the environment."
-4. CAMERA → "Follow the camera language, trajectory, lens movement, timing, speed from the provided reference video(s)."
-5. MOTION → "Follow the body performance, action timing, and rhythm from the provided reference video(s)."
-6. LIGHTING & MOOD → Describe the desired lighting and mood from user instruction (NOT from reference analysis).
-7. QUALITY → "Ultra photorealistic, cinematic, 24fps, film grain, natural motion blur."
+参考素材处理规则：
+- 如果用户提供了参考图片：告诉模型「使用参考图作为角色/场景的外观依据」
+- 如果用户提供了参考视频：告诉模型「使用参考视频的运镜轨迹、节奏、动作时机」
+- 你不需要描述参考图片或视频的具体内容 — Seedance 会直接看到原文件
 
-Output format:
-- First line: Primary subject reference instruction
-- Then: Wardrobe, environment, camera, motion references
-- Then: Action/scene description from user's words
-- Then: Lighting, mood, quality
-- End with: ONE cohesive English paragraph suitable for direct API input
-- NO markdown formatting, NO bullet points, NO Chinese text
-
-The model will receive the actual image/video files directly. Your prompt tells it HOW to use them.`;
+输出格式：
+- 直接输出一段优化的中文提示词，长度控制在 150-400 字
+- 不分段、不用 markdown、不用 bullet points
+- 语言风格：描述性、视觉化、电影感
+- 如果用户原意已经足够详细，适当轻量化优化，不要过度堆砌`;
 
 export async function compileVideoPrompt(
   userInput: string,
   hasImageRefs: boolean,
   hasVideoRefs: boolean,
 ): Promise<string> {
-  const refInfo = [
-    hasImageRefs ? '- Reference image(s) are provided: use them for identity, wardrobe, scene as described in user instruction' : '',
-    hasVideoRefs ? '- Reference video(s) are provided: use them for camera movement, motion, timing, rhythm' : '',
+  const refHints: string[] = [];
+  if (hasImageRefs) refHints.push('用户提供了参考图片（角色/场景），请在提示词中指引模型以参考图为外观依据。');
+  if (hasVideoRefs) refHints.push('用户提供了参考视频（运镜/动作），请在提示词中指引模型以参考视频的运镜轨迹、节奏和动作时机为准。');
+
+  const userContent = [
+    refHints.length ? '参考素材提示：\n' + refHints.join('\n') : '',
+    '',
+    '用户原始描述：',
+    userInput,
+    '',
+    '请输出优化后的中文视频生成提示词（150-400字，视觉化、电影感，不翻译）：',
   ].filter(Boolean).join('\n');
 
-  const userContent = `Available references:
-${refInfo || '- No references provided — generate from text description only'}
-
-User instruction (Chinese): ${userInput}
-
-Compile into a structured English video generation prompt. Remember: do NOT describe the references — just map them to roles. Seedance will see the actual files.`;
-
-  console.log('[video-compiler] Compiling prompt, hasImg=' + hasImageRefs + ' hasVid=' + hasVideoRefs);
+  console.log('[video-enricher] Enriching prompt, hasImg=' + hasImageRefs + ' hasVid=' + hasVideoRefs);
   const result = await gpt5Chat(
-    [{ role: 'system', content: [{ type: 'input_text', text: VIDEO_COMPILE_SYSTEM }] },
+    [{ role: 'system', content: [{ type: 'input_text', text: VIDEO_ENRICH_SYSTEM }] },
      { role: 'user', content: [{ type: 'input_text', text: userContent }] }],
     { effort: 'low', timeoutMs: 30000, maxOutputTokens: 1000 }
   );
 
   if (!result) {
-    console.log('[video-compiler] Compilation failed, falling back to user input');
+    console.log('[video-enricher] Enrichment failed, falling back to user input');
     return userInput;
   }
 
-  console.log('[video-compiler] Compiled: ' + result.length + ' chars — ' + result.slice(0, 120));
+  console.log('[video-enricher] Enriched: ' + result.length + ' chars — ' + result.slice(0, 120));
   return result;
 }

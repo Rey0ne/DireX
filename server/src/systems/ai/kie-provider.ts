@@ -197,6 +197,132 @@ async function pollTask(taskId: string, apiKey: string, startTime: number): Prom
   };
 }
 
+// ─── Async task store (client-side polling for slow generations like video) ──
+interface StoredTask {
+  clientTaskId: string;
+  kieTaskId: string;
+  apiKey: string;
+  providerId: string;
+  status: 'submitted' | 'succeeded' | 'failed';
+  compiledPrompt?: string;
+  assetUrls?: string[];
+  error?: string;
+  startTime: number;
+}
+
+const taskStore = new Map<string, StoredTask>();
+
+export function initVideoTask(clientTaskId: string, providerId: string): void {
+  taskStore.set(clientTaskId, {
+    clientTaskId,
+    kieTaskId: '',
+    apiKey: '',
+    providerId,
+    status: 'submitted',
+    startTime: Date.now(),
+  });
+  console.log('[taskStore] init ' + clientTaskId + ' (' + providerId + ')');
+}
+
+export function markTaskSubmitted(clientTaskId: string, kieTaskId: string, apiKey: string, compiledPrompt?: string): void {
+  const task = taskStore.get(clientTaskId);
+  if (!task) { console.error('[taskStore] markTaskSubmitted: unknown ' + clientTaskId); return; }
+  task.kieTaskId = kieTaskId;
+  task.apiKey = apiKey;
+  if (compiledPrompt) task.compiledPrompt = compiledPrompt;
+  console.log('[taskStore] submitted ' + clientTaskId + ' → kie:' + kieTaskId.slice(0, 12));
+}
+
+export function markTaskDone(clientTaskId: string, assetUrls: string[]): void {
+  const task = taskStore.get(clientTaskId);
+  if (!task) { console.error('[taskStore] markTaskDone: unknown ' + clientTaskId); return; }
+  task.status = 'succeeded';
+  task.assetUrls = assetUrls;
+  console.log('[taskStore] done ' + clientTaskId + ': ' + assetUrls.length + ' assets');
+}
+
+export function markTaskFailed(clientTaskId: string, error: string): void {
+  const task = taskStore.get(clientTaskId);
+  if (!task) { console.error('[taskStore] markTaskFailed: unknown ' + clientTaskId); return; }
+  task.status = 'failed';
+  task.error = error;
+  console.log('[taskStore] failed ' + clientTaskId + ': ' + error.slice(0, 80));
+}
+
+export async function pollStoredTask(clientTaskId: string): Promise<{ status: string; assetUrls?: string[]; compiledPrompt?: string; error?: string }> {
+  const task = taskStore.get(clientTaskId);
+  if (!task) {
+    console.error('[taskStore] poll: unknown ' + clientTaskId);
+    return { status: 'failed', error: 'Unknown task ID' };
+  }
+
+  if (task.status === 'succeeded') {
+    return { status: 'succeeded', assetUrls: task.assetUrls, compiledPrompt: task.compiledPrompt };
+  }
+  if (task.status === 'failed') {
+    return { status: 'failed', error: task.error };
+  }
+
+  // Status is 'submitted' — query Kie for current state
+  const pollUrl = `${BASE_URL}/jobs/recordInfo?taskId=${task.kieTaskId}`;
+  console.log('[taskStore] poll querying Kie: ' + task.kieTaskId.slice(0, 12));
+
+  try {
+    const resp = await kieFetch(pollUrl, {
+      headers: { Authorization: `Bearer ${task.apiKey}` },
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    console.log('[taskStore] recordInfo HTTP ' + resp.status + ': ' + JSON.stringify(data).slice(0, 400));
+
+    const record = data.data || data;
+    const state = record.state || record.status || record.task_status || '';
+
+    if (state === 'succeeded' || state === 'completed' || state === 'success' || state === 'SUCCESS' || state === 'done') {
+      // Extract URLs — same logic as pollTask
+      let resultData: any = record.resultJson;
+      if (typeof resultData === 'string' && resultData) {
+        try { resultData = JSON.parse(resultData); } catch { /* raw string */ }
+      }
+      const resultObj = record.result || resultData || record;
+      let urls: string[] =
+        resultObj?.resultUrls ||
+        resultObj?.images?.map((i: any) => i.url || i) ||
+        resultObj?.data?.map((d: any) => d.url || d) ||
+        [];
+      if (urls.length === 0 && typeof resultData === 'string' && resultData.startsWith('http')) {
+        urls = [resultData];
+      }
+      // Check for video-specific URL fields
+      if (urls.length === 0) {
+        urls = resultObj?.video_url || resultObj?.video_urls || resultObj?.output_url || resultObj?.url
+          ? [resultObj?.video_url || resultObj?.video_urls || resultObj?.output_url || resultObj?.url].flat()
+          : [];
+      }
+      // Log full record for debugging
+      if (urls.length === 0) {
+        console.log('[taskStore] WARNING: No URLs found. Full record:', JSON.stringify(record).slice(0, 2000));
+      }
+      markTaskDone(clientTaskId, urls);
+      return { status: 'succeeded', assetUrls: urls, compiledPrompt: task.compiledPrompt };
+    }
+
+    if (state === 'fail' || state === 'failed' || state === 'FAILED' || state === 'error') {
+      const errMsg = record.failMsg || record.failCode || record.error || 'Generation failed';
+      markTaskFailed(clientTaskId, errMsg);
+      return { status: 'failed', error: errMsg };
+    }
+
+    // Still processing — return current state
+    console.log('[taskStore] ' + clientTaskId + ' state=' + state + ' (still waiting)');
+    return { status: 'submitted' };
+
+  } catch (err: any) {
+    console.log('[taskStore] poll network error: ' + (err.message?.slice(0, 80) || String(err).slice(0, 80)));
+    return { status: 'submitted' }; // Keep waiting — network glitch
+  }
+}
+
 // ─── Main generate function ────────────────────
 export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult> {
   const apiKey = getApiKey();
@@ -248,16 +374,17 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   if (isVideo) {
     // Video models: Kling/Seedance natively analyze refs — pass directly
     inputParams.aspect_ratio = req.aspect || '16:9';
+    inputParams.resolution = resolution;
     if (req.referenceUrls?.length) {
-      inputParams.input_urls = req.referenceUrls;
+      inputParams.reference_image_urls = req.referenceUrls;
     }
     if (req.referenceImage && !(req.referenceUrls || []).includes(req.referenceImage)) {
-      const urls = (inputParams.input_urls as string[]) || [];
+      const urls = (inputParams.reference_image_urls as string[]) || [];
       urls.unshift(req.referenceImage);
-      inputParams.input_urls = urls;
+      inputParams.reference_image_urls = urls;
     }
     if (processedVideoUrls.length) {
-      inputParams.video_urls = processedVideoUrls;
+      inputParams.reference_video_urls = processedVideoUrls;
     }
   } else {
     // Image models
@@ -284,6 +411,12 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   if (isSeedance) {
     if (req.duration) {
       inputParams.duration = req.duration === 'auto' ? '-1' : req.duration.replace('s', '');
+    }
+    if (req.firstFrameUrl) {
+      inputParams.first_frame_url = req.firstFrameUrl;
+    }
+    if (req.lastFrameUrl) {
+      inputParams.last_frame_url = req.lastFrameUrl;
     }
     if (req.fixedCamera !== undefined) {
       inputParams.fixed_camera = req.fixedCamera;
@@ -349,11 +482,11 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   const startTime = Date.now();
   const submitUrl = `${BASE_URL}/jobs/createTask`;
   // Save last Kie request for debugging
-  const debugRefs = (body.input as any).input_urls || (body.input as any).image_input || [];
+  const debugRefs = (body.input as any).reference_image_urls || (body.input as any).image_input || [];
   (globalThis as any).__lastKieReq = { model: body.model, refs_count: debugRefs.length, refs_sample: debugRefs.slice(0, 5).map((u: string) => (typeof u === 'string' ? u.slice(0, 80) : String(u))), prompt_len: (body.input as any).prompt?.length || 0, url: submitUrl, refUrls_in: req.referenceUrls?.length || 0, refUrls_sample: (req.referenceUrls || []).slice(0, 3).map((u: unknown) => typeof u === 'string' ? u.slice(0, 80) : String(u)), refImg_in: req.referenceImage ? 1 : 0 };
   if (isVideo) {
-    console.log(`[kie] video_urls: ${JSON.stringify(processedVideoUrls.slice(0,3))}`);
-    console.log(`[kie] input_urls: ${JSON.stringify(validRefs.slice(0,3))}`);
+    console.log(`[kie] reference_video_urls: ${JSON.stringify(processedVideoUrls.slice(0,3))}`);
+    console.log(`[kie] reference_image_urls: ${JSON.stringify(validRefs.slice(0,3))}`);
   }
   console.log(`[kie] Submit: ${req.providerId}/${mode}/${resolution} → ${submitUrl} model=${model}`);
 
@@ -390,7 +523,18 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       || '';
     if (!taskId) {
       console.error('[kie] No taskId. Full response:', JSON.stringify(data).slice(0, 2000));
+      if (req.clientTaskId) markTaskFailed(req.clientTaskId, 'Kie.ai: No taskId');
       return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: 'Kie.ai: No taskId' };
+    }
+
+    // ── Async video tasks: store mapping, return immediately, client polls /api/task/:id/poll ──
+    if (req.clientTaskId) {
+      markTaskSubmitted(req.clientTaskId, taskId, apiKey, req.prompt || undefined);
+      console.log('[kie] Async task submitted: client=' + req.clientTaskId + ' → kie=' + taskId);
+      return {
+        success: true, assetUrls: [], cost: 0, durationMs: 0, seed: 0,
+        taskId: req.clientTaskId, needsPoll: true,
+      };
     }
 
     return pollTask(taskId, apiKey, startTime);

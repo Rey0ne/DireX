@@ -409,12 +409,11 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       webSearch: (body as any).webSearch,
       clientTaskId,
     });
-    // Seedance generation is async — client polls for result
-    const videoT0 = Date.now();
-    addLog({ id: uuid(), timestamp: new Date().toISOString(), providerId: body.providerId, prompt: compiledPrompt, compiledPrompt, status: 'succeeded', assetUrls: result.assetUrls, cost: result.cost, durationMs: Date.now() - videoT0 });
-    console.log('[agent] ===== COMPILED EN PROMPT =====');
+    // Seedance generation is async — client polls for result, don't block here
+    console.log('[agent] ===== COMPILED PROMPT =====');
     console.log(compiledPrompt);
     console.log('[agent] ===== END COMPILED PROMPT =====');
+    console.log('[agent] Video task submitted: client=' + clientTaskId + ' — client will poll');
     res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: [] }, result: { ...result, taskId: clientTaskId, needsPoll: true }, agentTrace: [] });
     return;
   }
@@ -542,7 +541,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   }
   // Save last compiled prompt for debugging
   lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, method: body.mode === 'image-to-image' ? 'i2i-direct' : (config.promptEnhancement ? 't2i-pipeline' : 'raw'), time: new Date().toISOString() };
-  console.log('[agent] ===== COMPILED EN PROMPT =====');
+  console.log('[agent] ===== COMPILED PROMPT =====');
   console.log(compiledPrompt);
   console.log('[agent] ===== END COMPILED PROMPT =====');
   res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo }, result, agentTrace });
@@ -845,7 +844,7 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
     time: new Date().toISOString(),
   };
 
-  console.log('[visual-extract] ===== COMPILED EN PROMPT =====');
+  console.log('[visual-extract] ===== COMPILED PROMPT =====');
   console.log(compiledPrompt);
   console.log('[visual-extract] ===== END COMPILED PROMPT =====');
 
