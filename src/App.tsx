@@ -52,6 +52,7 @@ const useNodeTypes = () => _useMemo<NodeTypes>(() => ({
   'video.generate': VideoGenerateNode,
   'audio.generate': AudioGenerateNode,
   'scene.3d': Scene3DNode,
+  'world.3d': Scene3DNode,
   'tripo.3d': Tripo3DNode,
 } as unknown as NodeTypes), []);
 const useEdgeTypes = () => _useMemo(() => ({ default: ScissorEdge }), []);
