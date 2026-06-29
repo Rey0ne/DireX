@@ -2757,6 +2757,71 @@
       ],
       "cost": 0.03,
       "durationMs": 6902
+    },
+    {
+      "id": "17371e66-41df-4ff6-9175-2e0157e78804",
+      "timestamp": "2026-06-29T15:34:17.511Z",
+      "providerId": "gpt-image2",
+      "prompt": "The prompt text appears to be mojibake rather than readable Chinese. I’m checking whether it can be losslessly recovered before translating.I’m trying likely encoding reversals now; if the source is recoverable, I’ll translate the restored Chinese directly.The string does not decode cleanly with the common UTF-8/GBK reversals. I’m checking a broader set of legacy encodings one more time before deciding whether this is unrecoverable.The source text appears to be garbled/encoding-corrupted rather than valid Chinese, so I can’t reliably translate it without inventing details. Please resend the original Chinese prompt.",
+      "compiledPrompt": "The prompt text appears to be mojibake rather than readable Chinese. I’m checking whether it can be losslessly recovered before translating.I’m trying likely encoding reversals now; if the source is recoverable, I’ll translate the restored Chinese directly.The string does not decode cleanly with the common UTF-8/GBK reversals. I’m checking a broader set of legacy encodings one more time before deciding whether this is unrecoverable.The source text appears to be garbled/encoding-corrupted rather than valid Chinese, so I can’t reliably translate it without inventing details. Please resend the original Chinese prompt.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/268a1a1b8a039cb83f2aad3b795b38d0_1782747184_4c3fkki0.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 124460
+    },
+    {
+      "id": "02f2737d-b1c3-4799-8e6e-7bbe64709e88",
+      "timestamp": "2026-06-29T15:40:20.935Z",
+      "providerId": "gpt-image2",
+      "prompt": "The source text appears corrupted and cannot be reliably translated.",
+      "compiledPrompt": "The source text appears corrupted and cannot be reliably translated.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/353f7de355ce54490eba63e31cc9936c_1782747553_m6j4lpbm.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 124729
+    },
+    {
+      "id": "7f0756d2-52e0-4565-be27-15f15c66bae6",
+      "timestamp": "2026-06-29T15:45:53.835Z",
+      "providerId": "gpt-image2",
+      "prompt": "A city background under neon lights at night.",
+      "compiledPrompt": "A city background under neon lights at night.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/r/136d66c4c6bffcd5bfee427c766ce04d_1782747864_4ytld10b.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 122835
+    },
+    {
+      "id": "02945c2d-679a-4ca2-a14b-95bd0c408d48",
+      "timestamp": "2026-06-29T15:46:06.688Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] [Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 1. Main subjects\nFather: East Asian middle-aged man, deep brown short slightly wavy hair, off-white short-sleeve T-shirt + gray striped lounge pants, lying prone on a wooden floor, head resting on a dark gray square pillow, black smartwatch on his wrist, side profile facing the camera with a relaxed gentle smile.\nLittle boy: East Asian child, short black hair, brown tank top, light gray pants. Lying prone on his father's back, chin resting on his father's back, side profile looking toward the right side of the frame.\nLittle girl: 6-month-old baby girl, smooth fine soft hair with slightly curled ends, light apricot one-piece romper, stacked lying on the little boy's back, facing the camera with a sweet smile, a flesh-pink pacifier in her mouth.\nCharacter layering from bottom to top: father -> boy -> baby girl, a stacked parent-child interaction structure, with a relaxed and warm atmosphere.\n\n2. Scene environment\nWhole-room natural wood style children's study: light wood square-grid open bookshelf, compartments filled with colorful picture books; neatly arranged on top of the bookshelf are multiple natural wood-framed family photos, a white round clock, and white storage boxes; light natural wood flooring, clean pale white wall in the background, overall minimalist, soothing, homey feeling.\n\n3. Composition\nMedium shot composition, horizontal and level, stable framing; the subjects occupy the visual center of the lower half of the frame, with the upper bookshelf serving as a complete background; clear vertical layering, with foreground characters, midground bookshelf and picture books, and top-layer photo frames forming a three-layer image; evenly distributed negative space, visual focus concentrated on the interaction among the father and two children.\n\n4. Lighting and color tone (core)\nSoft diffused indoor natural light, no direct harsh light, extremely low contrast between light and shadow, all shadows soft and blurred; overall low-saturation warm beige neutral tones, light evenly spread across the faces, skin tones translucent and soft, with slight delicate film grain, clean and soothing Japanese-style family portrait lighting, no strong separation of light and dark.",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] [Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 1. Main subjects\nFather: East Asian middle-aged man, deep brown short slightly wavy hair, off-white short-sleeve T-shirt + gray striped lounge pants, lying prone on a wooden floor, head resting on a dark gray square pillow, black smartwatch on his wrist, side profile facing the camera with a relaxed gentle smile.\nLittle boy: East Asian child, short black hair, brown tank top, light gray pants. Lying prone on his father's back, chin resting on his father's back, side profile looking toward the right side of the frame.\nLittle girl: 6-month-old baby girl, smooth fine soft hair with slightly curled ends, light apricot one-piece romper, stacked lying on the little boy's back, facing the camera with a sweet smile, a flesh-pink pacifier in her mouth.\nCharacter layering from bottom to top: father -> boy -> baby girl, a stacked parent-child interaction structure, with a relaxed and warm atmosphere.\n\n2. Scene environment\nWhole-room natural wood style children's study: light wood square-grid open bookshelf, compartments filled with colorful picture books; neatly arranged on top of the bookshelf are multiple natural wood-framed family photos, a white round clock, and white storage boxes; light natural wood flooring, clean pale white wall in the background, overall minimalist, soothing, homey feeling.\n\n3. Composition\nMedium shot composition, horizontal and level, stable framing; the subjects occupy the visual center of the lower half of the frame, with the upper bookshelf serving as a complete background; clear vertical layering, with foreground characters, midground bookshelf and picture books, and top-layer photo frames forming a three-layer image; evenly distributed negative space, visual focus concentrated on the interaction among the father and two children.\n\n4. Lighting and color tone (core)\nSoft diffused indoor natural light, no direct harsh light, extremely low contrast between light and shadow, all shadows soft and blurred; overall low-saturation warm beige neutral tones, light evenly spread across the faces, skin tones translucent and soft, with slight delicate film grain, clean and soothing Japanese-style family portrait lighting, no strong separation of light and dark.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/p/1432f4b564580e2bb0067b8fe8be6f6d_1_1782747910_8012.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 131488
+    },
+    {
+      "id": "bad5a896-1d32-4b02-ba47-591a5ed18d8f",
+      "timestamp": "2026-06-29T15:49:32.380Z",
+      "providerId": "gpt-image2",
+      "prompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] [Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 1. Main subjects\nFather: East Asian middle-aged man, short dark brown slightly wavy hair, light white short-sleeve T-shirt + gray striped lounge pants, lying prone on a wooden floor, head resting on a dark gray square pillow, black smartwatch on his wrist, relaxed soft smile in side profile facing the camera.\nLittle boy: East Asian child, short black hair, brown tank top, light gray pants. Lying prone on his father's back, chin resting on his father's back, side profile looking toward the right side of the frame.\nLittle girl: 6-month-old baby girl, smooth fine soft hair with slightly curled ends, light apricot one-piece romper, stacked lying on top of the little boy's back, facing the camera with a sweet smile, a flesh-pink pacifier in her mouth.\nCharacter layering from bottom to top: father -> boy -> baby girl, a stacked parent-child interaction structure, with a relaxed warm atmosphere.\n\n2. Scene environment\nWhole-room natural wood style children's study: light wood square open shelving, each cubby filled with colorful picture books; on top of the bookshelf are multiple neatly arranged family photos in natural wood frames, a white round clock, and white storage boxes; light natural wood flooring, clean pale white wall in the background, overall minimalist, healing, cozy home feeling.\n\n3. Composition\nMedium shot composition, horizontal and level framing; the figures occupy the visual center of the lower half of the frame, with the upper bookshelf serving as a complete background; clear vertical layering, with foreground figures, midground bookshelf and picture books, and top-layer photo frames forming a three-layer image; evenly distributed negative space, visual focus centered on the interaction among the father and two children.\n\n4. Lighting and color tone (core)\nSoft diffused indoor natural light, no direct harsh light, extremely low contrast across the image, all shadows soft and blurred; overall low-saturation warm beige neutral tones, light evenly spread across the faces, skin rendered clear, soft, and luminous, with slight delicate film grain, clean and healing Japanese-style family portrait lighting, with no strong light-dark separation.",
+      "compiledPrompt": "[Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] [Camera: Sony Venice, Lens: Cooke S4, Focal length: 50mm, Aperture: f/1.4, Film stock: Kodak 2383] 1. Main subjects\nFather: East Asian middle-aged man, short dark brown slightly wavy hair, light white short-sleeve T-shirt + gray striped lounge pants, lying prone on a wooden floor, head resting on a dark gray square pillow, black smartwatch on his wrist, relaxed soft smile in side profile facing the camera.\nLittle boy: East Asian child, short black hair, brown tank top, light gray pants. Lying prone on his father's back, chin resting on his father's back, side profile looking toward the right side of the frame.\nLittle girl: 6-month-old baby girl, smooth fine soft hair with slightly curled ends, light apricot one-piece romper, stacked lying on top of the little boy's back, facing the camera with a sweet smile, a flesh-pink pacifier in her mouth.\nCharacter layering from bottom to top: father -> boy -> baby girl, a stacked parent-child interaction structure, with a relaxed warm atmosphere.\n\n2. Scene environment\nWhole-room natural wood style children's study: light wood square open shelving, each cubby filled with colorful picture books; on top of the bookshelf are multiple neatly arranged family photos in natural wood frames, a white round clock, and white storage boxes; light natural wood flooring, clean pale white wall in the background, overall minimalist, healing, cozy home feeling.\n\n3. Composition\nMedium shot composition, horizontal and level framing; the figures occupy the visual center of the lower half of the frame, with the upper bookshelf serving as a complete background; clear vertical layering, with foreground figures, midground bookshelf and picture books, and top-layer photo frames forming a three-layer image; evenly distributed negative space, visual focus centered on the interaction among the father and two children.\n\n4. Lighting and color tone (core)\nSoft diffused indoor natural light, no direct harsh light, extremely low contrast across the image, all shadows soft and blurred; overall low-saturation warm beige neutral tones, light evenly spread across the faces, skin rendered clear, soft, and luminous, with slight delicate film grain, clean and healing Japanese-style family portrait lighting, with no strong light-dark separation.",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/p/bf6aa682b6ab5c9a3511119c0b333519_1_1782748106_8459.png"
+      ],
+      "cost": 0.1,
+      "durationMs": 123884
     }
   ]
 }
