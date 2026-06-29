@@ -131,6 +131,36 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   },
 
   updateNode(id, patch) {
+    // ── Write guard: reject data that would corrupt the canvas ──
+    if (patch.meta) {
+      for (const [k, v] of Object.entries(patch.meta)) {
+        if (typeof v === 'function' || typeof v === 'symbol') {
+          console.warn(`[store] updateNode "${id}" rejected: meta.${k} is a function/symbol`);
+          delete patch.meta[k];
+        }
+        if (v === undefined) {
+          console.warn(`[store] updateNode "${id}" rejected: meta.${k} is undefined`);
+          delete patch.meta[k];
+        }
+        if (typeof v === 'string' && v.startsWith('data:') && v.length > 1_000_000) {
+          console.warn(`[store] updateNode "${id}" rejected: meta.${k} data URL too large (${(v.length/1e6).toFixed(1)}MB)`);
+          delete patch.meta[k];
+        }
+      }
+    }
+    if (patch.pos) {
+      const { x, y } = patch.pos;
+      if (!isFinite(x) || !isFinite(y) || Math.abs(x) > 50000 || Math.abs(y) > 50000) {
+        console.warn(`[store] updateNode "${id}" rejected: pos (${x}, ${y}) out of bounds`);
+        delete patch.pos;
+      }
+    }
+    if (patch.title !== undefined) {
+      if (typeof patch.title !== 'string' || patch.title.length > 500) {
+        console.warn(`[store] updateNode "${id}" rejected: title too long or not a string`);
+        delete patch.title;
+      }
+    }
     set(s => {
       const existing = s.nodes.get(id);
       if (!existing) return s;

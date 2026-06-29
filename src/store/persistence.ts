@@ -13,10 +13,43 @@ function getCanvasId(): string {
 
 // ─── Save ────────────────────────────────────────
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let lastSaveTime = 0;
+const MIN_SAVE_INTERVAL = 3000; // min 3s between saves to avoid drag-lag
+const SAVE_DEBOUNCE = 1000;     // debounce 1s after last change
 
 export function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveNow(), 500);
+  const since = Date.now() - lastSaveTime;
+  if (since < MIN_SAVE_INTERVAL) {
+    // Too soon since last save — schedule after cooldown
+    saveTimer = setTimeout(() => saveNow(), MIN_SAVE_INTERVAL - since);
+  } else {
+    saveTimer = setTimeout(() => saveNow(), SAVE_DEBOUNCE);
+  }
+}
+
+// ── Meta sanitizer: strip values that would corrupt persistence ──
+const MAX_FIELD_SIZE = 500_000; // 500KB per field — larger is likely a data URL
+function sanitizeMeta(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') {
+    // Reject NaN and Infinity (not valid JSON)
+    if (typeof obj === 'number' && !isFinite(obj)) return 0;
+    return obj;
+  }
+  if (Array.isArray(obj)) return obj.map(sanitizeMeta);
+  const safe: Record<string, unknown> = {};
+  let dropped = 0;
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (typeof v === 'function' || typeof v === 'symbol') { dropped++; continue; }
+    if (typeof v === 'string' && v.length > MAX_FIELD_SIZE) { dropped++; continue; }
+    if (typeof v === 'number' && !isFinite(v)) { safe[k] = 0; dropped++; continue; }
+    if (v && typeof v === 'object') { safe[k] = sanitizeMeta(v); } else { safe[k] = v; }
+  }
+  if (dropped > 0) {
+    console.warn(`[persist] sanitizeMeta dropped ${dropped} unsafe field(s)`);
+  }
+  return safe;
 }
 
 export async function saveNow() {
@@ -60,7 +93,7 @@ export async function saveNow() {
             size: n.size,
             ports: n.ports,
             status: n.status,
-            meta: n.meta,
+            meta: sanitizeMeta(n.meta) as Record<string, unknown>,
             createdAt: n.createdAt,
             updatedAt: n.updatedAt,
           });
@@ -116,16 +149,49 @@ export async function saveNow() {
         }
       });
 
+    lastSaveTime = Date.now();
     try { const stripDataUrls=(obj:any):any=>{if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(stripDataUrls);const c:any={};for(const k of Object.keys(obj)){const v=obj[k];if(typeof v==='string'&&v.startsWith('data:')&&v.length>1000){c[k]='';}else if(typeof v==='object'&&v!==null){c[k]=stripDataUrls(v);}else{c[k]=v;}}return c;};const nodesData=nodes.map(n=>({id:n.id,type:n.type,title:n.title,meta:stripDataUrls(n.meta)}));const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to}));fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:nodesData,edges:edgesData})}).catch(()=>{});} catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
     getStorageUsage().then(u=>{if(u.pct>80)console.warn(`[persist] Storage: ${u.usedMB}MB / ${u.quotaMB}MB (${u.pct}%) — 接近上限`);});
+    // ── Health sentinel: detect bloated state before it corrupts ──
+    try {
+      const stateSize = JSON.stringify({ nodes, edges }).length;
+      if (stateSize > 5_000_000) {
+        console.error(`[persist] ⚠ CRITICAL: State size ${(stateSize/1e6).toFixed(1)}MB — immediate cleanup needed`);
+      } else if (stateSize > 1_000_000) {
+        console.warn(`[persist] ⚠ WARNING: State size ${(stateSize/1e6).toFixed(1)}MB — data URLs may be accumulating`);
+      }
+    } catch { /* size check is advisory only */ }
   } catch (err) {
     console.error('[persist] Save failed:', err);
   }
 }
 
+// ── Crash heartbeat: detect if previous session crashed ──
+const HEARTBEAT_KEY = '__direx_heartbeat';
+function setHeartbeat(): void {
+  try { localStorage.setItem(HEARTBEAT_KEY, Date.now().toString()); } catch {}
+}
+function clearHeartbeat(): void {
+  try { localStorage.removeItem(HEARTBEAT_KEY); } catch {}
+}
+export function wasPreviousCrash(): boolean {
+  try {
+    const prev = localStorage.getItem(HEARTBEAT_KEY);
+    if (!prev) return false;
+    // If heartbeat is older than 10s, previous session exited abnormally
+    return Date.now() - Number(prev) > 10_000;
+  } catch { return false; }
+}
+
 // ─── Load ────────────────────────────────────────
 export async function loadFromDB() {
+  // Crash sentinel: if previous session crashed, skip IndexedDB to avoid loading corrupt data
+  if (wasPreviousCrash()) {
+    console.warn('[persist] Previous session may have crashed — skipping IndexedDB, falling back to server');
+    clearHeartbeat();
+    return false;
+  }
   try {
     const cid = getCanvasId();
     const canvas = await db.canvases.get(cid);
@@ -133,6 +199,17 @@ export async function loadFromDB() {
 
     const dbNodes = await db.nodes.where({ canvasId: cid }).toArray();
     const dbEdges = await db.edges.where({ canvasId: cid }).toArray();
+
+    // Sanity check: reject nodes with massive data URLs (>1MB meta) that
+    // would crash the browser renderer. Falls back to server state.
+    for (const n of dbNodes) {
+      if (JSON.stringify(n.meta).length > 1_000_000) {
+        console.warn('[persist] Corrupted node, clearing IndexedDB, falling back to server');
+        await db.nodes.where({ canvasId: cid }).delete();
+        await db.edges.where({ canvasId: cid }).delete();
+        return false;
+      }
+    }
 
     // Populate nodes from DB only (fresh Map, no stale store data)
     const nodeMap = new Map();
@@ -190,18 +267,35 @@ if(typeof window!=='undefined'){(window as any).__direxStorage={getUsage:getStor
 
 // ─── Auto-save subscriber ────────────────────────
 export function startAutoSave() {
+  // ── Crash heartbeat ──
+  setHeartbeat();
+  // Refresh heartbeat every 5s while session is alive
+  const heartbeatInterval = setInterval(setHeartbeat, 5000);
+
   // Subscribe to store changes
   const unsub = useCanvasStore.subscribe(() => {
     scheduleSave();
   });
 
   // Save on page unload
-  const onUnload = () => saveNow();
+  const onUnload = () => { clearHeartbeat(); saveNow(); };
   window.addEventListener('beforeunload', onUnload);
 
+  // Also clear heartbeat on visibility hidden (tab close / navigation away)
+  const onHidden = () => {
+    if (document.visibilityState === 'hidden') {
+      clearHeartbeat();
+      saveNow();
+    }
+  };
+  document.addEventListener('visibilitychange', onHidden);
+
   return () => {
+    clearInterval(heartbeatInterval);
+    clearHeartbeat();
     unsub();
     window.removeEventListener('beforeunload', onUnload);
+    document.removeEventListener('visibilitychange', onHidden);
     if (saveTimer) clearTimeout(saveTimer);
   };
 }
