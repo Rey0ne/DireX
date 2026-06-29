@@ -170,11 +170,20 @@ export async function saveNow() {
     } catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
     getStorageUsage().then(u=>{if(u.pct>80)console.warn(`[persist] Storage: ${u.usedMB}MB / ${u.quotaMB}MB (${u.pct}%) — 接近上限`);});
-    // ── Health sentinel: detect bloated state before it corrupts ──
+    // ── Health sentinel: detect bloated state — auto-clean source to break save loop ──
     try {
       const stateSize = JSON.stringify({ nodes, edges }).length;
       if (stateSize > 5_000_000) {
-        console.error(`[persist] ⚠ CRITICAL: State size ${(stateSize/1e6).toFixed(1)}MB — immediate cleanup needed`);
+        console.error(`[persist] ⚠ CRITICAL: State size ${(stateSize/1e6).toFixed(1)}MB — auto-stripping data URLs from source`);
+        // Strip large data URLs from the ACTUAL store (not just serialized copy)
+        // This breaks the save loop: sanitizeMeta drops the field → next save it's gone
+        nodes.forEach(n => {
+          const cleanedMeta = sanitizeMeta(n.meta);
+          if (JSON.stringify(cleanedMeta) !== JSON.stringify(n.meta)) {
+            useCanvasStore.getState().updateNode(n.id, { meta: cleanedMeta as any });
+          }
+        });
+        console.log('[persist] Auto-cleaned bloated metadata — next save should be smaller');
       } else if (stateSize > 1_000_000) {
         console.warn(`[persist] ⚠ WARNING: State size ${(stateSize/1e6).toFixed(1)}MB — data URLs may be accumulating`);
       }
