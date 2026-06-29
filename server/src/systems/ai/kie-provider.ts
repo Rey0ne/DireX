@@ -396,7 +396,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   if (isKling) {
     // mode: "std" or "pro" (not resolution — that's a different param)
     inputParams.mode = 'std';
-    inputParams.duration = (req.duration || '5').replace('s', '');
+    inputParams.duration = String(req.duration || '5').replace('s', '');
     inputParams.multi_shots = false;
     inputParams.sound = req.generateAudio ?? false;
     if (req.characterOrientation) {
@@ -410,7 +410,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   // ── Seedance-specific params ──
   if (isSeedance) {
     if (req.duration) {
-      inputParams.duration = req.duration === 'auto' ? '-1' : req.duration.replace('s', '');
+      inputParams.duration = req.duration === 'auto' ? '-1' : String(req.duration).replace('s', '');
     }
     if (req.firstFrameUrl) {
       inputParams.first_frame_url = req.firstFrameUrl;
