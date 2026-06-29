@@ -477,7 +477,19 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     console.log(`[kie] Refs: ${validRefs.length}/${maxRefs} → ${isNanoBanana ? 'image_input' : 'input_urls'}`);
   }
 
-  if (req.maskImage) (body.input as any).mask_image = req.maskImage;
+  // Upload mask data URL to public hosting (same as reference images)
+  // Kie needs a public HTTP URL — client-generated data: URLs are not accessible
+  let maskUrl: string | undefined;
+  if (req.maskImage) {
+    if (typeof req.maskImage === 'string' && req.maskImage.startsWith('data:')) {
+      maskUrl = await uploadDataUrl(req.maskImage) || undefined;
+      if (maskUrl) console.log('[kie] Mask uploaded: ' + maskUrl.slice(0, 60));
+      else console.log('[kie] Mask upload FAILED');
+    } else {
+      maskUrl = req.maskImage;
+    }
+  }
+  if (maskUrl) (body.input as any).mask_image = maskUrl;
 
   const startTime = Date.now();
   const submitUrl = `${BASE_URL}/jobs/createTask`;

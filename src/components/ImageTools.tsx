@@ -138,9 +138,15 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   const [hasMask, setHasMask] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [inpaintPrompt, setInpaintPrompt] = useState('');
+  const [scale, setScale] = useState(1);          // zoom 1x–5x
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const isPanning = useRef(false);
+  const lastPan = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const undoStackRef = useRef<ImageData[]>([]);
+  const spaceHeld = useRef(false);
 
   const saveUndoState = () => {
     const canvas = canvasRef.current;
@@ -180,7 +186,10 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return {
+      x: (e.clientX - rect.left) / scale,
+      y: (e.clientY - rect.top) / scale,
+    };
   };
 
   const drawDot = (x: number, y: number) => {
@@ -196,12 +205,35 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Right button, Ctrl+left, or Space+left = pan (when zoomed)
+    if (e.button === 2 || (e.button === 0 && (e.ctrlKey || spaceHeld.current))) {
+      e.preventDefault();
+      if (scale <= 1) return;
+      isPanning.current = true;
+      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
+      lastPan.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
     saveUndoState(); // save state before this stroke
     setIsDrawing(true);
     drawDot(getPos(e).x, getPos(e).y);
   };
-  const handleMouseMove = (e: React.MouseEvent) => { if (isDrawing) drawDot(getPos(e).x, getPos(e).y); };
-  const handleMouseUp = () => { setIsDrawing(false); };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning.current) {
+      const dx = e.clientX - lastPan.current.x;
+      const dy = e.clientY - lastPan.current.y;
+      setPanX(p => p + dx);
+      setPanY(p => p + dy);
+      lastPan.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+    if (isDrawing) drawDot(getPos(e).x, getPos(e).y);
+  };
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    isPanning.current = false;
+    if (canvasRef.current) canvasRef.current.style.cursor = spaceHeld.current ? 'grab' : '';
+  };
 
   const clearMask = () => {
     const canvas = canvasRef.current;
@@ -211,18 +243,42 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     setHasMask(false);
   };
 
-  // Ctrl+Z undo for painting
+  // Keyboard: Ctrl+Z undo + Space pan toggle + Ctrl+0 reset zoom
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const onDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        spaceHeld.current = true;
+        if (canvasRef.current && scale > 1) canvasRef.current.style.cursor = 'grab';
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
         e.preventDefault();
         undo();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        setScale(1); setPanX(0); setPanY(0);
+      }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+    const onUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spaceHeld.current = false;
+        if (canvasRef.current) canvasRef.current.style.cursor = '';
+      }
+    };
+    // Also reset on blur (user Alt+Tabs while holding Space)
+    const onBlur = () => { spaceHeld.current = false; if (canvasRef.current) canvasRef.current.style.cursor = ''; };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [scale]);
 
   const handleSend = () => {
     if (isProcessing || !inpaintPrompt.trim()) return;
@@ -242,29 +298,52 @@ export function InpaintTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
           flex: 1, position: 'relative', background: '#111',
           borderRadius: 'var(--tap-r-lg)', overflow: 'hidden',
           minHeight: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        }} onContextMenu={e => e.preventDefault()}>
           {imageUrl ? (
             <>
-              <img ref={imgRef} src={imageUrl} alt="" onLoad={initCanvas}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none', pointerEvents: 'none' }}
-              />
-              <canvas ref={canvasRef}
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-                style={{
-                  position: 'absolute', pointerEvents: 'auto',
-                  cursor: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize}" height="${brushSize}"><circle cx="${brushSize/2}" cy="${brushSize/2}" r="${brushSize/2-1}" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="3,2"/></svg>') ${brushSize/2} ${brushSize/2}, crosshair`,
-                }}
-              />
-              <div style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
-                涂抹要修改的区域
+              {/* Scaled container — image + canvas under zoom transform */}
+              <div style={{
+                transform: `scale(${scale}) translate(${panX / scale}px, ${panY / scale}px)`,
+                transformOrigin: 'center center',
+                position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <img ref={imgRef} src={imageUrl} alt="" onLoad={initCanvas}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', userSelect: 'none', pointerEvents: 'none' }}
+                />
+                <canvas ref={canvasRef}
+                  onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+                  style={{
+                    position: 'absolute', pointerEvents: 'auto',
+                    cursor: scale > 1
+                      ? `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize}" height="${brushSize}"><circle cx="${brushSize/2}" cy="${brushSize/2}" r="${brushSize/2-1}" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="3,2"/></svg>') ${brushSize/2} ${brushSize/2}, crosshair`
+                      : `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize}" height="${brushSize}"><circle cx="${brushSize/2}" cy="${brushSize/2}" r="${brushSize/2-1}" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="3,2"/></svg>') ${brushSize/2} ${brushSize/2}, crosshair`,
+                  }}
+                />
               </div>
+              {/* Overlay: hint */}
+              <div style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none' }}>
+                涂抹要修改的区域{scale > 1 ? `  ·  ${Math.round(scale * 100)}%` : ''}
+              </div>
+              {/* Overlay: mask status */}
               {hasMask && (
                 <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '6px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--tap-success)', background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: '4px' }}>已标记</span>
                   <button onClick={clearMask} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>清除</button>
                 </div>
               )}
+              {/* Zoom controls — bottom-right */}
+              <div style={{ position: 'absolute', bottom: '8px', right: '8px', display: 'flex', gap: '2px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', overflow: 'hidden' }}>
+                <button onClick={() => { setScale(s => Math.max(0.5, s - 0.5)); setPanX(0); setPanY(0); }}
+                  disabled={scale <= 1}
+                  style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: scale <= 1 ? 'rgba(255,255,255,0.2)' : '#fff', cursor: scale <= 1 ? 'default' : 'pointer', fontSize: '14px', lineHeight: 1 }}>−</button>
+                <button onClick={() => { setScale(1); setPanX(0); setPanY(0); }}
+                  style={{ width: '30px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: scale === 1 ? 'rgba(255,255,255,0.3)' : '#fff', cursor: 'pointer', fontSize: '10px', lineHeight: 1, borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>{Math.round(scale * 100)}%</button>
+                <button onClick={() => { setScale(s => Math.min(5, s + 0.5)); }}
+                  disabled={scale >= 5}
+                  style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: scale >= 5 ? 'rgba(255,255,255,0.2)' : '#fff', cursor: scale >= 5 ? 'default' : 'pointer', fontSize: '14px', lineHeight: 1 }}>+</button>
+              </div>
             </>
           ) : (
             <span style={{ color: 'var(--tap-text-3)', fontSize: 'var(--tap-fs-meta)' }}>无图片</span>

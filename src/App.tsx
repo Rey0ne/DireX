@@ -1227,7 +1227,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       {(() => {
         const store = useCanvasStore.getState();
         const toolNode = activeToolNodeId ? store.nodes.get(activeToolNodeId) : null;
-        const imgUrl = (toolNode?.meta?.gen as any)?.imageUrl || undefined;
+        const gen = (toolNode?.meta?.gen as Record<string,unknown>) || {};
+        const imgUrl = (gen.imageUrl as string) || undefined;
         const closeTool = () => { setActiveImageTool(null); setActiveToolNodeId(null); setToolMode(null); };
         const applyTool = async (result: Record<string, unknown>) => {
           const node = activeToolNodeId ? store.nodes.get(activeToolNodeId) : null;
@@ -1255,26 +1256,26 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               const fullPrompt = `Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. ${prompt}`;
               try {
                 const maskUrl = (rObj.maskUrl as string) || undefined;
-                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl, maskImage: maskUrl } as any);
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl, maskImage: maskUrl, aspect: gen.aspect as string, resolution: gen.resolution as string } as any);
                 applyTool({ ...rObj, tool: 'inpaint', imageUrl: result.result.assetUrls?.[0] });
-              } catch(e) { closeTool(); }
+              } catch(e) { console.error('[inpaint] generate error:', e); closeTool(); }
             }} onClose={closeTool} />}
             {activeImageTool === 'relight' && <RelightTool imageUrl={imgUrl} onApply={async (r) => {
               const rObj = r as Record<string,unknown>;
               const fullPrompt = (rObj.prompt as string) || 'cinematic relighting';
               try {
-                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl } as any);
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: fullPrompt, referenceImage: imgUrl, aspect: gen.aspect as string, resolution: gen.resolution as string } as any);
                 applyTool({ ...rObj, tool: 'relight', imageUrl: result.result.assetUrls?.[0] });
-              } catch(e) { closeTool(); }
+              } catch(e) { console.error('[relight] generate error:', e); closeTool(); }
             }} onClose={closeTool} />}
             {activeImageTool === 'multiAngle' && <MultiAngleTool imageUrl={imgUrl} onApply={async (r) => {
               const { angles, count } = r as any;
               const angleList = (angles || ['front']).join(', ');
               const prompt = `generate ${count || 1} views from angles: ${angleList}, maintain subject consistency`;
               try {
-                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: prompt, referenceImage: imgUrl } as any);
+                const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: prompt, referenceImage: imgUrl, aspect: gen.aspect as string, resolution: gen.resolution as string } as any);
                 applyTool({ ...(r as Record<string,unknown>), tool: 'multiAngle', imageUrl: result.result.assetUrls?.[0] });
-              } catch(e) { closeTool(); }
+              } catch(e) { console.error('[multiAngle] generate error:', e); closeTool(); }
             }} onClose={closeTool} />}
           </>
         );

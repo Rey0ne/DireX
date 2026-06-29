@@ -2822,6 +2822,32 @@
       ],
       "cost": 0.1,
       "durationMs": 123884
+    },
+    {
+      "id": "3f349330-1bbd-4205-ab37-5f922149ca52",
+      "timestamp": "2026-06-29T16:04:12.960Z",
+      "providerId": "nano-banana",
+      "prompt": "Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. 孩子的脚小拇指有问题，重新生成指头",
+      "compiledPrompt": "Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. 孩子的脚小拇指有问题，重新生成指头",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/16b397517267cf9de575deae5e54a653_1782749021518.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 123512
+    },
+    {
+      "id": "263b9847-53e0-4a00-8c15-5bfab786d174",
+      "timestamp": "2026-06-29T16:29:16.992Z",
+      "providerId": "nano-banana",
+      "prompt": "Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. 图片中孩子右脚的小拇指有问题重新生成",
+      "compiledPrompt": "Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. 图片中孩子右脚的小拇指有问题重新生成",
+      "status": "succeeded",
+      "assetUrls": [
+        "https://tempfile.aiquickdraw.com/ggc/f6af7ded45dcf50d3ad86ba48fffe62e_1782750474802.png"
+      ],
+      "cost": 0.18,
+      "durationMs": 127321
     }
   ]
 }
