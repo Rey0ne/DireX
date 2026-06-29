@@ -1,4 +1,5 @@
 /* === Scene Diagnostics — 模型导入时自动分析性能指标 === */
+import type * as THREE from 'three';
 
 export interface ModelStats {
   fileName: string;
@@ -25,12 +26,6 @@ export interface ModelStats {
   estimatedGPUMemMB: number;     // 粗略估算
   /* ── Warnings ── */
   warnings: string[];
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes > 1_000_000) return (bytes / 1_000_000).toFixed(1) + 'MB';
-  if (bytes > 1_000) return (bytes / 1_000).toFixed(0) + 'KB';
-  return bytes + 'B';
 }
 
 function estimateGPUMem(stats: Pick<ModelStats, 'totalVertices' | 'totalTriangles' | 'totalTexturePixels'>): number {

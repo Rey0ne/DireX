@@ -89,7 +89,6 @@ interface ConnectCreateMenuProps {
 export function ConnectCreateMenu({ x, y, onSelect, onClose }: ConnectCreateMenuProps) {
   const menuW = 150;
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
   const left = x + menuW > vw ? x - menuW : x;
   const top = y - 200;
 

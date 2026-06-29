@@ -60,10 +60,6 @@ export const PROVIDER_IDS = [
   // Video
   'kling-video',
   'seedance-2',
-  // Stub
-  'flux-pro',
-  'jimeng-4.5',
-  'banana-pro',
 ] as const;
 
 export type ProviderId = typeof PROVIDER_IDS[number];
@@ -79,10 +75,7 @@ export function mapModelNameToProviderId(modelName: string): string {
     'Kling 2.1': 'kling-video',
     'Kling 3.0': 'kling-video',
     'Seedance 2.0': 'seedance-2',
-    // Legacy
-    'Flux Pro': 'flux-pro',
-    'Banana Pro': 'banana-pro',
-    '即梦 4.5': 'jimeng-4.5',
+    // Audio
     'Suno v4': 'suno-v4',
     'Udio': 'udio',
     'Stable Audio': 'stable-audio',
@@ -166,6 +159,13 @@ export interface AgentGenerateResult {
     taskId?: string;
     needsPoll?: boolean;
   };
+}
+
+export interface UserProfile {
+  userId: string;
+  email: string;
+  plan: 'free' | 'creator' | 'pro' | 'elite' | 'ultra' | 'pro_base' | 'pro_mid' | 'pro_high' | 'pro_pro' | 'pro_max';
+  credits: number;
 }
 
 export interface KeyStatus {

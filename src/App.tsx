@@ -20,7 +20,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
-import { loadFromDB, startAutoSave, saveNow } from './store/persistence';
+import { loadFromDB, loadFromServer, startAutoSave, saveNow } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
@@ -331,7 +331,13 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
     loadFromDB().then(restored => {
       if (!restored) {
-        // Fresh canvas — no demo nodes, user starts from scratch
+        // IndexedDB empty/corrupted — try server fallback
+        loadFromServer().then(serverRestored => {
+          if (!serverRestored) {
+            // Truly fresh canvas — user starts from scratch
+            console.log('[persist] Fresh canvas — no local or server data');
+          }
+        });
       }
     });
 
@@ -570,7 +576,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                 }
               }, 30000); // every 30 seconds
               // Cleanup after 30 minutes (video generation can take 15-25 min total)
-              setTimeout(() => { clearInterval(pollInterval); if (store.getNodeStatus(n.id) === 'running') store.setNodeStatus(n.id, 'failed'); }, 30 * 60 * 1000);
+              setTimeout(() => { clearInterval(pollInterval); if (useCanvasStore.getState().nodes.get(n.id)?.status === 'running') store.setNodeStatus(n.id, 'failed'); }, 30 * 60 * 1000);
             } else if (result.success) {
               store.setNodeStatus(n.id, 'succeeded');
               const compiledEn = agentResult.compiled?.en || '';
@@ -643,8 +649,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     });
 
     const nodeTypeMap = new Map(nodeList.map(n => [n.id, n.type]));
-    setRfEdges(prevEdges => {
-      const newIds = new Set(edgeList.map(e => e.id));
+    setRfEdges(_prevEdges => {
       return edgeList.map(e => {
         const fixed = fixEdgeHandles(e, nodeTypeMap);
         return {
@@ -1246,7 +1251,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             {activeImageTool === 'inpaint' && <InpaintTool imageUrl={imgUrl} onApply={async (r) => {
               const rObj = r as Record<string,unknown>;
               const prompt = (rObj.prompt as string) || 'inpaint repair restore';
-              const action = (rObj.action as string) || 'replace-mask';
               const fullPrompt = `Inpaint: only modify the masked/selected area. Keep everything outside the mask exactly as is. ${prompt}`;
               try {
                 const maskUrl = (rObj.maskUrl as string) || undefined;

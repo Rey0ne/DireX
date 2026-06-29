@@ -98,7 +98,6 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
     });
 
     if (!response.ok) {
-      const text = await response.text();
       return {
         compiled: { en: '', cn: '', negative: '', debug: [] },
         result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
@@ -157,7 +156,6 @@ export async function visualExtract(req: AgentGenerateRequest): Promise<AgentGen
     });
 
     if (!response.ok) {
-      const text = await response.text();
       return {
         compiled: { en: '', cn: '', negative: '', debug: [] },
         result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },

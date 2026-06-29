@@ -143,7 +143,31 @@ export async function saveNow() {
       });
 
     lastSaveTime = Date.now();
-    try { const stripDataUrls=(obj:any):any=>{if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(stripDataUrls);const c:any={};for(const k of Object.keys(obj)){const v=obj[k];if(typeof v==='string'&&v.startsWith('data:')&&v.length>1000){c[k]='';}else if(typeof v==='object'&&v!==null){c[k]=stripDataUrls(v);}else{c[k]=v;}}return c;};const nodesData=nodes.map(n=>({id:n.id,type:n.type,title:n.title,meta:stripDataUrls(n.meta)}));const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to}));fetch('/api/canvas/sync',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},body:JSON.stringify({nodes:nodesData,edges:edgesData})}).catch(()=>{});} catch {}
+    // Sync to server — include position/size/ports so server backup is useful for recovery
+    try {
+      const stripDataUrls=(obj:any):any=>{
+        if(!obj||typeof obj!=='object')return obj;
+        if(Array.isArray(obj))return obj.map(stripDataUrls);
+        const c:any={};for(const k of Object.keys(obj)){
+          const v=obj[k];
+          if(typeof v==='string'&&v.startsWith('data:')&&v.length>5000){c[k]='[stripped]';}
+          else if(typeof v==='object'&&v!==null){c[k]=stripDataUrls(v);}
+          else{c[k]=v;}
+        }return c;
+      };
+      const nodesData=nodes.map(n=>({
+        id:n.id,type:n.type,title:n.title,
+        pos:n.pos,size:n.size,ports:n.ports,status:n.status,
+        meta:stripDataUrls(n.meta),
+        createdAt:n.createdAt,updatedAt:n.updatedAt,
+      }));
+      const edgesData=edges.map(e=>({id:e.id,from:e.from,to:e.to,dataType:e.dataType,style:e.style,meta:e.meta}));
+      fetch('/api/canvas/sync',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},
+        body:JSON.stringify({nodes:nodesData,edges:edgesData}),
+      }).catch(()=>{});
+    } catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
     getStorageUsage().then(u=>{if(u.pct>80)console.warn(`[persist] Storage: ${u.usedMB}MB / ${u.quotaMB}MB (${u.pct}%) — 接近上限`);});
     // ── Health sentinel: detect bloated state before it corrupts ──
@@ -157,6 +181,13 @@ export async function saveNow() {
     } catch { /* size check is advisory only */ }
   } catch (err) {
     console.error('[persist] Save failed:', err);
+    // Notify user of save failure so they don't lose work silently
+    try {
+      const msg = err instanceof Error ? err.message : String(err);
+      (window as any).__direx_lastSaveError = { time: Date.now(), msg };
+      // Dispatch a custom event so the UI can show a toast
+      window.dispatchEvent(new CustomEvent('persist-save-failed', { detail: { error: msg } }));
+    } catch {}
   } finally {
     saveMutex = false;
   }
@@ -180,6 +211,52 @@ export function wasPreviousCrash(): boolean {
 }
 
 // ─── Load ────────────────────────────────────────
+// ─── Server fallback: restore canvas when IndexedDB is empty/corrupted ──
+export async function loadFromServer(): Promise<boolean> {
+  try {
+    const resp = await fetch('/api/canvas/state', {
+      headers: { Authorization: 'Bearer tapnow-dev-key' },
+    });
+    const json = await resp.json();
+    if (!json.nodes?.length) return false;
+
+    const nodeMap = new Map();
+    for (const n of json.nodes) {
+      nodeMap.set(n.id, {
+        id: n.id,
+        type: (n.type || 'shot') as any,
+        title: n.title || '',
+        pos: n.pos || { x: 0, y: 0 },
+        size: n.size || { width: 320, height: 200 },
+        ports: n.ports || [],
+        status: n.status || 'idle',
+        meta: n.meta || {},
+        createdAt: n.createdAt || new Date().toISOString(),
+        updatedAt: n.updatedAt || new Date().toISOString(),
+      });
+    }
+
+    const edgeMap = new Map();
+    for (const e of json.edges || []) {
+      edgeMap.set(e.id, {
+        id: e.id,
+        from: e.from || { nodeId: '', handle: 'out' },
+        to: e.to || { nodeId: '', handle: 'in' },
+        dataType: e.dataType || 'any',
+        style: e.style || {},
+        meta: e.meta || { semantic: 'dataflow' },
+      });
+    }
+
+    useCanvasStore.setState({ nodes: nodeMap, edges: edgeMap });
+    console.log('[persist] Restored from server:', json.nodes.length, 'nodes,', (json.edges||[]).length, 'edges');
+    return true;
+  } catch (err) {
+    console.error('[persist] Server fallback failed:', err);
+    return false;
+  }
+}
+
 export async function loadFromDB() {
   // Crash sentinel: if previous session crashed, skip IndexedDB to avoid loading corrupt data
   if (wasPreviousCrash()) {
@@ -192,8 +269,18 @@ export async function loadFromDB() {
     const canvas = await db.canvases.get(cid);
     if (!canvas) return false; // no saved data
 
-    const dbNodes = await db.nodes.where({ canvasId: cid }).toArray();
-    const dbEdges = await db.edges.where({ canvasId: cid }).toArray();
+    let dbNodes: any[], dbEdges: any[];
+    try {
+      dbNodes = await db.nodes.where({ canvasId: cid }).toArray();
+      dbEdges = await db.edges.where({ canvasId: cid }).toArray();
+    } catch (readErr: any) {
+      if (readErr.message?.includes('large') || readErr.message?.includes('IndexedDB') || readErr.name === 'DataError') {
+        console.warn('[persist] IndexedDB 数据损坏，自动清理...');
+        await clearAllData();
+        return false; // triggers loadFromServer fallback
+      }
+      throw readErr;
+    }
 
     // Sanity check: skip nodes with massive data URLs (>1MB meta) that
     // would crash the browser renderer. Filter them out instead of nuking all data.

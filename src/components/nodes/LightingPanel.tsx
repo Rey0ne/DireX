@@ -1,5 +1,4 @@
 /* === LightingPanel — 右侧灯光面板 (180px) === */
-import React from 'react';
 import { LIGHTING_PRESETS, type LightPresetId, type CinematicLightingState } from '../../data/lightingPresets';
 
 interface Props {

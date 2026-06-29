@@ -242,12 +242,9 @@ app.post('/api/canvas/sync', (req, res) => {
   res.json({ ok: true });
 });
 app.get('/api/canvas/state', (_req, res) => {
-  const imgNodes = (canvasState.nodes as any[]).filter((n: any) => n.type?.includes('image') || n.type === 'scene.3d');
   res.json({
-    totalNodes: canvasState.nodes.length,
-    totalEdges: canvasState.edges.length,
-    imageCount: imgNodes.length,
-    cachedImages: imageCache.size,
+    nodes: canvasState.nodes || [],
+    edges: canvasState.edges || [],
     updatedAt: canvasState.updatedAt,
   });
 });

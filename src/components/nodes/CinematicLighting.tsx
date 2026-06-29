@@ -1,5 +1,5 @@
 /* === CinematicLighting — 电影灯光系统 R3F 组件 === */
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -116,7 +116,7 @@ export function CinematicLighting({ state }: Props) {
         <Environment
           preset={environment.preset as any}
           environmentIntensity={environment.intensity}
-          environmentBlur={environment.blur}
+          blur={environment.blur as number}
           background={false}
         />
       )}

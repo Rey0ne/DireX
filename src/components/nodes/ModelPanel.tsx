@@ -1,6 +1,5 @@
 /* === ModelPanel — 底部模型区 === */
 import React, { useState } from 'react';
-import { poseRegistry } from './Scene3DNode';
 
 interface Props {
   objects: any[];

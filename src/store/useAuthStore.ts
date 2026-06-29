@@ -1,6 +1,6 @@
 /* === Auth Store — User login state === */
 import { create } from 'zustand';
-import type { UserProfile } from '../../../shared/api-types.js';
+import type { UserProfile } from '../../shared/api-types.js';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || '';
 const STORAGE_KEY = 'direx_auth';

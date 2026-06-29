@@ -22,9 +22,30 @@ export function requireUser(req: Request, res: Response, next: NextFunction) {
   } catch { res.status(401).json({ error: 'Invalid user token' }); }
 }
 
+// Routes that don't require Bearer token auth
+const PUBLIC_ROUTES = [
+  '/api/health',
+  '/api/download',
+  '/api/proxy-image',
+  '/api/last-compiled',
+  '/admin',
+  '/api/kie-callback',
+  '/api/auth',
+  '/api/agent/script',
+  '/api/agent/generate',
+  '/api/agent/visual-extract',
+  '/api/tripo/',
+  '/api/task/',
+  '/api/models/',
+];
+
+function isPublicRoute(path: string): boolean {
+  return PUBLIC_ROUTES.some(r => path === r || path.startsWith(r + '/'));
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Skip auth for public routes
-  if (!req.path.startsWith('/api/') || req.path === '/api/health' || req.path === '/api/download' || req.path === '/api/proxy-image' || req.path === '/api/last-compiled' || req.path.startsWith('/admin') || req.path === '/api/kie-callback' || req.path.startsWith('/api/auth') || req.path.startsWith('/api/agent/script') || req.path.startsWith('/api/agent/generate') || req.path.startsWith('/api/agent/visual-extract') || req.path.startsWith('/api/tripo/') || req.path.startsWith('/api/task/') || req.path.startsWith('/api/models/')) return next();
+  // Skip auth for non-API routes and public API routes
+  if (!req.path.startsWith('/api/') || isPublicRoute(req.path)) return next();
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

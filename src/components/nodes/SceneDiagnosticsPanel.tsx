@@ -1,5 +1,4 @@
 /* === SceneStatsPanel — 场景诊断面板 UI === */
-import React from 'react';
 import type { ModelStats, SceneSummary } from './SceneDiagnostics';
 
 const BAR_COLORS = { ok: '#44cc88', warn: '#ccaa44', bad: '#cc4444' };
@@ -18,9 +17,6 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export function ModelDiagnosticsPanel({ stats }: { stats: ModelStats }) {
-  const triColor = stats.totalTriangles > 1_000_000 ? BAR_COLORS.bad : stats.totalTriangles > 200_000 ? BAR_COLORS.warn : BAR_COLORS.ok;
-  const dcColor = stats.estimatedDrawCalls > 30 ? BAR_COLORS.bad : stats.estimatedDrawCalls > 10 ? BAR_COLORS.warn : BAR_COLORS.ok;
-
   return (
     <div style={{ padding: '4px 0', width:'100%' }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', marginBottom: 4, wordBreak: 'break-all' }}>

@@ -12,7 +12,6 @@ export type NodeType =
   | 'audio.generate'
   | 'world.3d'
   | 'scene.3d'
-  | 'scene.3d.babylon'
   | 'tripo.3d';
 
 export interface Port {

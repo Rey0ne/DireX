@@ -347,7 +347,6 @@ export function RelightTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   const r = sphereSize / 2 - 10;
   const dotX = r * Math.cos(vRad) * Math.sin(hRad);
   const dotY = -r * Math.sin(vRad);
-  const dotZ = r * Math.cos(vRad) * Math.cos(hRad);
 
   // Map light direction → thumbnail 3D rotation (top-right view for perspective presets)
   // ── 3D orthographic projection of wireframe (uses view angle, NOT light angle) ──
@@ -1043,9 +1042,3 @@ const applyBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const modeBtnStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: '6px',
-  height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-sm)',
-  fontSize: 'var(--tap-fs-meta)', cursor: 'pointer', border: 'none',
-  transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-};
