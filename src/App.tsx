@@ -41,19 +41,18 @@ import { VideoGenerateNode } from './components/nodes/VideoGenerateNode';
 import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
 import { Tripo3DNode } from './components/nodes/Tripo3DNode';
-import { withNodeErrorBoundary } from './components/nodes/NodeErrorBoundary';
 import { ScissorEdge } from './components/edges/ScissorEdge';
 
 // ─── Node type registry (memoize to survive HMR) ──
 import { useMemo as _useMemo } from 'react';
 const useNodeTypes = () => _useMemo<NodeTypes>(() => ({
-  shot: withNodeErrorBoundary(ShotNode),
-  'image.generate': withNodeErrorBoundary(ImageGenerateNode),
-  'image.editor': withNodeErrorBoundary(ImageGenerateNode),
-  'video.generate': withNodeErrorBoundary(VideoGenerateNode),
-  'audio.generate': withNodeErrorBoundary(AudioGenerateNode),
-  'scene.3d': withNodeErrorBoundary(Scene3DNode),
-  'tripo.3d': withNodeErrorBoundary(Tripo3DNode),
+  shot: ShotNode,
+  'image.generate': ImageGenerateNode,
+  'image.editor': ImageGenerateNode,
+  'video.generate': VideoGenerateNode,
+  'audio.generate': AudioGenerateNode,
+  'scene.3d': Scene3DNode,
+  'tripo.3d': Tripo3DNode,
 } as unknown as NodeTypes), []);
 const useEdgeTypes = () => _useMemo(() => ({ default: ScissorEdge }), []);
 
@@ -356,24 +355,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     const forceSync = currentTick !== syncTickRef.current;
 
     if (!nodeStructureChanged && !edgeStructureChanged && !forceSync) return;
-
-    // ── Render sentinel: detect sync loops (more than 60 syncs/sec = stuck in loop) ──
-    const RENDER_SENTINEL_THRESHOLD = 60;
-    const renderCountRef = (useCanvasStore as any).__renderCountRef;
-    if (!renderCountRef) {
-      const ref = { count: 0, windowStart: Date.now() };
-      (useCanvasStore as any).__renderCountRef = ref;
-    }
-    const rc = (useCanvasStore as any).__renderCountRef;
-    rc.count++;
-    const elapsed = Date.now() - rc.windowStart;
-    if (elapsed >= 1000) {
-      if (rc.count > RENDER_SENTINEL_THRESHOLD) {
-        console.error(`[sentinel] ⚠ RENDER LOOP DETECTED: ${rc.count} syncs/sec — possible infinite re-render cycle`);
-      }
-      rc.count = 0;
-      rc.windowStart = Date.now();
-    }
 
     prevNodeIdsRef.current = nodeList.map(n => n.id).sort().join(',');
     prevEdgeIdsRef.current = edgeList.map(e => e.id).sort().join(',');
