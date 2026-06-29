@@ -85,7 +85,8 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   // Refs
   const [firstFrame, setFirstFrame] = useState<string | null>(gen.firstFrameUrl || null);
   const [lastFrame, setLastFrame] = useState<string | null>(gen.lastFrameUrl || null);
-  const [multiFrames] = useState<string[]>(gen.multiFrames || []);
+  // Derived directly from gen — no local state (setter was never called, dead code)
+  const multiFrames = (gen.multiFrames || []) as string[];
   const [fullRefs, setFullRefs] = useState<Record<string, string | null>>(gen.fullRefs || {
     'image-style': null, 'video-motion': null, 'audio-rhythm': null,
   });
@@ -142,33 +143,41 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const r = new FileReader();
     const refType = e.target.dataset.refType || '';
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const isVid = ext === 'mp4' || ext === 'webm' || ext === 'mov';
+    // Use createObjectURL for video files to avoid base64 OOM (>14MB)
+    // Images still use base64 for persistence across refresh
+    if (isVid && file.size > 5 * 1024 * 1024) {
+      const url = URL.createObjectURL(file);
+      const u = { ...fullRefs, [refType || 'video-motion']: url };
+      setFullRefs(u); patch('fullRefs', u);
+      e.target.value = '';
+      return;
+    }
+    const r = new FileReader();
     r.onload = () => {
       const url = r.result as string;
-      const ext = file.name.split('.').pop()?.toLowerCase() || '';
-      const isVid = ext === 'mp4' || ext === 'webm' || ext === 'mov';
       if (refType) {
         const u = { ...fullRefs, [refType]: url };
         setFullRefs(u); patch('fullRefs', u);
       } else if (genMode === 'multi-ref') {
-        // Seedance multimodal: auto-detect image/video, store to fullRefs
         const refKey = isVid ? 'video-motion' : 'image-style';
         const u = { ...fullRefs, [refKey]: url };
         setFullRefs(u); patch('fullRefs', u);
       } else if (genMode === 'i2v') {
-        // Single first-frame image
         setFirstFrame(url); patch('firstFrameUrl', url);
       } else if (genMode === 'i2v-fl') {
         if (!firstFrame) { setFirstFrame(url); patch('firstFrameUrl', url); }
         else { setLastFrame(url); patch('lastFrameUrl', url); }
       }
     };
+    r.onerror = () => { console.error('[VideoGen] FileReader failed:', file.name); };
     r.readAsDataURL(file);
     e.target.value = '';
   };
 
-  const DropBtn = ({ v, picker }: { v: string; picker: string }) => {
+  const DropBtn = useCallback(({ v, picker }: { v: string; picker: string }) => {
     const hov = open === picker;
     return (
     <span onClick={e => {
@@ -180,7 +189,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
       onMouseLeave={e => { if (!hov) { e.currentTarget.style.background = 'transparent'; } }}
     >{v}</span>
-  );};
+  );}, [open]);
 
   return (
     <>
@@ -221,7 +230,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)', backgroundSize: selected ? '250% 250%' : undefined, animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
-              <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Main video load failed:', data.videoUrl?.slice(0, 60))} />
             ) : (
               <div style={{ textAlign: 'center', opacity: 0.25 }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><polygon points="5,3 19,12 5,21" /></svg>
@@ -251,7 +260,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             {Object.entries(fullRefs).filter(([,v]) => v).map(([k, v]) => (
               <div key={k} title={k} style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
                 {k === 'video-motion'
-                  ? <video src={v!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <video src={v!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Ref video load failed')} />
                   : <img src={v!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               </div>
             ))}
