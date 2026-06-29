@@ -7,13 +7,13 @@ import { readJSON, writeJSON } from './systems/db/store.js';
 import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
-import { submitTask, pollTask, downloadModel as downloadTripoModel, checkRig, submitRig, retargetAnimation } from './systems/ai/tripo-provider.js';
+import { submitTask, pollTask, downloadModel as downloadTripoModel } from './systems/ai/tripo-provider.js';
 import { authMiddleware } from './middleware/auth.js';
 import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
-import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5 } from './systems/agent/pipeline.js';
+import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5, parseShotBlocks } from './systems/agent/pipeline.js';
 import { gpt5Chat } from './systems/ai/gemini.js';
 import { compileVideoPrompt } from './systems/agent/video-analyzer.js';
 import { pollStoredTask, initVideoTask, uploadDataUrl } from './systems/ai/kie-provider.js';
@@ -138,35 +138,6 @@ app.post('/api/tripo/save-model', async (req, res) => {
     const relPath = '/api/models/' + path.basename(dest);
     const stat = fs.statSync(dest);
     res.json({ success: true, path: relPath, name: safeName + '.' + ext, size: stat.size });
-  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
-});
-
-// ─── Tripo3D Rig & Animation Routes ─────────────
-app.post('/api/tripo/rig-check', async (req, res) => {
-  try {
-    const { input } = req.body;
-    if (!input) { res.status(400).json({ success: false, error: 'Missing input (task_id, file_token, or URL)' }); return; }
-    const result = await checkRig(input);
-    res.json({ success: true, task_id: result.task_id });
-  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
-});
-
-app.post('/api/tripo/rig', async (req, res) => {
-  try {
-    const { input, model, rig_type, spec, out_format } = req.body;
-    if (!input) { res.status(400).json({ success: false, error: 'Missing input (task_id or file_token)' }); return; }
-    const result = await submitRig({ input, model, rig_type, spec, out_format });
-    res.json({ success: true, task_id: result.task_id });
-  } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
-});
-
-app.post('/api/tripo/retarget', async (req, res) => {
-  try {
-    const { input, animation, animations, out_format, bake_animation, export_with_geometry, animate_in_place } = req.body;
-    if (!input) { res.status(400).json({ success: false, error: 'Missing input (rigged task_id)' }); return; }
-    if (!animation && !animations?.length) { res.status(400).json({ success: false, error: 'Missing animation or animations' }); return; }
-    const result = await retargetAnimation({ input, animation, animations, out_format, bake_animation, export_with_geometry, animate_in_place });
-    res.json({ success: true, task_id: result.task_id });
   } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
 });
 
@@ -745,7 +716,7 @@ app.post('/api/agent/script/scene', async (req, res) => {
   if (!scene && !scriptExcerpt) { res.status(400).json({ error: 'Missing scene data' }); return; }
   try {
     const result = await runAgentPipeline({ userInput: scriptExcerpt || scene.summary || '', model: 'text', mode: 'script-analysis' });
-    const shots = parseShotsFromOutput(result.fullPromptOutput || result.storyboard);
+    const shots = parseShotBlocks(result.fullPromptOutput || result.storyboard);
     res.json({ success: true, shots });
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });

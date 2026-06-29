@@ -1021,7 +1021,7 @@ export async function runScriptAnalysis(
   };
 }
 
-function parseShotBlocks(output: string): ScriptAnalysisResult['shots'] {
+export function parseShotBlocks(output: string): ScriptAnalysisResult['shots'] {
   const shots: ScriptAnalysisResult['shots'] = [];
 
   // Find the storyboard section
