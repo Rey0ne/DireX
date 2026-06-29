@@ -149,7 +149,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
   const gen = data.gen || {};
   const panelRef = useRef<HTMLDivElement>(null);
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention((data as any).refUrls, data.styleImageUrl);
-  const [hovered] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
   const [currentModel, setCurrentModel] = useState(gen.model || 'Suno v4');
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '60s');
@@ -283,7 +283,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
           100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
         }
       `}</style>
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>AUDIO</div>
         <Handle type="target" position={Position.Left} id="audio-in"
@@ -335,7 +336,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                         <span style={{ color: 'var(--tap-text-3)', fontSize: '10px', flexShrink: 0, minWidth: '28px', textAlign: 'center' }}>
                           {assets.length > 1 ? `#${i + 1}` : '♪'}
                         </span>
-                        <audio src={url} controls style={{ flex: 1, height: '32px' }} />
+                        <audio src={url} controls style={{ flex: 1, height: '32px' }} onError={() => console.warn('[AudioGen] Audio load failed:', url?.slice(0, 60))} />
                       </div>
                     ))}
                   </div>
