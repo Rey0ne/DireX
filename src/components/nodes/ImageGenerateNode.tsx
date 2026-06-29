@@ -237,7 +237,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [modelChipRect, setModelChipRect] = useState<DOMRect | null>(null);
   const [ratioChipRect, setRatioChipRect] = useState<DOMRect | null>(null);
   const [resolutionChipRect, setResolutionChipRect] = useState<DOMRect | null>(null);
-  const [styleImgUrl, setStyleImgUrl] = useState<string | null>(data.gen?.styleImageUrl as string || null);
+  const [styleImgUrl, setStyleImgUrl] = useState<string | null>(
+    (data.gen?.styleImageUrl as string) || (data.styleImageUrl as string) || null
+  );
 
   // ─── Crop state ────────────────────────────────
   const CROP_RATIOS = [
@@ -302,10 +304,18 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
       const w = entries[0].contentRect.width;
       const [rw, rh] = currentAspect.split(':').map(Number);
       if (rw && rh && w > 100) setImgHeight(Math.round(w * rh / rw));
+      // Persist manual CSS resize width to store
+      if (w > 0) {
+        const store = useCanvasStore.getState();
+        const node = store.nodes.get(id);
+        if (node && Math.abs((node.size?.w || 380) - w) > 5) {
+          store.updateNode(id, { size: { w, h: node.size?.h || 200 } });
+        }
+      }
     });
     ro.observe(cardRef.current);
     return () => ro.disconnect();
-  }, [currentAspect]);
+  }, [currentAspect, id]);
 
   // ─── Crop: initialize rect when entering crop mode ──
   useEffect(() => {
@@ -472,6 +482,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
   const handleCropApply = useCallback(() => {
     setCropError(null);
+    setCropSuccess(false);
     const img = imgRef.current;
     const container = cardRef.current;
     console.log('[crop] handleCropApply called. img:', !!img, 'container:', !!container);
@@ -589,6 +600,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     patch('focalLength', FOCALS[focalIdx]);
     patch('aperture', APERTURES[apertureIdx].v);
     patch('filmStock', FILM_STOCKS[filmIdx].name);
+    patch('imgCount', imgCount);
     // onGenerate is async but we fire-and-forget — button stays ⏳ until node remounts with imageUrl
     Promise.resolve(data.onGenerate?.()).finally(() => {
       genRunningRef.current = false;
@@ -609,7 +621,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   };
 
   const toolbarActions = [
-    { icon: 'crop-svg', label: '裁切', shortcut: 'C', onClick: () => { console.log('[crop] toolbar button clicked, onCropStart:', !!data.onCropStart); data.onCropStart?.(); } },
+    { icon: 'crop-svg', label: '裁切', shortcut: 'C', onClick: () => { setCropSuccess(false); setCropError(null); data.onCropStart?.(); } },
     { icon: '⊿', label: '多角度', shortcut: 'A', onClick: () => data.onOpenTool?.('multiAngle') },
     { icon: '◐', label: '重绘', shortcut: 'B', onClick: () => data.onOpenTool?.('inpaint') },
     { icon: 'relight-svg', label: '打光', shortcut: 'L', onClick: () => data.onOpenTool?.('relight') },
