@@ -50,7 +50,7 @@ function BabylonView({objects,selectedId,onSelect,gizmoMode,onMoved,fullscreen,o
           const src=obj.figureSrc||`/models/${obj.figurePose||'stand1'}.fbx`;
           const root=new Mesh(obj.id,scene);
           meshMap.current.set(obj.id,root);
-          SceneLoader.ImportMesh('','',src,scene,(meshes)=>{meshes.forEach(m=>{if(m!==meshes[0])m.setParent(root);});root.position.set(...obj.position);});
+          SceneLoader.ImportMesh('','',src,scene,(meshes)=>{if(!mounted)return;meshes.forEach(m=>{if(m!==meshes[0])m.setParent(root);});root.position.set(...obj.position);});
         }else{
           mesh=createPrimitive(obj,scene);
           meshMap.current.set(obj.id,mesh);
@@ -64,6 +64,7 @@ function BabylonView({objects,selectedId,onSelect,gizmoMode,onMoved,fullscreen,o
     const canvas=cRef.current;if(!canvas)return;
     const engine=new Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true});
     const scene=new Scene(engine);
+    let mounted=true; // abort flag for async SceneLoader callbacks
     sceneRef.current=scene;
     scene.clearColor=new Color4(0.5,0.5,0.5,1);
     scene.actionManager=new ActionManager(scene);
@@ -96,7 +97,7 @@ function BabylonView({objects,selectedId,onSelect,gizmoMode,onMoved,fullscreen,o
     gizmo.clearGizmoOnEmptyPointerEvent=true;
 
     // Click to select
-    scene.onPointerObservable.add(evt=>{
+    const pointerObserver=scene.onPointerObservable.add(evt=>{
       if(evt.type===3){ // POINTERDOWN (not on gizmo)
         if(evt.pickInfo?.hit&&evt.pickInfo.pickedMesh){
           let m=evt.pickInfo.pickedMesh;
@@ -111,6 +112,7 @@ function BabylonView({objects,selectedId,onSelect,gizmoMode,onMoved,fullscreen,o
       const url=URL.createObjectURL(file);
       const name=file.name.replace(/\.fbx$/i,'');
       SceneLoader.ImportMesh('','',url,scene,(meshes)=>{
+        if(!mounted)return;
         const root=new Mesh(name,scene);
         meshes.forEach(m=>{if(m!==meshes[0])m.setParent(root);});
         root.position.set((Math.random()-0.5)*2,0,(Math.random()-0.5)*2);
@@ -126,7 +128,18 @@ function BabylonView({objects,selectedId,onSelect,gizmoMode,onMoved,fullscreen,o
 
     engine.runRenderLoop(()=>scene.render());
     const onR=()=>engine.resize();window.addEventListener('resize',onR);
-    return()=>{window.removeEventListener('resize',onR);document.removeEventListener('dragover',onDocDr);document.removeEventListener('drop',onDocDp);engine.dispose();};
+    return()=>{
+      window.removeEventListener('resize',onR);
+      document.removeEventListener('dragover',onDocDr);
+      document.removeEventListener('drop',onDocDp);
+      mounted=false;
+      engine.stopRenderLoop();
+      gizmo.dispose();
+      scene.onPointerObservable.remove(pointerObserver);
+      if(scene.actionManager)scene.actionManager.dispose();
+      scene.dispose();
+      engine.dispose();
+    };
   },[]);
 
   // Gizmo mode
@@ -252,7 +265,7 @@ export function Scene3DBabylonNode({selected}:{selected?:boolean}){
       <div style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,0.06)',fontSize:11,color:'rgba(255,255,255,0.4)',fontWeight:600,display:'flex',justifyContent:'space-between'}}>
         <span>🧪 Babylon 3D</span>{selected&&<button onClick={()=>setFs(true)} style={{padding:'3px 10px',borderRadius:5,fontSize:10,background:'rgba(100,140,255,0.1)',border:'1px solid rgba(100,140,255,0.2)',color:'rgba(140,170,255,0.8)',cursor:'pointer'}}>⛶ 全屏</button>}
       </div>
-      <BabylonView objects={objects} selectedId={selId} onSelect={setSelId} gizmoMode={gizmo} onMoved={onMoved} fullscreen={false} onClose={()=>{}}/>
+      {!fs && <BabylonView objects={objects} selectedId={selId} onSelect={setSelId} gizmoMode={gizmo} onMoved={onMoved} fullscreen={false} onClose={()=>{}}/>}
       <div style={{display:'flex',gap:3,padding:'4px 8px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
         <Tb label="📦" onClick={()=>addObj('box')}/><Tb label="🔵" onClick={()=>addObj('sphere')}/><Tb label="🥫" onClick={()=>addObj('cylinder')}/><Tb label="◻" onClick={()=>addObj('plane')}/><Tb label="🧍" onClick={()=>addObj('figure')}/>
         <span style={{flex:1}}/>
