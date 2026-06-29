@@ -14,6 +14,7 @@ function getCanvasId(): string {
 // ─── Save ────────────────────────────────────────
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSaveTime = 0;
+let saveMutex = false;          // prevent concurrent saveNow() calls
 const MIN_SAVE_INTERVAL = 3000; // min 3s between saves to avoid drag-lag
 const SAVE_DEBOUNCE = 1000;     // debounce 1s after last change
 
@@ -53,6 +54,13 @@ function sanitizeMeta(obj: unknown): unknown {
 }
 
 export async function saveNow() {
+  // ── Mutex guard: skip if a save is already in flight ──
+  if (saveMutex) {
+    // Re-schedule so pending changes aren't lost
+    if (!saveTimer) saveTimer = setTimeout(() => saveNow(), SAVE_DEBOUNCE);
+    return;
+  }
+  saveMutex = true;
   try {
     const state = useCanvasStore.getState();
     const nodes = Array.from(state.nodes.values());
@@ -81,72 +89,57 @@ export async function saveNow() {
           updatedAt: new Date().toISOString(),
         });
 
-        // Nodes — clear and repopulate
-        await db.nodes.where({ canvasId: cid }).delete();
-        for (const n of nodes) {
-          await db.nodes.put({
-            id: n.id,
-            canvasId: cid,
-            type: n.type,
-            title: n.title,
-            pos: n.pos,
-            size: n.size,
-            ports: n.ports,
-            status: n.status,
-            meta: sanitizeMeta(n.meta) as Record<string, unknown>,
-            createdAt: n.createdAt,
-            updatedAt: n.updatedAt,
-          });
-        }
+        // Nodes — bulkPut first, then delete orphans (safe: crash won't lose data)
+        const nodeRows = nodes.map(n => ({
+          id: n.id, canvasId: cid, type: n.type, title: n.title,
+          pos: n.pos, size: n.size, ports: n.ports, status: n.status,
+          meta: sanitizeMeta(n.meta) as Record<string, unknown>,
+          createdAt: n.createdAt, updatedAt: n.updatedAt,
+        }));
+        if (nodeRows.length > 0) await db.nodes.bulkPut(nodeRows);
+        const currentNodeIds = new Set(nodes.map(n => n.id));
+        const storedNodeIds = await db.nodes.where({ canvasId: cid }).primaryKeys();
+        const orphanNodes = storedNodeIds.filter(id => !currentNodeIds.has(id));
+        if (orphanNodes.length > 0) await db.nodes.bulkDelete(orphanNodes);
 
-        // Edges — clear and repopulate
-        await db.edges.where({ canvasId: cid }).delete();
-        for (const e of edges) {
-          await db.edges.put({
-            id: e.id,
-            canvasId: cid,
-            from: e.from,
-            to: e.to,
-            dataType: e.dataType,
-            style: e.style,
-            meta: e.meta,
-            updatedAt: new Date().toISOString(),
-          });
-        }
+        // Edges — same safe pattern
+        const edgeRows = edges.map(e => ({
+          id: e.id, canvasId: cid, from: e.from, to: e.to,
+          dataType: e.dataType, style: e.style, meta: e.meta,
+          updatedAt: new Date().toISOString(),
+        }));
+        if (edgeRows.length > 0) await db.edges.bulkPut(edgeRows);
+        const currentEdgeIds = new Set(edges.map(e => e.id));
+        const storedEdgeIds = await db.edges.where({ canvasId: cid }).primaryKeys();
+        const orphanEdges = storedEdgeIds.filter(id => !currentEdgeIds.has(id));
+        if (orphanEdges.length > 0) await db.edges.bulkDelete(orphanEdges);
 
-        // Assets
-        for (const a of assets) {
-          await db.assets.put({
-            id: a.id,
-            projectId: pid,
-            type: a.type,
-            uri: a.uri,
-            variants: a.variants,
-            lineage: a.lineage,
-            meta: a.meta,
-            createdAt: a.createdAt,
-            updatedAt: a.updatedAt,
-          });
+        // Assets — bulkPut then clean orphans
+        if (assets.length > 0) {
+          await db.assets.bulkPut(assets.map(a => ({
+            id: a.id, projectId: pid, type: a.type, uri: a.uri,
+            variants: a.variants, lineage: a.lineage, meta: a.meta,
+            createdAt: a.createdAt, updatedAt: a.updatedAt,
+          })));
         }
+        const currentAssetIds = new Set(assets.map(a => a.id));
+        const storedAssetIds = await db.assets.where({ projectId: pid }).primaryKeys();
+        const orphanAssets = storedAssetIds.filter(id => !currentAssetIds.has(id));
+        if (orphanAssets.length > 0) await db.assets.bulkDelete(orphanAssets);
 
-        // Jobs
-        for (const j of jobs) {
-          await db.jobs.put({
-            id: j.id,
-            projectId: pid,
-            kind: j.kind,
-            nodeId: j.nodeId,
-            toolId: j.toolId,
-            input: j.input,
-            output: j.output,
-            status: j.status,
-            cost: j.cost,
-            durationMs: j.durationMs,
-            logs: j.logs,
-            createdAt: j.createdAt,
-            updatedAt: j.updatedAt,
-          });
+        // Jobs — same pattern
+        if (jobs.length > 0) {
+          await db.jobs.bulkPut(jobs.map(j => ({
+            id: j.id, projectId: pid, kind: j.kind, nodeId: j.nodeId,
+            toolId: j.toolId, input: j.input, output: j.output,
+            status: j.status, cost: j.cost, durationMs: j.durationMs,
+            logs: j.logs, createdAt: j.createdAt, updatedAt: j.updatedAt,
+          })));
         }
+        const currentJobIds = new Set(jobs.map(j => j.id));
+        const storedJobIds = await db.jobs.where({ projectId: pid }).primaryKeys();
+        const orphanJobs = storedJobIds.filter(id => !currentJobIds.has(id));
+        if (orphanJobs.length > 0) await db.jobs.bulkDelete(orphanJobs);
       });
 
     lastSaveTime = Date.now();
@@ -164,6 +157,8 @@ export async function saveNow() {
     } catch { /* size check is advisory only */ }
   } catch (err) {
     console.error('[persist] Save failed:', err);
+  } finally {
+    saveMutex = false;
   }
 }
 
@@ -200,20 +195,25 @@ export async function loadFromDB() {
     const dbNodes = await db.nodes.where({ canvasId: cid }).toArray();
     const dbEdges = await db.edges.where({ canvasId: cid }).toArray();
 
-    // Sanity check: reject nodes with massive data URLs (>1MB meta) that
-    // would crash the browser renderer. Falls back to server state.
-    for (const n of dbNodes) {
+    // Sanity check: skip nodes with massive data URLs (>1MB meta) that
+    // would crash the browser renderer. Filter them out instead of nuking all data.
+    const skippedNodes: string[] = [];
+    const safeNodes = dbNodes.filter(n => {
       if (JSON.stringify(n.meta).length > 1_000_000) {
-        console.warn('[persist] Corrupted node, clearing IndexedDB, falling back to server');
-        await db.nodes.where({ canvasId: cid }).delete();
-        await db.edges.where({ canvasId: cid }).delete();
+        skippedNodes.push(n.id);
         return false;
       }
+      return true;
+    });
+    if (skippedNodes.length > 0) {
+      console.warn(`[persist] ${skippedNodes.length} node(s) have bloated meta (>1MB), skipped: ${skippedNodes.join(', ')}`);
+      // Clean up the bloated nodes from IndexedDB
+      await db.nodes.bulkDelete(skippedNodes);
     }
 
     // Populate nodes from DB only (fresh Map, no stale store data)
     const nodeMap = new Map();
-    for (const n of dbNodes) {
+    for (const n of safeNodes) {
       nodeMap.set(n.id, {
         id: n.id,
         type: n.type as 'shot' | 'image.generate' | 'image.editor' | 'video.generate' | 'world.3d',
@@ -241,14 +241,54 @@ export async function loadFromDB() {
       });
     }
 
+    // Populate assets from DB (project-scoped, not canvas-scoped)
+    const pid = getProjectId();
+    const assetMap = new Map();
+    const dbAssets = await db.assets.where({ projectId: pid }).toArray();
+    for (const a of dbAssets) {
+      assetMap.set(a.id, {
+        id: a.id,
+        type: a.type,
+        uri: a.uri,
+        variants: (a.variants || []) as [],
+        lineage: (a.lineage || null) as ({ parentId: string; toolId: string; jobId: string } | null),
+        meta: (a.meta || {}) as { prompt?: string; model?: string; seed?: number; width?: number; height?: number; exif?: Record<string, unknown> },
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      });
+    }
+
+    // Populate jobs from DB
+    const jobMap = new Map();
+    const dbJobs = await db.jobs.where({ projectId: pid }).toArray();
+    for (const j of dbJobs) {
+      jobMap.set(j.id, {
+        id: j.id,
+        kind: j.kind,
+        nodeId: j.nodeId,
+        toolId: j.toolId,
+        input: (j.input || {}) as Record<string, unknown>,
+        output: (j.output || null) as Record<string, unknown> | null,
+        status: j.status,
+        cost: j.cost,
+        durationMs: j.durationMs,
+        logs: (j.logs || []) as string[],
+        createdAt: j.createdAt,
+        updatedAt: j.updatedAt,
+      });
+    }
+
     // Set viewport
     useCanvasStore.setState({
       nodes: nodeMap,
       edges: edgeMap,
+      assets: assetMap,
+      jobs: jobMap,
       viewport: canvas.viewport,
     });
 
-    console.log('[persist] Restored', dbNodes.length, 'nodes,', dbEdges.length, 'edges');
+    console.log('[persist] Restored', dbNodes.length, 'nodes,', dbEdges.length, 'edges,',
+      dbAssets.length, 'assets,', dbJobs.length, 'jobs');
     return true;
   } catch (err) {
     console.error('[persist] Load failed:', err);
@@ -277,15 +317,20 @@ export function startAutoSave() {
     scheduleSave();
   });
 
-  // Save on page unload
-  const onUnload = () => { clearHeartbeat(); saveNow(); };
+  // Save on page unload — clear debounce timer, skip if save already in-flight
+  const onUnload = () => {
+    clearHeartbeat();
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (!saveMutex) saveNow(); // if mutex held, in-flight IndexedDB tx will complete
+  };
   window.addEventListener('beforeunload', onUnload);
 
-  // Also clear heartbeat on visibility hidden (tab close / navigation away)
+  // Also save on visibility hidden (tab close / navigation away — more time than beforeunload)
   const onHidden = () => {
     if (document.visibilityState === 'hidden') {
       clearHeartbeat();
-      saveNow();
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      if (!saveMutex) saveNow();
     }
   };
   document.addEventListener('visibilitychange', onHidden);

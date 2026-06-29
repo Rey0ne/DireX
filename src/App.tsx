@@ -371,6 +371,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       }
     });
 
+    if (nodeStructureChanged || edgeStructureChanged) {
     setRfNodes(prevNodes => {
       const prevPos = new Map(prevNodes.map(n => [n.id, n.position]));
       const storeSel = new Set(useCanvasStore.getState().selectedNodeIds);
@@ -656,6 +657,34 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         nodeList.some(n => n.id === e.source) && nodeList.some(n => n.id === e.target)
       );
     });
+    } else {
+    // ── Light update: syncTick-only, preserve callback references ──
+    // Only update mutable data fields; onChange/onGenerate/onFullscreen/onOpenTool
+    // and crop callbacks stay stable, preventing React Flow from re-rendering every node.
+    setRfNodes(prevNodes => prevNodes.map(rf => {
+      const sn = nodeList.find(n => n.id === rf.id);
+      if (!sn) return rf;
+      return {
+        ...rf,
+        data: {
+          ...rf.data,
+          title: sn.title,
+          status: sn.status,
+          gen: sn.meta?.gen || defaultGenMeta,
+          shot: sn.meta?.shot || defaultShotMeta,
+          imageUrl: (sn.meta?.gen as Record<string, unknown>)?.imageUrl as string || undefined,
+          videoUrl: (sn.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
+          hasConnections: edgeList.some(e => e.from.nodeId === sn.id || e.to.nodeId === sn.id),
+          refUrls: refUrlsMap.get(sn.id)?.slice(0, 20) || [],
+          isConnecting,
+          isPickMode: useCanvasStore.getState().pendingConnection !== null,
+          isPickTarget: sn.id === useCanvasStore.getState().pendingConnection,
+          isCropping: cropNodeId === sn.id,
+        },
+        selected: useCanvasStore.getState().selectedNodeIds.includes(rf.id),
+      };
+    }));
+    }
   }, [setRfNodes, setRfEdges, nodesMap, edgeCount, syncTick]);
 
   // ─── Multi-select state ───

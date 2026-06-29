@@ -61,9 +61,9 @@ export interface GraphState {
   redo: () => void;
 }
 
-let _nextId = 1;
 function uid(prefix: string): string {
-  return `${prefix}-${Date.now()}-${_nextId++}`;
+  // Use crypto.randomUUID() to avoid HMR counter reset → ID collisions
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
 function now(): string {
@@ -131,6 +131,9 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   },
 
   updateNode(id, patch) {
+    // ── Undo: push history for non-position changes (pos is handled by onNodeDragStop) ──
+    const meaningfulChange = Object.keys(patch).some(k => k !== 'pos' && k !== 'updatedAt');
+    if (meaningfulChange) get().pushHistory();
     // ── Write guard: reject data that would corrupt the canvas ──
     if (patch.meta) {
       for (const [k, v] of Object.entries(patch.meta)) {
@@ -184,6 +187,7 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
   },
 
   setNodeStatus(id, status) {
+    get().pushHistory();
     set(s => {
       const existing = s.nodes.get(id);
       if (!existing) return s;
