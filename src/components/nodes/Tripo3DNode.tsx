@@ -129,8 +129,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const [rigSpec, setRigSpec] = useState<'tripo' | 'mixamo'>('tripo');
   const [rigModelVer, setRigModelVer] = useState('v2.5-20260210');
   const [selectedAnim, setSelectedAnim] = useState('preset:idle');
-  const [animatedUrl, setAnimatedUrl] = useState('');
-  const [rigPollingRef, setRigPollingRef] = useState<ReturnType<typeof setInterval> | null>(null);
+  const rigPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showRigPanel, setShowRigPanel] = useState(false);
 
   const RIG_TYPES = ['biped', 'quadruped', 'hexapod', 'octopod', 'avian', 'serpentine', 'aquatic'] as const;
@@ -158,9 +157,14 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       const json = await resp.json();
       if (!json.success) { setRigStatus('idle'); setError(json.error); return; }
       setRigTaskId(json.task_id);
+      // Clear any previous rig polling before starting new
+      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
       // Poll for result
+      const pollStart = Date.now();
+      const POLL_TIMEOUT = 300_000; // 5 min
       const iv = setInterval(async () => {
         try {
+          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('idle'); setError('Rig-check 超时'); return; }
           const pr = await fetch(`/api/tripo/task/${json.task_id}`);
           if (!pr.ok) { clearInterval(iv); setRigStatus('idle'); setError('Rig-check 过期'); return; }
           const pj = await pr.json();
@@ -174,7 +178,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           }
         } catch { /* retry */ }
       }, 2000);
-      setRigPollingRef(iv);
+      rigPollingRef.current = iv;
     } catch (e: any) { setRigStatus('idle'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, taskId, modelUrl]);
 
@@ -190,8 +194,13 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       const json = await resp.json();
       if (!json.success) { setRigStatus('checked'); setError(json.error); return; }
       setRigTaskId(json.task_id);
+      // Clear any previous rig polling before starting new
+      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
+      const pollStart = Date.now();
+      const POLL_TIMEOUT = 300_000; // 5 min
       const iv = setInterval(async () => {
         try {
+          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('checked'); setError('绑骨超时'); return; }
           const pr = await fetch(`/api/tripo/task/${json.task_id}`);
           if (!pr.ok) { clearInterval(iv); setRigStatus('checked'); setError('绑骨任务过期'); return; }
           const pj = await pr.json();
@@ -205,7 +214,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           }
         } catch { /* retry */ }
       }, 2000);
-      setRigPollingRef(iv);
+      rigPollingRef.current = iv;
     } catch (e: any) { setRigStatus('checked'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, riggable, taskId, rigModelVer, rigType, rigSpec]);
 
@@ -221,14 +230,19 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       const json = await resp.json();
       if (!json.success) { setRigStatus('rigged'); setError(json.error); return; }
       const animTaskId = json.task_id;
+      // Clear any previous rig polling before starting new
+      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
+      const pollStart = Date.now();
+      const POLL_TIMEOUT = 300_000; // 5 min
       const iv = setInterval(async () => {
         try {
+          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('rigged'); setError('动画重定向超时'); return; }
           const pr = await fetch(`/api/tripo/task/${animTaskId}`);
           if (!pr.ok) { clearInterval(iv); setRigStatus('rigged'); setError('动画任务过期'); return; }
           const pj = await pr.json();
           if (pj.status === 'success') {
             clearInterval(iv);
-            if (pj.output?.model_url) { setAnimatedUrl(pj.output.model_url); setModelUrl(pj.output.model_url); }
+            if (pj.output?.model_url) { setModelUrl(pj.output.model_url); }
             if (pj.output?.rendered_image_url) setRenderedUrl(pj.output.rendered_image_url);
             setRigStatus('done');
           } else if (['failed','cancelled','expired'].includes(pj.status)) {
@@ -236,12 +250,12 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           }
         } catch { /* retry */ }
       }, 2000);
-      setRigPollingRef(iv);
+      rigPollingRef.current = iv;
     } catch (e: any) { setRigStatus('rigged'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, rigTaskId, selectedAnim]);
 
-  // Cleanup rig polling
-  useEffect(() => () => { if (rigPollingRef) clearInterval(rigPollingRef); }, [rigPollingRef]);
+  // Cleanup rig polling on unmount
+  useEffect(() => () => { if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; } }, []);
 
   // Dropdown state
   const [open, setOpen] = useState<string | null>(null);
@@ -326,8 +340,17 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       setTaskId(tid);
       setProgress(5);
 
+      const pollStart = Date.now();
+      const POLL_TIMEOUT = 600_000; // 10 min
       pollingRef.current = setInterval(async () => {
         try {
+          // Timeout guard — stop polling if exceeded
+          if (Date.now() - pollStart > POLL_TIMEOUT) {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setStatus('idle'); setError('生成超时（10分钟）');
+            return;
+          }
           const pr = await fetch(`/api/tripo/task/${tid}`);
           if (!pr.ok) { // 400/404 → task expired, stop
             if (pollingRef.current) clearInterval(pollingRef.current);
@@ -970,7 +993,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                                   style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
                                   {animList.map(a => <option key={a} value={a}>{a.replace('preset:', '').replace('quadruped:','').replace('hexapod:','').replace('octopod:','').replace('serpentine:','').replace('aquatic:','')}</option>)}
                                 </select>
-                                <button onClick={handleRetarget} disabled={rigStatus === 'animating'}
+                                <button onClick={handleRetarget}
                                   style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(250,204,21,0.3)', background: 'rgba(250,204,21,0.1)', color: '#facc15', cursor: 'pointer', fontSize: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   ▶ 应用
                                 </button>
