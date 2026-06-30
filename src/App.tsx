@@ -32,7 +32,7 @@ import { CreditPanel } from './components/CreditPanel';
 import { useAuthStore } from './store/useAuthStore';
 import { AgentPanel } from './components/AgentPanel';
 import { AgentToggleButton } from './components/AgentToggleButton';
-import { InpaintTool, RelightTool, MultiAngleTool } from './components/ImageTools';
+import { InpaintTool, RelightTool, MultiAngleTool, ExpandTool, ExtractTool } from './components/ImageTools';
 import { FullscreenImage } from './components/FullscreenImage';
 import { ZoomSlider } from './components/ZoomSlider';
 import { ShotNode } from './components/nodes/ShotNode';
@@ -850,9 +850,9 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
   // ─── Tool mode ──────────────────────────────────
   const handleToolSelect = useCallback((tool: ToolMode) => {
-    const modalTools: Record<string, string> = { crop: 'crop', inpaint: 'inpaint', relight: 'relight', multiAngle: 'multiAngle' };
+    const modalTools: Record<string, string> = { crop: 'crop', inpaint: 'inpaint', relight: 'relight', multiAngle: 'multiAngle', expand: 'expand', extract: 'extract' };
     if (tool === 'select') { setToolMode(null); setActiveImageTool(null); }
-    else if (tool in modalTools) { setToolMode(tool as 'crop' | 'inpaint' | 'relight' | 'multiAngle'); setActiveImageTool(tool); }
+    else if (tool in modalTools) { setToolMode(tool as 'crop' | 'inpaint' | 'relight' | 'multiAngle' | 'expand' | 'extract'); setActiveImageTool(tool); }
     else { setToolMode(tool); setActiveImageTool(null); }
   }, [setToolMode]);
 
@@ -878,6 +878,18 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       }
       if (e.key === 'b' || e.key === 'B') { handleToolSelect('inpaint'); return; }
       if (e.key === 'l' || e.key === 'L') { handleToolSelect('relight'); return; }
+      if (e.key === 'e' || e.key === 'E') {
+        const store = useCanvasStore.getState();
+        const sid = store.selectedNodeIds[0];
+        if (sid) { setActiveToolNodeId(sid); handleToolSelect('expand'); }
+        return;
+      }
+      if (e.key === 'x' || e.key === 'X') {
+        const store = useCanvasStore.getState();
+        const sid = store.selectedNodeIds[0];
+        if (sid) { setActiveToolNodeId(sid); handleToolSelect('extract'); }
+        return;
+      }
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         const vp = useCanvasStore.getState().viewport;
@@ -1170,7 +1182,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             const store = useCanvasStore.getState();
             const selectedIds = store.selectedNodeIds;
             // For tool commands, open the tool with the selected node's image
-            if (['crop','inpaint','relight','multiAngle'].includes(cmd)) {
+            if (['crop','inpaint','relight','multiAngle','expand','extract'].includes(cmd)) {
               if (selectedIds.length === 1) {
                 const node = store.nodes.get(selectedIds[0]);
                 const imgUrl = (node?.meta?.gen as any)?.imageUrl;
@@ -1276,6 +1288,38 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                 const result = await generateWithAgent({ providerId: getNodeProviderId(store, activeToolNodeId), mode: 'image-to-image', rawText: prompt, referenceImage: imgUrl, aspect: gen.aspect as string, resolution: gen.resolution as string } as any);
                 applyTool({ ...(r as Record<string,unknown>), tool: 'multiAngle', imageUrl: result.result.assetUrls?.[0] });
               } catch(e) { console.error('[multiAngle] generate error:', e); closeTool(); }
+            }} onClose={closeTool} />}
+            {activeImageTool === 'expand' && <ExpandTool imageUrl={imgUrl} onApply={async (r) => {
+              const rObj = r as Record<string,unknown>;
+              const prompt = (rObj.prompt as string) || '';
+              const fullPrompt = `Outpainting: seamlessly extend the image outward beyond its original borders. Fill the new expanded areas with content that naturally continues the scene — matching the exact style, lighting, perspective, colors, and level of detail of the original image. The transition between old and new content must be invisible. ${prompt}`;
+              try {
+                const result = await generateWithAgent({
+                  providerId: getNodeProviderId(store, activeToolNodeId),
+                  mode: 'image-to-image',
+                  rawText: fullPrompt,
+                  referenceImage: (rObj.compositeUrl || imgUrl) as string,
+                  maskImage: (rObj.maskUrl) as string,
+                  aspect: gen.aspect as string,
+                  resolution: gen.resolution as string,
+                } as any);
+                applyTool({ ...rObj, tool: 'expand', imageUrl: result.result.assetUrls?.[0] });
+              } catch(e) { console.error('[expand] generate error:', e); closeTool(); }
+            }} onClose={closeTool} />}
+            {activeImageTool === 'extract' && <ExtractTool imageUrl={imgUrl} onApply={async (r) => {
+              const rObj = r as Record<string,unknown>;
+              const extractPrompt = (rObj.extractPrompt as string) || 'Background removal: remove the background on a white background';
+              try {
+                const result = await generateWithAgent({
+                  providerId: getNodeProviderId(store, activeToolNodeId),
+                  mode: 'image-to-image',
+                  rawText: extractPrompt,
+                  referenceImage: imgUrl,
+                  aspect: gen.aspect as string,
+                  resolution: gen.resolution as string,
+                } as any);
+                applyTool({ ...rObj, tool: 'extract', imageUrl: result.result.assetUrls?.[0] });
+              } catch(e) { console.error('[extract] generate error:', e); closeTool(); }
             }} onClose={closeTool} />}
           </>
         );

@@ -1048,6 +1048,277 @@ export function MultiAngleTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   );
 }
 
+// ─── Expand Tool ───────────────────────────────────
+export function ExpandTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
+  const [expandTop, setExpandTop] = useState(20);
+  const [expandBottom, setExpandBottom] = useState(20);
+  const [expandLeft, setExpandLeft] = useState(20);
+  const [expandRight, setExpandRight] = useState(20);
+  const [lockAspect, setLockAspect] = useState(false);
+  const [expandPrompt, setExpandPrompt] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
+
+  const setAll = (v: number) => {
+    setExpandTop(v); setExpandBottom(v); setExpandLeft(v); setExpandRight(v);
+  };
+
+  const handleSlider = (dir: string, v: number) => {
+    if (lockAspect) { setAll(v); return; }
+    if (dir === 'top') setExpandTop(v);
+    else if (dir === 'bottom') setExpandBottom(v);
+    else if (dir === 'left') setExpandLeft(v);
+    else setExpandRight(v);
+  };
+
+  // Load image dimensions
+  useEffect(() => {
+    if (!imageUrl) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => setImgSize(null);
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  const newW = imgSize ? imgSize.w + Math.round(imgSize.w * (expandLeft + expandRight) / 100) : null;
+  const newH = imgSize ? imgSize.h + Math.round(imgSize.h * (expandTop + expandBottom) / 100) : null;
+
+  const createCompositeAndMask = (): Promise<{ compositeUrl: string; maskUrl: string } | null> => {
+    if (!imageUrl) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const tp = Math.round(h * expandTop / 100);
+        const bp = Math.round(h * expandBottom / 100);
+        const lp = Math.round(w * expandLeft / 100);
+        const rp = Math.round(w * expandRight / 100);
+        const nw = w + lp + rp;
+        const nh = h + tp + bp;
+        // Clamp to 4096 max side
+        let scale = 1;
+        const MAX = 4096;
+        if (nw > MAX || nh > MAX) {
+          scale = Math.min(MAX / nw, MAX / nh);
+        }
+        const fw = Math.round(nw * scale);
+        const fh = Math.round(nh * scale);
+        const flp = Math.round(lp * scale);
+        const ftp = Math.round(tp * scale);
+        const fsw = Math.round(w * scale);
+        const fsh = Math.round(h * scale);
+
+        // Composite: padded canvas with original centered
+        const compCanvas = document.createElement('canvas');
+        compCanvas.width = fw;
+        compCanvas.height = fh;
+        const compCtx = compCanvas.getContext('2d')!;
+        compCtx.fillStyle = '#000000';
+        compCtx.fillRect(0, 0, fw, fh);
+        compCtx.drawImage(img, flp, ftp, fsw, fsh);
+
+        // Mask: white = keep original, black = generate new
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = fw;
+        maskCanvas.height = fh;
+        const maskCtx = maskCanvas.getContext('2d')!;
+        maskCtx.fillStyle = '#000000';
+        maskCtx.fillRect(0, 0, fw, fh);
+        maskCtx.fillStyle = '#FFFFFF';
+        maskCtx.fillRect(flp, ftp, fsw, fsh);
+
+        const compositeUrl = compCanvas.toDataURL('image/png');
+        const maskUrl = maskCanvas.toDataURL('image/png');
+        resolve({ compositeUrl, maskUrl });
+      };
+      img.onerror = () => resolve(null);
+      img.src = imageUrl;
+    });
+  };
+
+  const handleSend = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    const result = await createCompositeAndMask();
+    if (!result) { setIsProcessing(false); return; }
+    onApply({ tool: 'expand', prompt: expandPrompt, compositeUrl: result.compositeUrl, maskUrl: result.maskUrl });
+  };
+
+  return (
+    <ToolOverlay title="扩图" onClose={onClose}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {/* Image preview */}
+        <div style={{
+          flex: 1, position: 'relative', background: '#111',
+          borderRadius: 'var(--tap-r-lg)', overflow: 'hidden',
+          minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {imageUrl ? (
+            <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+              <img ref={imgRef} src={imageUrl} alt=""
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', opacity: 0.7 }}
+              />
+              {/* Expansion border preview */}
+              {imgSize && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  // Scale the border from native px to rendered %
+                  borderTop: `${expandTop / (100 + expandTop + expandBottom) * 100}% solid rgba(0,200,255,0.25)`,
+                  borderBottom: `${expandBottom / (100 + expandTop + expandBottom) * 100}% solid rgba(0,200,255,0.25)`,
+                  borderLeft: `${expandLeft / (100 + expandLeft + expandRight) * 100}% solid rgba(0,200,255,0.25)`,
+                  borderRight: `${expandRight / (100 + expandLeft + expandRight) * 100}% solid rgba(0,200,255,0.25)`,
+                  pointerEvents: 'none',
+                  boxSizing: 'border-box',
+                }} />
+              )}
+            </div>
+          ) : (
+            <span style={{ color: 'var(--tap-text-3)', fontSize: 'var(--tap-fs-meta)' }}>无图片</span>
+          )}
+        </div>
+
+        {/* Expansion sliders */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', padding: '10px 0', flexShrink: 0 }}>
+          {[
+            { dir: 'top', val: expandTop, label: '上' },
+            { dir: 'bottom', val: expandBottom, label: '下' },
+            { dir: 'left', val: expandLeft, label: '左' },
+            { dir: 'right', val: expandRight, label: '右' },
+          ].map(({ dir, val, label }) => (
+            <div key={dir} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--tap-text-4)', minWidth: '14px' }}>{label}</span>
+              <input type="range" min={0} max={50} value={val}
+                onChange={e => handleSlider(dir, Number(e.target.value))}
+                style={{ flex: 1, accentColor: 'var(--tap-accent)', height: '4px' }}
+              />
+              <span style={{ fontSize: '11px', color: 'var(--tap-text-3)', minWidth: '28px', textAlign: 'right' }}>{val}%</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Lock checkbox + target size */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 8px', flexShrink: 0 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--tap-text-3)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={lockAspect} onChange={e => { setLockAspect(e.target.checked); if (e.target.checked) setAll(expandTop); }} />
+            等比扩展
+          </label>
+          {newW && newH && (
+            <span style={{ fontSize: '11px', color: 'var(--tap-text-3)' }}>
+              预期 {newW} × {newH}
+            </span>
+          )}
+        </div>
+
+        {/* Prompt + send */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '8px 12px', flexShrink: 0,
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 'var(--tap-r-lg)',
+        }}>
+          <textarea
+            value={expandPrompt}
+            onChange={e => setExpandPrompt(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+            placeholder="描述要在扩展区域生成的内容…（可选）"
+            rows={2}
+            style={{
+              flex: 1, background: 'transparent', border: 'none',
+              padding: '6px 0', fontSize: 'var(--tap-fs-body)',
+              color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
+              lineHeight: 1.5,
+            }}
+          />
+          <button onClick={handleSend} disabled={isProcessing}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
+              background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: isProcessing ? '16px' : '13px',
+              cursor: isProcessing ? 'wait' : 'pointer', border: 'none',
+              animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
+            }}
+          >{isProcessing ? '⏳' : '↑'}</button>
+        </div>
+      </div>
+    </ToolOverlay>
+  );
+}
+
+// ─── Extract Tool ───────────────────────────────────
+const EXTRACT_MODES = [
+  { id: 'auto', label: '自动识别', prompt: 'Background removal: completely remove the background from this image. Identify and isolate ALL main subjects — people, objects, products, animals, characters — on a pure white (#FFFFFF) background. Keep every subject 100% intact: preserve all details, textures, edges, hair strands, clothing folds, product engravings, shadows on the subject itself, reflections, and fine details. Do not modify, crop, resize, or alter the subjects in any way. Only change the background to clean white.' },
+  { id: 'person', label: '人物', prompt: 'Background removal: completely remove the background. Isolate ONLY the person/people in this image on a pure white (#FFFFFF) background. Keep them 100% intact — preserve facial features, skin texture, hair strands, clothing details, accessories, and natural shadows on the body. Remove everything else including objects, furniture, scenery. Do not modify or crop the person.' },
+  { id: 'product', label: '道具/产品', prompt: 'Background removal: completely remove the background. Isolate ONLY the main product/object/prop on a pure white (#FFFFFF) background. Keep it 100% intact — preserve all edges, textures, labels, engravings, reflections, product details, and drop shadows on the object itself. Remove all other items and the background. Do not modify, crop, or resize the product.' },
+];
+
+export function ExtractTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
+  const [mode, setMode] = useState('auto');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const activeMode = EXTRACT_MODES.find(m => m.id === mode) || EXTRACT_MODES[0];
+
+  const handleExtract = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    onApply({ tool: 'extract', mode: activeMode.id, extractPrompt: activeMode.prompt });
+  };
+
+  return (
+    <ToolOverlay title="抠图" onClose={onClose}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {/* Image preview */}
+        <div style={{
+          flex: 1, position: 'relative', background: '#111',
+          borderRadius: 'var(--tap-r-lg)', overflow: 'hidden',
+          minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {imageUrl ? (
+            <img src={imageUrl} alt=""
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+            />
+          ) : (
+            <span style={{ color: 'var(--tap-text-3)', fontSize: 'var(--tap-fs-meta)' }}>无图片</span>
+          )}
+        </div>
+
+        {/* Mode selector */}
+        <div style={{ display: 'flex', gap: '8px', padding: '12px 0', flexShrink: 0 }}>
+          {EXTRACT_MODES.map(m => (
+            <button key={m.id} onClick={() => setMode(m.id)}
+              style={{
+                flex: 1, padding: '8px 0', borderRadius: 'var(--tap-r-sm)',
+                background: mode === m.id ? 'var(--tap-accent)' : 'rgba(255,255,255,0.06)',
+                color: mode === m.id ? '#fff' : 'var(--tap-text-2)',
+                fontSize: '13px', fontWeight: mode === m.id ? 600 : 400,
+                cursor: 'pointer', border: mode === m.id ? '1px solid var(--tap-accent)' : '1px solid rgba(255,255,255,0.08)',
+                transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+              }}
+            >{m.label}</button>
+          ))}
+        </div>
+
+        {/* Extract button */}
+        <button onClick={handleExtract} disabled={isProcessing}
+          style={{
+            width: '100%', padding: '10px 0', borderRadius: 'var(--tap-r-lg)', flexShrink: 0,
+            background: isProcessing ? 'var(--tap-warning)' : 'var(--tap-accent)',
+            color: '#fff', fontWeight: 600, fontSize: '14px',
+            cursor: isProcessing ? 'wait' : 'pointer', border: 'none',
+            animation: isProcessing ? 'tap-pulse-glow 1.5s ease infinite' : 'none',
+          }}
+        >{isProcessing ? '提取中...' : '提取主体'}</button>
+      </div>
+    </ToolOverlay>
+  );
+}
+
 // ─── Shared ToolOverlay ────────────────────────────
 function ToolOverlay({ title, children, onClose }: {
   title: string;
