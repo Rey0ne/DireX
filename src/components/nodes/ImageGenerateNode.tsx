@@ -481,7 +481,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [cropError, setCropError] = useState<string | null>(null);
   const [cropSuccess, setCropSuccess] = useState(false);
 
-  const handleCropApply = useCallback(() => {
+  const handleCropApply = useCallback(async () => {
     setCropError(null);
     setCropSuccess(false);
     const img = imgRef.current;
