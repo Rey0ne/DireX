@@ -329,8 +329,9 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
   useEffect(() => {
     // Only relevant for brand-new canvases: prevents loadFromServer fallback
     // from resurrecting old project data (server stores one global canvasState)
+    // NOTE: flag NOT removed here — React StrictMode double-invokes effects,
+    // so removing it on first run would let the second run hit the fallback.
     const isNewCanvas = localStorage.getItem('tapnow-new-canvas') === '1';
-    if (isNewCanvas) localStorage.removeItem('tapnow-new-canvas');
 
     const existing = Array.from(nodesMap.values());
     if (existing.length > 0) return;
@@ -1387,6 +1388,7 @@ export default function App() {
 
   const handleSelectProject = useCallback((projectId: string) => {
     localStorage.setItem('tapnow-current-project', projectId);
+    localStorage.removeItem('tapnow-new-canvas'); // clean up new-canvas flag
     useCanvasStore.setState({ nodes: new Map(), edges: new Map(), selectedNodeIds: [] });
     setCurrentProjectId(projectId);
   }, []);
@@ -1394,6 +1396,7 @@ export default function App() {
   const handleGoHome = useCallback(async () => {
     await saveNow(); // Force save before navigating away
     localStorage.removeItem('tapnow-current-project');
+    localStorage.removeItem('tapnow-new-canvas'); // clean up new-canvas flag
     setCurrentProjectId(null);
   }, []);
 
