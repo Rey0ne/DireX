@@ -249,6 +249,19 @@ app.get('/api/canvas/state', (_req, res) => {
   });
 });
 
+// ─── File Upload (data URL → public URL) ──────
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { dataUrl } = req.body;
+    if (!dataUrl || typeof dataUrl !== 'string') return res.status(400).json({ error: 'Missing dataUrl' });
+    const url = await uploadDataUrl(dataUrl);
+    if (!url) return res.status(500).json({ error: 'Upload to catbox failed' });
+    res.json({ url });
+  } catch (e: any) {
+    res.status(500).json({ error: String(e).slice(0, 200) });
+  }
+});
+
 // ─── Keys ─────────────────────────────────────
 app.get('/api/keys', (_req, res) => {
   const hidden = getHiddenKeys();
