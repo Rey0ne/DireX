@@ -138,8 +138,14 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     octopod: '八足生物', avian: '鸟类/有翼', serpentine: '蛇形', aquatic: '鱼类/水生',
   };
   const ANIM_PRESETS: Record<string, string[]> = {
-    'v2.5-20260210': ['preset:idle','preset:walk','preset:run','preset:dive','preset:climb','preset:jump','preset:slash','preset:shoot','preset:hurt','preset:fall','preset:turn','preset:quadruped:walk','preset:hexapod:walk','preset:octopod:walk','preset:serpentine:march','preset:aquatic:march'],
-    'v1.0-20240301': [
+    'v2.5-20260210': [
+      // ── Standard motions ──
+      'preset:idle','preset:walk','preset:run','preset:jump','preset:fall','preset:turn',
+      'preset:dive','preset:climb','preset:slash','preset:shoot','preset:hurt',
+      // ── Creature motions ──
+      'preset:quadruped:walk','preset:hexapod:walk','preset:octopod:walk',
+      'preset:serpentine:march','preset:aquatic:march',
+      // ── Biped library (101) ──
       'preset:biped:afraid','preset:biped:agree','preset:biped:angry_01','preset:biped:angry_02','preset:biped:angry_03',
       'preset:biped:basketball_shot','preset:biped:bow','preset:biped:box_01','preset:biped:box_02','preset:biped:box_03',
       'preset:biped:cast_a_spell','preset:biped:cheer','preset:biped:chop','preset:biped:clap','preset:biped:climb',
