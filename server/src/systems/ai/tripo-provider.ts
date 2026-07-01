@@ -88,27 +88,31 @@ export async function submitTask(req: TripoRequest): Promise<{ task_id: string }
   return { task_id: json.data.task_id };
 }
 
-// ─── Poll ────────────────────────────────────────
-export async function pollTask(taskId: string, intervalMs = 2000, timeoutMs = 300000): Promise<TripoTaskResult> {
+// ─── Single check (no loop — frontend handles interval) ──
+export async function checkTask(taskId: string): Promise<TripoTaskResult> {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('Tripo API Key not configured');
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    await new Promise(r => setTimeout(r, intervalMs));
-    const resp = await tripoFetch(`${BASE_URL}/tasks/${taskId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    const json = await resp.json();
-    if (json.code !== 0) throw new Error(`Tripo poll error: ${json.message}`);
-    const task = json.data;
-    if (task.status === 'success') {
-      return { task_id: task.task_id, status: 'success', progress: 100, output: task.output, credits_consumed: task.credits_consumed };
-    }
-    if (['failed','cancelled','banned','expired'].includes(task.status)) {
-      return { task_id: task.task_id, status: task.status, progress: task.progress||0, error: `Task ${task.status}` };
-    }
+  const resp = await tripoFetch(`${BASE_URL}/tasks/${taskId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  const json = await resp.json();
+  if (json.code !== 0) throw new Error(`Tripo poll error (${json.code}): ${json.message}`);
+  const task = json.data;
+  // Capture full error details from Tripo3D
+  let error: string | undefined;
+  if (['failed','cancelled','banned','expired'].includes(task.status)) {
+    const detail = task.error || task.message || task.output?.error || '';
+    error = detail ? `${task.status}: ${detail}` : `Task ${task.status}`;
+    console.log('[tripo] Task', taskId, 'ended:', task.status, detail || '(no detail)');
   }
-  throw new Error(`Tripo task ${taskId} timed out`);
+  return {
+    task_id: task.task_id,
+    status: task.status,
+    progress: task.progress ?? 0,
+    output: task.output,
+    credits_consumed: task.credits_consumed,
+    error,
+  };
 }
 
 // ─── Rig Types ────────────────────────────────────
@@ -160,7 +164,7 @@ export async function checkRig(input: string): Promise<{ task_id: string }> {
     body: JSON.stringify(body),
   });
   const json = await resp.json();
-  console.log('[tripo] Rig-check response:', JSON.stringify(json).slice(0, 300));
+  console.log('[tripo] Rig-check response:', JSON.stringify(json).slice(0, 500));
   if (json.code !== 0) throw new Error(`Tripo rig-check error (${json.code}): ${json.message}`);
   return { task_id: json.data.task_id };
 }

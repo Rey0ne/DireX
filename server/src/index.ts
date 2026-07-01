@@ -7,7 +7,7 @@ import { readJSON, writeJSON } from './systems/db/store.js';
 import { v4 as uuid } from 'uuid';
 
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
-import { submitTask, pollTask, downloadModel as downloadTripoModel, checkRig, submitRig, retargetAnimation } from './systems/ai/tripo-provider.js';
+import { submitTask, checkTask, downloadModel as downloadTripoModel, checkRig, submitRig, retargetAnimation } from './systems/ai/tripo-provider.js';
 import { authMiddleware } from './middleware/auth.js';
 import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
@@ -110,9 +110,78 @@ app.post('/api/tripo/generate', async (req, res) => {
 
 app.get('/api/tripo/task/:taskId', async (req, res) => {
   try {
-    const result = await pollTask(req.params.taskId);
+    // Single query — frontend handles the polling interval
+    const result = await checkTask(req.params.taskId);
     res.json(result);
   } catch (e: any) { res.status(400).json({ success: false, error: e.message }); }
+});
+
+// SSE stream — server polls Tripo3D once per task, pushes to all connected clients
+app.get('/api/tripo/task/:taskId/stream', (req, res) => {
+  const taskId = req.params.taskId;
+  const POLL_INTERVAL = 5000;
+  const TIMEOUT_MS = 900_000; // 15 min
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  // Initial heartbeat
+  res.write(`: ok\n\n`);
+
+  let closed = false;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cleanup = () => {
+    closed = true;
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  };
+
+  // Hard timeout — stop polling after 15 min
+  const hardTimeout = setTimeout(() => {
+    if (!closed) {
+      try { res.write(`data: ${JSON.stringify({ status: 'expired', error: 'Task polling timed out after 15 min' })}\n\n`); } catch {}
+      try { res.end(); } catch {}
+      cleanup();
+    }
+  }, TIMEOUT_MS);
+
+  const poll = async () => {
+    if (closed) return;
+    try {
+      const result = await checkTask(taskId);
+      if (closed) return;
+
+      const line = `data: ${JSON.stringify(result)}\n\n`;
+      try { res.write(line); } catch { cleanup(); return; }
+
+      if (result.status === 'success' || ['failed','cancelled','banned','expired'].includes(result.status)) {
+        clearTimeout(hardTimeout);
+        try { res.end(); } catch {}
+        cleanup();
+        return;
+      }
+      // Continue polling
+      pollTimer = setTimeout(poll, POLL_INTERVAL);
+    } catch (e: any) {
+      if (closed) return;
+      // Transient error → retry next interval
+      try { res.write(`data: ${JSON.stringify({ status: 'polling', error: e.message })}\n\n`); } catch {}
+      pollTimer = setTimeout(poll, POLL_INTERVAL);
+    }
+  };
+
+  // Start
+  poll();
+
+  // Client disconnect
+  req.on('close', () => {
+    clearTimeout(hardTimeout);
+    cleanup();
+  });
 });
 
 app.post('/api/tripo/save-model', async (req, res) => {

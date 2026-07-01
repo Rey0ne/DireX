@@ -1048,43 +1048,120 @@ export function MultiAngleTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
   );
 }
 
-// ─── Expand Tool ───────────────────────────────────
+// ─── Expand Tool (interactive edge-drag) ────────────
+const HANDLE_SIZE = 22; // px, draggable edge handle thickness
+const DEFAULT_EXPAND_RATIO = 0.2; // 20% default
+
 export function ExpandTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
-  const [expandTop, setExpandTop] = useState(20);
-  const [expandBottom, setExpandBottom] = useState(20);
-  const [expandLeft, setExpandLeft] = useState(20);
-  const [expandRight, setExpandRight] = useState(20);
+  // Expansion in **pixels** (converted from % on image load)
+  const [expandTPx, setExpandTPx] = useState(0);
+  const [expandBPx, setExpandBPx] = useState(0);
+  const [expandLPx, setExpandLPx] = useState(0);
+  const [expandRPx, setExpandRPx] = useState(0);
   const [lockAspect, setLockAspect] = useState(false);
   const [expandPrompt, setExpandPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
+  // Rendered size of the image in the preview container
+  const [renderSize, setRenderSize] = useState<{ w: number; h: number } | null>(null);
 
-  const setAll = (v: number) => {
-    setExpandTop(v); setExpandBottom(v); setExpandLeft(v); setExpandRight(v);
-  };
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  // Edge-drag state
+  const dragEdge = useRef<'top' | 'bottom' | 'left' | 'right' | null>(null);
+  const dragStart = useRef({ mouse: 0, px: 0 });
 
-  const handleSlider = (dir: string, v: number) => {
-    if (lockAspect) { setAll(v); return; }
-    if (dir === 'top') setExpandTop(v);
-    else if (dir === 'bottom') setExpandBottom(v);
-    else if (dir === 'left') setExpandLeft(v);
-    else setExpandRight(v);
-  };
-
-  // Load image dimensions
+  // Load image dimensions + set default expand
   useEffect(() => {
     if (!imageUrl) return;
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      setImgSize({ w, h });
+      const defW = Math.round(w * DEFAULT_EXPAND_RATIO);
+      const defH = Math.round(h * DEFAULT_EXPAND_RATIO);
+      setExpandTPx(defH); setExpandBPx(defH);
+      setExpandLPx(defW); setExpandRPx(defW);
+    };
     img.onerror = () => setImgSize(null);
     img.src = imageUrl;
   }, [imageUrl]);
 
-  const newW = imgSize ? imgSize.w + Math.round(imgSize.w * (expandLeft + expandRight) / 100) : null;
-  const newH = imgSize ? imgSize.h + Math.round(imgSize.h * (expandTop + expandBottom) / 100) : null;
+  // Track rendered image size after layout
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el) { setRenderSize(null); return; }
+    let raf: number;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setRenderSize({ w: r.width, h: r.height });
+      raf = requestAnimationFrame(measure);
+    };
+    raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
+  }, [imgSize]);
 
+  // Scale factor: native px → rendered px
+  const scaleX = (imgSize && renderSize) ? renderSize.w / imgSize.w : 1;
+  const scaleY = (imgSize && renderSize) ? renderSize.h / imgSize.h : 1;
+
+  // Rendered expansion overlay dimensions
+  const ot = expandTPx * scaleY;
+  const ob = expandBPx * scaleY;
+  const ol = expandLPx * scaleX;
+  const or = expandRPx * scaleX;
+
+  // Edge drag: start
+  const handleEdgeDown = (edge: 'top' | 'bottom' | 'left' | 'right') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragEdge.current = edge;
+    const isVertical = edge === 'top' || edge === 'bottom';
+    const currentPx = edge === 'top' ? expandTPx : edge === 'bottom' ? expandBPx : edge === 'left' ? expandLPx : expandRPx;
+    dragStart.current = { mouse: isVertical ? e.clientY : e.clientX, px: currentPx };
+    document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  // Edge drag: move
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragEdge.current) return;
+      const edge = dragEdge.current;
+      const isVertical = edge === 'top' || edge === 'bottom';
+      const delta = (isVertical ? e.clientY : e.clientX) - dragStart.current.mouse;
+      // delta positive = dragging outward (larger expansion)
+      // For top/left: dragging upward/left = negative delta = MORE expansion
+      const sign = (edge === 'top' || edge === 'left') ? -1 : 1;
+      const rawPx = dragStart.current.px + delta * sign;
+      const newPx = Math.max(0, Math.round(rawPx));
+      const setter = edge === 'top' ? setExpandTPx : edge === 'bottom' ? setExpandBPx : edge === 'left' ? setExpandLPx : setExpandRPx;
+
+      setter(newPx);
+      if (lockAspect) {
+        // Apply same change to the paired side
+        if (edge === 'top') setExpandBPx(newPx);
+        else if (edge === 'bottom') setExpandTPx(newPx);
+        else if (edge === 'left') setExpandRPx(newPx);
+        else setExpandLPx(newPx);
+      }
+    };
+    const onUp = () => {
+      dragEdge.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [lockAspect]);
+
+  // Composite + Mask generation (same as before, pixel-based)
   const createCompositeAndMask = (): Promise<{ compositeUrl: string; maskUrl: string } | null> => {
     if (!imageUrl) return Promise.resolve(null);
     return new Promise((resolve) => {
@@ -1093,47 +1170,36 @@ export function ExpandTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
       img.onload = () => {
         const w = img.naturalWidth;
         const h = img.naturalHeight;
-        const tp = Math.round(h * expandTop / 100);
-        const bp = Math.round(h * expandBottom / 100);
-        const lp = Math.round(w * expandLeft / 100);
-        const rp = Math.round(w * expandRight / 100);
+        const tp = expandTPx;
+        const bp = expandBPx;
+        const lp = expandLPx;
+        const rp = expandRPx;
         const nw = w + lp + rp;
         const nh = h + tp + bp;
         // Clamp to 4096 max side
-        let scale = 1;
+        let s = 1;
         const MAX = 4096;
-        if (nw > MAX || nh > MAX) {
-          scale = Math.min(MAX / nw, MAX / nh);
-        }
-        const fw = Math.round(nw * scale);
-        const fh = Math.round(nh * scale);
-        const flp = Math.round(lp * scale);
-        const ftp = Math.round(tp * scale);
-        const fsw = Math.round(w * scale);
-        const fsh = Math.round(h * scale);
+        if (nw > MAX || nh > MAX) s = Math.min(MAX / nw, MAX / nh);
+        const fw = Math.round(nw * s);
+        const fh = Math.round(nh * s);
+        const flp = Math.round(lp * s);
+        const ftp = Math.round(tp * s);
+        const fsw = Math.round(w * s);
+        const fsh = Math.round(h * s);
 
-        // Composite: padded canvas with original centered
         const compCanvas = document.createElement('canvas');
-        compCanvas.width = fw;
-        compCanvas.height = fh;
+        compCanvas.width = fw; compCanvas.height = fh;
         const compCtx = compCanvas.getContext('2d')!;
-        compCtx.fillStyle = '#000000';
-        compCtx.fillRect(0, 0, fw, fh);
+        compCtx.fillStyle = '#000000'; compCtx.fillRect(0, 0, fw, fh);
         compCtx.drawImage(img, flp, ftp, fsw, fsh);
 
-        // Mask: white = keep original, black = generate new
         const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = fw;
-        maskCanvas.height = fh;
+        maskCanvas.width = fw; maskCanvas.height = fh;
         const maskCtx = maskCanvas.getContext('2d')!;
-        maskCtx.fillStyle = '#000000';
-        maskCtx.fillRect(0, 0, fw, fh);
-        maskCtx.fillStyle = '#FFFFFF';
-        maskCtx.fillRect(flp, ftp, fsw, fsh);
+        maskCtx.fillStyle = '#000000'; maskCtx.fillRect(0, 0, fw, fh);
+        maskCtx.fillStyle = '#FFFFFF'; maskCtx.fillRect(flp, ftp, fsw, fsh);
 
-        const compositeUrl = compCanvas.toDataURL('image/png');
-        const maskUrl = maskCanvas.toDataURL('image/png');
-        resolve({ compositeUrl, maskUrl });
+        resolve({ compositeUrl: compCanvas.toDataURL('image/png'), maskUrl: maskCanvas.toDataURL('image/png') });
       };
       img.onerror = () => resolve(null);
       img.src = imageUrl;
@@ -1148,70 +1214,103 @@ export function ExpandTool({ imageUrl, onApply, onClose }: ToolBaseProps) {
     onApply({ tool: 'expand', prompt: expandPrompt, compositeUrl: result.compositeUrl, maskUrl: result.maskUrl });
   };
 
+  const newW = imgSize ? imgSize.w + expandLPx + expandRPx : null;
+  const newH = imgSize ? imgSize.h + expandTPx + expandBPx : null;
+
+  // Common handle style
+  const handleBar = (dir: 'top' | 'bottom' | 'left' | 'right'): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      position: 'absolute', zIndex: 10, background: 'rgba(0, 180, 255, 0.45)',
+      transition: 'background 0.15s',
+    };
+    if (dir === 'top') return { ...base, top: 0, left: 0, right: 0, height: HANDLE_SIZE, cursor: 'row-resize', borderBottom: '1px dashed rgba(255,255,255,0.5)' };
+    if (dir === 'bottom') return { ...base, bottom: 0, left: 0, right: 0, height: HANDLE_SIZE, cursor: 'row-resize', borderTop: '1px dashed rgba(255,255,255,0.5)' };
+    if (dir === 'left') return { ...base, top: 0, left: 0, bottom: 0, width: HANDLE_SIZE, cursor: 'col-resize', borderRight: '1px dashed rgba(255,255,255,0.5)' };
+    return { ...base, top: 0, right: 0, bottom: 0, width: HANDLE_SIZE, cursor: 'col-resize', borderLeft: '1px dashed rgba(255,255,255,0.5)' };
+  };
+
   return (
     <ToolOverlay title="扩图" onClose={onClose}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {/* Image preview */}
-        <div style={{
+        {/* Interactive preview */}
+        <div ref={containerRef} style={{
           flex: 1, position: 'relative', background: '#111',
           borderRadius: 'var(--tap-r-lg)', overflow: 'hidden',
           minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {imageUrl ? (
-            <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
-              <img ref={imgRef} src={imageUrl} alt=""
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', opacity: 0.7 }}
-              />
-              {/* Expansion border preview */}
-              {imgSize && (
-                <div style={{
+            <div style={{
+              position: 'relative', display: 'inline-block',
+              padding: `${ot}px ${or}px ${ob}px ${ol}px`,
+              background: 'rgba(0,160,255,0.18)',
+              borderRadius: '2px',
+              lineHeight: 0,
+            }}>
+              {/* Expansion overlay tints */}
+              {[['top', ot], ['bottom', ob], ['left', ol], ['right', or]].map(([d, sz]) => (
+                <div key={d as string} style={{
                   position: 'absolute',
-                  inset: 0,
-                  // Scale the border from native px to rendered %
-                  borderTop: `${expandTop / (100 + expandTop + expandBottom) * 100}% solid rgba(0,200,255,0.25)`,
-                  borderBottom: `${expandBottom / (100 + expandTop + expandBottom) * 100}% solid rgba(0,200,255,0.25)`,
-                  borderLeft: `${expandLeft / (100 + expandLeft + expandRight) * 100}% solid rgba(0,200,255,0.25)`,
-                  borderRight: `${expandRight / (100 + expandLeft + expandRight) * 100}% solid rgba(0,200,255,0.25)`,
+                  ...(d === 'top' ? { top: 0, left: 0, right: 0, height: sz as number } :
+                     d === 'bottom' ? { bottom: 0, left: 0, right: 0, height: sz as number } :
+                     d === 'left' ? { left: 0, top: 0, bottom: 0, width: sz as number } :
+                     { right: 0, top: 0, bottom: 0, width: sz as number }),
+                  background: `repeating-linear-gradient(${d === 'top' || d === 'bottom' ? '0deg' : '90deg'}, rgba(0,200,255,0.12) 0px, rgba(0,200,255,0.12) 4px, rgba(0,0,0,0) 4px, rgba(0,0,0,0) 8px)`,
                   pointerEvents: 'none',
-                  boxSizing: 'border-box',
                 }} />
-              )}
+              ))}
+              {/* Original image */}
+              <img ref={imgRef} src={imageUrl} alt=""
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', position: 'relative', zIndex: 1 }}
+              />
+              {/* Edge handles */}
+              {(['top', 'bottom', 'left', 'right'] as const).map(edge => (
+                <div key={edge} style={handleBar(edge)} onMouseDown={handleEdgeDown(edge)}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0, 180, 255, 0.65)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0, 180, 255, 0.45)'; }}
+                >
+                  {/* Grip indicator */}
+                  <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    display: 'flex', gap: '3px',
+                    flexDirection: edge === 'left' || edge === 'right' ? 'column' : 'row',
+                  }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{
+                        width: edge === 'left' || edge === 'right' ? '14px' : '2px',
+                        height: edge === 'left' || edge === 'right' ? '2px' : '14px',
+                        background: 'rgba(255,255,255,0.6)', borderRadius: 1,
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <span style={{ color: 'var(--tap-text-3)', fontSize: 'var(--tap-fs-meta)' }}>无图片</span>
           )}
         </div>
 
-        {/* Expansion sliders */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', padding: '10px 0', flexShrink: 0 }}>
-          {[
-            { dir: 'top', val: expandTop, label: '上' },
-            { dir: 'bottom', val: expandBottom, label: '下' },
-            { dir: 'left', val: expandLeft, label: '左' },
-            { dir: 'right', val: expandRight, label: '右' },
-          ].map(({ dir, val, label }) => (
-            <div key={dir} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--tap-text-4)', minWidth: '14px' }}>{label}</span>
-              <input type="range" min={0} max={50} value={val}
-                onChange={e => handleSlider(dir, Number(e.target.value))}
-                style={{ flex: 1, accentColor: 'var(--tap-accent)', height: '4px' }}
-              />
-              <span style={{ fontSize: '11px', color: 'var(--tap-text-3)', minWidth: '28px', textAlign: 'right' }}>{val}%</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Lock checkbox + target size */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 8px', flexShrink: 0 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--tap-text-3)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={lockAspect} onChange={e => { setLockAspect(e.target.checked); if (e.target.checked) setAll(expandTop); }} />
-            等比扩展
-          </label>
+        {/* Readout + controls */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0 4px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--tap-text-3)' }}>
+            <span>上 {expandTPx}px</span>
+            <span>下 {expandBPx}px</span>
+            <span>左 {expandLPx}px</span>
+            <span>右 {expandRPx}px</span>
+          </div>
           {newW && newH && (
             <span style={{ fontSize: '11px', color: 'var(--tap-text-3)' }}>
               预期 {newW} × {newH}
             </span>
           )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '0 0 8px', flexShrink: 0 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--tap-text-3)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={lockAspect} onChange={e => setLockAspect(e.target.checked)} />
+            等比扩展
+          </label>
+          <span style={{ fontSize: '11px', color: 'var(--tap-text-4)' }}>提示：拖拽边缘蓝色条调整扩展范围</span>
         </div>
 
         {/* Prompt + send */}

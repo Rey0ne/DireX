@@ -37,6 +37,14 @@ interface TripoNodeData {
   savedSize?: number;
   creditsConsumed?: number;
   error?: string;
+  // Rig & Animation
+  rigStatus?: string;
+  rigTaskId?: string;
+  riggable?: boolean;
+  rigType?: string;
+  rigSpec?: string;
+  rigModelVer?: string;
+  selectedAnim?: string;
 }
 
 const H_MODELS = [
@@ -87,6 +95,43 @@ function DropBtn({ label, open, onClick }: { label: string; open: boolean; onCli
   );
 }
 
+// ─── SSE Task Streamer ──────────────────────────
+/** Open SSE stream for a Tripo3D task. Returns cleanup function. */
+function streamTask(
+  taskId: string,
+  onEvent: (task: any) => void,
+  onError: (msg: string) => void,
+): () => void {
+  let active = true;
+  const es = new EventSource(`/api/tripo/task/${taskId}/stream`);
+
+  es.onmessage = (e) => {
+    if (!active) return;
+    try {
+      const task = JSON.parse(e.data);
+      if (!active) return;
+      onEvent(task);
+      // Terminal states → close stream
+      if (task.status === 'success' || ['failed','cancelled','banned','expired'].includes(task.status)) {
+        active = false;
+        es.close();
+      }
+    } catch { /* parse error, ignore */ }
+  };
+
+  es.onerror = () => {
+    if (!active) return;
+    active = false;
+    es.close();
+    onError('连接中断');
+  };
+
+  return () => {
+    active = false;
+    es.close();
+  };
+}
+
 // ─── Component ────────────────────────────────────
 export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNodeData; selected?: boolean }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -119,17 +164,17 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const [credits, setCredits] = useState(data.creditsConsumed || 0);
   const [error, setError] = useState(data.error || '');
   const [inputImage, setInputImage] = useState(data.inputImageUrl || '');
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<(() => void) | null>(null);
 
   // ─── Rig & Animation state ────────────────────
-  const [rigStatus, setRigStatus] = useState<'idle' | 'checking' | 'checked' | 'rigging' | 'rigged' | 'animating' | 'done'>('idle');
-  const [rigTaskId, setRigTaskId] = useState('');
-  const [riggable, setRiggable] = useState(false);
-  const [rigType, setRigType] = useState<string>('biped');
-  const [rigSpec, setRigSpec] = useState<'tripo' | 'mixamo'>('tripo');
-  const [rigModelVer, setRigModelVer] = useState('v2.5-20260210');
-  const [selectedAnim, setSelectedAnim] = useState('preset:idle');
-  const rigPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [rigStatus, setRigStatus] = useState<'idle' | 'checking' | 'checked' | 'rigging' | 'rigged' | 'animating' | 'done'>((data.rigStatus as any) || 'idle');
+  const [rigTaskId, setRigTaskId] = useState(data.rigTaskId || '');
+  const [riggable, setRiggable] = useState(data.riggable || false);
+  const [rigType, setRigType] = useState<string>(data.rigType || 'biped');
+  const [rigSpec, setRigSpec] = useState<'tripo' | 'mixamo'>((data.rigSpec as any) || 'tripo');
+  const [rigModelVer, setRigModelVer] = useState(data.rigModelVer || 'v2.5-20260210');
+  const [selectedAnim, setSelectedAnim] = useState(data.selectedAnim || 'preset:idle');
+  const rigPollingRef = useRef<(() => void) | null>(null);
   const [showRigPanel, setShowRigPanel] = useState(false);
 
   const RIG_TYPES = ['biped', 'quadruped', 'hexapod', 'octopod', 'avian', 'serpentine', 'aquatic'] as const;
@@ -172,6 +217,68 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   };
   const animList = ANIM_PRESETS[rigModelVer] || ANIM_PRESETS['v2.5-20260210'];
 
+  // ─── Animation label → Chinese ──────────────────
+  const ANIM_LABEL: Record<string, string> = {
+    // Standard
+    'preset:idle': '待机', 'preset:walk': '走路', 'preset:run': '跑步',
+    'preset:jump': '跳跃', 'preset:fall': '摔倒', 'preset:turn': '转身',
+    'preset:dive': '俯冲', 'preset:climb': '攀爬', 'preset:slash': '劈砍',
+    'preset:shoot': '射击', 'preset:hurt': '受伤',
+    // Creature
+    'preset:quadruped:walk': '四足走路', 'preset:hexapod:walk': '六足走路',
+    'preset:octopod:walk': '八足走路', 'preset:serpentine:march': '蛇形行进',
+    'preset:aquatic:march': '水生游动',
+    // Biped
+    'preset:biped:afraid': '害怕', 'preset:biped:agree': '同意',
+    'preset:biped:angry_01': '生气①', 'preset:biped:angry_02': '生气②', 'preset:biped:angry_03': '生气③',
+    'preset:biped:basketball_shot': '投篮', 'preset:biped:bow': '鞠躬',
+    'preset:biped:box_01': '拳击①', 'preset:biped:box_02': '拳击②', 'preset:biped:box_03': '拳击③',
+    'preset:biped:cast_a_spell': '施法', 'preset:biped:cheer': '欢呼',
+    'preset:biped:chop': '劈砍', 'preset:biped:clap': '拍手', 'preset:biped:climb': '攀爬',
+    'preset:biped:complain_01': '抱怨①', 'preset:biped:complain_02': '抱怨②',
+    'preset:biped:cross_body_crunch': '卷腹', 'preset:biped:crossover_dribble': '变向运球',
+    'preset:biped:cry': '哭泣',
+    'preset:biped:dance_01': '舞蹈①', 'preset:biped:dance_02': '舞蹈②', 'preset:biped:dance_03': '舞蹈③',
+    'preset:biped:dance_04': '舞蹈④', 'preset:biped:dance_05': '舞蹈⑤', 'preset:biped:dance_06': '舞蹈⑥',
+    'preset:biped:defeat_02': '战败②', 'preset:biped:defeat_03': '战败③',
+    'preset:biped:depressed': '沮丧', 'preset:biped:dig': '挖掘', 'preset:biped:dive': '俯冲',
+    'preset:biped:dribble': '运球', 'preset:biped:fall': '摔倒', 'preset:biped:fire': '开火',
+    'preset:biped:flee_01': '逃跑①', 'preset:biped:flee_02': '逃跑②',
+    'preset:biped:flip': '空翻', 'preset:biped:fold_arms': '抱臂',
+    'preset:biped:football_catch': '接球', 'preset:biped:football_save': '扑救',
+    'preset:biped:football_pass': '传球', 'preset:biped:freaky': '搞怪',
+    'preset:biped:frightened': '惊吓',
+    'preset:biped:front_kick_01': '前踢①', 'preset:biped:front_kick_02': '前踢②',
+    'preset:biped:frustrated_01': '挫败①', 'preset:biped:frustrated_02': '挫败②',
+    'preset:biped:golf': '高尔夫',
+    'preset:biped:greet_01': '打招呼①', 'preset:biped:greet_02': '打招呼②',
+    'preset:biped:greet_03': '打招呼③', 'preset:biped:greet_04': '打招呼④',
+    'preset:biped:heart_pose': '比心',
+    'preset:biped:hit_to_body_01': '击中身体①', 'preset:biped:hit_to_body_02': '击中身体②',
+    'preset:biped:hit_to_head': '击中头部', 'preset:biped:hit_to_side': '击中侧身',
+    'preset:biped:hit_to_stomach': '击中腹部', 'preset:biped:hug': '拥抱',
+    'preset:biped:hurt': '受伤', 'preset:biped:idle': '待机', 'preset:biped:jump': '跳跃',
+    'preset:biped:jump_down': '跳下', 'preset:biped:jump_rope_01': '跳绳①', 'preset:biped:jump_rope_02': '跳绳②',
+    'preset:biped:laugh_01': '大笑①', 'preset:biped:laugh_02': '大笑②',
+    'preset:biped:lift_heavy': '举重', 'preset:biped:look_around': '环顾',
+    'preset:biped:make_a_call_01': '打电话①', 'preset:biped:make_a_call_02': '打电话②',
+    'preset:biped:pitch_baseball': '投棒球', 'preset:biped:play_mobile_game': '玩手机',
+    'preset:biped:play_video_game': '玩游戏', 'preset:biped:press-up': '俯卧撑',
+    'preset:biped:run': '跑步', 'preset:biped:run_upstairs': '上楼梯',
+    'preset:biped:scared_01': '害怕①', 'preset:biped:scared_02': '害怕②',
+    'preset:biped:scratch': '挠痒', 'preset:biped:shoot': '射击', 'preset:biped:shovel': '铲土',
+    'preset:biped:sing_01': '唱歌①', 'preset:biped:sing_02': '唱歌②',
+    'preset:biped:sing_03': '唱歌③', 'preset:biped:sing_04': '唱歌④',
+    'preset:biped:sit': '坐下', 'preset:biped:slash': '劈砍', 'preset:biped:sob': '抽泣',
+    'preset:biped:standing_relax': '放松站立', 'preset:biped:surf': '冲浪',
+    'preset:biped:swagger': '大摇大摆', 'preset:biped:swim': '游泳', 'preset:biped:turn': '转身',
+    'preset:biped:victory_celebration': '胜利庆祝', 'preset:biped:volleyball': '排球',
+    'preset:biped:wait': '等待', 'preset:biped:walk': '走路',
+    'preset:biped:warm_up': '热身',
+    'preset:biped:wave_goodbye_01': '挥手告别①', 'preset:biped:wave_goodbye_02': '挥手告别②',
+  };
+  const getAnimLabel = (key: string) => ANIM_LABEL[key] || key.replace(/^preset:/, '').replace(/:\w+:/g, '·').replace(/_/g, ' ');
+
   // ─── Rig Check ────────────────────────────────
   const handleRigCheck = useCallback(async () => {
     if (rigStatus !== 'idle' && rigStatus !== 'checked') return;
@@ -186,28 +293,19 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       const json = await resp.json();
       if (!json.success) { setRigStatus('idle'); setError(json.error); return; }
       setRigTaskId(json.task_id);
-      // Clear any previous rig polling before starting new
-      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
-      // Poll for result
-      const pollStart = Date.now();
-      const POLL_TIMEOUT = 300_000; // 5 min
-      const iv = setInterval(async () => {
-        try {
-          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('idle'); setError('Rig-check 超时'); return; }
-          const pr = await fetch(`/api/tripo/task/${json.task_id}`);
-          if (!pr.ok) { clearInterval(iv); setRigStatus('idle'); setError('Rig-check 过期'); return; }
-          const pj = await pr.json();
-          if (pj.status === 'success') {
-            clearInterval(iv);
-            setRiggable(pj.output?.riggable || false);
-            if (pj.output?.rig_type) setRigType(pj.output.rig_type);
+      if (rigPollingRef.current) { rigPollingRef.current(); rigPollingRef.current = null; }
+      rigPollingRef.current = streamTask(json.task_id,
+        (task) => {
+          if (task.status === 'success') {
+            setRiggable(task.output?.riggable || false);
+            if (task.output?.rig_type) setRigType(task.output.rig_type);
             setRigStatus('checked');
-          } else if (['failed','cancelled','expired'].includes(pj.status)) {
-            clearInterval(iv); setRigStatus('idle'); setError('Rig-check 失败: ' + pj.status);
+          } else if (['failed','cancelled','expired'].includes(task.status)) {
+            setRigStatus('idle'); setError('Rig-check 失败: ' + (task.error || task.status));
           }
-        } catch { /* retry */ }
-      }, 2000);
-      rigPollingRef.current = iv;
+        },
+        (errMsg) => { setRigStatus('idle'); setError('Rig-check 失败: ' + errMsg); },
+      );
     } catch (e: any) { setRigStatus('idle'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, taskId, modelUrl]);
 
@@ -224,67 +322,53 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       if (!json.success) { setRigStatus('checked'); setError(json.error); return; }
       setRigTaskId(json.task_id);
       // Clear any previous rig polling before starting new
-      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
-      const pollStart = Date.now();
-      const POLL_TIMEOUT = 300_000; // 5 min
-      const iv = setInterval(async () => {
-        try {
-          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('checked'); setError('绑骨超时'); return; }
-          const pr = await fetch(`/api/tripo/task/${json.task_id}`);
-          if (!pr.ok) { clearInterval(iv); setRigStatus('checked'); setError('绑骨任务过期'); return; }
-          const pj = await pr.json();
-          if (pj.status === 'success') {
-            clearInterval(iv);
-            if (pj.output?.model_url) setModelUrl(pj.output.model_url);
-            if (pj.output?.rendered_image_url) setRenderedUrl(pj.output.rendered_image_url);
+      if (rigPollingRef.current) { rigPollingRef.current(); rigPollingRef.current = null; }
+      rigPollingRef.current = streamTask(json.task_id,
+        (task) => {
+          if (task.status === 'success') {
+            if (task.output?.model_url) setModelUrl(task.output.model_url);
+            if (task.output?.rendered_image_url) setRenderedUrl(task.output.rendered_image_url);
             setRigStatus('rigged');
-          } else if (['failed','cancelled','expired'].includes(pj.status)) {
-            clearInterval(iv); setRigStatus('checked'); setError('绑骨失败: ' + pj.status);
+          } else if (['failed','cancelled','expired'].includes(task.status)) {
+            setRigStatus('checked'); setError('绑骨失败: ' + task.status + (task.error ? ' — ' + task.error : ''));
           }
-        } catch { /* retry */ }
-      }, 2000);
-      rigPollingRef.current = iv;
+        },
+        (errMsg) => { setRigStatus('checked'); setError('绑骨失败: ' + errMsg); },
+      );
     } catch (e: any) { setRigStatus('checked'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, riggable, taskId, rigModelVer, rigType, rigSpec]);
 
   // ─── Apply Animation ───────────────────────────
   const handleRetarget = useCallback(async () => {
-    if (rigStatus !== 'rigged' || !rigTaskId) return;
+    if ((rigStatus !== 'rigged' && rigStatus !== 'done') || !rigTaskId) return;
     setRigStatus('animating'); setError('');
     try {
       const resp = await fetch('/api/tripo/retarget', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: rigTaskId, animation: selectedAnim, out_format: 'glb', bake_animation: true, export_with_geometry: true }),
+        body: JSON.stringify({ input: rigTaskId, animation: selectedAnim, out_format: 'glb', bake_animation: true, export_with_geometry: true, animate_in_place: true }),
       });
       const json = await resp.json();
-      if (!json.success) { setRigStatus('rigged'); setError(json.error); return; }
+      if (!resp.ok || !json.success) { setRigStatus('rigged'); setError(json.error || `HTTP ${resp.status}`); return; }
       const animTaskId = json.task_id;
       // Clear any previous rig polling before starting new
-      if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; }
-      const pollStart = Date.now();
-      const POLL_TIMEOUT = 300_000; // 5 min
-      const iv = setInterval(async () => {
-        try {
-          if (Date.now() - pollStart > POLL_TIMEOUT) { clearInterval(iv); setRigStatus('rigged'); setError('动画重定向超时'); return; }
-          const pr = await fetch(`/api/tripo/task/${animTaskId}`);
-          if (!pr.ok) { clearInterval(iv); setRigStatus('rigged'); setError('动画任务过期'); return; }
-          const pj = await pr.json();
-          if (pj.status === 'success') {
-            clearInterval(iv);
-            if (pj.output?.model_url) { setModelUrl(pj.output.model_url); }
-            if (pj.output?.rendered_image_url) setRenderedUrl(pj.output.rendered_image_url);
+      if (rigPollingRef.current) { rigPollingRef.current(); rigPollingRef.current = null; }
+      rigPollingRef.current = streamTask(animTaskId,
+        (task) => {
+          if (task.status === 'success') {
+            if (task.output?.model_url) { setModelUrl(task.output.model_url); }
+            if (task.output?.rendered_image_url) setRenderedUrl(task.output.rendered_image_url);
             setRigStatus('done');
-          } else if (['failed','cancelled','expired'].includes(pj.status)) {
-            clearInterval(iv); setRigStatus('rigged'); setError('动画失败: ' + pj.status);
+          } else if (['failed','cancelled','expired'].includes(task.status)) {
+            setRigStatus('rigged'); setError('动画失败: ' + (task.error || task.status));
           }
-        } catch { /* retry */ }
-      }, 2000);
-      rigPollingRef.current = iv;
+        },
+        (errMsg) => { setRigStatus('rigged'); setError('动画失败: ' + errMsg); },
+      );
     } catch (e: any) { setRigStatus('rigged'); setError(String(e).slice(0, 200)); }
   }, [rigStatus, rigTaskId, selectedAnim]);
 
   // Cleanup rig polling on unmount
-  useEffect(() => () => { if (rigPollingRef.current) { clearInterval(rigPollingRef.current); rigPollingRef.current = null; } }, []);
+  useEffect(() => () => { if (rigPollingRef.current) { rigPollingRef.current(); rigPollingRef.current = null; } }, []);
 
   // Dropdown state
   const [open, setOpen] = useState<string | null>(null);
@@ -335,7 +419,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   }, [effectiveImages.length, effectiveInput]);
 
   // Cleanup
-  useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
+  useEffect(() => () => { if (pollingRef.current) pollingRef.current(); }, []);
 
   // ─── Generate ────────────────────────────────────
   const handleGenerate = useCallback(async () => {
@@ -369,41 +453,23 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       setTaskId(tid);
       setProgress(5);
 
-      const pollStart = Date.now();
-      const POLL_TIMEOUT = 600_000; // 10 min
-      pollingRef.current = setInterval(async () => {
-        try {
-          // Timeout guard — stop polling if exceeded
-          if (Date.now() - pollStart > POLL_TIMEOUT) {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
-            setStatus('idle'); setError('生成超时（10分钟）');
-            return;
-          }
-          const pr = await fetch(`/api/tripo/task/${tid}`);
-          if (!pr.ok) { // 400/404 → task expired, stop
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
-            setStatus('idle'); setError('任务已过期');
-            return;
-          }
-          const pj = await pr.json();
-          setProgress(pj.progress || 0);
-          if (pj.status === 'success') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
-            setModelUrl(pj.output?.model_url || '');
-            setRenderedUrl(pj.output?.rendered_image_url || '');
-            setCredits(pj.credits_consumed || 0);
+      // SSE streaming — server polls Tripo3D, pushes to client
+      if (pollingRef.current) pollingRef.current();
+      pollingRef.current = streamTask(tid,
+        (task) => {
+          setProgress(task.progress || 0);
+          if (task.status === 'success') {
+            setModelUrl(task.output?.model_url || '');
+            setRenderedUrl(task.output?.rendered_image_url || '');
+            setCredits(task.credits_consumed || 0);
             setStatus('done'); setProgress(100);
-          } else if (pj.success === false || ['failed', 'cancelled', 'banned', 'expired'].includes(pj.status)) {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            pollingRef.current = null;
+          } else if (task.success === false || ['failed', 'cancelled', 'banned', 'expired'].includes(task.status)) {
             setStatus('idle');
-            setError(pj.error || `任务${pj.status || '失败'}`);
+            setError(task.error || `任务${task.status || '失败'}`);
           }
-        } catch { /* retry next poll */ }
-      }, 2000);
+        },
+        (errMsg) => { setStatus('idle'); setError(errMsg); },
+      );
     } catch (e: any) {
       setStatus('idle');
       setError(String(e).slice(0, 200));
@@ -478,23 +544,20 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           texture, pbr, textureQuality: texQuality, faceLimit, autoSize, compress,
           taskId, status, progress, modelUrl, renderedImageUrl: renderedUrl,
           savedPath, savedName, savedSize, creditsConsumed: credits, error,
+          rigStatus, rigTaskId, riggable, rigType, rigSpec, rigModelVer, selectedAnim,
         },
       });
     }
-  }, [effectivePrompt, inputImage, mode, modelVer, series, texture, pbr, texQuality, faceLimit, autoSize, compress, taskId, status, progress, modelUrl, renderedUrl, savedName, savedPath, credits]);
+  }, [effectivePrompt, inputImage, mode, modelVer, series, texture, pbr, texQuality, faceLimit, autoSize, compress, taskId, status, progress, modelUrl, renderedUrl, savedName, savedPath, credits, error, rigStatus, rigTaskId, riggable, rigType, rigSpec, rigModelVer, selectedAnim]);
 
-  // ─── Countdown ───────────────────────────────
-  const [remaining, setRemaining] = useState(300);
+  // ─── Normalize stale state on load ──
   useEffect(() => {
-    if (status !== 'done' || savedPath) return;
-    const start = Date.now();
-    const iv = setInterval(() => {
-      const left = Math.max(0, 300 - Math.floor((Date.now() - start) / 1000));
-      setRemaining(left);
-      if (left <= 0) { setStatus('expired'); clearInterval(iv); }
-    }, 1000);
-    return () => clearInterval(iv);
-  }, [status, savedPath, modelUrl]);
+    // Model URL still works — old polling errors are stale
+    if (modelUrl && error && /任务已过期|连接中断|生成超时|任务过期|Task expired/.test(error)) {
+      setError('');
+    }
+    if (status === 'expired' && modelUrl) setStatus('done');
+  }, []);
 
   const isSaved = !!savedPath;
   const outputLocked = !isSaved && status === 'done';
@@ -672,11 +735,6 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
               )}
 
               {/* Status badge */}
-              {status === 'done' && !isSaved && (
-                <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, color: '#ef4444', background: 'rgba(239,68,68,0.12)', padding: '2px 8px', borderRadius: 4 }}>
-                  ⚠ {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
-                </div>
-              )}
               {isSaved && (
                 <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, color: '#22c55e', background: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: 4 }}>
                   ✅ 已保存
@@ -949,8 +1007,8 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                   </div>
                 </div>
 
-                {/* ── Rig & Animation panel (only when 3D model is done) ── */}
-                {status === 'done' && (
+                {/* ── Rig & Animation panel (as long as model exists) ── */}
+                {(taskId || modelUrl) && (
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '4px 8px 6px' }}>
                     <div onClick={() => setShowRigPanel(!showRigPanel)}
                       style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '2px 0', fontSize: 9, color: 'var(--tap-text-3)' }}
@@ -1012,19 +1070,19 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                         {/* Step 3: Animation selection (after rigged) */}
                         {(rigStatus === 'rigged' || rigStatus === 'animating' || rigStatus === 'done') && (
                           <>
-                            {rigStatus === 'rigged' && <span style={{ fontSize: 9, color: '#22c55e', padding: '2px 4px', borderRadius: 4, background: 'rgba(34,197,94,0.08)' }}>✅ 骨骼已绑定</span>}
-                            {rigStatus === 'done' && <span style={{ fontSize: 9, color: '#22c55e', padding: '2px 4px', borderRadius: 4, background: 'rgba(34,197,94,0.08)' }}>✅ 动画已应用</span>}
+                            {rigStatus === 'rigged' && <span style={{ fontSize: 9, color: '#22c55e', padding: '2px 4px', borderRadius: 4, background: 'rgba(34,197,94,0.08)' }}>✅ 骨骼已绑定 — 选择动作</span>}
+                            {rigStatus === 'done' && <span style={{ fontSize: 9, color: '#a78bfa', padding: '2px 4px', borderRadius: 4, background: 'rgba(167,139,250,0.08)' }}>✅ 动画已应用 — 可换动作重试</span>}
                             {rigStatus === 'animating' && <span style={{ fontSize: 9, color: 'var(--tap-text-3)' }}>⏳ 生成动画...</span>}
 
                             {rigStatus !== 'animating' && (
-                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <select value={selectedAnim} onChange={e => setSelectedAnim(e.target.value)}
-                                  style={{ flex: 1, background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
-                                  {animList.map(a => <option key={a} value={a} style={{ background: '#1a1d24', color: '#fff' }}>{a.replace('preset:', '').replace('quadruped:','').replace('hexapod:','').replace('octopod:','').replace('serpentine:','').replace('aquatic:','')}</option>)}
+                                  style={{ flex: 1, background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 4, padding: '4px 6px', fontSize: 10, outline: 'none', cursor: 'pointer' }}>
+                                  {animList.map(a => <option key={a} value={a} style={{ background: '#1a1d24', color: '#fff' }}>{getAnimLabel(a)}</option>)}
                                 </select>
                                 <button onClick={handleRetarget}
-                                  style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(250,204,21,0.3)', background: 'rgba(250,204,21,0.1)', color: '#facc15', cursor: 'pointer', fontSize: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                  ▶ 应用
+                                  style={{ padding: '5px 14px', borderRadius: 4, border: '1px solid rgba(250,204,21,0.4)', background: 'rgba(250,204,21,0.12)', color: '#facc15', cursor: 'pointer', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  ▶ 应用动画
                                 </button>
                               </div>
                             )}
