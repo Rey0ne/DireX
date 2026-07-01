@@ -523,8 +523,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
     if (srcW < 1 || srcH < 1) { setCropError('裁切区域太小'); return; }
 
-    // Use backend proxy to bypass CORS for external images
-    const doCrop = (source: CanvasImageSource) => {
+    // Upload cropped dataUrl → public URL to avoid sanitizeMeta drop (>500KB field)
+    const doCrop = async (source: CanvasImageSource) => {
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(srcW);
       canvas.height = Math.round(srcH);
@@ -534,9 +534,22 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
       const dataUrl = canvas.toDataURL('image/png');
       const cropW = Math.round(srcW);
       const cropH = Math.round(srcH);
-      console.log('[crop] SUCCESS: ' + cropW + 'x' + cropH + ', dataUrl length: ' + dataUrl.length);
-      setCropSuccess(true);
-      onCropApplyRef.current?.(dataUrl, cropW, cropH);
+      console.log('[crop] Cropped: ' + cropW + 'x' + cropH + ', ' + (dataUrl.length / 1024).toFixed(0) + 'KB');
+
+      try {
+        const resp = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer tapnow-dev-key' },
+          body: JSON.stringify({ dataUrl }),
+        });
+        const json = await resp.json();
+        if (!json.url) { setCropError('上传裁切结果失败'); return; }
+        console.log('[crop] Uploaded →', json.url.slice(0, 60));
+        setCropSuccess(true);
+        onCropApplyRef.current?.(json.url, cropW, cropH);
+      } catch (e: any) {
+        setCropError('上传失败: ' + String(e).slice(0, 100));
+      }
     };
 
     const imgSrc = img.src;
@@ -548,7 +561,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         const testCtx = testCanvas.getContext('2d');
         testCtx?.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
         testCanvas.toDataURL();
-        doCrop(img);
+        await doCrop(img);
         return;
       } catch (_e) { /* tainted, fall through to proxy */ }
     }
