@@ -601,15 +601,15 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px' }}>
                         <span style={{ fontSize: 8, color: 'var(--tap-text-4)', flexShrink: 0 }}>格式</span>
                         <select value={format} onChange={e => setFormat(e.target.value as any)}
-                          style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
-                          {['glb','fbx','obj','usd','stl','3mf'].map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+                          style={{ flex: 1, background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                          {['glb','fbx','obj','usd','stl','3mf'].map(f => <option key={f} value={f} style={{ background: '#1a1d24', color: '#fff' }}>{f.toUpperCase()}</option>)}
                         </select>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px' }}>
                         <span style={{ fontSize: 8, color: 'var(--tap-text-4)', flexShrink: 0 }}>贴图</span>
                         <select value={texResolution} onChange={e => setTexResolution(e.target.value as any)}
-                          style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
-                          {['512','1K','2K','4K','8K'].map(r => <option key={r} value={r}>{r}</option>)}
+                          style={{ flex: 1, background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                          {['512','1K','2K','4K','8K'].map(r => <option key={r} value={r} style={{ background: '#1a1d24', color: '#fff' }}>{r}</option>)}
                         </select>
                       </div>
                       <div onClick={e => { e.stopPropagation(); setDownloadOpen(false); handleDownload(); }}
@@ -802,8 +802,8 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                       <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={texture} onChange={e => setTexture(e.target.checked)} style={{ accentColor: '#5EEAD4' }} />贴图</label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={pbr} onChange={e => setPbr(e.target.checked)} disabled={!texture} style={{ accentColor: '#5EEAD4' }} />PBR</label>
                       <select value={texQuality} onChange={e => setTexQuality(e.target.value as any)}
-                        style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
-                        {QUALITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        style={{ background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                        {QUALITY_OPTIONS.map(o => <option key={o.value} value={o.value} style={{ background: '#1a1d24', color: '#fff' }}>{o.label}</option>)}
                       </select>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 9, color: 'var(--tap-text-4)', flexWrap: 'wrap' }}>
@@ -983,18 +983,18 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 9, flexWrap: 'wrap' }}>
                                   <span style={{ color: 'var(--tap-text-4)' }}>骨骼:</span>
                                   <select value={rigType} onChange={e => setRigType(e.target.value)}
-                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
-                                    {RIG_TYPES.map(t => <option key={t} value={t}>{RIG_TYPE_LABELS[t]}</option>)}
+                                    style={{ background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    {RIG_TYPES.map(t => <option key={t} value={t} style={{ background: '#1a1d24', color: '#fff' }}>{RIG_TYPE_LABELS[t]}</option>)}
                                   </select>
                                   <span style={{ color: 'var(--tap-text-4)' }}>规范:</span>
                                   <select value={rigSpec} onChange={e => setRigSpec(e.target.value as any)}
-                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
-                                    <option value="tripo">Tripo</option><option value="mixamo">Mixamo</option>
+                                    style={{ background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    <option value="tripo" style={{ background: '#1a1d24', color: '#fff' }}>Tripo</option><option value="mixamo" style={{ background: '#1a1d24', color: '#fff' }}>Mixamo</option>
                                   </select>
                                   <span style={{ color: 'var(--tap-text-4)' }}>版本:</span>
                                   <select value={rigModelVer} onChange={e => setRigModelVer(e.target.value)}
-                                    style={{ background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
-                                    <option value="v2.5-20260210">v2.5 (全类型)</option><option value="v1.0-20240301">v1.0 (双足)</option>
+                                    style={{ background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }}>
+                                    <option value="v2.5-20260210" style={{ background: '#1a1d24', color: '#fff' }}>v2.5 (全类型)</option><option value="v1.0-20240301" style={{ background: '#1a1d24', color: '#fff' }}>v1.0 (双足)</option>
                                   </select>
                                 </div>
                                 <button onClick={handleAutoRig}
@@ -1019,8 +1019,8 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                             {rigStatus !== 'animating' && (
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                 <select value={selectedAnim} onChange={e => setSelectedAnim(e.target.value)}
-                                  style={{ flex: 1, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
-                                  {animList.map(a => <option key={a} value={a}>{a.replace('preset:', '').replace('quadruped:','').replace('hexapod:','').replace('octopod:','').replace('serpentine:','').replace('aquatic:','')}</option>)}
+                                  style={{ flex: 1, background: '#1a1d24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '2px 4px', fontSize: 9, outline: 'none' }}>
+                                  {animList.map(a => <option key={a} value={a} style={{ background: '#1a1d24', color: '#fff' }}>{a.replace('preset:', '').replace('quadruped:','').replace('hexapod:','').replace('octopod:','').replace('serpentine:','').replace('aquatic:','')}</option>)}
                                 </select>
                                 <button onClick={handleRetarget}
                                   style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(250,204,21,0.3)', background: 'rgba(250,204,21,0.1)', color: '#facc15', cursor: 'pointer', fontSize: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
