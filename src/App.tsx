@@ -327,11 +327,20 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
   // ─── Initialize ─────────────────────────────────
   useEffect(() => {
+    // Only relevant for brand-new canvases: prevents loadFromServer fallback
+    // from resurrecting old project data (server stores one global canvasState)
+    const isNewCanvas = localStorage.getItem('tapnow-new-canvas') === '1';
+    if (isNewCanvas) localStorage.removeItem('tapnow-new-canvas');
+
     const existing = Array.from(nodesMap.values());
     if (existing.length > 0) return;
 
     loadFromDB().then(restored => {
       if (!restored) {
+        if (isNewCanvas) {
+          console.log('[persist] Fresh canvas — new project, skipping server fallback');
+          return;
+        }
         // IndexedDB empty/corrupted — try server fallback
         loadFromServer().then(serverRestored => {
           if (!serverRestored) {
@@ -1369,6 +1378,8 @@ export default function App() {
   const handleCreateNew = useCallback(() => {
     const newId = `project-${Date.now()}`;
     localStorage.setItem('tapnow-current-project', newId);
+    // Flag to prevent loadFromServer fallback from resurrecting old project data
+    localStorage.setItem('tapnow-new-canvas', '1');
     // Clear store for fresh canvas
     useCanvasStore.setState({ nodes: new Map(), edges: new Map(), selectedNodeIds: [], viewport: { x: 0, y: 0, zoom: 0.5 } });
     setCurrentProjectId(newId);
