@@ -2,7 +2,7 @@
 /* ReactFlow-powered infinite canvas with node workflow */
 /* Three-layer: LoginPage → ProjectSelector → CanvasWorkspace */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -43,19 +43,7 @@ import { Scene3DNode } from './components/nodes/Scene3DNode';
 import { Tripo3DNode } from './components/nodes/Tripo3DNode';
 import { ScissorEdge } from './components/edges/ScissorEdge';
 
-// ─── Node type registry (memoize to survive HMR) ──
-import { useMemo as _useMemo } from 'react';
-const useNodeTypes = () => _useMemo<NodeTypes>(() => ({
-  shot: ShotNode,
-  'image.generate': ImageGenerateNode,
-  'image.editor': ImageGenerateNode,
-  'video.generate': VideoGenerateNode,
-  'audio.generate': AudioGenerateNode,
-  'scene.3d': Scene3DNode,
-  'world.3d': Scene3DNode,
-  'tripo.3d': Tripo3DNode,
-} as unknown as NodeTypes), []);
-const useEdgeTypes = () => _useMemo(() => ({ default: ScissorEdge }), []);
+// Node type registry — defined below in App component with useMemo
 
 // ── Handle mapping per node type (auto-fix wrong handles) ──
 // Each node type can have multiple valid input/output handle IDs.
@@ -181,8 +169,17 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     check();
   }, [expiryTime]);
 
-  const nodeTypes = useNodeTypes();
-  const edgeTypes = useEdgeTypes();
+  const nodeTypes = useMemo<NodeTypes>(() => ({
+    shot: ShotNode,
+    'image.generate': ImageGenerateNode,
+    'image.editor': ImageGenerateNode,
+    'video.generate': VideoGenerateNode,
+    'audio.generate': AudioGenerateNode,
+    'scene.3d': Scene3DNode,
+    'world.3d': Scene3DNode,
+    'tripo.3d': Tripo3DNode,
+  } as unknown as NodeTypes), []);
+  const edgeTypes = useMemo(() => ({ default: ScissorEdge }), []);
   const addNode = useCanvasStore(s => s.addNode);
   const removeNode = useCanvasStore(s => s.removeNode);
   const addEdge = useCanvasStore(s => s.addEdge);
@@ -193,7 +190,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
   const setToolMode = useCanvasStore(s => s.setToolMode);
   const pendingConnection = useCanvasStore(s => s.pendingConnection);
 
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, setViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   // Custom selection box (ReactFlow's built-in one is buggy)
   const [customBox, setCustomBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -337,6 +334,11 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     if (existing.length > 0) return;
 
     loadFromDB().then(restored => {
+      if (restored) {
+        // Restore saved viewport so nodes appear where user left them
+        const vp = useCanvasStore.getState().viewport;
+        if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
+      }
       if (!restored) {
         if (isNewCanvas) {
           console.log('[persist] Fresh canvas — new project, skipping server fallback');
@@ -344,6 +346,10 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         }
         // IndexedDB empty/corrupted — try server fallback
         loadFromServer().then(serverRestored => {
+          if (serverRestored) {
+            const vp = useCanvasStore.getState().viewport;
+            if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
+          }
           if (!serverRestored) {
             // Truly fresh canvas — user starts from scratch
             console.log('[persist] Fresh canvas — no local or server data');
@@ -515,7 +521,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                     filmStock: meta.filmStock as string | undefined,
                   } as any)
                 : await generateWithAgent({
-                  providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
+                  providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : isAudio ? 'Suno v4' : 'GPT Image2')),
                   mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
                   rawText: promptText,
                   aspect: meta.aspect as string | undefined,
@@ -800,6 +806,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       store.pushHistory();
     }
     store.updateNode(node.id, { pos: node.position });
+    // Save immediately so position survives browser refresh
+    saveNow();
   }, []);
 
   // ─── Node hover during connection → target glow ──

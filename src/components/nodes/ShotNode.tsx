@@ -301,7 +301,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
     const ts=Date.now();
-    e.forEach(([n,de],i)=>{const nid='su_'+ts+'_'+i;next.set(nid,{id:nid,type:'audio.generate',title:n,pos:{x:bx+i*320,y:by},size:{w:300,h:180},ports:[],status:'idle',meta:{prompt:(de as any)?.sunoPrompt||String(de),gen:{prompt:(de as any)?.sunoPrompt||String(de),model:'Suno'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,de],i)=>{const nid='su_'+ts+'_'+i;next.set(nid,{id:nid,type:'audio.generate',title:n,pos:{x:bx+i*320,y:by},size:{w:300,h:180},ports:[],status:'idle',meta:{prompt:(de as any)?.sunoPrompt||String(de),gen:{prompt:(de as any)?.sunoPrompt||String(de),model:'Suno v4'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_su_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };

@@ -11,6 +11,7 @@ import { submitTask, checkTask, downloadModel as downloadTripoModel, checkRig, s
 import { authMiddleware } from './middleware/auth.js';
 import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
+import kimodoRouter from './routes/kimodo.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5, parseShotBlocks } from './systems/agent/pipeline.js';
@@ -52,6 +53,9 @@ app.post('/api/models/delete', (req, res) => {
   fs.unlink(filepath, (err) => { if (err && err.code !== 'ENOENT') console.error('[models] Delete error:', err.message); });
   res.json({ success: true });
 });
+// BVH static files must be before /api/models catch-all (Express route ordering)
+const bvhDir = path.join(process.cwd(), 'data', 'bvh');
+app.use('/api/models/bvh', express.static(bvhDir, { fallthrough: false }));
 app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
 
 // ─── Tripo3D Routes ────────────────────────────
@@ -260,6 +264,7 @@ async function proxyAsset(req: Request, res: Response) {
 
 app.use('/api/blender', blenderRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/kimodo', kimodoRouter);
 
 app.use(authMiddleware);
 
@@ -1056,6 +1061,12 @@ server.on('upgrade', (req, socket, head) => {
     // @ts-ignore
     ue5WsProxy.upgrade(req, socket, head);
   }
+});
+
+// Auto-start Kimodo motion server (runs `python -m uvicorn server:app` on port 8000)
+import { startKimodo } from './systems/kimodo-launcher.js';
+startKimodo().then(ok => {
+  console.log(ok ? '[kimodo-launcher] ✅ Kimodo ready' : '[kimodo-launcher] ⚠️ Kimodo unavailable — motion generation disabled');
 });
 
 server.listen(PORT, () => {

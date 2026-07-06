@@ -30,6 +30,7 @@ const PUBLIC_ROUTES = [
   '/api/last-compiled',
   '/admin',
   '/api/kie-callback',
+  '/api/kie',
   '/api/auth',
   '/api/agent/script',
   '/api/agent/generate',
@@ -37,6 +38,7 @@ const PUBLIC_ROUTES = [
   '/api/tripo/',
   '/api/task/',
   '/api/models/',
+  '/api/kimodo',
 ];
 
 function isPublicRoute(path: string): boolean {
