@@ -20,7 +20,7 @@ import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
-import { loadFromDB, loadFromServer, startAutoSave, saveNow } from './store/persistence';
+import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
@@ -351,8 +351,15 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
           }
           if (!serverRestored) {
-            // Truly fresh canvas — user starts from scratch
-            console.log('[persist] Fresh canvas — no local or server data');
+            // Last resort: localStorage emergency parachute
+            const emergencyRestored = loadEmergencyFromLocalStorage();
+            if (emergencyRestored) {
+              const vp = useCanvasStore.getState().viewport;
+              if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
+            } else {
+              // Truly fresh canvas — user starts from scratch
+              console.log('[persist] Fresh canvas — no local or server data');
+            }
           }
         });
       }
@@ -1025,6 +1032,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         onNodeMouseLeave={onNodeMouseLeave}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onMoveEnd={(_event, viewport) => { useCanvasStore.getState().setViewport(viewport); }}
         onPaneClick={onPaneClick}
         paneClickDistance={0}
         nodeClickDistance={0}

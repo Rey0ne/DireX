@@ -169,6 +169,16 @@ export async function saveNow() {
       }).catch(()=>{});
     } catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
+    // ── Emergency parachute: write minimal state to localStorage ──
+    // If IndexedDB AND server both fail, this is the last resort for recovery.
+    try {
+      const emergency = {
+        ts: Date.now(),
+        n: nodes.map(n => ({ id: n.id, ty: n.type, ti: n.title, px: n.pos?.x, py: n.pos?.y, st: n.status })),
+        e: edges.map(e => ({ id: e.id, f: e.from?.nodeId, t: e.to?.nodeId })),
+      };
+      localStorage.setItem('__direx_emergency', JSON.stringify(emergency));
+    } catch {}
     getStorageUsage().then(u=>{if(u.pct>80)console.warn(`[persist] Storage: ${u.usedMB}MB / ${u.quotaMB}MB (${u.pct}%) — 接近上限`);});
     // ── Health sentinel: detect bloated state — auto-clean source to break save loop ──
     try {
@@ -266,12 +276,58 @@ export async function loadFromServer(): Promise<boolean> {
   }
 }
 
+// ─── Last-resort recovery: localStorage emergency parachute ───
+// Activated when both IndexedDB AND server are empty/corrupt.
+// Stores minimal node data (id, type, title, position, status) — no content URLs.
+export function loadEmergencyFromLocalStorage(): boolean {
+  try {
+    const raw = localStorage.getItem('__direx_emergency');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data.n?.length) return false;
+    const ageMinutes = (Date.now() - data.ts) / 60000;
+    console.warn(`[persist] ⚠ Emergency recovery: ${data.n.length} nodes, ${ageMinutes.toFixed(0)}min old`);
+    const nodeMap = new Map();
+    for (const n of data.n) {
+      nodeMap.set(n.id, {
+        id: n.id, type: n.ty || 'shot', title: n.ti || '',
+        pos: { x: n.px || 0, y: n.py || 0 }, size: { w: 320, h: 200 },
+        ports: [], status: n.st || 'idle', meta: { _recovered: true },
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+    }
+    const edgeMap = new Map();
+    for (const e of data.e || []) {
+      if (!e.id) continue;
+      edgeMap.set(e.id, {
+        id: e.id,
+        from: { nodeId: e.f || '', portId: 'out' },
+        to: { nodeId: e.t || '', portId: 'in' },
+        dataType: 'any', style: {}, meta: { semantic: 'dataflow' },
+      });
+    }
+    useCanvasStore.setState({ nodes: nodeMap, edges: edgeMap });
+    console.log('[persist] Emergency recovery complete — content URLs not preserved, but node structure saved');
+    return true;
+  } catch { return false; }
+}
+
 export async function loadFromDB() {
-  // Crash sentinel: if previous session crashed, skip IndexedDB to avoid loading corrupt data
+  // Crash sentinel: if previous session crashed, check IndexedDB before skipping
   if (wasPreviousCrash()) {
-    console.warn('[persist] Previous session may have crashed — skipping IndexedDB, falling back to server');
     clearHeartbeat();
-    return false;
+    // Only skip IndexedDB if there's genuinely no local data
+    try {
+      const hasLocal = await db.canvases.count() > 0;
+      if (!hasLocal) {
+        console.warn('[persist] Previous session may have crashed — no local data, falling back to server');
+        return false;
+      }
+      console.warn('[persist] Previous session may have crashed — but local data exists, loading from IndexedDB');
+    } catch {
+      console.warn('[persist] Previous session may have crashed — cannot check IndexedDB, falling back to server');
+      return false;
+    }
   }
   try {
     const cid = getCanvasId();

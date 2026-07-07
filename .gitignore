@@ -8,3 +8,8 @@ dist/
 server/dist/
 server/node_modules/
 .netlify/
+server/data/canvas-state.json
+server/data/task-logs.json
+server/data/credit-transactions.json
+server/data/users.json
+server/data/backups/

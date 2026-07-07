@@ -309,8 +309,31 @@ const CANVAS_FILE = 'data/canvas-state.json';
 let canvasState: any = readJSON(CANVAS_FILE) || { nodes: [], edges: [], updatedAt: '' };
 console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
 
+// ── Canvas backup: keep last 20 timestamped snapshots ──
+const BACKUP_DIR = 'data/backups';
+function rotateBackups() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('canvas-') && f.endsWith('.json'));
+    if (files.length >= 20) {
+      files.sort(); // alphabetical = chronological (ISO timestamps)
+      for (let i = 0; i < files.length - 19; i++) {
+        try { fs.unlinkSync(path.join(BACKUP_DIR, files[i])); } catch {}
+      }
+    }
+  } catch {}
+}
 app.post('/api/canvas/sync', (req, res) => {
   canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
+  // Backup old state before overwriting — prevents accidental data loss
+  if (fs.existsSync(CANVAS_FILE)) {
+    try { fs.copyFileSync(CANVAS_FILE, CANVAS_FILE + '.bak'); } catch {}
+  }
+  try {
+    rotateBackups();
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(CANVAS_FILE, path.join(BACKUP_DIR, `canvas-${ts}.json`));
+  } catch {}
   writeJSON(CANVAS_FILE, canvasState);
   console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
   res.json({ ok: true });
