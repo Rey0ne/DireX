@@ -190,7 +190,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
   const setToolMode = useCanvasStore(s => s.setToolMode);
   const pendingConnection = useCanvasStore(s => s.pendingConnection);
 
-  const { screenToFlowPosition, setViewport } = useReactFlow();
+  const { screenToFlowPosition, setViewport, updateNode: rfUpdateNode } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   // Custom selection box (ReactFlow's built-in one is buggy)
   const [customBox, setCustomBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -798,13 +798,23 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     // Move all nodes in the same group
     const dx = node.position.x - existing.pos.x;
     const dy = node.position.y - existing.pos.y;
+    const siblingUpdates: Array<{ id: string; pos: { x: number; y: number } }> = [];
     store.nodes.forEach(n => {
       const gid = (n.meta as Record<string, unknown>)?.groupId;
       if (gid === groupId && n.id !== node.id) {
-        store.updateNode(n.id, { pos: { x: n.pos.x + dx, y: n.pos.y + dy } });
+        const newPos = { x: n.pos.x + dx, y: n.pos.y + dy };
+        siblingUpdates.push({ id: n.id, pos: newPos });
+        store.updateNode(n.id, { pos: newPos });
       }
     });
-  }, []);
+    // Update ReactFlow directly for siblings — updateNode pos-only no longer
+    // triggers syncTick (to prevent drag-jitter), so ReactFlow won't see the
+    // position change via the sync effect. Push positions to ReactFlow here.
+    if (siblingUpdates.length > 0) {
+      rfUpdateNode(node.id, { position: node.position });
+      siblingUpdates.forEach(u => rfUpdateNode(u.id, { position: u.pos }));
+    }
+  }, [rfUpdateNode]);
 
   const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
     const store = useCanvasStore.getState();

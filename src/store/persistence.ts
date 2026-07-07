@@ -54,10 +54,14 @@ function sanitizeMeta(obj: unknown): unknown {
 }
 
 export async function saveNow() {
-  // ── Mutex guard: skip if a save is already in flight ──
+  // ── Mutex guard: if a save is already in flight, re-schedule aggressively ──
+  // Previous code only set saveTimer if none existed — but scheduleSave() always
+  // sets one, so the !saveTimer guard never fired. The deferred timer from
+  // scheduleSave() could be up to MIN_SAVE_INTERVAL (3s) away, and the user
+  // refreshing in that window would lose the latest position.
   if (saveMutex) {
-    // Re-schedule so pending changes aren't lost
-    if (!saveTimer) saveTimer = setTimeout(() => saveNow(), SAVE_DEBOUNCE);
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveNow(), SAVE_DEBOUNCE);
     return;
   }
   saveMutex = true;

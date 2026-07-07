@@ -164,12 +164,17 @@ export const useCanvasStore = create<GraphState>((set, get) => ({
         delete patch.title;
       }
     }
+    // ── Only bump syncTick for structural changes (not pos-only) ──
+    // Position-only updates during drags would trigger a sync that calls
+    // setRfNodes → prevPos from stale data → overwrites ReactFlow's live
+    // drag position → node jitter & position drift after refresh.
+    const isPosOnly = Object.keys(patch).every(k => k === 'pos' || k === 'updatedAt');
     set(s => {
       const existing = s.nodes.get(id);
       if (!existing) return s;
       const next = new Map(s.nodes);
       next.set(id, { ...existing, ...patch, updatedAt: now() });
-      return { nodes: next, syncTick: s.syncTick + 1 };
+      return { nodes: next, syncTick: isPosOnly ? s.syncTick : s.syncTick + 1 };
     });
   },
 
