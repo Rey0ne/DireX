@@ -333,8 +333,29 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     const existing = Array.from(nodesMap.values());
     if (existing.length > 0) return;
 
+    // ── Merge position deltas from drag-stop emergency saves ──
+    const mergePosDeltas = () => {
+      try {
+        const raw = localStorage.getItem('__direx_pos_deltas');
+        if (!raw) return;
+        const deltas = JSON.parse(raw);
+        const store = useCanvasStore.getState();
+        let merged = 0;
+        for (const [id, pos] of Object.entries(deltas)) {
+          const node = store.nodes.get(id);
+          if (node && pos && typeof (pos as any).x === 'number') {
+            store.updateNode(id, { pos: pos as { x: number; y: number } });
+            merged++;
+          }
+        }
+        localStorage.removeItem('__direx_pos_deltas');
+        if (merged > 0) console.log('[persist] Merged', merged, 'position deltas from emergency store');
+      } catch {}
+    };
+
     loadFromDB().then(restored => {
       if (restored) {
+        mergePosDeltas();
         // Restore saved viewport so nodes appear where user left them
         const vp = useCanvasStore.getState().viewport;
         if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
@@ -347,6 +368,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         // IndexedDB empty/corrupted — try server fallback
         loadFromServer().then(serverRestored => {
           if (serverRestored) {
+            mergePosDeltas();
             const vp = useCanvasStore.getState().viewport;
             if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
           }
@@ -354,6 +376,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             // Last resort: localStorage emergency parachute
             const emergencyRestored = loadEmergencyFromLocalStorage();
             if (emergencyRestored) {
+              mergePosDeltas();
               const vp = useCanvasStore.getState().viewport;
               if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
             } else {
@@ -618,6 +641,13 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               store.triggerSync();
             } else {
               store.setNodeStatus(n.id, 'failed');
+              // Persist error details so the user can see WHY generation failed
+              if (result.error) {
+                const currentMeta = (store.nodes.get(n.id)?.meta || {}) as Record<string, unknown>;
+                const currentGen = (currentMeta.gen || {}) as Record<string, unknown>;
+                store.updateNode(n.id, { meta: { ...currentMeta, gen: { ...currentGen, lastError: result.error } } });
+                console.log('[generate] ' + n.id + ' failed: ' + result.error);
+              }
             }
           },
           // ── Crop callbacks ──
@@ -823,7 +853,15 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       store.pushHistory();
     }
     store.updateNode(node.id, { pos: node.position });
-    // Save immediately so position survives browser refresh
+    // ── Emergency position delta to localStorage (synchronous, survives fast refresh) ──
+    // saveNow() is async (IndexedDB transaction). If user refreshes before the tx commits,
+    // the position is lost. localStorage write is synchronous — always durable.
+    try {
+      const deltas = JSON.parse(localStorage.getItem('__direx_pos_deltas') || '{}');
+      deltas[node.id] = node.position;
+      localStorage.setItem('__direx_pos_deltas', JSON.stringify(deltas));
+    } catch {}
+    // Fire-and-forget async save (IndexedDB + server)
     saveNow();
   }, []);
 

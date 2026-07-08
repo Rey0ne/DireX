@@ -5,6 +5,33 @@
 
 ---
 
+## 第 0 步：确定你的角色（多角色工作模式）
+
+**本项目的 3 个角色文件：**
+
+| 文件 | 角色 | 主管域 |
+|------|------|--------|
+| `CLAUDE-backend.md` | 🔧 后端工程师 | `server/src/` — API、Agent管道、生图、数据库 |
+| `CLAUDE-frontend.md` | 🎨 前端工程师 | `src/` — React 组件、画布、状态管理、UI |
+| `CLAUDE-contract.md` | 📞 API 合约 | 前后端共享接口定义 |
+
+**如何启动多角色并行工作：**
+
+```
+窗口 1 — 后端                      窗口 2 — 前端
+─────────────────                  ─────────────────
+"你是 DireX 后端工程师，             "你是 DireX 前端工程师，
+ 读取 CLAUDE-backend.md"             读取 CLAUDE-frontend.md"
+
+✅ 改 server/src/                  ✅ 改 src/
+❌ 禁碰 src/                       ❌ 禁碰 server/src/
+```
+
+**⚠️ 开错窗口？** 如果 Claude 读了后端文件但你实际要做前端 → 关掉重来。两个角色文件顶部都有醒目提示。
+
+
+---
+
 ## 强制步骤（每一步都必须执行）
 
 ### 第 1 步：恢复断点
@@ -41,11 +68,13 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-07 |
+| 最后更新 | 2026-07-08 19:40 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 未提交文件 | 5 文件：App.tsx, persistence.ts, .gitignore, server/src/index.ts, CLAUDE.md |
-| 当前板块 | 5层数据防丢体系 — 画布平移/崩溃心跳/服务器备份/localStorage紧急兜底/git排除 |
-| 下一个板块 | 提交 + D盘同步 → 等用户指令 |
+| 最新提交 | `4605994` — fix: 节点刷新后位置漂移 — 3处修复 |
+| 未提交文件 | 多项代码改动 (CLAUDE多角色 + Camera/Lens/Film视觉映射 + 风格DB + T2I模板替换) |
+| D盘备份 | `D:/direx-backup-20260707-1943` (含 desktop-shortcuts) |
+| 当前板块 | Camera/Lens/Film视觉描述映射 + 风格知识库导入Agent + 5维决策规则 + T2I分镜模板替换 + 多角色CLAUDE文件 |
+| 下一个板块 | 等用户指令 |
 
 ---
 

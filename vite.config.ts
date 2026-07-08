@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => ({
 	},
 	server: {
 		allowedHosts: true,
+		hmr: {
+			protocol: 'ws',
+			timeout: 120000, // 2min heartbeat — prevents idle disconnect
+		},
 		proxy: {
 			'/api': {
 				target: 'http://localhost:3001',

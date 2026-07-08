@@ -45,17 +45,6 @@ interface ShotNodeData {
   onGenerate?: () => void;
 }
 
-const STYLE_SUFFIX = `\n\n黑白铅笔线稿风格，
-专业导演分镜，
-影视预演分镜板，
-清晰视觉叙事，
-高可读性构图，
-工业级Storyboard，
-带镜头标注，
-电影感构图，
-单格分镜画面，
-干净简洁线稿，
-制作级分镜设计。`;
 
 export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeData; selected?: boolean }) {
   const _shot = data.shot || {};
@@ -310,7 +299,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
     const ts=Date.now();
-    ss.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:bx+(si%3)*340,y:by+Math.floor(si/3)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:(sh.visualPrompt||sh.contentCN||'')+STYLE_SUFFIX,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,lens:sh.lens,composition:sh.composition,emotion:sh.emotion}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    ss.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:bx+(si%3)*340,y:by+Math.floor(si/3)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:(sh.visualPrompt||sh.contentCN||''),model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,lens:sh.lens,composition:sh.composition,emotion:sh.emotion}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_'+si;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };

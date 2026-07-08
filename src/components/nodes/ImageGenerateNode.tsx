@@ -162,6 +162,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [showRatioPicker, setShowRatioPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
+  const atQueryRef = useRef('');  // tracks @query text for correct replacement in Chinese
+  const atPosRef = useRef(-1);    // tracks @ position in prompt (avoids lastIndexOf races with multi-@)
   const [currentAspect, setCurrentAspect] = useState(gen.aspect || '16:9');
   const [currentResolution, setCurrentResolution] = useState(gen.resolution || '2K');
   const [showResolutionPicker, setShowResolutionPicker] = useState(false);
@@ -211,11 +213,12 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     { name:'Bleach Bypass',desc:'高反差金属', colors:['#080808','#1a1a1a','#4a4a4a','#7a7a7a','#a8a0a0','#c0b8b8','#a8a0a0'], img:`${KIT}lut-bleach.png` },
     { name:'B&W Acros',   desc:'黑白经典',  colors:['#000000','#1a1a1a','#3a3a3a','#6a6a6a','#909090','#b0b0b0','#909090'], img:`${KIT}lut-acros.png` },
   ];
-  const [camIdx, setCamIdx] = useState(0);
-  const [lensIdx, setLensIdx] = useState(3); // Cooke S4
-  const [focalIdx, setFocalIdx] = useState(4); // 50mm
-  const [apertureIdx, setApertureIdx] = useState(0); // f/1.4
-  const [filmIdx, setFilmIdx] = useState(0); // Kodak 2383
+  // Init from saved meta so camera kit survives node remount / page refresh
+  const [camIdx, setCamIdx] = useState(() => { const i = CAMERAS.findIndex(c => c.name === gen.camera); return i >= 0 ? i : 0; });
+  const [lensIdx, setLensIdx] = useState(() => { const i = LENSES.findIndex(l => l.name === gen.lens); return i >= 0 ? i : 3; });
+  const [focalIdx, setFocalIdx] = useState(() => { const i = FOCALS.indexOf(gen.focalLength || ''); return i >= 0 ? i : 4; });
+  const [apertureIdx, setApertureIdx] = useState(() => { const i = APERTURES.findIndex(a => a.v === gen.aperture); return i >= 0 ? i : 0; });
+  const [filmIdx, setFilmIdx] = useState(() => { const i = FILM_STOCKS.findIndex(f => f.name === gen.filmStock); return i >= 0 ? i : 0; });
   const [showCamPick, setShowCamPick] = useState(false);
   const [showFilmPick, setShowFilmPick] = useState(false);
   const camRef = useRef<HTMLSpanElement>(null);
@@ -622,12 +625,38 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     });
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!data.imageUrl) return;
-    // Proxy through backend to force download (cross-origin URLs won't download directly)
-    const isData = data.imageUrl.startsWith('data:');
+    const url = data.imageUrl;
+    // data: URLs → direct download
+    if (url.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `viewlab-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+    // Try direct fetch+Blob (fast, no server proxy overhead)
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `viewlab-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+    } catch { /* CORS or network error — fall through to proxy */ }
+    // Fallback: proxy through backend (cross-origin URLs that block CORS)
     const a = document.createElement('a');
-    a.href = isData ? data.imageUrl : `/api/download?url=${encodeURIComponent(data.imageUrl)}`;
+    a.href = `/api/download?url=${encodeURIComponent(url)}`;
     a.download = `viewlab-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
@@ -1093,6 +1122,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   if (atIdx >= 0) {
                     const query = textBefore.slice(atIdx + 1);
                     if (!query.includes(' ')) {
+                      atPosRef.current = atIdx; // remember exact @ position for replacement
+                      atQueryRef.current = query;  // remember for replacement
                       const list = getMentionList();
                       console.log('[Mention] @ detected, list:', list?.length, 'items');
                       setShowAtMention(true);
@@ -1143,10 +1174,15 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   {atMentions.map((m, i) => (
                     <div key={i}
                       onClick={() => {
-                        const atIdx = prompt.lastIndexOf('@');
+                        // Use stored @ position (not lastIndexOf — multi-@ prompts would find wrong one)
+                        const atIdx = atPosRef.current;
+                        if (atIdx < 0 || atIdx >= prompt.length) { setShowAtMention(false); return; }
                         const before = prompt.slice(0, atIdx);
-                        const after = prompt.slice(prompt.indexOf(' ', atIdx) > 0 ? prompt.indexOf(' ', atIdx) : prompt.length);
-                        setPrompt(before + '@' + m.name + ' ' + after);
+                        // Use stored query length (works for Chinese without spaces)
+                        const queryLen = atQueryRef.current.length;
+                        const after = prompt.slice(atIdx + 1 + queryLen);
+                        const name = m.name || 'REF'; // fallback — never let name be empty
+                        setPrompt(before + '@' + name + ' ' + after);
                         setShowAtMention(false);
                         // Add to reference images in generate request
                         const refs = [...(atMentions.filter(r => r.url !== m.url).map(r => r.url)), m.url];

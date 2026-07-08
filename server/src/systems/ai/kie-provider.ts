@@ -10,6 +10,34 @@ import { join } from 'path';
 
 const BASE_URL = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
 
+// ── Concurrency limiter: prevents Kie.ai rate-limiting when >4 tasks fire at once ──
+const KIE_MAX_CONCURRENT = 3;
+const kieQueue: Array<() => void> = [];
+let kieRunning = 0;
+function kieAcquire(): Promise<void> {
+  if (kieRunning < KIE_MAX_CONCURRENT) { kieRunning++; return Promise.resolve(); }
+  return new Promise(resolve => { kieQueue.push(() => { kieRunning++; resolve(); }); });
+}
+function kieRelease(): void {
+  kieRunning--;
+  const next = kieQueue.shift();
+  if (next) next(); else kieRunning = Math.max(0, kieRunning);
+}
+export async function withKieLimit<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const t0 = Date.now();
+  if (kieQueue.length > 0 || kieRunning >= KIE_MAX_CONCURRENT) {
+    console.log(`[kie-limiter] ${label} queued (running=${kieRunning} queued=${kieQueue.length})`);
+  }
+  await kieAcquire();
+  const waitMs = Date.now() - t0;
+  if (waitMs > 500) console.log(`[kie-limiter] ${label} waited ${waitMs}ms`);
+  try {
+    return await fn();
+  } finally {
+    kieRelease();
+  }
+}
+
 // Create fetch with proxy support — reads env dynamically
 let _proxyAgentClass: any = undefined;
 let _proxyAgentLoaded = false;
@@ -123,8 +151,8 @@ function getApiKey(): string | undefined {
 // ─── Polling helper ────────────────────────────
 async function pollTask(taskId: string, apiKey: string, startTime: number): Promise<GenerateResult> {
   const pollUrl = `${BASE_URL}/jobs/recordInfo?taskId=${taskId}`;
-  const maxAttempts = 5; // 5 checks over 10 minutes
-  const intervalMs = 120000; // 2 minutes between checks
+  const maxAttempts = 75; // 75 checks over ~10 min
+  const intervalMs = 8000; // 8 seconds between checks
   console.log(`[kie] Polling ${taskId}...`);
 
   for (let i = 0; i < maxAttempts; i++) {
@@ -144,7 +172,11 @@ async function pollTask(taskId: string, apiKey: string, startTime: number): Prom
       const state = record.state || record.status || record.task_status || '';
 
       if (state === 'fail' || state === 'failed' || state === 'error') {
-        return { success: false, assetUrls: [], cost: 0, durationMs: Date.now() - startTime, seed: 0, error: 'Kie.ai: Generation failed' };
+        const failCode = record.failCode || record.fail_code || '';
+        const failMsg = record.failMsg || record.fail_msg || record.error || '';
+        const detail = [failCode, failMsg].filter(Boolean).join(': ') || '(no detail)';
+        console.error(`[kie] Task ${taskId} FAILED: ${detail}`);
+        return { success: false, assetUrls: [], cost: 0, durationMs: Date.now() - startTime, seed: 0, error: `Kie.ai: Generation failed — ${detail}` };
       }
       if (state === 'succeeded' || state === 'completed' || state === 'success' || state === 'SUCCESS' || state === 'done') {
         console.log('[kie] DONE! Full record:', JSON.stringify(record).slice(0, 1000));
@@ -567,8 +599,8 @@ function getServerBaseUrl(): string {
 async function pollSunoTask(taskId: string, apiKey: string, startTime: number): Promise<GenerateResult> {
   // Poll for results — Kie.ai Suno uses /generate/record-info
   const pollUrl = process.env.KIE_SUNO_POLL_URL || `${BASE_URL}/generate/record-info?taskId=${taskId}`;
-  const maxAttempts = 15; // 15 × 2min = 30min max
-  const intervalMs = 120000;
+  const maxAttempts = 225; // 225 checks over ~30 min
+  const intervalMs = 8000; // 8 seconds between checks
   console.log(`[kie-suno] Polling ${taskId}...`);
 
   for (let i = 0; i < maxAttempts; i++) {

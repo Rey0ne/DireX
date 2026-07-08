@@ -13,6 +13,7 @@ import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import kimodoRouter from './routes/kimodo.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
+import { withKieLimit } from './systems/ai/kie-provider.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5, parseShotBlocks } from './systems/agent/pipeline.js';
 import { gpt5Chat } from './systems/ai/gemini.js';
@@ -544,17 +545,51 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const focal = (body as any).focalLength;
   const apt = (body as any).aperture;
   const film = (body as any).filmStock;
+  // Camera/Lens/Film → visual description (AI models don't know brand names)
+  const CAMERA_VISUAL: Record<string, string> = {
+    'Sony Venice': 'Sony Venice full-frame digital cinema: clean modern digital look, high dynamic range, crisp detail, neutral color science',
+    'Arri Alexa 35': 'Arri Alexa 35 Super 35 digital cinema: warm organic filmic look, soft highlight rolloff, cinematic skin tones, rich shadow detail',
+    'Arri Alexa 65': 'Arri Alexa 65 large-format digital cinema: ultra-shallow depth of field, epic wide perspective, rich texture, fine detail',
+    'RED V-Raptor': 'RED V-Raptor digital cinema: crisp high-resolution digital, clean shadows, modern clinical sharpness, high detail',
+    'ArriFlex 435': 'ArriFlex 435 35mm film camera: authentic celluloid film texture, organic grain structure, classic cinema feel, soft highlight bloom',
+    'IMAX Film Camera': 'IMAX 70mm film camera: massive large-format film, ultra-high resolution, immersive epic scale, fine grain, expansive field of view',
+  };
+  const LENS_VISUAL: Record<string, string> = {
+    'Zeiss Ultra Prime': 'Zeiss Ultra Prime: sharp clean contrast, neutral color rendition, crisp modern rendering, high resolution',
+    'Arri Signature': 'Arri Signature: smooth creamy bokeh, warm gentle focus rolloff, organic depth, cinematic softness, flattering falloff',
+    'Canon K-35': 'Canon K-35 vintage: soft dreamy glow, warm amber tint, creamy bokeh, nostalgic 1970s film character, gentle halation',
+    'Zeiss Super Speed': 'Zeiss Super Speed T1.3: ultra-fast, dramatic shallow focus, crisp center with subtle edge falloff, low-light character',
+    'Panavision Primo': 'Panavision Primo: classic Hollywood look, rich warm tones, smooth contrast, flattering skin rendition, elegant rendering',
+    'Angénieux Optimo': 'Angénieux Optimo: elegant French cinema look, smooth focus rolloff, refined warm-neutral color, subtle character',
+    'Leitz Thalia': 'Leitz Thalia large-format: micro-contrast detail, clean neutral rendering, dimensional depth, precise sharpness',
+    'Hawk Class X': 'Hawk Class X anamorphic: horizontal blue streak flares, oval bokeh, wide cinematic 2.39:1 widescreen character, vintage anamorphic feel',
+  };
+  const FILM_VISUAL: Record<string, string> = {
+    'Kodak 2383': 'Kodak 2383 color grade: warm cinematic amber-gold highlights, rich teal-shadow contrast, classic Hollywood print film saturation, subtle film grain',
+    'Kodak 250D': 'Kodak 250D color grade: soft natural daylight tones, gentle warm bias, low contrast pastel-like rolloff, smooth skin tones, airy atmosphere',
+    'Kodak 500T': 'Kodak 500T color grade: cool tungsten blue-green cast, moody cyan shadows, muted saturation, cinematic night interior look, fine grain',
+    'Ektachrome': 'Ektachrome color grade: punchy blue-green saturation, crisp contrast, cool vivid color reversal slide film look, deep teal skies, clean whites',
+    'Fuji Eterna': 'Fuji Eterna color grade: cool fresh Japanese cinema tone, subtle green-cyan bias, low contrast milky blacks, soft pastel color rendition, calm atmosphere',
+    'Fuji Velvia': 'Fuji Velvia color grade: extreme high saturation landscape film, deep reds and vibrant greens, heavy color contrast, golden warmth, vivid hyper-real pop',
+    'Technicolor': 'Technicolor 3-strip color grade: rich saturated primaries, distinct red/teal separation, golden skin tones, deep blacks, vintage Hollywood spectacle look',
+    'Bleach Bypass': 'Bleach Bypass color grade: silver retention high contrast, heavily desaturated near-monochrome, metallic gritty texture, crushed blacks, blown highlights, gritty raw aesthetic',
+    'B&W Acros': 'B&W Acros monochrome: deep rich blacks, smooth broad tonal range, fine grain, classic black and white film texture, timeless contrast, no color',
+  };
   let camBlock = '';
   if (cam || lens || focal || apt || film) {
     const parts: string[] = [];
-    if (cam) parts.push(`Camera: ${cam}`);
-    if (lens) parts.push(`Lens: ${lens}`);
+    if (cam) parts.push(`Camera: ${CAMERA_VISUAL[cam] || cam}`);
+    if (lens) parts.push(`Lens: ${LENS_VISUAL[lens] || lens}`);
     if (focal) parts.push(`Focal length: ${focal}`);
     if (apt) parts.push(`Aperture: ${apt}`);
-    if (film) parts.push(`Film stock: ${film}`);
+    if (film) parts.push(`Film Stock: ${FILM_VISUAL[film] || film}`);
     camBlock = '[' + parts.join(', ') + '] ';
   }
-  const enrichedPrompt = camBlock ? camBlock + userPrompt : userPrompt;
+  // Camera block deliberately excluded from enrichedPrompt — it's prepended
+  // once to the final compiledPrompt below. Including it caused double-prepend
+  // when GPT translates (Chinese→English): guard `compiledPrompt !== enrichedPrompt`
+  // always passes for translated output → "[Camera: ...] [Camera: ...] rest".
+  const enrichedPrompt = userPrompt;
 
   // ── Video models: Agent compiles prompt (text only) → Kie gets URLs directly → Seedance does visual understanding ──
   if (isVideo) {
@@ -576,7 +611,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     const clientTaskId = uuid();
     initVideoTask(clientTaskId, body.providerId);
     const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo';
-    const result: GenerateResult = await handler({
+    const result: GenerateResult = await withKieLimit(`video:${body.providerId}`, () => handler({
       providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
       negativePrompt: i2iNegPrompt,
       aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
@@ -591,7 +626,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       generateAudio: (body as any).generateAudio,
       webSearch: (body as any).webSearch,
       clientTaskId,
-    });
+    }) );
     // Seedance generation is async — client polls for result, don't block here
     console.log('[agent] ===== COMPILED PROMPT =====');
     console.log(compiledPrompt);
@@ -646,7 +681,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     if (refUrls && refUrls.length > 0) {
       // First, map each @mention to a reference URL by order of appearance
       const orderedMentions: string[] = [];
-      const mentionPattern = /@([\S]+)(?:\s+[\S]+)*/g;
+      const mentionPattern = /@(\S+)/g;  // match @word only — do NOT swallow trailing text
       let mMatch: RegExpExecArray | null;
       while ((mMatch = mentionPattern.exec(compiledPrompt)) !== null) {
         if (!orderedMentions.includes(mMatch[0])) orderedMentions.push(mMatch[0]);
@@ -669,8 +704,9 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     compiledPrompt = userPrompt || body.rawText || 'generate an image';
     console.log('[agent] WARNING: compiledPrompt was empty, using fallback: ' + compiledPrompt.slice(0, 80));
   }
-  // Apply camera kit to compiledPrompt if not already in enrichedPrompt
-  if (camBlock && compiledPrompt && compiledPrompt !== enrichedPrompt) {
+  // Camera kit prepended once (enrichedPrompt no longer includes camBlock,
+  // so there's no risk of double-prepend regardless of translation path)
+  if (camBlock && compiledPrompt) {
     compiledPrompt = camBlock + compiledPrompt;
   }
 
@@ -680,7 +716,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const i2iNegPrompt = body.mode === 'image-to-image'
     ? 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details'
     : 'blurry, low quality, distorted, deformed, watermark, text, logo';
-  const result: GenerateResult = await handler({
+  const result: GenerateResult = await withKieLimit(`generate:${body.providerId}`, () => handler({
     providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
     negativePrompt: i2iNegPrompt,
     aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
@@ -698,7 +734,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     // Suno audio
     instrumental: (body as any).instrumental as boolean | undefined,
     lyrics: (body as any).lyrics as string | undefined,
-  });
+  }) );
   result.durationMs = Date.now() - t0;
   addLog({
     id: uuid(), timestamp: new Date().toISOString(), providerId: body.providerId,
@@ -932,17 +968,47 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
   const focal = (body as any).focalLength;
   const apt = (body as any).aperture;
   const film = (body as any).filmStock;
+  // Camera/Lens/Film → visual description (AI models don't know brand names)
+  const CAMERA_VISUAL: Record<string, string> = {
+    'Sony Venice': 'Sony Venice full-frame digital cinema: clean modern digital look, high dynamic range, crisp detail, neutral color science',
+    'Arri Alexa 35': 'Arri Alexa 35 Super 35 digital cinema: warm organic filmic look, soft highlight rolloff, cinematic skin tones, rich shadow detail',
+    'Arri Alexa 65': 'Arri Alexa 65 large-format digital cinema: ultra-shallow depth of field, epic wide perspective, rich texture, fine detail',
+    'RED V-Raptor': 'RED V-Raptor digital cinema: crisp high-resolution digital, clean shadows, modern clinical sharpness, high detail',
+    'ArriFlex 435': 'ArriFlex 435 35mm film camera: authentic celluloid film texture, organic grain structure, classic cinema feel, soft highlight bloom',
+    'IMAX Film Camera': 'IMAX 70mm film camera: massive large-format film, ultra-high resolution, immersive epic scale, fine grain, expansive field of view',
+  };
+  const LENS_VISUAL: Record<string, string> = {
+    'Zeiss Ultra Prime': 'Zeiss Ultra Prime: sharp clean contrast, neutral color rendition, crisp modern rendering, high resolution',
+    'Arri Signature': 'Arri Signature: smooth creamy bokeh, warm gentle focus rolloff, organic depth, cinematic softness, flattering falloff',
+    'Canon K-35': 'Canon K-35 vintage: soft dreamy glow, warm amber tint, creamy bokeh, nostalgic 1970s film character, gentle halation',
+    'Zeiss Super Speed': 'Zeiss Super Speed T1.3: ultra-fast, dramatic shallow focus, crisp center with subtle edge falloff, low-light character',
+    'Panavision Primo': 'Panavision Primo: classic Hollywood look, rich warm tones, smooth contrast, flattering skin rendition, elegant rendering',
+    'Angénieux Optimo': 'Angénieux Optimo: elegant French cinema look, smooth focus rolloff, refined warm-neutral color, subtle character',
+    'Leitz Thalia': 'Leitz Thalia large-format: micro-contrast detail, clean neutral rendering, dimensional depth, precise sharpness',
+    'Hawk Class X': 'Hawk Class X anamorphic: horizontal blue streak flares, oval bokeh, wide cinematic 2.39:1 widescreen character, vintage anamorphic feel',
+  };
+  const FILM_VISUAL: Record<string, string> = {
+    'Kodak 2383': 'Kodak 2383 color grade: warm cinematic amber-gold highlights, rich teal-shadow contrast, classic Hollywood print film saturation, subtle film grain',
+    'Kodak 250D': 'Kodak 250D color grade: soft natural daylight tones, gentle warm bias, low contrast pastel-like rolloff, smooth skin tones, airy atmosphere',
+    'Kodak 500T': 'Kodak 500T color grade: cool tungsten blue-green cast, moody cyan shadows, muted saturation, cinematic night interior look, fine grain',
+    'Ektachrome': 'Ektachrome color grade: punchy blue-green saturation, crisp contrast, cool vivid color reversal slide film look, deep teal skies, clean whites',
+    'Fuji Eterna': 'Fuji Eterna color grade: cool fresh Japanese cinema tone, subtle green-cyan bias, low contrast milky blacks, soft pastel color rendition, calm atmosphere',
+    'Fuji Velvia': 'Fuji Velvia color grade: extreme high saturation landscape film, deep reds and vibrant greens, heavy color contrast, golden warmth, vivid hyper-real pop',
+    'Technicolor': 'Technicolor 3-strip color grade: rich saturated primaries, distinct red/teal separation, golden skin tones, deep blacks, vintage Hollywood spectacle look',
+    'Bleach Bypass': 'Bleach Bypass color grade: silver retention high contrast, heavily desaturated near-monochrome, metallic gritty texture, crushed blacks, blown highlights, gritty raw aesthetic',
+    'B&W Acros': 'B&W Acros monochrome: deep rich blacks, smooth broad tonal range, fine grain, classic black and white film texture, timeless contrast, no color',
+  };
   let camBlock = '';
   if (cam || lens || focal || apt || film) {
     const parts: string[] = [];
-    if (cam) parts.push(`Camera: ${cam}`);
-    if (lens) parts.push(`Lens: ${lens}`);
+    if (cam) parts.push(`Camera: ${CAMERA_VISUAL[cam] || cam}`);
+    if (lens) parts.push(`Lens: ${LENS_VISUAL[lens] || lens}`);
     if (focal) parts.push(`Focal length: ${focal}`);
     if (apt) parts.push(`Aperture: ${apt}`);
-    if (film) parts.push(`Film stock: ${film}`);
+    if (film) parts.push(`Film Stock: ${FILM_VISUAL[film] || film}`);
     camBlock = '[' + parts.join(', ') + '] ';
   }
-  const enrichedPrompt = camBlock ? camBlock + userPrompt : userPrompt;
+  const enrichedPrompt = userPrompt;  // camBlock not included — prepended once below
 
   console.log('[visual-extract] mode=' + extractMode + ' refs=' + allRefUrls.length + ' prompt=' + userPrompt.slice(0, 80));
 
@@ -976,7 +1042,7 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
 
   const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details';
 
-  const result: GenerateResult = await handler({
+  const result: GenerateResult = await withKieLimit(`visual-extract:${body.providerId}`, () => handler({
     providerId: body.providerId,
     mode: 'image-to-image',
     prompt: compiledPrompt,
@@ -999,7 +1065,7 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
     webSearch: (body as any).webSearch,
     instrumental: (body as any).instrumental as boolean | undefined,
     lyrics: (body as any).lyrics as string | undefined,
-  });
+  }) );
   result.durationMs = Date.now() - t0;
 
   addLog({

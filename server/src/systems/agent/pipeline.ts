@@ -1300,6 +1300,26 @@ export async function runTextPipeline(context: PipelineContext): Promise<TextPip
 // ─── Unified Pipeline — single GPT-5 call outputs all 6 categories ───
 const UNIFIED_PROMPT = `你是一位顶级电影导演兼视觉开发总监。阅读以下剧本，一次性完成六项分析。每项用 ===SECTION_NAME=== 开始标记。禁止输出思考过程，直接输出结构化内容。
 
+## 风格默认原则与视觉参考
+当剧本未明确指定服装风格/时代背景/美学方向时，默认当代时尚审美。有明确约束时严格遵循约束。
+
+服装风格速查 — Classic(合身A字/羊毛羊绒/黑白藏蓝驼) | Minimalist(直线条/棉麻羊绒/纯单色) | Streetwear(Oversize/棉涤丹宁/logo霓虹) | Bohemian(飘逸层叠/棉麻麂皮蕾丝/大地锈色) | Romantic(收腰荷叶/蕾丝雪纺丝/粉紫薄荷) | Grunge(超大破洞/法兰绒丹宁皮革/暗褪色) | Punk(撕裂对比/皮革格纹金属/黑红) | Gothic(戏剧束腰/天鹅绒蕾丝/黑紫血) | Preppy(合身利落/棉羊毛/藏蓝酒红绿) | Y2K(低腰短款/丝绒闪亮丹宁/粉银蓝) | K-Pop(超大流动/功能性面料/中性亮色) | 新中式(盘扣立领/丝绸棉麻/朱红藏蓝墨绿金) | Dark Academia(层叠合身/粗花呢羊毛/棕酒红深绿) | Cottagecore(松身泡泡袖/棉麻碎花/暖大地柔和) | Gorpcore(户外功能/防水抓绒/大地亮色) | Cyberpunk(不对称外骨骼/PVC尼龙反光/黑霓虹) | Gender-fluid(Oversize直线/棉羊毛丹宁/中性) | Balletcore(紧身芭蕾/薄纱弹力丝/粉奶油白黑)
+
+场景风格速查 — Traditional(对称护墙板/桃花心木天鹅绒水晶黄铜/米白深棕酒红绿金) | Modern(开放几何/胶合板混凝土钢玻璃/中性单色块) | Mid-Century Modern(大窗连接/柚木亚克力天鹅绒/橄榄芥末锈橙蓝绿) | Minimalist(大量留白/天然木金属混凝土/白帆布灰米) | Scandinavian(明亮通风/浅木羊毛羊皮亚麻/白浅灰浅木粉彩) | Japandi(低重心留白/天然木障子纸亚麻陶瓷/暖中赤陶苔绿) | Industrial(高挑空裸露/裸砖回收木混凝土钢筋/钢灰炭灰锈橙) | Coastal(大窗轻帘/漂白木藤黄麻亚麻玻璃/白象牙泡沫水蓝珊瑚) | Art Deco(对称几何/高光金属镜子漆面大理石/黑白金银翡翠蓝宝石酒红) | Mediterranean(拱门柱廊/橄榄木Zellige瓷砖锻铁/白赤陶海蓝) | Organic Modern(开放流畅/浅木亚麻bouclé天然石/米色奶油灰褐) | 新中式(对称屏风/漆木竹丝绸玉石/米白灰朱红墨绿金) | 侘寂(不对称残缺/粗陶锈金属风化木/灰褐暗绿赭炭灰) | Afrohemian(非洲织物Boho/Adire靛蓝柏柏尔藤/赤陶芥末靛蓝赭砖红) | Color Drenching(单色满铺/哑光天鹅绒/深蓝绿藏蓝茄紫巧克力)
+
+灯光三层：环境暖(2700-3000K)+任务中暖(3000-3500K)+重点暖(2700-3000K)。材质：橡木→Japandi/OrganicModern | 胡桃木→Traditional/ArtDeco | 大理石→ArtDeco/Glam | 石灰华→NeoTraditional | 微水泥→Japandi/WarmMinimalism。配色心理：蓝(卧室/书房) | 红/橙(餐厅) | 绿(任何) | 白(需加暖调) | 黑(局部)。
+
+## 5维决策规则
+为每个角色/场景选择风格时必须交叉判断以下5维，禁止所有角色默认统一风格:
+
+1. 时代 → 远古(兽皮粗麻/洞穴) | 古典(垂坠长袍/列柱大理石) | 中世(唐宋丝绸/哥特石堡) | 近古(明清补服/巴洛克金箔) | 近代(维多利亚蕾丝/改良旗袍) | 现代早期(Art Deco/Flapper) | 当代(自由混搭) | 近未来(Cyberpunk/Gorpcore/隐藏科技) | 远未来(极简太空/全息) | 末日(Grunge/废土拼接)
+2. 地域 → 中(新中式/丝绸朱红墨绿金) | 日(侘寂/和纸自然木抹茶) | 韩(素朴/云白暖灰) | 南亚(纱丽/藏红花金) | 中东(长袍/几何蓝绿赤陶) | 北欧(Scandinavian/浅木白灰粉彩) | 西欧(Classic/Punk/粗花呢黄铜水晶) | 南欧(Mediterranean/拱门赤陶白墙) | 非洲(Afrohemian/Adire靛蓝赤陶深棕) | 拉美(撞色Boho/彩砖) | 极地(皮毛羽绒/白灰冰蓝)
+3. 场景功能 → 宫廷(Traditional华丽对称) | 军事(Industrial/功能盔甲) | 学术(Dark Academia书架烛光) | 商业(Art Deco/玻璃幕墙) | 街头(Street/霓虹涂鸦) | 地下(Grunge/裸管黑光) | 乡村(Cottagecore/原木炊烟) | 表演(Glam/亮片聚光灯) | 运动(Athleisure/跑道器械) | 废墟(Industrial风化锈蚀)
+4. 氛围 → 浪漫(粉彩暖黄蕾丝) | 压抑(黑紫血红单一冷光) | 活力(霓虹亮色亚克力) | 肃穆(深色金顶光大理石) | 诡异(冲突色非自然光镜子) | 荒凉(低饱和褪色自然光风化) | 奢华(金黑水晶天鹅绒) | 简约(单色隐藏光天然木)
+5. 角色身份 → 统治者(冠冕刺绣毛皮) | 战士(军装甲胄金属磨损) | 学者(眼镜围巾粗花呢书) | 商人(定制西装金表) | 艺术家(不对称手工痕迹独特配饰) | 工人(工具磨损补丁灰棕) | 青少年(取决于亚文化Y2K/Preppy/Streetwear) | 黑客(帽衫黑灰霓虹)
+
+混搭: 70%主风格+20%地域/时代+10%个性。配色统一、材质呼应。
+
 ===CHARACTERS===
 提取每个角色（有名字/有台词），为每个输出：
 - 人种/年龄/身高/体型
