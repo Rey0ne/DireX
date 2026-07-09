@@ -86,10 +86,10 @@ function DropBtn({ label, open, onClick }: { label: string; open: boolean; onCli
       style={{
         display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 6px',
         borderRadius: '8px', fontSize: '8px', fontWeight: 500, cursor: 'pointer',
-        background: open ? 'rgba(255,255,255,0.07)' : 'transparent',
-        color: '#fff', border: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s',
+        background: open ? 'rgba(0,207,255,0.10)' : 'transparent',
+        color: 'var(--tap-text-1)', border: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
       onMouseLeave={e => { if (!open) e.currentTarget.style.background = 'transparent'; }}
     >{label}</span>
   );
@@ -575,9 +575,9 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           50% { background-position: 100% 50%; }
         }
         @keyframes direx-light-rim {
-          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
-          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
-          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
         }
       `}</style>
 
@@ -593,12 +593,12 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
           <Handle type="target" position={Position.Left} id="tripo-in"
             style={{
               width: '19px', height: '19px', background: 'var(--tap-panel)',
-              border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+              border: '2px solid #41CCFA', borderRadius: '50%',
               left: '-20px', top: '50%',
               opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0,
               pointerEvents: 'all', transition: 'opacity 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+              fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
             }}
           ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5" /></svg></Handle>
           <Handle type="source" position={Position.Right} id="model-out"
@@ -676,7 +676,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                         </select>
                       </div>
                       <div onClick={e => { e.stopPropagation(); setDownloadOpen(false); handleDownload(); }}
-                        style={{ margin: '0 4px', padding: '4px 0', background: 'rgba(94,234,212,0.12)', color: '#5EEAD4', borderRadius: 6, textAlign: 'center', fontSize: 9, fontWeight: 600, cursor: 'pointer' }}
+                        style={{ margin: '0 4px', padding: '4px 0', background: 'rgba(255,114,255,0.12)', color: '#5EEAD4', borderRadius: 6, textAlign: 'center', fontSize: 9, fontWeight: 600, cursor: 'pointer' }}
                       >下载 {format.toUpperCase()} · {texResolution}</div>
                     </div>
                   </PD>
@@ -695,7 +695,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                 ? '2px solid rgba(255,255,255,0.28)'
                 : '1px solid var(--tap-border)',
               background: selected
-                ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)'
+                ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)'
                 : 'var(--tap-panel)',
               backgroundSize: selected ? '250% 250%' : undefined,
               animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined,
@@ -751,7 +751,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     </button>
                   ) : (
                     <button onClick={() => setShowPreview(true)}
-                      style={{ flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid rgba(94,234,212,0.2)', background: 'rgba(94,234,212,0.08)', color: '#5EEAD4', cursor: 'pointer', fontSize: 10, fontWeight: 600 }}>
+                      style={{ flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid rgba(255,114,255,0.2)', background: 'rgba(255,114,255,0.08)', color: '#5EEAD4', cursor: 'pointer', fontSize: 10, fontWeight: 600 }}>
                       🔍 3D 预览
                     </button>
                   )}
@@ -772,14 +772,15 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
             transform: `translateX(-50%) scale(${1.5 / zoom})`,
             transformOrigin: 'top center',
             width: 'var(--tap-node-width)',
-            marginTop: `${4 / zoom}px`,
+            marginTop: `${10 / zoom}px`,
             zIndex: 50,
+            animation: 'tap-fade-in 50ms var(--tap-ease)',
           }}>
             <div style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: '#fff',
               borderRadius: 'var(--tap-r-xl)',
-              overflow: 'hidden',
+              pointerEvents: 'auto',
+              boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)',
             }}>
                 {/* Ref row: always visible (text mode shows + to switch, image modes show thumbnails) */}
                 <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -833,11 +834,10 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     rows={textExpanded ? 12 : 2}
                     ref={el => { if (el) el.onwheel = e => e.stopPropagation(); }}
                     style={{
-                      width: '100%', background: 'transparent', border: 'none',
-                      padding: textExpanded ? '12px 28px 12px 12px' : '8px 28px 8px 12px',
-                      fontSize: '8px', color: 'var(--tap-text-1)',
-                      resize: 'none', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box',
-                      overflow: 'auto',
+                      width: '100%', background: '#fff', border: 'none',
+                      padding: textExpanded ? '12px 14px' : '10px 14px',
+                      fontSize: '8px', color: '#333',
+                      resize: 'none', outline: 'none', lineHeight: 1.5,
                     }} />
                   <span onClick={() => setTextExpanded(!textExpanded)}
                     style={{
@@ -867,7 +867,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 9, color: 'var(--tap-text-4)', flexWrap: 'wrap' }}>
                       <span>面数:</span>
                       <input type="number" value={faceLimit} onChange={e => setFaceLimit(Number(e.target.value))}
-                        style={{ width: 60, background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }} />
+                        style={{ width: 60, background: 'var(--tap-bg2)', color: 'var(--tap-text-1)', border: '1px solid var(--tap-border-light)', borderRadius: 4, padding: '1px 4px', fontSize: 9, outline: 'none' }} />
                       <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={autoSize} onChange={e => setAutoSize(e.target.checked)} style={{ accentColor: '#5EEAD4' }} />自动尺寸</label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}><input type="checkbox" checked={compress} onChange={e => setCompress(e.target.checked)} style={{ accentColor: '#5EEAD4' }} />压缩</label>
                     </div>
@@ -897,10 +897,10 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                               height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)',
                               cursor: 'pointer',
                               color: 'var(--tap-text-1)',
-                              background: mode === m.id ? 'var(--tap-hover)' : 'transparent',
+                              background: mode === m.id ? 'rgba(0,207,255,0.10)' : 'transparent',
                               display: 'flex', alignItems: 'center', fontSize: '11px',
                             }}
-                            onMouseEnter={e => { if (mode !== m.id) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                            onMouseEnter={e => { if (mode !== m.id) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                             onMouseLeave={e => { if (mode !== m.id) e.currentTarget.style.background = 'transparent'; }}>
                             {m.label}
                           </div>
@@ -909,7 +909,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     )}
                   </div>
 
-                  <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+                  <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
 
                   {/* Series */}
                   <div style={{ position: 'relative' }}>
@@ -922,10 +922,10 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                             style={{
                               height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)',
                               cursor: 'pointer', color: 'var(--tap-text-1)',
-                              background: series === s.id ? 'var(--tap-hover)' : 'transparent',
+                              background: series === s.id ? 'rgba(0,207,255,0.10)' : 'transparent',
                               display: 'flex', alignItems: 'center', fontSize: '11px',
                             }}
-                            onMouseEnter={e => { if (series !== s.id) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                            onMouseEnter={e => { if (series !== s.id) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                             onMouseLeave={e => { if (series !== s.id) e.currentTarget.style.background = 'transparent'; }}>
                             {s.label}
                           </div>
@@ -934,7 +934,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     )}
                   </div>
 
-                  <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+                  <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
 
                   {/* Version */}
                   <div style={{ position: 'relative' }}>
@@ -947,10 +947,10 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                             style={{
                               height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)',
                               cursor: 'pointer', color: 'var(--tap-text-1)',
-                              background: modelVer === m.value ? 'var(--tap-hover)' : 'transparent',
+                              background: modelVer === m.value ? 'rgba(0,207,255,0.10)' : 'transparent',
                               display: 'flex', alignItems: 'center', fontSize: '11px',
                             }}
-                            onMouseEnter={e => { if (modelVer !== m.value) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                            onMouseEnter={e => { if (modelVer !== m.value) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                             onMouseLeave={e => { if (modelVer !== m.value) e.currentTarget.style.background = 'transparent'; }}>
                             {m.label}
                           </div>
@@ -959,15 +959,15 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                     )}
                   </div>
 
-                  <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+                  <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
 
                   {/* Advanced params toggle */}
                   <span onClick={() => setParamsOpen(!paramsOpen)}
                     style={{
                       display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 6px',
                       borderRadius: '8px', fontSize: '8px', fontWeight: 500, cursor: 'pointer',
-                      background: paramsOpen ? 'rgba(255,255,255,0.07)' : 'transparent',
-                      color: '#fff', border: 'none',
+                      background: paramsOpen ? 'rgba(0,207,255,0.10)' : 'transparent',
+                      color: 'var(--tap-text-1)', border: 'none',
                       whiteSpace: 'nowrap', transition: 'all 0.2s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
@@ -977,22 +977,22 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
 
                   <div style={{ flex: 1 }} />
 
-                  <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+                  <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
 
-                  {/* Send — glass pill + circle arrow, matching VideoGenerateNode/ImageGenerateNode */}
+                  {/* Send — glass pill + circle arrow, matching ImageGenerateNode */}
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
                     width: '50px', height: '20px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 0 10px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.03)',
+                    background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',
+                    border: '1px solid var(--tap-divider)',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',
                     flexShrink: 0, paddingRight: '2px',
                   }}>
                     <button onClick={handleGenerate} disabled={genRunning}
                       style={{
                         width: '16px', height: '16px', borderRadius: '50%',
-                        background: genRunning ? 'var(--tap-warning)' : '#fff',
-                        color: genRunning ? '#fff' : '#1a1a1a',
+                        background: genRunning ? 'var(--tap-warning)' : '#FFF65D',
+                        color: genRunning ? '#fff' : '#333',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontWeight: 800, fontSize: genRunning ? '8px' : '9px',
                         cursor: genRunning ? 'wait' : 'pointer',
@@ -1024,7 +1024,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                         {/* Step 1: Rig Check */}
                         {rigStatus === 'idle' && (
                           <button onClick={handleRigCheck}
-                            style={{ padding: '4px 0', borderRadius: 6, border: '1px solid rgba(94,234,212,0.2)', background: 'rgba(94,234,212,0.08)', color: '#5EEAD4', cursor: 'pointer', fontSize: 9, fontWeight: 600 }}>
+                            style={{ padding: '4px 0', borderRadius: 6, border: '1px solid rgba(255,114,255,0.2)', background: 'rgba(255,114,255,0.08)', color: '#5EEAD4', cursor: 'pointer', fontSize: 9, fontWeight: 600 }}>
                             🔍 检查绑骨兼容性
                           </button>
                         )}

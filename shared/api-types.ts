@@ -183,7 +183,104 @@ export interface GenerationLog {
   compiledPrompt?: string;
   status: 'succeeded' | 'failed';
   assetUrls: string[];
-  cost: number;
+  credits: number;
   durationMs: number;
   error?: string;
+}
+
+export interface CreditTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'signup_bonus' | 'plan_monthly' | 'topup_pack' | 'spend_image' | 'spend_video' | 'spend_audio' | 'spend_3d' | string;
+  description: string;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+// ── 小Q API Response Types ──────────────────────
+
+export interface QProjectResponse {
+  project: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+    scriptText: string;
+    canvasNodeCount: number;
+    progress: {
+      shotsGenerated: number;
+      totalShots: number;
+      totalCreditsSpent: number;
+      avgGenerationMs: number;
+    };
+    sessions: {
+      id: string;
+      startedAt: string;
+      endedAt: string | null;
+    }[];
+  };
+  completionRate: number;
+  openDeviations: {
+    total: number;
+    violations: number;
+    deviations: number;
+    discrepancies: number;
+    criticalThreshold: boolean;
+  };
+  memoryStats: {
+    episodic: number;
+    semantic: number;
+    reflective: number;
+  };
+}
+
+export interface QDeviationResponse {
+  deviations: {
+    id: string;
+    projectId: string;
+    shotNumber: number;
+    severity: 'DISCREPANCY' | 'DEVIATION' | 'VIOLATION';
+    category: string;
+    expected: string;
+    observed: string;
+    suggestion: string;
+    assetUrls: string[];
+    nodeId: string | null;
+    status: 'open' | 'acknowledged' | 'resolved' | 'autofixed';
+    detectedAt: string;
+    resolvedAt: string | null;
+  }[];
+  total: number;
+}
+
+export interface QNotification {
+  id: string;
+  type: 'GENERATION_COMPLETE' | 'GENERATION_FAILED' | 'DEVIATION_DETECTED' | 'PROGRESS_UPDATE' | 'PIPELINE_COMPLETE' | 'SYSTEM_ALERT' | 'SUGGESTION';
+  severity: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  body: string;
+  actionable: boolean;
+  actionId: string | null;
+  actionLabel: string | null;
+  sound: string | null;
+  timestamp: string;
+  read: boolean;
+}
+
+export interface QMemoryStats {
+  episodic: { total: number; unconsolidated: number; oldestEntry: string };
+  semantic: { total: number; byType: Record<string, number> };
+  reflective: { total: number; byType: Record<string, number> };
+}
+
+export interface QProgressResponse {
+  progress: {
+    shotsGenerated: number;
+    totalShots: number;
+    totalCreditsSpent: number;
+    avgGenerationMs: number;
+  };
+  completionRate: number;
+  openDeviations: number;
 }

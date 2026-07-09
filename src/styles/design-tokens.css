@@ -1,51 +1,63 @@
 /* === TapNow Canvas Design Tokens === */
 /* Apple/HIG-inspired: icon-first, small visuals, large hit targets */
+/* Light theme base — main bg #FCFCFC */
 
 :root {
   /* Background */
-  --tap-bg: #0a0b0d;
-  --tap-bg2: rgba(0, 0, 0, 0.40);
-  --tap-bg-glass: rgba(10, 11, 13, 0.88);
+  --tap-bg: #FCFCFC;
+  --tap-bg2: rgba(0, 0, 0, 0.04);
+  --tap-bg-glass: rgba(252, 252, 252, 0.88);
 
   /* Panel & Surface */
-  --tap-panel: rgba(21, 23, 26, 0.96);
-  --tap-panel-light: rgba(28, 30, 34, 0.94);
-  --tap-border: rgba(255, 255, 255, 0.08);
-  --tap-border-light: rgba(255, 255, 255, 0.12);
-  --tap-divider: rgba(255, 255, 255, 0.06);
+  --tap-panel: rgba(255, 255, 255, 0.88);
+  --tap-panel-light: rgba(248, 248, 248, 0.94);
+  --tap-border: rgba(0, 0, 0, 0.08);
+  --tap-border-light: rgba(0, 0, 0, 0.14);
+  --tap-divider: rgba(0, 0, 0, 0.06);
 
   /* Text */
-  --tap-text-1: rgba(255, 255, 255, 0.88);
-  --tap-text-2: rgba(255, 255, 255, 0.65);
-  --tap-text-3: rgba(255, 255, 255, 0.45);
-  --tap-text-4: rgba(255, 255, 255, 0.28);
+  --tap-text-1: #1B1B1B;
+  --tap-text-2: rgba(27, 27, 27, 0.62);
+  --tap-text-3: rgba(27, 27, 27, 0.42);
+  --tap-text-4: rgba(27, 27, 27, 0.26);
 
   /* Interactive */
-  --tap-hover: rgba(255, 255, 255, 0.10);
-  --tap-active: rgba(255, 255, 255, 0.14);
-  --tap-primary: rgba(255, 255, 255, 0.14);
+  --tap-hover: rgba(0, 0, 0, 0.06);
+  --tap-active: rgba(0, 0, 0, 0.10);
+  --tap-primary: rgba(0, 0, 0, 0.10);
 
-  /* Accent */
-  --tap-accent: #7a7a82;
-  --tap-accent-hover: #8e8e96;
-  --tap-accent-bg: rgba(160, 160, 170, 0.12);
-  --tap-accent-border: rgba(160, 160, 170, 0.30);
+  /* Accent — unified brand teal */
+  --tap-accent: #0ea88a;
+  --tap-accent-hover: #0cc0a0;
+  --tap-accent-bg: rgba(14, 168, 138, 0.10);
+  --tap-accent-border: rgba(14, 168, 138, 0.30);
+  --tap-accent-glow: rgba(14, 168, 138, 0.20);
+
+  /* Node border colors */
+  --tap-node-border: rgba(0, 0, 0, 0.10);
+  --tap-node-border-selected: rgba(14, 168, 138, 0.50);
+  --tap-node-border-pick: rgba(14, 168, 138, 0.45);
+  --tap-node-border-connect: rgba(14, 168, 138, 0.35);
+  --tap-node-border-pick-mode: rgba(14, 168, 138, 0.20);
+
+  /* Node selection background */
+  --tap-node-selected-bg: linear-gradient(115deg, rgba(14,168,138,0.06) 0%, rgba(14,168,138,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%);
 
   /* Danger / Destructive */
-  --tap-danger: #ff4d4f;
-  --tap-danger-hover: #ff7875;
+  --tap-danger: #e03a3a;
+  --tap-danger-hover: #ff4d4f;
 
   /* Success / Warning */
-  --tap-success: #52c41a;
-  --tap-warning: #faad14;
-  --tap-warning-bg: rgba(250, 173, 20, 0.12);
+  --tap-success: #3a9e2f;
+  --tap-warning: #d48806;
+  --tap-warning-bg: rgba(212, 136, 6, 0.10);
 
   /* Gradient accents (per tool/type) */
-  --tap-grad-shot: linear-gradient(135deg, rgba(100, 180, 255, 0.15), rgba(100, 180, 255, 0.04));
-  --tap-grad-image: linear-gradient(135deg, rgba(255, 180, 100, 0.15), rgba(255, 160, 60, 0.04));
-  --tap-grad-video: linear-gradient(135deg, rgba(180, 100, 255, 0.15), rgba(160, 60, 255, 0.04));
-  --tap-grad-3d: linear-gradient(135deg, rgba(100, 255, 180, 0.15), rgba(60, 255, 160, 0.04));
-  --tap-grad-agent: linear-gradient(135deg, rgba(160, 100, 255, 0.20), rgba(100, 160, 255, 0.08));
+  --tap-grad-shot: linear-gradient(135deg, rgba(40,140,220,0.12), rgba(40,140,220,0.04));
+  --tap-grad-image: linear-gradient(135deg, rgba(220,120,40,0.12), rgba(200,100,20,0.04));
+  --tap-grad-video: linear-gradient(135deg, rgba(130,60,220,0.12), rgba(110,40,200,0.04));
+  --tap-grad-3d: linear-gradient(135deg, rgba(40,200,120,0.12), rgba(20,180,100,0.04));
+  --tap-grad-agent: linear-gradient(135deg, rgba(14,168,138,0.16), rgba(40,140,220,0.06));
 
   /* Border radius */
   --tap-r-xs: 4px;
@@ -56,12 +68,13 @@
   --tap-r-2xl: 20px;
   --tap-r-full: 9999px;
 
-  /* Shadows */
-  --tap-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
-  --tap-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --tap-shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
-  --tap-shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.65);
-  --tap-shadow-glow: 0 0 24px rgba(160, 160, 170, 0.20);
+  /* Shadows — subtle on light bg */
+  --tap-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --tap-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --tap-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --tap-shadow-xl: 0 12px 36px rgba(0, 0, 0, 0.18);
+  --tap-shadow-glow: 0 0 20px rgba(14, 168, 138, 0.15);
+  --tap-shadow-node: 0 0 20px var(--tap-accent-glow);
 
   /* Blur */
   --tap-blur: 12px;
@@ -172,8 +185,8 @@
 }
 
 @keyframes tap-pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(160, 160, 170, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(160, 160, 170, 0.6); }
+  0%, 100% { box-shadow: 0 0 8px rgba(14, 168, 138, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(14, 168, 138, 0.45); }
 }
 
 @keyframes tap-spin {
@@ -190,6 +203,36 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes tap-agent-pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(160, 100, 255, 0.3); }
-  50% { transform: scale(1.05); box-shadow: 0 6px 24px rgba(160, 100, 255, 0.5); }
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(14, 168, 138, 0.25); }
+  50% { transform: scale(1.05); box-shadow: 0 6px 24px rgba(14, 168, 138, 0.4); }
+}
+
+/* ─── Centralized Node Selection Animations ──────── */
+@keyframes direx-light-wash {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes direx-light-rim {
+  0%   { box-shadow: 0 0 12px 6px rgba(14, 168, 138, 0.08), 0 0 32px rgba(14, 168, 138, 0.04); }
+  50%  { box-shadow: 0 0 20px 10px rgba(14, 168, 138, 0.20), 0 0 52px rgba(14, 168, 138, 0.10); }
+  100% { box-shadow: 0 0 12px 6px rgba(14, 168, 138, 0.08), 0 0 32px rgba(14, 168, 138, 0.04); }
+}
+
+/* ─── Icon & Panel Animations ──────────────────── */
+@keyframes tap-icon-hover {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1.08); }
+}
+@keyframes tap-panel-slide-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes tap-label-reveal {
+  from { opacity: 0; transform: translateX(-4px); max-width: 0; }
+  to { opacity: 1; transform: translateX(0); max-width: 140px; }
+}
+@keyframes tap-snap-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(14, 168, 138, 0); }
+  50% { box-shadow: 0 0 16px rgba(14, 168, 138, 0.35); }
 }

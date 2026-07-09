@@ -39,6 +39,8 @@ const PUBLIC_ROUTES = [
   '/api/task/',
   '/api/models/',
   '/api/kimodo',
+  '/api/q',
+  '/api/canvas',
 ];
 
 function isPublicRoute(path: string): boolean {

@@ -278,9 +278,9 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
           50% { background-position: 100% 50%; }
         }
         @keyframes direx-light-rim {
-          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
-          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
-          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
         }
       `}</style>
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
@@ -290,19 +290,19 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
         <Handle type="target" position={Position.Left} id="audio-in"
           style={{
             width: '20px', height: '20px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             left: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="audio-out"
           style={{
             width: '20px', height: '20px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             right: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
@@ -312,7 +312,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
             : data.isPickMode ? '1px dashed rgba(180,180,185,0.3)'
             : data.isConnectTarget ? '1px solid rgba(180,180,185,0.5)'
             : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
-          background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
+          background: selected ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
           boxShadow: data.isPickTarget ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget ? '0 0 32px rgba(180,180,185,0.2)'
             : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
@@ -360,8 +360,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
 
       {/* Bottom panel */}
       {selected && !data.multiSelect && (
-        <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: '340px', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
-        <div style={{ background: '#24272e', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
+        <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: 'var(--tap-node-width)', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
+        <div style={{ background: '#fff', borderRadius: 'var(--tap-r-xl)', pointerEvents: 'auto', boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)' }}>
           <div style={{display:'flex',alignItems:'center',padding:'8px 12px 0',justifyContent:'space-between'}}>
             <RefStrip nodeId={id} refUrls={(data as any).refUrls} />
             <span onClick={() => setExpanded(!expanded)}
@@ -376,17 +376,17 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
               placeholder="描述你想要生成的内容"
               maxLength={1000} rows={expanded ? 12 : 4}
-              style={{ width: '100%', background: 'transparent', border: 'none', padding: '10px 12px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
+              style={{ width: '100%', background: '#fff', border: 'none', padding: '10px 14px', fontSize: '8px', color: '#333', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
           )}
 
           {/* === SUNO: Lyrics === */}
           {!isElevenLabs && !instrumental && (
             <>
-              <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div style={{ margin: '0 14px', borderTop: '1px solid rgba(0,0,0,0.06)' }} />
               <textarea className="no-wheel" value={lyrics} onChange={e => { setLyrics(e.target.value); patch('lyrics', e.target.value); }}
                 placeholder="输入或粘贴歌词…"
                 maxLength={3000} rows={expanded ? 8 : 3}
-                style={{ width: '100%', background: 'transparent', border: 'none', padding: '10px 12px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }} />
+                style={{ width: '100%', background: '#fff', border: 'none', padding: '10px 14px', fontSize: '8px', color: '#333', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit' }} />
             </>
           )}
 
@@ -395,7 +395,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
             <>
               {dialogueEntries.map((d, i) => (
                 <div key={d.id}>
-                  {i > 0 && <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />}
+                  {i > 0 && <div style={{ margin: '0 14px', borderTop: '1px solid rgba(0,0,0,0.06)' }} />}
                   {/* Textarea */}
                   <textarea className="no-wheel" value={d.text}
                     onChange={e => {
@@ -403,9 +403,9 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                     }}
                     placeholder="输入台词…"
                     maxLength={5000} rows={expanded ? 8 : 2}
-                    style={{ width: '100%', background: 'transparent', border: 'none', padding: '6px 12px 8px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
+                    style={{ width: '100%', background: '#fff', border: 'none', padding: '6px 12px 8px', fontSize: '8px', color: '#333', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
                   {/* Voice chip + remove — below divider */}
-                  <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+                  <div style={{ margin: '0 14px', borderTop: '1px solid rgba(0,0,0,0.06)' }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px' }}>
                     <span ref={i === 0 ? voiceTriggerRef : undefined}>
                       <InlineChip
@@ -423,7 +423,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                 </div>
               ))}
 
-              <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div style={{ margin: '0 14px', borderTop: '1px solid rgba(0,0,0,0.06)' }} />
 
               {/* 添加会话 — dashed box */}
               <div style={{ padding: '6px 12px' }}>
@@ -443,11 +443,11 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                 </div>
               </div>
 
-              <div style={{ margin: '0 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div style={{ margin: '0 14px', borderTop: '1px solid var(--tap-divider)' }} />
 
               {/* Stability slider */}
               <div style={{ padding: '6px 12px 4px' }}>
-                <div style={{ fontSize: '10px', color: '#fff', fontWeight: 500, marginBottom: '2px' }}>稳定性</div>
+                <div style={{ fontSize: '10px', color: 'var(--tap-text-1)', fontWeight: 500, marginBottom: '2px' }}>稳定性</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ flex: 1 }}>
                     <div ref={stabilityRef}
@@ -462,7 +462,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                   </div>
                   <div style={{
                     width: '32px', height: '22px', borderRadius: 'var(--tap-r-sm)',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(255,255,255,0.10)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '10px', fontWeight: 600, color: 'var(--tap-text-2)',
                     flexShrink: 0,
@@ -476,24 +476,24 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
           )}
 
           {/* Bottom bar — model + controls + send */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderTop: '1px solid var(--tap-divider)', flexWrap: 'wrap' }}>
             <span ref={modelTriggerRef}>
               <InlineChip label={currentModel} active={showModelPicker} onClick={() => setShowModelPicker(!showModelPicker)} />
             </span>
             {isElevenLabs ? (
               <>
-                <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '10px', flexShrink: 0 }}>|</span>
+                <span style={{ color: 'var(--tap-text-4)', fontSize: '10px', flexShrink: 0 }}>|</span>
                 <span ref={langTriggerRef}>
                   <InlineChip label="语言选择" active={showLanguagePicker} onClick={() => setShowLanguagePicker(!showLanguagePicker)} />
                 </span>
               </>
             ) : (
               <>
-                <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '10px', flexShrink: 0 }}>|</span>
+                <span style={{ color: 'var(--tap-text-4)', fontSize: '10px', flexShrink: 0 }}>|</span>
                 <span ref={durTriggerRef}>
                   <InlineChip label={currentDuration} active={showDurationPicker} onClick={() => setShowDurationPicker(!showDurationPicker)} />
                 </span>
-                <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: '10px', flexShrink: 0 }}>|</span>
+                <span style={{ color: 'var(--tap-text-4)', fontSize: '10px', flexShrink: 0 }}>|</span>
                 <span onClick={() => { setInstrumental(!instrumental); patch('instrumental', !instrumental); }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
                   <span style={{ width: '28px', height: '16px', borderRadius: '8px', background: instrumental ? 'rgba(255,255,255,0.12)' : 'var(--tap-accent)', display: 'flex', alignItems: 'center', padding: '0 2px', transition: 'background 0.2s', border: instrumental ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent' }}>
@@ -503,11 +503,11 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
                 </span>
               </>
             )}
-            {showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:panelRef.current?window.innerHeight-panelRef.current.getBoundingClientRect().top+4:200,left:panelRef.current?panelRef.current.getBoundingClientRect().left:'25vw',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setPrompt(insertMention(m,prompt));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='var(--tap-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}
+            {showMention && mentionList.length > 0 && createPortal(<div onMouseDown={e=>e.preventDefault()} style={{position:'fixed',bottom:panelRef.current?window.innerHeight-panelRef.current.getBoundingClientRect().top+4:200,left:panelRef.current?panelRef.current.getBoundingClientRect().left:'25vw',width:360,background:'var(--tap-panel)',border:'1px solid var(--tap-border)',borderRadius:'var(--tap-r-lg)',padding:'8px',zIndex:99999,maxHeight:'180px',overflowY:'auto',boxShadow:'var(--tap-shadow-lg)'}}><div style={{fontSize:10,color:'var(--tap-text-4)',padding:'2px 6px'}}>选择参考图</div>{mentionList.map((m,i)=>(<div key={i} onClick={()=>{setPrompt(insertMention(m,prompt));setShowMention(false)}} onMouseEnter={e=>e.currentTarget.style.background='rgba(0,207,255,0.10)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'} style={{display:'flex',alignItems:'center',gap:10,padding:6,borderRadius:'var(--tap-r-sm)',cursor:'pointer',background:'transparent'}}><img src={m.url} style={{width:36,height:36,borderRadius:4,objectFit:'cover'}}/><div><div style={{fontSize:'var(--tap-fs-body)',color:'var(--tap-text-1)',fontWeight:500}}>{m.name}</div></div></div>))}</div>,document.body)}
             <div style={{ flex: 1 }} />
-            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 10px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.03)',flexShrink:0,paddingRight:'2px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px'}}>
               <button onClick={handleGenerate} disabled={genRunning}
-                style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#fff',color:genRunning?'#fff':'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
+                style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
                 onMouseEnter={e=>{if(!genRunning){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}
                 onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)'}}>
                 {genRunning?'⏳':'↑'}
@@ -530,8 +530,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
               }}>
                 {MODEL_OPTIONS.map(m => (
                   <div key={m.name} onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '36px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentModel === m.name ? 'var(--tap-hover)' : 'transparent' }}
-                    onMouseEnter={e => { if (currentModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '36px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentModel === m.name ? 'rgba(0,207,255,0.10)' : 'transparent' }}
+                    onMouseEnter={e => { if (currentModel !== m.name) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                     onMouseLeave={e => { if (currentModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
                     <span>{m.name}</span><span style={{ fontSize: '10px', color: 'var(--tap-text-3)' }}>{m.maxDur}</span>
                   </div>
@@ -552,8 +552,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
               }}>
                 {DURATION_OPTIONS.map(d => (
                   <div key={d} onClick={() => { setCurrentDuration(d); patch('duration', d); setShowDurationPicker(false); }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentDuration === d ? 'var(--tap-hover)' : 'transparent' }}
-                    onMouseEnter={e => { if (currentDuration !== d) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 12px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentDuration === d ? 'rgba(0,207,255,0.10)' : 'transparent' }}
+                    onMouseEnter={e => { if (currentDuration !== d) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                     onMouseLeave={e => { if (currentDuration !== d) e.currentTarget.style.background = 'transparent'; }}>
                     <span>{d}</span>
                     {currentDuration === d && <span style={{ fontSize: '10px', color: 'var(--tap-accent)' }}>✓</span>}
@@ -576,8 +576,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
               }}>
                 {LANGUAGE_OPTIONS.map(l => (
                   <div key={l.code || '_auto'} onClick={() => { setCurrentLanguage(l.code); patch('language', l.code); setShowLanguagePicker(false); }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentLanguage === l.code ? 'var(--tap-hover)' : 'transparent', fontSize: '13px' }}
-                    onMouseEnter={e => { if (currentLanguage !== l.code) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: currentLanguage === l.code ? 'rgba(0,207,255,0.10)' : 'transparent', fontSize: '13px' }}
+                    onMouseEnter={e => { if (currentLanguage !== l.code) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                     onMouseLeave={e => { if (currentLanguage !== l.code) e.currentTarget.style.background = 'transparent'; }}>
                     <span>{l.label}</span>
                     {currentLanguage === l.code && <span style={{ fontSize: '10px', color: 'var(--tap-accent)' }}>✓</span>}
@@ -601,8 +601,8 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
               }}>
                 {VOICE_LIST.map(v => (
                   <div key={v.id} onClick={() => { selectVoice(v.id); setShowVoicePicker(false); }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: activeDialogue?.voice === v.id ? 'var(--tap-hover)' : 'transparent' }}
-                    onMouseEnter={e => { if (activeDialogue?.voice !== v.id) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '34px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: activeDialogue?.voice === v.id ? 'rgba(0,207,255,0.10)' : 'transparent' }}
+                    onMouseEnter={e => { if (activeDialogue?.voice !== v.id) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                     onMouseLeave={e => { if (activeDialogue?.voice !== v.id) e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{ fontSize: '13px', fontWeight: activeDialogue?.voice === v.id ? 600 : 400 }}>{v.name}</span>
                     <span style={{ fontSize: '11px', color: 'var(--tap-text-4)' }}>{v.desc}</span>
@@ -620,7 +620,7 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
 
 function InlineChip({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
   return <span onClick={(e) => { e.stopPropagation(); onClick(); }}
-    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '4px 8px', borderRadius: 'var(--tap-r-sm)', fontSize: '10px', color: '#fff', background: active ? 'rgba(255,255,255,0.10)' : 'transparent', cursor: 'pointer', border: 'none', transition: `all var(--tap-dur-fast) var(--tap-ease)`, userSelect: 'none', whiteSpace: 'nowrap' }}
-    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '4px 8px', borderRadius: 'var(--tap-r-sm)', fontSize: '10px', color: 'var(--tap-text-1)', background: active ? 'rgba(0,207,255,0.10)' : 'transparent', cursor: 'pointer', border: 'none', transition: `all var(--tap-dur-fast) var(--tap-ease)`, userSelect: 'none', whiteSpace: 'nowrap' }}
+    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
     onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; } }}>{label}</span>;
 }

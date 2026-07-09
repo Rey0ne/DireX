@@ -73,7 +73,6 @@ const SEEDANCE_RESOLUTIONS = ['480P', '720P', '1080P'];
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const panelRef = useRef<HTMLDivElement>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
 
   const [prompt, setPrompt] = useState(gen.prompt || '');
@@ -87,7 +86,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   const [lastFrame, setLastFrame] = useState<string | null>(gen.lastFrameUrl || null);
   // Derived directly from gen — no local state (setter was never called, dead code)
   const multiFrames = (gen.multiFrames || []) as string[];
-  const [fullRefs, setFullRefs] = useState<Record<string, string | null>>(gen.fullRefs || {
+  const [fullRefs, _setFullRefs] = useState<Record<string, string | null>>(gen.fullRefs || {
     'image-style': null, 'video-motion': null, 'audio-rhythm': null,
   });
   // UI
@@ -140,43 +139,6 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
     Promise.resolve(data.onGenerate?.()).finally(() => setGenRunning(false));
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const refType = e.target.dataset.refType || '';
-    const ext = file.name.split('.').pop()?.toLowerCase() || '';
-    const isVid = ext === 'mp4' || ext === 'webm' || ext === 'mov';
-    // Use createObjectURL for video files to avoid base64 OOM (>14MB)
-    // Images still use base64 for persistence across refresh
-    if (isVid && file.size > 5 * 1024 * 1024) {
-      const url = URL.createObjectURL(file);
-      const u = { ...fullRefs, [refType || 'video-motion']: url };
-      setFullRefs(u); patch('fullRefs', u);
-      e.target.value = '';
-      return;
-    }
-    const r = new FileReader();
-    r.onload = () => {
-      const url = r.result as string;
-      if (refType) {
-        const u = { ...fullRefs, [refType]: url };
-        setFullRefs(u); patch('fullRefs', u);
-      } else if (genMode === 'multi-ref') {
-        const refKey = isVid ? 'video-motion' : 'image-style';
-        const u = { ...fullRefs, [refKey]: url };
-        setFullRefs(u); patch('fullRefs', u);
-      } else if (genMode === 'i2v') {
-        setFirstFrame(url); patch('firstFrameUrl', url);
-      } else if (genMode === 'i2v-fl') {
-        if (!firstFrame) { setFirstFrame(url); patch('firstFrameUrl', url); }
-        else { setLastFrame(url); patch('lastFrameUrl', url); }
-      }
-    };
-    r.onerror = () => { console.error('[VideoGen] FileReader failed:', file.name); };
-    r.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   const DropBtn = useCallback(({ v, picker }: { v: string; picker: string }) => {
     const hov = open === picker;
     return (
@@ -185,8 +147,8 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
       setAnchorRect(rect);
       setOpen(hov ? null : picker);
     }}
-      style={{ display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 6px', borderRadius: '8px', fontSize: '8px', fontWeight: 500, cursor: 'pointer', background: hov ? 'rgba(255,255,255,0.07)' : 'transparent', color: '#fff', border: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+      style={{ display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 6px', borderRadius: '8px', fontSize: '8px', fontWeight: 500, cursor: 'pointer', background: hov ? 'rgba(0,207,255,0.10)' : 'transparent', color: 'var(--tap-text-1)', border: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
       onMouseLeave={e => { if (!hov) { e.currentTarget.style.background = 'transparent'; } }}
     >{v}</span>
   );}, [open]);
@@ -199,35 +161,28 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           50% { background-position: 100% 50%; }
         }
         @keyframes direx-light-rim {
-          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
-          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
-          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
         }
       `}</style>
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-20px', left: '8px', zIndex: 10, fontSize: '10px', fontWeight: 500, color: 'var(--tap-text-4)', letterSpacing: '0.05em' }}>VIDEO</div>
-        <Handle type="target" position={Position.Left} id="video-in" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%', left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
-        <Handle type="source" position={Position.Right} id="video-out" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%', right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
+        <Handle type="target" position={Position.Left} id="video-in" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid #41CCFA', borderRadius: '50%', left: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
+        <Handle type="source" position={Position.Right} id="video-out" style={{ width: '19px', height: '19px', background: 'var(--tap-panel)', border: '2px solid #41CCFA', borderRadius: '50%', right: '-20px', top: '50%', opacity: selected || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA' }}><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* Toolbar: tools (has video) or upload (no video) */}
-        {selected && (
-          data.videoUrl ? (
+        {/* Toolbar */}
+        {selected && data.videoUrl && (
             <div style={{ position: 'absolute', top: '-56px', left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '2px', padding: '4px', background: 'rgba(22,26,34,0.92)', borderRadius: '12px', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)' }}>
               <ToolBtn icon="crop-svg" label="裁切" onClick={() => data.onOpenTool?.('crop')} />
               <ToolBtn icon="⊿" label="多角度" onClick={() => data.onOpenTool?.('multiAngle')} />
               <ToolBtn icon="◐" label="重绘" onClick={() => data.onOpenTool?.('inpaint')} />
               <ToolBtn icon="relight-svg" label="打光" onClick={() => data.onOpenTool?.('relight')} />
             </div>
-          ) : (
-            <div onClick={() => uploadRef.current?.click()} style={{ position: 'absolute', top: '-56px', left: '50%', transform: 'translateX(-50%)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', background: 'rgba(22,26,34,0.92)', borderRadius: '14px', backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer' }}>
-              <span style={{ fontSize: '16px' }}>↑</span>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
-            </div>
-          )
         )}
 
-        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)', backgroundSize: selected ? '250% 250%' : undefined, animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
+        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: selected ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)', backgroundSize: selected ? '250% 250%' : undefined, animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
               <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Main video load failed:', data.videoUrl?.slice(0, 60))} />
@@ -244,18 +199,10 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
       {selected && !data.multiSelect && (
         <div ref={panelRef} style={{ position: 'absolute', top: '100%', left: '50%', transform: `translateX(-50%) scale(${1.5/zoom})`, transformOrigin: 'top center', width: 'var(--tap-node-width)', marginTop: `${10/zoom}px`, zIndex: 50, animation: 'tap-fade-in 50ms var(--tap-ease)' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 'var(--tap-r-xl)', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 'var(--tap-r-xl)', pointerEvents: 'auto', boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)' }}>
 
           {/* ── Ref thumbnails row ── */}
           <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-            {/* Upload — top-left */}
-            {!(data.refUrls?.length) && !Object.values(fullRefs).some(v => v) && !firstFrame && (
-              <div onClick={() => uploadRef.current?.click()} title="上传参考素材"
-                style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)', marginLeft: '2px', marginTop: '2px' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-              >＋</div>
-            )}
             <RefStrip nodeId={id} refUrls={data.refUrls} />
             {Object.entries(fullRefs).filter(([,v]) => v).map(([k, v]) => (
               <div key={k} title={k} style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
@@ -277,7 +224,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             onPointerDownCapture={e => e.stopPropagation()} onMouseDownCapture={e => e.stopPropagation()}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
             placeholder="" maxLength={2500} rows={expanded ? 12 : 3}
-            style={{ width: '100%', background: 'transparent', border: 'none', padding: expanded ? '16px 20px' : '10px 14px', fontSize: '8px', color: 'var(--tap-text-1)', resize: 'none', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }} />
+            style={{ width: '100%', background: '#fff', border: 'none', padding: expanded ? '16px 20px' : '10px 14px', fontSize: '8px', color: '#333', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
 
           {/* ── Controls row: Model | Mode | Duration | Aspect·Res | Count | Send ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', padding: '4px 6px 8px' }}>
@@ -285,40 +232,40 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             <div style={{ position: 'relative' }}><DropBtn v={curModel} picker="model" />
               {open === 'model' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{MODELS.map(m => (
                 <div key={m.name} onClick={() => { switchModel(m.name); setOpen(null); }}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'var(--tap-hover)' : 'transparent' }}
-                  onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'rgba(0,207,255,0.10)' : 'transparent' }}
+                  onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                   onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '11px' }}>{m.name}</span>
                   <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
                 </div>))}</PD>}
             </div>
 
-            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Mode picker */}
             <div style={{ position: 'relative' }}><DropBtn v={modes.find(m => m.id === genMode)?.label || genMode} picker="mode" />
               {open === 'mode' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{modes.map(m => (
                 <div key={m.id} onClick={() => { setGenMode(m.id); patch('genMode', m.id); setOpen(null); }}
-                  style={{ padding: '5px 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: genMode === m.id ? 'var(--tap-hover)' : 'transparent' }}
-                  onMouseEnter={e => { if (genMode !== m.id) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  style={{ padding: '5px 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: genMode === m.id ? 'rgba(0,207,255,0.10)' : 'transparent' }}
+                  onMouseEnter={e => { if (genMode !== m.id) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                   onMouseLeave={e => { if (genMode !== m.id) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '11px', fontWeight: 500 }}>{m.label}</span>
                   <span style={{ fontSize: '9px', color: 'var(--tap-text-3)', marginLeft: '4px' }}>{m.desc}</span>
                 </div>))}</PD>}
             </div>
 
-            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Duration */}
             <div style={{ position: 'relative' }}><DropBtn v={curDuration} picker="dur" />
               {open === 'dur' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{durations.map(d => (
                 <div key={d} onClick={() => { setCurDuration(d); patch('duration', d); setOpen(null); }}
-                  style={{ height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curDuration === d ? 'var(--tap-hover)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px' }}
-                  onMouseEnter={e => { if (curDuration !== d) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                  style={{ height: '30px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curDuration === d ? 'rgba(0,207,255,0.10)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px' }}
+                  onMouseEnter={e => { if (curDuration !== d) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                   onMouseLeave={e => { if (curDuration !== d) e.currentTarget.style.background = 'transparent'; }}>
                   {d}
                 </div>))}</PD>}
             </div>
 
-            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Aspect + Resolution */}
             <div style={{ position: 'relative' }}><DropBtn v={`${curAspect}·${curRes}`} picker="fmt" />
               {open === 'fmt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}><div style={{ padding: '2px 0' }}>
@@ -331,9 +278,9 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                     const active = curAspect === a;
                     return (
                       <div key={a} onClick={() => { setCurAspect(a); patch('aspect', a); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', background: active ? 'var(--tap-hover)' : 'transparent', border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', background: active ? 'rgba(0,207,255,0.10)' : 'transparent', border: active ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent' }}>
                         <div style={{ width: B, height: B, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(255,255,255,0.2)'), borderRadius: '1px', background: active ? 'rgba(74,158,255,0.06)' : 'transparent' }} />
+                          <div style={{ width: pw, height: ph, border: '1.5px solid ' + (active ? 'var(--tap-accent)' : 'rgba(0,0,0,0.18)'), borderRadius: '1px', background: active ? 'rgba(74,158,255,0.06)' : 'transparent' }} />
                         </div>
                         <span style={{ fontSize: '10px', color: active ? 'var(--tap-text-1)' : 'var(--tap-text-3)', fontWeight: active ? 600 : 400 }}>{a}</span>
                       </div>
@@ -344,7 +291,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
                 <div style={{ fontSize: '9px', color: 'var(--tap-text-4)', padding: '3px 10px 1px' }}>分辨率</div>
                 <div style={{ display: 'flex', gap: '2px', padding: '0 6px 3px' }}>{resolutions.map(r => (
                   <span key={r} onClick={() => { setCurRes(r); patch('resolution', r); }}
-                    style={{ flex: 1, padding: '3px 5px', borderRadius: '3px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', background: curRes === r ? 'var(--tap-hover)' : 'transparent', color: curRes === r ? 'var(--tap-text-1)' : 'var(--tap-text-3)' }}>{r}</span>
+                    style={{ flex: 1, padding: '3px 5px', borderRadius: '3px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', background: curRes === r ? 'rgba(0,207,255,0.10)' : 'transparent', color: curRes === r ? 'var(--tap-text-1)' : 'var(--tap-text-3)' }}>{r}</span>
                 ))}</div>
                 <div style={{ height: '1px', background: 'var(--tap-divider)', margin: '0 10px' }} />
                 <div onClick={() => { setSoundOn(!soundOn); patch(isKling ? 'keepOriginalSound' : 'generateAudio', !soundOn); }}
@@ -359,35 +306,34 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
             <div style={{ flex: 1 }} />
             {/* Count */}
-            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             <div style={{ position: 'relative' }}><DropBtn v={`×${count}`} picker="cnt" />
               {open === 'cnt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>
                 {[1, 2].map(c => (
                   <div key={c} onClick={() => { setCount(c); setOpen(null); }}
-                    style={{ height: '28px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: count === c ? 'var(--tap-hover)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px', gap: '6px' }}
-                    onMouseEnter={e => { if (count !== c) e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                    style={{ height: '28px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: count === c ? 'rgba(0,207,255,0.10)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px', gap: '6px' }}
+                    onMouseEnter={e => { if (count !== c) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                     onMouseLeave={e => { if (count !== c) e.currentTarget.style.background = 'transparent'; }}>
                     ×{c}
                   </div>))}
               </PD>}
             </div>
-            <span style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.10)', flexShrink: 0 }} />
+            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Send */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '50px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 10px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.03)', flexShrink: 0, paddingRight: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '50px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingRight: '2px' }}>
               <button onClick={handleGenerate} disabled={genRunning}
-                style={{ width: '16px', height: '16px', borderRadius: '50%', background: genRunning ? 'var(--tap-warning)' : '#fff', color: genRunning ? '#fff' : '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: genRunning ? '8px' : '9px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                style={{ width: '16px', height: '16px', borderRadius: '50%', background: genRunning ? 'var(--tap-warning)' : '#FFF65D', color: genRunning ? '#fff' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: genRunning ? '8px' : '9px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', transition: 'transform 0.15s, box-shadow 0.15s' }}
                 onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
               >{genRunning ? '⏳' : '↑'}</button>
             </div>
           </div>
 
-          <input ref={uploadRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleUpload} />
           {showMention && mentionList.length > 0 && createPortal(
             <div onMouseDown={e => e.preventDefault()} style={{ position: 'fixed', bottom: panelRef.current ? window.innerHeight - panelRef.current.getBoundingClientRect().top + 4 : 200, left: panelRef.current ? panelRef.current.getBoundingClientRect().left : '25vw', width: 360, background: 'var(--tap-panel)', border: '1px solid var(--tap-border)', borderRadius: 'var(--tap-r-lg)', padding: '8px', zIndex: 99999, maxHeight: '180px', overflowY: 'auto', boxShadow: 'var(--tap-shadow-lg)' }}>
               <div style={{ fontSize: 10, color: 'var(--tap-text-4)', padding: '2px 6px' }}>选择参考图</div>
               {mentionList.map((m, i) => (<div key={i} onClick={() => { setPrompt(insertMention(m, prompt)); setShowMention(false); }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 6, borderRadius: 'var(--tap-r-sm)', cursor: 'pointer', background: 'transparent' }}>
                 <img src={m.url} style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover' }} />

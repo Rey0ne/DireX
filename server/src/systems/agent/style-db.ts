@@ -235,3 +235,217 @@ Fashion: clean modern silhouettes, intentional color coordination (low-saturatio
 Interior: contemporary design-forward spaces — clean architectural lines, curated material palettes, layered modern lighting. Avoid: exposed concrete/rusted metal industrial clichés, generic factory/warehouse settings.
 
 Popular styles include: Minimalist, Streetwear, Bohemian, Y2K, Gorpcore, Dark Academia, K-Pop, Cyberpunk, Cottagecore, Romantic, Classic, Guochao/Neo-Chinese, Japandi/Wabi-Sabi, Scandinavian, Organic Modern, Mediterranean, Afrohemian, Warm Post-Minimalism, Neo-Traditional, Color Drenching. Match the most appropriate style to the scene's era, culture, and mood.`;
+
+// ═══════════════════════════════════════════════════════════════
+// Structured 5-Dimension Decision Engine
+// Programmatic style resolution — no LLM needed for lookup
+// ═══════════════════════════════════════════════════════════════
+
+export interface DimensionInput {
+  era?: string;           // 时代信号
+  region?: string;        // 地域信号
+  sceneFunction?: string; // 场景功能 (renamed from "function" — reserved word)
+  mood?: string;          // 氛围情绪
+  identity?: string;      // 角色身份
+}
+
+export interface StyleDecision {
+  primary: string;       // 70% dominant style
+  secondary: string;     // 20% supporting style
+  accent: string;        // 10% accent
+  fashionStyles: string[];
+  interiorStyles: string[];
+  colorDirection: string;
+  lightingDirection: string;
+  materialDirection: string;
+  confidence: number;    // 0-1
+}
+
+// ── Dimension → Style mappings ──────────────────
+
+interface DimEntry {
+  keywords: string[];
+  fashion: string[];
+  interior: string[];
+  color: string;
+  lighting: string;
+  material: string;
+}
+
+const ERA_MAP: Record<string, DimEntry> = {
+  '远古':  { keywords: ['远古','上古','史前','原始','部落'], fashion: ['兽皮/粗麻/骨饰/图腾'], interior: ['洞穴/巨石/篝火/原始聚落'], color: '大地色系：赭石/炭黑/骨白', lighting: '篝火/自然光/火炬', material: '天然未加工材料/兽皮/粗麻/石材' },
+  '古典':  { keywords: ['古典','希腊','罗马','秦汉','战国'], fashion: ['垂坠长袍/亚麻羊毛/凉鞋绑带'], interior: ['列柱/大理石/壁画/中庭'], color: '白/米色/赤陶/金', lighting: '自然光/油灯/天窗', material: '大理石/亚麻/羊毛/陶器/青铜' },
+  '中世':  { keywords: ['中世','唐宋','平安','中世纪','哥特'], fashion: ['唐装圆领袍/宋褙子/丝绸刺绣','束腰长袍/chainmail'], interior: ['斗拱木构/禅寺庭院','石砌城堡/哥特教堂'], color: '丝绸光泽/彩绘玻璃/深木色', lighting: '烛光/火炬/纸灯/彩绘玻璃光', material: '丝绸/木材/石材/彩绘玻璃/锻铁' },
+  '近古':  { keywords: ['近古','明清','江户','文艺复兴','巴洛克'], fashion: ['明补服/清旗装','拉夫领/蓬裙/刺绣缎面'], interior: ['明清园林/四合院','巴洛克宫殿/洛可可沙龙'], color: '金箔/龙凤纹/深红/藏蓝', lighting: '水晶吊灯/宫灯/烛台', material: '丝绸/金箔/水晶/Damask/雕花木' },
+  '近代':  { keywords: ['近代','维多利亚','明治','清末民初','1800','1900'], fashion: ['维多利亚束腰长裙/燕尾服','长衫马褂/改良旗袍','明治袴/洋装'], interior: ['维多利亚沙龙/Art Nouveau/东方折中'], color: '蕾丝白/深绿/酒红/暗金', lighting: '煤气灯/台灯/壁炉光', material: '蕾丝/护墙板/花卉壁纸/黄铜/桃花心木' },
+  '现代早期': { keywords: ['现代早期','Art Deco','民国','昭和','1920','1930','1940','1950','1960'], fashion: ['Flapper直筒裙/西装三件套/旗袍/军装'], interior: ['Art Deco几何/包豪斯/中世纪现代'], color: '铬金属/黑白/几何图案/流苏金', lighting: '日光灯/几何灯具/霓虹', material: '铬金属/玻璃/亚克力/胶合板/流苏' },
+  '当代':  { keywords: ['当代','现代','1980','1990','2000','2010','2020'], fashion: ['自由混搭各主流风格'], interior: ['Contemporary/各主流风格'], color: '多样化/全球化混搭', lighting: 'LED/层次化照明', material: '多样面料/数字印花/全球化混搭' },
+  '近未来': { keywords: ['近未来','2025','2030','2040','2050','2060','2070'], fashion: ['Cyberpunk/Gorpcore/Techwear/Y3K'], interior: ['Warm Post-Minimalism/Color Drenching/隐藏科技'], color: '黑+霓虹绿紫蓝/科技面料/碳纤维', lighting: '隐藏LED灯带/面板发光/全息', material: '科技面料/LED/全息/碳纤维/智能表面' },
+  '远未来': { keywords: ['远未来','2070','星际','太空','殖民'], fashion: ['极简未来主义/全息面料/生物材料'], interior: ['极简太空舱/生物有机建筑/全息投影'], color: '白/银/全息/冰蓝', lighting: '面板发光/全息投影/生物光', material: '无缝材料/自适应表面/全息/生物材料' },
+  '架空奇幻': { keywords: ['架空','奇幻','异世界','魔法'], fashion: ['根据文明水平对标地球时代'], interior: ['根据文明水平推断建筑风格'], color: '世界观决定', lighting: '魔法光/水晶光/世界观决定', material: '世界观决定——技术决定面料和建筑' },
+  '末日':  { keywords: ['末日','后末日','废土','末世','废墟'], fashion: ['Grunge/Punk/废土风(拼接/做旧/多层防护)'], interior: ['Industrial废墟/粗犷避难所/回收材料'], color: '褪色/锈色/灰棕/暗绿/黑', lighting: '自然光/火焰/应急灯/暗沉', material: '磨损/拼接/锈蚀/防毒面具/粗麻/金属片/轮胎橡胶' },
+};
+
+const REGION_MAP: Record<string, DimEntry> = {
+  '东亚中': { keywords: ['中国','中原','中土','东方','中华','华','唐','宋','明','清','汉','京','沪'], fashion: ['新中式/Guochao/汉服现代版'], interior: ['新中式/传统中式(宫殿/园林/胡同/四合院)'], color: '朱红/藏蓝/墨绿/金/中性色', lighting: '纸灯/丝灯/隐藏灯带', material: '漆木/竹/丝绸/玉石/金属镶嵌/手工石材' },
+  '东亚日': { keywords: ['日本','日式','和风','平安','江户','东京','京都'], fashion: ['Mori/和服/侘寂极简/原宿Harajuku'], interior: ['日式传统(和室/禅寺)/侘寂/Japandi'], color: '自然木色/米白/抹茶绿/蓝染', lighting: '纸灯柔和漫射', material: '和紙/杉木/桧木/竹/土壁/陶瓷' },
+  '东亚韩': { keywords: ['韩国','韩式','朝鲜','首尔','釜山'], fashion: ['K-Pop/韩式素朴中性'], interior: ['韩式极简(素朴/空白美)/多功能空间'], color: '云白/暖灰/浅木/柔和蓝', lighting: '柔和间接光', material: '浅橡木/天然石材/韩纸(hanji)/亚麻/陶瓷' },
+  '东南亚': { keywords: ['东南亚','泰国','越南','印尼','马来','菲律宾','新加坡','巴厘'], fashion: ['热带度假风/轻Bohemian/蜡染(Batik)'], interior: ['热带现代主义/高脚屋/巴厘岛度假风'], color: '翡翠绿/橘红/金/水蓝/棕榈绿', lighting: '自然光/竹灯/藤编灯', material: '蜡染/藤/竹/棕榈/柚木/水磨石' },
+  '南亚':   { keywords: ['印度','南亚','孟买','德里','巴基斯坦','孟加拉','斯里兰卡'], fashion: ['纱丽现代版/Kurta/刺绣/镜面装饰'], interior: ['印度现代(手工雕刻木/大理石镶嵌/黄铜)'], color: '藏红花黄/翡翠绿/靛蓝/金/宝石色', lighting: '黄铜灯/彩色玻璃灯/暖光', material: '手工雕刻木/大理石/黄铜/宝石/手工染织' },
+  '中东':   { keywords: ['中东','中亚','阿拉伯','波斯','伊朗','土耳其','沙特','迪拜','埃及','摩洛哥'], fashion: ['长袍/头巾/刺绣/金属腰带'], interior: ['伊斯兰几何庭院/拱廊/马赛克/波斯花园'], color: '蓝绿瓷砖/赤陶/金/深红/靛蓝', lighting: '彩色玻璃灯/金属镂空灯/烛光', material: '几何纹/Zellige瓷砖/蔓藤纹/黄铜/大理石' },
+  '北欧':   { keywords: ['北欧','斯堪的纳维亚','挪威','瑞典','丹麦','芬兰','冰岛'], fashion: ['Scandinavian/Minimalist/功能性时尚'], interior: ['Scandinavian/Japandi/温暖极简'], color: '白/浅灰/浅木+柔和粉彩', lighting: '落地灯/吊灯/蜡烛/自然光最大', material: '浅木(桦木/松木)/羊毛/羊皮/亚麻/皮革' },
+  '西欧':   { keywords: ['西欧','英国','法国','德国','意大利','西班牙','葡萄牙','荷兰','比利时','瑞士','奥地利','伦敦','巴黎','柏林','罗马'], fashion: ['Classic/Punk/Grunge/Romantic/Preppy'], interior: ['Traditional/Art Deco/Modern/Gothic/Victorian'], color: '藏蓝/酒红/森林绿/粗花呢/水晶', lighting: '水晶吊灯/壁灯/多层次照明', material: '粗花呢/水晶/黄铜/桃花心木/大理石/护墙板' },
+  '南欧':   { keywords: ['地中海','南欧','希腊','意大利南部','西班牙南部','普罗旺斯','托斯卡纳'], fashion: ['Mediterranean度假风/Boho/浪漫蕾丝'], interior: ['Mediterranean/法式乡村/Spanish Colonial'], color: '白墙/蓝窗/赤陶/橄榄绿/薰衣草紫', lighting: '自然光/锻铁灯笼/暖黄', material: '拱门/赤陶/橄榄木/锻铁/Zellige瓷砖/白灰墙' },
+  '东欧':   { keywords: ['东欧','斯拉夫','俄罗斯','波兰','捷克','乌克兰','巴尔干'], fashion: ['斯拉夫刺绣/Romantic/暗色Classic'], interior: ['东正教/洋葱顶/木构/厚重石墙'], color: '红色/暗金/深绿/深棕', lighting: '烛光/吊灯/壁炉光', material: '木构/厚重石墙/毛皮/厚羊毛/刺绣织物' },
+  '非洲北': { keywords: ['北非','摩洛哥','突尼斯','阿尔及利亚','撒哈拉北'], fashion: ['北非Djellaba/刺绣/金属装饰'], interior: ['摩洛哥Riad庭院/Zellige/彩色玻璃灯'], color: '靛蓝/赭色/赤陶/黄铜/白', lighting: '彩色玻璃灯/金属镂空灯/烛光', material: 'Zellige瓷砖/几何纹/赤陶/黄铜/石膏雕刻' },
+  '非洲南': { keywords: ['非洲','撒哈拉以南','尼日利亚','肯尼亚','南非','埃塞俄比亚','加纳','塞内加尔'], fashion: ['Afrohemian/Adire靛蓝染/蜡印/Kente编织'], interior: ['Afrohemian/热带现代/泥土建筑'], color: '赤陶/芥末黄/靛蓝/赭色/砖红/深棕', lighting: '暖光灯笼/穿孔金属灯罩/自然光', material: 'Adire靛蓝/柏柏尔地毯/Kente/Mudcloth/藤/泥土' },
+  '北美':   { keywords: ['北美','美国','加拿大','纽约','洛杉矶','芝加哥','多伦多'], fashion: ['Classic/Streetwear/Gorpcore/Preppy'], interior: ['Mid-Century Modern/Farmhouse/Contemporary'], color: '开放明亮/中性色+自然木', lighting: '大窗自然光/轨道灯/落地灯', material: '木结构/砖/钢铁/玻璃/石膏板' },
+  '拉美':   { keywords: ['拉丁美洲','拉美','墨西哥','巴西','阿根廷','哥伦比亚','古巴','秘鲁'], fashion: ['色彩鲜艳Boho/Romantic/手工刺绣'], interior: ['西班牙殖民复兴/热带庭院/彩色瓷砖'], color: '明亮撞色/彩砖/绿/黄/蓝/红', lighting: '自然光/锻铁吊灯/彩色玻璃', material: '彩砖/手工陶器/锻铁/棕榈/吊床/刺绣织物' },
+  '大洋洲': { keywords: ['大洋洲','澳大利亚','新西兰','太平洋','夏威夷','波利尼西亚'], fashion: ['热带休闲/轻Boho/冲浪文化'], interior: ['Coastal/热带现代/开放式凉亭'], color: '海洋泡沫绿/珊瑚/沙色/漂白木/印花', lighting: '自然光最大化/通风灯具/藤编灯', material: '藤/竹/漂白木/亚麻/玻璃/珊瑚/贝壳' },
+  '极地':   { keywords: ['极地','冰原','北极','南极','雪国','北境','雪山','冰'], fashion: ['皮毛/羽绒/厚重层叠/功能性保暖'], interior: ['木屋/冰雪建筑/极简避世'], color: '白/灰/冰蓝/原木', lighting: '壁炉光/烛光/极光/低色温暖光', material: '毛皮/羊毛/厚羽绒/原木/石材/冰' },
+};
+
+const FUNCTION_MAP: Record<string, DimEntry> = {
+  '宫廷':   { keywords: ['宫廷','王座','朝堂','觐见','皇宫','宫殿','议政','王室'], fashion: ['传统皇家礼服/精裁正装/Classic'], interior: ['Traditional/Neo-Traditional/Art Deco'], color: '金/深红/藏蓝/紫/白', lighting: '水晶吊灯/对称轴线/华盖逆光', material: '大理石/黄铜/水晶/金箔/深色木/纹章/天鹅绒' },
+  '宗教':   { keywords: ['宗教','寺庙','教堂','神社','祭坛','仪式','祈祷'], fashion: ['对应宗教传统服饰'], interior: ['对应宗教建筑风格(哥特/拜占庭/禅寺/伊斯兰)'], color: '金/白/深紫/彩绘玻璃色', lighting: '烛光/彩绘玻璃光/天窗神圣光', material: '彩绘玻璃/石材/香炉/烛台/图腾/金器' },
+  '军事':   { keywords: ['军事','战场','军营','堡垒','战舰','前线','战争'], fashion: ['军装/盔甲/功能性制服/Gorpcore'], interior: ['Industrial/粗犷石砌/功能型掩体'], color: '军绿/黑/暗红/金属银/铁灰', lighting: '实用照明/探照灯/火光', material: '金属/石材/皮革/武器/旗帜/沙盘/绷带' },
+  '学术':   { keywords: ['学术','图书馆','实验室','教室','书院','学校','大学','研究'], fashion: ['Preppy/Dark Academia/Business Casual'], interior: ['Dark Academia/Traditional/Minimalist(现代)'], color: '棕/深绿/灰/奶油白/黑', lighting: '台灯/烛台/暖黄阅读光', material: '书架/木/皮革/黄铜/科学仪器/黑板/纸张' },
+  '商业':   { keywords: ['商业','职场','办公','董事','交易','商店','精品','公司','企业'], fashion: ['Classic/Business/Minimalist'], interior: ['Art Deco/Modern/Contemporary/Warm Post-Minimalism'], color: '藏蓝/炭灰/黑/白/玻璃幕墙', lighting: '隐藏式照明/LED面板/功能灯', material: '玻璃幕墙/金属/大理石/屏幕/品牌标识' },
+  '街头':   { keywords: ['街头','城市','小巷','广场','地铁','天桥','夜市','市集','马路'], fashion: ['Streetwear/Grunge/Punk/K-Pop'], interior: ['Industrial/Street/Contemporary/Neo-Chinese(夜市)'], color: '霓虹灯/广告牌/涂鸦/潮湿路面', lighting: '霓虹灯/街灯/广告牌光/车灯', material: '霓虹/涂鸦/广告牌/沥青/混凝土/金属' },
+  '地下':   { keywords: ['地下','亚文化','俱乐部','录音棚','暗房','黑客','窝点'], fashion: ['Grunge/Punk/Cyberpunk/Gothic'], interior: ['Industrial暗黑版/粗犷地下室/改造空间'], color: '黑/暗红/暗紫/荧光点缀', lighting: '黑光/烟雾/霓虹/单色灯', material: '裸露管道/黑光/烟雾/合成器/线缆/海报/混凝土' },
+  '乡村':   { keywords: ['乡村','田园','农场','牧场','村庄','田','农村'], fashion: ['Cottagecore/Boho/农场实用装'], interior: ['Farmhouse/Cottagecore/Rustic/法式乡村'], color: '暖大地色/柔和碎花/原木/白/绿', lighting: '自然光/暖黄散射/壁炉光/炊烟', material: '原木/石墙/作物/动物/亚麻/棉/锻铁' },
+  '自然':   { keywords: ['自然','野外','森林','沙漠','雪山','海洋','草原','山','河','湖','海'], fashion: ['Gorpcore/户外功能装/探险装'], interior: ['以自然为主——人工构筑极少'], color: '植被/地形/天气决定的自然色', lighting: '自然光——阳光/月光/星光', material: '植被/岩石/水体/地形——人工介入最小' },
+  '工业':   { keywords: ['工业','工厂','车间','矿井','船坞','生产','制造'], fashion: ['工装/防护服/实用耐用'], interior: ['Industrial/Rustic/Warm Post-Minimalism(改造)'], color: '钢灰/炭灰/锈橙/深棕/黑', lighting: '工厂灯/裸灯泡/荧光管/天窗', material: '钢架/管道/烟囱/传送带/机油/粉尘/混凝土' },
+  '娱乐':   { keywords: ['娱乐','表演','剧院','歌剧院','马戏团','演唱会','舞台','演出'], fashion: ['Glam/Maximalist/表演服'], interior: ['Art Deco/Glam/Baroque/Contemporary'], color: '红/金/黑/亮片/聚光灯色', lighting: '聚光灯/幕布光/镜前灯/舞台灯', material: '幕布/聚光灯/镜子/化妆台/音响/舞台/亮片' },
+  '运动':   { keywords: ['运动','竞技','体育','道场','健身房','赛道','球','比赛'], fashion: ['Athleisure/Sporty/功能性运动服'], interior: ['Contemporary/Minimalist/Industrial'], color: '白/蓝/红/黑/霓虹点缀', lighting: '科学灯光/均匀照明/无影灯', material: '跑道/器械/奖杯/记分牌/弹性面料/金属' },
+  '医疗':   { keywords: ['医疗','科学','医院','诊所','实验室','太空站','研究'], fashion: ['白大褂/防护服/功能性制服'], interior: ['Minimalist/Contemporary/冷调白色'], color: '白/浅蓝/不锈钢/灰', lighting: '消毒灯/无影灯/LED面板/冷白', material: '白/不锈钢/仪器/屏幕/消毒灯/玻璃' },
+  '餐饮':   { keywords: ['餐饮','餐厅','咖啡馆','酒吧','茶馆','吃饭','喝酒','饮'], fashion: ['对应氛围——Romantic(约会)/Casual(日常)'], interior: ['各式——法式Bistro/日式居酒屋/Art Deco酒吧/Coastal餐厅'], color: '暖黄/木色/食物色/氛围色', lighting: '暖黄散射/桌面重点光/吧台光', material: '桌面/吧台/餐具/椅/植物/酒瓶' },
+  '居住':   { keywords: ['居住','私密','公寓','家','宅邸','别墅','小屋','卧室','客厅'], fashion: ['日常休闲/家居服/睡衣'], interior: ['各居住类风格——Farmhouse到Minimalist'], color: '个人偏好/温暖中性/舒适色', lighting: '舒适灯光/窗帘/多层次暖光', material: '个人物品/生活痕迹/舒适面料/窗帘/地毯' },
+  '交通':   { keywords: ['交通','移动','火车','船','飞机','汽车','舰','舱'], fashion: ['旅行装/功能性/根据时代'], interior: ['功能优先——受限于载具空间'], color: '金属/塑料/织物色', lighting: '舱内照明/仪表光/舷窗光', material: '狭小空间/仪表板/座椅/行李架/舷窗' },
+  '废墟':   { keywords: ['废墟','废弃','鬼城','沉船','遗址','破败'], fashion: ['末日风/探险装/实用性'], interior: ['Industrial废墟/自然回收/风化时间痕迹'], color: '灰/褐/锈/绿(苔藓)/褪色', lighting: '裂缝自然光/昏暗/积尘散射', material: '残垣/锈蚀/藤蔓/碎玻璃/灰尘/积水/霉斑' },
+};
+
+const MOOD_MAP: Record<string, DimEntry> = {
+  '浪漫': { keywords: ['浪漫','温馨','爱情','甜','柔','暖'], fashion: ['Romantic/Coquette/Cottagecore/Classic'], interior: ['French Country/Coastal/Organic Modern/Cottagecore'], color: '粉彩/奶油白/柔和暖色', lighting: '暖黄散射光/烛光/柔光窗帘', material: '蕾丝/亚麻/天鹅绒/丝绸/花/水晶' },
+  '压抑': { keywords: ['压抑','黑暗','恐怖','阴森','可怕','恐惧','绝望'], fashion: ['Gothic/Grunge/Punk'], interior: ['Gothic/Victorian/Industrial废墟'], color: '黑/暗紫/血红/暗绿/深灰', lighting: '单一光源/顶光暗影/冷蓝/琥珀单色', material: '铁锈/石墙/皮革/暗木/剥落漆面' },
+  '活力': { keywords: ['活力','青春','街头','热闹','动感','能量','跳动'], fashion: ['Streetwear/Y2K/K-Pop/Harajuku'], interior: ['Street/Contemporary/霓虹城市'], color: '霓虹亮色/原色块碰撞/荧光', lighting: '霓虹灯/广告牌光/冷暖对比', material: '亚克力/金属/丹宁/合成面料/PVC' },
+  '肃穆': { keywords: ['肃穆','庄严','仪式','神圣','威严','正式','庄重'], fashion: ['Classic/传统礼服/军装'], interior: ['Traditional/Neo-Traditional/宗教建筑'], color: '深色+金/黑白/藏蓝+银', lighting: '顶光/逆光营造神圣感/重点光', material: '大理石/黄铜/深色木/水晶/旗帜' },
+  '诡异': { keywords: ['诡异','不安','超现实','奇怪','扭曲','梦魇','uncanny'], fashion: ['Avant-Garde/Gothic扭曲版'], interior: ['超现实空间/扭曲透视/不可能建筑'], color: '冲突色/互补色高饱和/非自然色', lighting: '非自然色光/底光/多重影子', material: '镜子/扭曲反射/过于光滑/人工材质' },
+  '荒凉': { keywords: ['荒凉','孤寂','空旷','孤独','废弃','沙漠','荒原'], fashion: ['Minimalist/Grunge/Boho'], interior: ['Minimalist/Wabi-Sabi/废墟/沙漠/冰原'], color: '低饱和/褪色/灰调/沙色/冷中性', lighting: '自然光唯一/长阴影/无人工光', material: '风化/侵蚀/锈/干燥/剥落/积尘' },
+  '奢华': { keywords: ['奢华','华丽','极致','富贵','豪华','金碧辉煌','高端'], fashion: ['Glam/Maximalist/Baroque'], interior: ['Art Deco/Glam/Baroque/Color Drenching'], color: '金+黑/白+金/珠宝色调/深紫+金', lighting: '水晶吊灯/多层次/重点光戏剧化', material: '水晶/金/大理石/镜子/漆面/天鹅绒/丝绸' },
+  '简约': { keywords: ['简约','克制','冷静','极简','朴素','纯粹'], fashion: ['Minimalist/Gender-fluid'], interior: ['Minimalist/Scandinavian/Japandi'], color: '单色/黑白灰米/低对比/冷中性', lighting: '隐藏式/间接光/均匀漫射', material: '天然木/微水泥/亚麻/钢/玻璃/无装饰' },
+  '温暖': { keywords: ['温暖','治愈','安全','舒适','柔和','温馨','安心'], fashion: ['Cottagecore/Boho/Mori Girl'], interior: ['Farmhouse/Scandinavian/Cottagecore/Warm Post-Minimalism'], color: '暖中性/大地色/蜂蜜色/柔和棕', lighting: '暖黄散射/壁炉光/蜡烛/低色温', material: '羊毛/羊绒/棉麻/木材/陶器/植物' },
+  '科技': { keywords: ['科技','未来','冷静','cyber','数字','AI','机器人'], fashion: ['Cyberpunk/Gorpcore/Minimalist'], interior: ['Minimalist/Cyberpunk/太空舱'], color: '冷中性/银/白/冰蓝/炭灰', lighting: '冷白光/LED/隐藏灯带/面板发光', material: '钢/玻璃/碳纤维/亚克力/智能表面' },
+};
+
+const IDENTITY_MAP: Record<string, DimEntry> = {
+  '统治者': { keywords: ['统治者','君主','国王','女王','皇帝','王','帝','皇'], fashion: ['Classic/传统皇家礼服/精裁正装'], interior: [], color: '金/深红/藏蓝/紫/白(神圣)', lighting: '', material: '冠冕/权杖/纹章/刺绣/毛皮披风/珠宝' },
+  '贵族':   { keywords: ['贵族','精英','上流','豪门','世家','名门'], fashion: ['Classic/Preppy/Old Money(现代)'], interior: [], color: '藏蓝/酒红/驼色/深绿/珍珠白', lighting: '', material: '纹章/袖扣/珍珠/皮革手套/精裁西装' },
+  '将领':   { keywords: ['将领','战士','将军','士兵','武士','军官'], fashion: ['军装/盔甲/功能性战斗服/Gorpcore(现代)'], interior: [], color: '军绿/黑/暗红/金属银/铁灰', lighting: '', material: '武器/勋章/伤疤/金属件/护具/战纹' },
+  '学者':   { keywords: ['学者','知识分子','教授','老师','博士','研究员','书'], fashion: ['Dark Academia/Preppy/Minimalist'], interior: [], color: '棕/深绿/灰/奶油白/黑', lighting: '', material: '眼镜/书/钢笔/围巾/粗花呢/皮革公文包' },
+  '商人':   { keywords: ['商人','资本家','老板','CEO','经理','富豪'], fashion: ['Classic/Business/Old Money'], interior: [], color: '藏蓝/炭灰/黑/白衬衫', lighting: '', material: '定制西装/金表/皮鞋/丝巾/领带夹' },
+  '艺术家': { keywords: ['艺术家','创意人','画家','设计师','音乐家','导演','作家'], fashion: ['Avant-Garde/Boho/Eclectic/Maximalist'], interior: [], color: '自由——常打破配色规则', lighting: '', material: '独特配饰/不对称/手工痕迹/颜料渍/实验面料' },
+  '工人':   { keywords: ['工人','劳动者','工匠','技师','蓝领'], fashion: ['实用工装/Rustic/功能性'], interior: [], color: '灰/棕/蓝/卡其/褪色', lighting: '', material: '工具腰带/安全帽/工作靴/手套/磨损/补丁' },
+  '农民':   { keywords: ['农民','田园','农夫','牧民','渔夫'], fashion: ['Cottagecore/Farmhouse实用'], interior: [], color: '大地色/褪色蓝/自然白/草绿', lighting: '', material: '草帽/围裙/粗棉/草编/泥渍/工具' },
+  '街头':   { keywords: ['街头','边缘','流浪','混混','无家'], fashion: ['Grunge/Punk/Streetwear破旧版'], interior: [], color: '褪色/暗色/脏色/混搭', lighting: '', material: '破洞/补丁/多层/背包/睡袋/捡拾物品' },
+  '青少年': { keywords: ['青少年','学生','少年','少女','孩子','青年','teen'], fashion: ['Preppy/Y2K/Streetwear/K-Pop/Dark Academia'], interior: [], color: '取决于亚文化归属', lighting: '', material: '书包/耳机/手机/球鞋/校服元素/个性配饰' },
+  '舞者':   { keywords: ['舞者','表演者','歌手','演员','艺人'], fashion: ['Balletcore/表演服/Glam/Maximalist'], interior: [], color: '白/粉/黑/金/亮片/红', lighting: '', material: '芭蕾鞋/薄纱/亮片/羽毛/紧身衣/舞鞋' },
+  '黑客':   { keywords: ['黑客','程序员','工程师','开发者','coder','极客'], fashion: ['Streetwear/Cyberpunk/Minimalist'], interior: [], color: '黑/灰/霓虹点缀', lighting: '', material: '帽衫(兜帽)/双肩包/贴纸/终端设备/眼镜' },
+  '侦探':   { keywords: ['侦探','执法','警察','探员','保安','守卫'], fashion: ['Classic/Techwear/风衣'], interior: [], color: '黑/灰/棕/白衬衫', lighting: '', material: '风衣/枪套/证件/手电/手套/对讲机' },
+  '医生':   { keywords: ['医生','科学家','护士','药剂','研究员','实验员'], fashion: ['Business/White Coat功能性'], interior: [], color: '白/浅蓝/灰', lighting: '', material: '白大褂/口罩/手套/听诊器/护目镜/药剂' },
+  '僧侣':   { keywords: ['僧侣','修行者','和尚','道士','尼姑','修女','牧师','神职'], fashion: ['各宗教传统袍服/极简天然面料'], interior: [], color: '对应宗教色彩(佛教橙/道教灰/基督教黑白)', lighting: '', material: '念珠/经文/法器/袈裟/道袍/十字架' },
+  '间谍':   { keywords: ['间谍','特工','刺客','杀手','忍者','密探'], fashion: ['Classic/Minimalist/Techwear暗藏功能'], interior: [], color: '黑/深灰/藏蓝——不引起注意', lighting: '', material: '隐藏功能/通讯设备/武器/高科技/隐匿身份' },
+  '外星':   { keywords: ['外星','非人','alien','怪物','异形','非人类智慧'], fashion: ['根据文明水平与生物形态推断'], interior: [], color: '可能完全非人类色彩感知', lighting: '', material: '非人类比例/生物发光/外骨骼/共生体/硅基/气态' },
+};
+
+// ── Fuzzy matcher ────────────────────────────────
+
+function matchDimension(input: string, map: Record<string, DimEntry>): { key: string; entry: DimEntry; score: number } | null {
+  if (!input?.trim()) return null;
+  const lower = input.toLowerCase().trim();
+  let best: { key: string; entry: DimEntry; score: number } | null = null;
+
+  for (const [key, entry] of Object.entries(map)) {
+    for (const kw of entry.keywords) {
+      if (lower.includes(kw.toLowerCase())) {
+        const score = kw.length; // longer keyword = more specific match
+        if (!best || score > best.score) {
+          best = { key, entry, score };
+        }
+      }
+    }
+  }
+
+  // Fallback: partial word match
+  if (!best) {
+    for (const [key, entry] of Object.entries(map)) {
+      for (const kw of entry.keywords) {
+        const kwLower = kw.toLowerCase();
+        for (let i = 0; i <= lower.length - 2; i++) {
+          if (kwLower.includes(lower.substring(i, i + 2))) {
+            return { key, entry, score: 1 };
+          }
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+// ── Public decision API ──────────────────────────
+
+/**
+ * 5-dimension style decision engine.
+ * Takes natural language inputs for each dimension, matches against
+ * structured knowledge base, returns StyleDecision with 70/20/10 mix.
+ */
+export function decideStyle(dimensions: DimensionInput): StyleDecision {
+  const era = matchDimension(dimensions.era || '', ERA_MAP);
+  const region = matchDimension(dimensions.region || '', REGION_MAP);
+  const func = matchDimension(dimensions.sceneFunction || '', FUNCTION_MAP);
+  const mood = matchDimension(dimensions.mood || '', MOOD_MAP);
+  const identity = matchDimension(dimensions.identity || '', IDENTITY_MAP);
+
+  // Collect all matched fashion/interior styles
+  const fashionSet = new Set<string>();
+  const interiorSet = new Set<string>();
+  const colors: string[] = [];
+  const lightings: string[] = [];
+  const materials: string[] = [];
+
+  const matches = [era, region, func, mood, identity].filter(Boolean) as { key: string; entry: DimEntry; score: number }[];
+
+  for (const m of matches) {
+    for (const s of m.entry.fashion) fashionSet.add(s);
+    for (const s of m.entry.interior) interiorSet.add(s);
+    if (m.entry.color) colors.push(m.entry.color);
+    if (m.entry.lighting) lightings.push(m.entry.lighting);
+    if (m.entry.material) materials.push(m.entry.material);
+  }
+
+  const fashionStyles = [...fashionSet];
+  const interiorStyles = [...interiorSet];
+
+  // 70/20/10 rule: primary from strongest match, secondary from 2nd, accent from mood
+  const primary = fashionStyles[0] || 'Contemporary';
+  const secondary = fashionStyles[1] || (era?.entry.fashion[0] || 'Minimalist');
+  const accent = mood?.entry.fashion[0] || identity?.entry.fashion[0] || 'Streetwear';
+
+  // Confidence based on how many dimensions matched
+  const totalDims = [dimensions.era, dimensions.region, dimensions.function, dimensions.mood, dimensions.identity].filter(Boolean).length;
+  const matchedDims = matches.length;
+  const confidence = totalDims > 0 ? matchedDims / Math.max(totalDims, 5) : 0.3;
+
+  return {
+    primary,
+    secondary,
+    accent,
+    fashionStyles,
+    interiorStyles,
+    colorDirection: colors.join('; ') || '当代默认配色',
+    lightingDirection: lightings.join('; ') || '层次化现代灯光',
+    materialDirection: materials.join('; ') || '当代默认材质',
+    confidence: Math.round(confidence * 100) / 100,
+  };
+}

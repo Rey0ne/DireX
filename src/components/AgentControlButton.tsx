@@ -25,14 +25,14 @@ export function AgentControlButton({ isOpen, onClick }: AgentControlButtonProps)
           justifyContent: 'center',
           fontSize: '18px',
           background: isOpen
-            ? 'rgba(255,255,255,0.12)'
+            ? 'var(--tap-active)'
             : hover
-              ? 'rgba(255,255,255,0.08)'
-              : 'rgba(22,26,34,0.85)',
-          border: '1px solid rgba(255,255,255,0.12)',
+              ? 'var(--tap-hover)'
+              : 'var(--tap-panel)',
+          border: '1px solid var(--tap-border-light)',
           cursor: 'pointer',
           backdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+          boxShadow: 'var(--tap-shadow-md)',
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
           position: 'fixed',
           bottom: '76px',

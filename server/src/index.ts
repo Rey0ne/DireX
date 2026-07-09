@@ -13,8 +13,16 @@ import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import kimodoRouter from './routes/kimodo.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
+import { qRouter } from './systems/q/q-api.js';
+import { trackCanvasSync, captureScriptAnalysis } from './systems/q/q-observer.js';
+import { detectDeviations } from './systems/q/q-detector.js';
+import { getOrCreateProject } from './systems/q/q-state.js';
+import { onPipelineComplete, onIntervalCheck } from './systems/q/q-cognitive-engine.js';
+import { periodicSuggest } from './systems/q/q-suggest.js';
+import { detectAndRoute } from './systems/q/q-orchestrate.js';
 import { withKieLimit } from './systems/ai/kie-provider.js';
 import { compilePrompt } from './systems/agent/compiler.js';
+import { buildCamBlock } from './systems/agent/camera-kit-mappings.js';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, analyzeReferenceImages, compileI2IWithGPT5, parseShotBlocks } from './systems/agent/pipeline.js';
 import { gpt5Chat } from './systems/ai/gemini.js';
 import { compileVideoPrompt } from './systems/agent/video-analyzer.js';
@@ -337,6 +345,9 @@ app.post('/api/canvas/sync', (req, res) => {
   } catch {}
   writeJSON(CANVAS_FILE, canvasState);
   console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
+  // 小Q: track canvas changes + auto-orchestration
+  try { trackCanvasSync('default', canvasState.nodes.length); } catch {}
+  try { detectAndRoute(canvasState.nodes, 'default'); } catch {}
   res.json({ ok: true });
 });
 app.get('/api/canvas/state', (_req, res) => {
@@ -509,6 +520,17 @@ app.post('/api/agent/full', async (req: Request, res: Response) => {
 
   try {
     const pipelineResult = await runUnifiedPipeline(scriptText, visualStyle);
+    // 小Q: capture script analysis
+    try {
+      captureScriptAnalysis('default', scriptText, {
+        characters: pipelineResult.characters,
+        scenes: pipelineResult.scenes,
+        shots: pipelineResult.shots?.shots || [],
+        sceneArchitecture: pipelineResult.sceneArchitecture,
+        props: pipelineResult.props,
+        music: pipelineResult.music,
+      });
+    } catch {}
     res.json({
       success: true,
       characters: pipelineResult.characters,
@@ -545,46 +567,8 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const focal = (body as any).focalLength;
   const apt = (body as any).aperture;
   const film = (body as any).filmStock;
-  // Camera/Lens/Film → visual description (AI models don't know brand names)
-  const CAMERA_VISUAL: Record<string, string> = {
-    'Sony Venice': 'Sony Venice full-frame digital cinema: clean modern digital look, high dynamic range, crisp detail, neutral color science',
-    'Arri Alexa 35': 'Arri Alexa 35 Super 35 digital cinema: warm organic filmic look, soft highlight rolloff, cinematic skin tones, rich shadow detail',
-    'Arri Alexa 65': 'Arri Alexa 65 large-format digital cinema: ultra-shallow depth of field, epic wide perspective, rich texture, fine detail',
-    'RED V-Raptor': 'RED V-Raptor digital cinema: crisp high-resolution digital, clean shadows, modern clinical sharpness, high detail',
-    'ArriFlex 435': 'ArriFlex 435 35mm film camera: authentic celluloid film texture, organic grain structure, classic cinema feel, soft highlight bloom',
-    'IMAX Film Camera': 'IMAX 70mm film camera: massive large-format film, ultra-high resolution, immersive epic scale, fine grain, expansive field of view',
-  };
-  const LENS_VISUAL: Record<string, string> = {
-    'Zeiss Ultra Prime': 'Zeiss Ultra Prime: sharp clean contrast, neutral color rendition, crisp modern rendering, high resolution',
-    'Arri Signature': 'Arri Signature: smooth creamy bokeh, warm gentle focus rolloff, organic depth, cinematic softness, flattering falloff',
-    'Canon K-35': 'Canon K-35 vintage: soft dreamy glow, warm amber tint, creamy bokeh, nostalgic 1970s film character, gentle halation',
-    'Zeiss Super Speed': 'Zeiss Super Speed T1.3: ultra-fast, dramatic shallow focus, crisp center with subtle edge falloff, low-light character',
-    'Panavision Primo': 'Panavision Primo: classic Hollywood look, rich warm tones, smooth contrast, flattering skin rendition, elegant rendering',
-    'Angénieux Optimo': 'Angénieux Optimo: elegant French cinema look, smooth focus rolloff, refined warm-neutral color, subtle character',
-    'Leitz Thalia': 'Leitz Thalia large-format: micro-contrast detail, clean neutral rendering, dimensional depth, precise sharpness',
-    'Hawk Class X': 'Hawk Class X anamorphic: horizontal blue streak flares, oval bokeh, wide cinematic 2.39:1 widescreen character, vintage anamorphic feel',
-  };
-  const FILM_VISUAL: Record<string, string> = {
-    'Kodak 2383': 'Kodak 2383 color grade: warm cinematic amber-gold highlights, rich teal-shadow contrast, classic Hollywood print film saturation, subtle film grain',
-    'Kodak 250D': 'Kodak 250D color grade: soft natural daylight tones, gentle warm bias, low contrast pastel-like rolloff, smooth skin tones, airy atmosphere',
-    'Kodak 500T': 'Kodak 500T color grade: cool tungsten blue-green cast, moody cyan shadows, muted saturation, cinematic night interior look, fine grain',
-    'Ektachrome': 'Ektachrome color grade: punchy blue-green saturation, crisp contrast, cool vivid color reversal slide film look, deep teal skies, clean whites',
-    'Fuji Eterna': 'Fuji Eterna color grade: cool fresh Japanese cinema tone, subtle green-cyan bias, low contrast milky blacks, soft pastel color rendition, calm atmosphere',
-    'Fuji Velvia': 'Fuji Velvia color grade: extreme high saturation landscape film, deep reds and vibrant greens, heavy color contrast, golden warmth, vivid hyper-real pop',
-    'Technicolor': 'Technicolor 3-strip color grade: rich saturated primaries, distinct red/teal separation, golden skin tones, deep blacks, vintage Hollywood spectacle look',
-    'Bleach Bypass': 'Bleach Bypass color grade: silver retention high contrast, heavily desaturated near-monochrome, metallic gritty texture, crushed blacks, blown highlights, gritty raw aesthetic',
-    'B&W Acros': 'B&W Acros monochrome: deep rich blacks, smooth broad tonal range, fine grain, classic black and white film texture, timeless contrast, no color',
-  };
-  let camBlock = '';
-  if (cam || lens || focal || apt || film) {
-    const parts: string[] = [];
-    if (cam) parts.push(`Camera: ${CAMERA_VISUAL[cam] || cam}`);
-    if (lens) parts.push(`Lens: ${LENS_VISUAL[lens] || lens}`);
-    if (focal) parts.push(`Focal length: ${focal}`);
-    if (apt) parts.push(`Aperture: ${apt}`);
-    if (film) parts.push(`Film Stock: ${FILM_VISUAL[film] || film}`);
-    camBlock = '[' + parts.join(', ') + '] ';
-  }
+  // Camera/Lens/Film → visual description via shared module
+  const camBlock = buildCamBlock({ camera: cam, lens, focalLength: focal, aperture: apt, filmStock: film });
   // Camera block deliberately excluded from enrichedPrompt — it's prepended
   // once to the final compiledPrompt below. Including it caused double-prepend
   // when GPT translates (Chinese→English): guard `compiledPrompt !== enrichedPrompt`
@@ -742,6 +726,27 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     status: result.success ? 'succeeded' : 'failed',
     assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
   });
+  // 小Q: observe generation + detect deviations + cognitive cycle
+  try {
+    const shotNumber = (body as any).shot?.shotNumber || (body as any).shotNumber || 0;
+    if (shotNumber) {
+      detectDeviations({
+        projectId: 'default',
+        shotNumber,
+        assetUrls: result.assetUrls || [],
+        compiledPrompt: compiledPrompt,
+        nodeId: (body as any).nodeId,
+      }).then((detectionResult) => {
+        // Trigger cognitive cycle if violations found
+        if (detectionResult && detectionResult.violations > 0) {
+          onPipelineComplete('default', shotNumber, {
+            total: detectionResult.deviationsFound,
+            violations: detectionResult.violations,
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  } catch {}
   // Auto-cache disabled — unused @mention feature wasted Gemini Vision calls
   // if (result.success && result.assetUrls.length > 0) {
   //   result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
@@ -801,6 +806,17 @@ app.post('/api/agent/script/overview', async (req, res) => {
       const result = await runScriptAnalysis(scriptText, visualStyle, characters);
       const task = scriptTasks.get(taskId);
       if (task) { task.status = 'done'; task.result = result; }
+      // 小Q: capture script analysis
+      try {
+        captureScriptAnalysis('default', scriptText, {
+          characters,
+          scenes: result.scenes || {},
+          shots: result.shots || [],
+          sceneArchitecture: result.sceneArchitecture || {},
+          props: result.props || {},
+          music: result.music || { scenes: {}, sunoPrompts: {} },
+        });
+      } catch {}
       console.log('[script-analysis] Task ' + taskId + ' done, shots=' + result.shots.length + ' chars=' + result.rawOutput.length);
     } catch (err) {
       const task = scriptTasks.get(taskId);
@@ -833,6 +849,12 @@ setInterval(() => {
   const cutoff = Date.now() - 30 * 60 * 1000;
   for (const [id, t] of scriptTasks) { if (t.createdAt < cutoff) scriptTasks.delete(id); }
 }, 600_000);
+
+// 小Q: periodic cognitive check + suggestions (every 5 min)
+setInterval(() => {
+  onIntervalCheck('default').catch(() => {});
+  periodicSuggest('default');
+}, 300_000);
 
 app.post('/api/agent/script/characters', async (req, res) => {
   const { scriptText } = req.body;
@@ -968,46 +990,8 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
   const focal = (body as any).focalLength;
   const apt = (body as any).aperture;
   const film = (body as any).filmStock;
-  // Camera/Lens/Film → visual description (AI models don't know brand names)
-  const CAMERA_VISUAL: Record<string, string> = {
-    'Sony Venice': 'Sony Venice full-frame digital cinema: clean modern digital look, high dynamic range, crisp detail, neutral color science',
-    'Arri Alexa 35': 'Arri Alexa 35 Super 35 digital cinema: warm organic filmic look, soft highlight rolloff, cinematic skin tones, rich shadow detail',
-    'Arri Alexa 65': 'Arri Alexa 65 large-format digital cinema: ultra-shallow depth of field, epic wide perspective, rich texture, fine detail',
-    'RED V-Raptor': 'RED V-Raptor digital cinema: crisp high-resolution digital, clean shadows, modern clinical sharpness, high detail',
-    'ArriFlex 435': 'ArriFlex 435 35mm film camera: authentic celluloid film texture, organic grain structure, classic cinema feel, soft highlight bloom',
-    'IMAX Film Camera': 'IMAX 70mm film camera: massive large-format film, ultra-high resolution, immersive epic scale, fine grain, expansive field of view',
-  };
-  const LENS_VISUAL: Record<string, string> = {
-    'Zeiss Ultra Prime': 'Zeiss Ultra Prime: sharp clean contrast, neutral color rendition, crisp modern rendering, high resolution',
-    'Arri Signature': 'Arri Signature: smooth creamy bokeh, warm gentle focus rolloff, organic depth, cinematic softness, flattering falloff',
-    'Canon K-35': 'Canon K-35 vintage: soft dreamy glow, warm amber tint, creamy bokeh, nostalgic 1970s film character, gentle halation',
-    'Zeiss Super Speed': 'Zeiss Super Speed T1.3: ultra-fast, dramatic shallow focus, crisp center with subtle edge falloff, low-light character',
-    'Panavision Primo': 'Panavision Primo: classic Hollywood look, rich warm tones, smooth contrast, flattering skin rendition, elegant rendering',
-    'Angénieux Optimo': 'Angénieux Optimo: elegant French cinema look, smooth focus rolloff, refined warm-neutral color, subtle character',
-    'Leitz Thalia': 'Leitz Thalia large-format: micro-contrast detail, clean neutral rendering, dimensional depth, precise sharpness',
-    'Hawk Class X': 'Hawk Class X anamorphic: horizontal blue streak flares, oval bokeh, wide cinematic 2.39:1 widescreen character, vintage anamorphic feel',
-  };
-  const FILM_VISUAL: Record<string, string> = {
-    'Kodak 2383': 'Kodak 2383 color grade: warm cinematic amber-gold highlights, rich teal-shadow contrast, classic Hollywood print film saturation, subtle film grain',
-    'Kodak 250D': 'Kodak 250D color grade: soft natural daylight tones, gentle warm bias, low contrast pastel-like rolloff, smooth skin tones, airy atmosphere',
-    'Kodak 500T': 'Kodak 500T color grade: cool tungsten blue-green cast, moody cyan shadows, muted saturation, cinematic night interior look, fine grain',
-    'Ektachrome': 'Ektachrome color grade: punchy blue-green saturation, crisp contrast, cool vivid color reversal slide film look, deep teal skies, clean whites',
-    'Fuji Eterna': 'Fuji Eterna color grade: cool fresh Japanese cinema tone, subtle green-cyan bias, low contrast milky blacks, soft pastel color rendition, calm atmosphere',
-    'Fuji Velvia': 'Fuji Velvia color grade: extreme high saturation landscape film, deep reds and vibrant greens, heavy color contrast, golden warmth, vivid hyper-real pop',
-    'Technicolor': 'Technicolor 3-strip color grade: rich saturated primaries, distinct red/teal separation, golden skin tones, deep blacks, vintage Hollywood spectacle look',
-    'Bleach Bypass': 'Bleach Bypass color grade: silver retention high contrast, heavily desaturated near-monochrome, metallic gritty texture, crushed blacks, blown highlights, gritty raw aesthetic',
-    'B&W Acros': 'B&W Acros monochrome: deep rich blacks, smooth broad tonal range, fine grain, classic black and white film texture, timeless contrast, no color',
-  };
-  let camBlock = '';
-  if (cam || lens || focal || apt || film) {
-    const parts: string[] = [];
-    if (cam) parts.push(`Camera: ${CAMERA_VISUAL[cam] || cam}`);
-    if (lens) parts.push(`Lens: ${LENS_VISUAL[lens] || lens}`);
-    if (focal) parts.push(`Focal length: ${focal}`);
-    if (apt) parts.push(`Aperture: ${apt}`);
-    if (film) parts.push(`Film Stock: ${FILM_VISUAL[film] || film}`);
-    camBlock = '[' + parts.join(', ') + '] ';
-  }
+  // Camera/Lens/Film → visual description via shared module
+  const camBlock = buildCamBlock({ camera: cam, lens, focalLength: focal, aperture: apt, filmStock: film });
   const enrichedPrompt = userPrompt;  // camBlock not included — prepended once below
 
   console.log('[visual-extract] mode=' + extractMode + ' refs=' + allRefUrls.length + ' prompt=' + userPrompt.slice(0, 80));
@@ -1104,6 +1088,9 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
 });
 
 // ─── Proxy Image (for CORS-free canvas crop)
+
+// ─── 小Q Brain API ────────────────────────
+app.use('/api/q', qRouter);
 
 // ─── UE5 Proxy ────────────────────────────
 import { createProxyMiddleware } from 'http-proxy-middleware';

@@ -28,10 +28,10 @@ import { LeftToolbar } from './components/LeftToolbar';
 import type { ToolMode } from './components/LeftToolbar';
 import { ProjectSelector } from './components/ProjectSelector';
 import { LoginPage } from './components/LoginPage';
+import { QAssistant } from './components/QAssistant';
+import { QChatPanel } from './components/QChatPanel';
 import { CreditPanel } from './components/CreditPanel';
 import { useAuthStore } from './store/useAuthStore';
-import { AgentPanel } from './components/AgentPanel';
-import { AgentToggleButton } from './components/AgentToggleButton';
 import { InpaintTool, RelightTool, MultiAngleTool, ExpandTool, ExtractTool } from './components/ImageTools';
 import { FullscreenImage } from './components/FullscreenImage';
 import { ZoomSlider } from './components/ZoomSlider';
@@ -307,8 +307,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dblMenu, setDblMenu] = useState<MenuState | null>(null);
-  const [isAgentOpen, setIsAgentOpen] = useState(false);
-  const [hasAgentSuggestion, setHasAgentSuggestion] = useState(false);
   const [activeImageTool, setActiveImageTool] = useState<string | null>(null);
   const [activeToolNodeId, setActiveToolNodeId] = useState<string | null>(null);
   const [fullscreenImg, setFullscreenImg] = useState<{ url: string; prompt: string; model: string; aspect: string; quality: string } | null>(null);
@@ -317,7 +315,8 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectTargetId, setConnectTargetId] = useState<string | null>(null);
   const [cropNodeId, setCropNodeId] = useState<string | null>(null);
-
+  const [chatOpen, setChatOpen] = useState(false);
+  const [qPos, setQPos] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 200 });
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -711,7 +710,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         sourceHandle: fixed.from.portId, targetHandle: fixed.to.portId,
         type: 'default',
         animated: false,
-        style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+        style: { stroke: '#41CCFA', strokeWidth: e.style?.width ?? 1.5 },
       }}).filter(e =>
         nodeList.some(n => n.id === e.source) && nodeList.some(n => n.id === e.target)
       );
@@ -767,12 +766,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     })));
   }, [cropNodeId, setRfNodes]);
 
-  // ─── Agent suggestion simulation ────────────────
-  useEffect(() => {
-    const timer = setTimeout(() => setHasAgentSuggestion(true), 8000);
-    return () => clearTimeout(timer);
-  }, []);
-
   // ─── Create menu handlers ───────────────────────
   const openMenu = useCallback((clientX: number, clientY: number) => {
     const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
@@ -815,7 +808,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         source: e.from.nodeId, target: e.to.nodeId,
         sourceHandle: e.from.portId, targetHandle: e.to.portId,
         animated: false,
-        style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+        style: { stroke: '#41CCFA', strokeWidth: e.style?.width ?? 1.5 },
     })));
   }, [addEdge, setRfEdges]);
 
@@ -903,7 +896,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             source: e.from.nodeId, target: e.to.nodeId,
             sourceHandle: e.from.portId, targetHandle: e.to.portId,
             animated: false,
-            style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+            style: { stroke: '#41CCFA', strokeWidth: e.style?.width ?? 1.5 },
         })));
         store.setSelectedNodes([targetId]);
       }
@@ -1100,17 +1093,17 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         minZoom={0.01}
         maxZoom={5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-        style={{ background: 'var(--tap-bg)' }}
+        style={{ background: '#FDF8F2' }}
       >
-        <Background color="rgba(255,255,255,0.08)" gap={20} size={1.6} />
+        <Background color="rgba(0,0,0,0.13)" gap={20} size={1.6} />
         <MiniMap
           position="bottom-left"
           pannable={true}
           zoomable={true}
-          nodeColor={() => 'rgba(94, 234, 212, 0.30)'}
-          maskColor="rgba(13,15,18,0.7)"
-          bgColor="rgba(18,21,25,0.92)"
-          style={{ marginBottom: 80, marginLeft: 20, width: 260, height: 170, border: '1px solid rgba(255,255,255,0.06)' }}
+          nodeColor={() => 'rgba(14, 168, 138, 0.30)'}
+          maskColor="rgba(252,252,252,0.7)"
+          bgColor="rgba(255,255,255,0.88)"
+          style={{ marginBottom: 80, marginLeft: 20, width: 260, height: 170, border: '1px solid var(--tap-border)' }}
         />
       </ReactFlow>
 
@@ -1164,12 +1157,12 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           width: '32px', height: '32px', borderRadius: '8px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '16px', color: 'var(--tap-text-3)',
-          background: 'rgba(22,26,34,0.85)', border: 'none',
+          background: 'var(--tap-panel)', border: 'none',
           backdropFilter: 'blur(12px)', cursor: 'pointer',
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(22,26,34,0.85)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-active)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--tap-panel)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
       >⌂</button>
 
       {/* ── Pick-source mode banner ── */}
@@ -1178,10 +1171,10 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 500,
           display: 'flex', alignItems: 'center', gap: '12px',
           padding: '10px 20px',
-          background: 'rgba(22,26,34,0.95)', borderRadius: '14px',
-          border: '1px solid rgba(180,180,185,0.25)',
+          background: 'var(--tap-panel)', borderRadius: '14px',
+          border: '1px solid var(--tap-border-light)',
           backdropFilter: 'blur(16px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--tap-shadow-lg)',
           animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
           pointerEvents: 'auto',
         }}>
@@ -1191,11 +1184,11 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             onClick={() => useCanvasStore.getState().setPendingConnection(null)}
             style={{
               padding: '4px 12px', borderRadius: 'var(--tap-r-sm)',
-              background: 'rgba(255,255,255,0.08)', color: 'var(--tap-text-3)',
+              background: 'var(--tap-hover)', color: 'var(--tap-text-3)',
               fontSize: 'var(--tap-fs-meta)', border: 'none', cursor: 'pointer',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-active)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
           >取消</button>
         </div>
       )}
@@ -1236,7 +1229,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                 source: e.from.nodeId, target: e.to.nodeId,
                 sourceHandle: e.from.portId, targetHandle: e.to.portId,
                 animated: false,
-                style: { stroke: 'rgba(180,180,185,0.4)', strokeWidth: e.style?.width ?? 1.5 },
+                style: { stroke: '#41CCFA', strokeWidth: e.style?.width ?? 1.5 },
             })));
             setConnectMenu(null);
           }}
@@ -1266,14 +1259,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                   setToolMode(cmd as any);
                 }
               }
-            } else if (cmd === 'compile') {
-              if (selectedIds.length > 0) {
-                // Trigger Agent compile for selected shot node
-                const node = store.nodes.get(selectedIds[0]);
-                if (node) {
-                  setIsAgentOpen(true);
-                }
-              }
             } else if (cmd === 'autoLayout') {
               // Simple grid layout
               const nodeArr = Array.from(store.nodes.values());
@@ -1301,13 +1286,6 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           onClose={() => useCanvasStore.getState().toggleCommandPalette()}
         />
       )}
-
-      {/* ── Agent ── */}
-      <AgentToggleButton isOpen={isAgentOpen}
-        onClick={() => { setIsAgentOpen(!isAgentOpen); if (!isAgentOpen) setHasAgentSuggestion(false); }}
-        hasSuggestion={hasAgentSuggestion}
-      />
-      <AgentPanel isOpen={isAgentOpen} onClose={() => setIsAgentOpen(false)} onAddNode={addNode} />
 
       {/* ── Image Tool Modals ── */}
       {(() => {
@@ -1399,6 +1377,10 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         );
       })()}
 
+      {/* ── Q Assistant: Floating Glass Ball ── */}
+      <QAssistant onToggleChat={() => setChatOpen(o => !o)} onPositionChange={setQPos} />
+      {chatOpen && <QChatPanel anchorPos={qPos} />}
+
     </div>
   );
 }
@@ -1413,6 +1395,9 @@ export default function App() {
   // 登录：先播动画再进入
   const handleEnter = useCallback(() => {
     setEntering(true);
+    // Clear saved project so user always lands on ProjectSelector first
+    localStorage.removeItem('tapnow-current-project');
+    setCurrentProjectId(null);
     setTimeout(() => {
       setAuthReady(true);
       setEntering(false);
@@ -1493,6 +1478,7 @@ export default function App() {
         <ProjectSelector
           onSelectProject={handleSelectProject}
           onCreateNew={handleCreateNew}
+          onLogout={handleLogout}
         />
       </>
     );

@@ -43,8 +43,8 @@ export function CreateMenu({ x, y, onSelect, onClose }: CreateMenuProps) {
           position: 'fixed', left, top, zIndex: 99999, width: menuW,
           padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px',
           userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)',
-          background: 'rgba(23, 23, 23, 0.96)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--tap-panel)',
+          border: '1px solid var(--tap-border)',
           borderRadius: '12px',
         }}>
         {MENU_ACTIONS.map(item => (
@@ -53,11 +53,11 @@ export function CreateMenu({ x, y, onSelect, onClose }: CreateMenuProps) {
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 10px', borderRadius: '8px',
               cursor: 'pointer', background: 'transparent',
-              fontSize: '13px', color: 'rgba(255,255,255,0.6)',
+              fontSize: '13px', color: 'var(--tap-text-2)',
               transition: 'all 0.12s ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
           >
             <MiniIcon type={item.icon} />
             <span>{item.label}</span>
@@ -96,13 +96,13 @@ export function ConnectCreateMenu({ x, y, onSelect, onClose }: ConnectCreateMenu
     <>
       <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }} style={{ position: 'fixed', inset: 0, zIndex: 99998 }} />
       <div onClick={e => e.stopPropagation()}
-        style={{ position: 'fixed', left, top, zIndex: 99999, width: menuW, padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px', userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)', background: 'rgba(23, 23, 23, 0.96)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px' }}>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', padding: '4px 8px 6px', fontWeight: 500 }}>连接到新节点</div>
+        style={{ position: 'fixed', left, top, zIndex: 99999, width: menuW, padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px', userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)', background: 'var(--tap-panel)', border: '1px solid var(--tap-border)', borderRadius: '12px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--tap-text-3)', padding: '4px 8px 6px', fontWeight: 500 }}>连接到新节点</div>
         {CONNECT_ACTIONS.map((item, i) => (
           <div key={item.type}
             onClick={() => onSelect(item.type)}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--tap-text-2)', transition: `all var(--tap-dur-fast) var(--tap-ease)`, borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--tap-text-2)', transition: `all var(--tap-dur-fast) var(--tap-ease)`, borderTop: i > 0 ? '1px solid var(--tap-divider)' : 'none' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}>
             <span style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><MiniIcon type={item.icon} /></span>
             <span style={{ fontSize: '12px', fontWeight: 500 }}>{item.label}</span>
@@ -158,8 +158,8 @@ export function DoubleClickMenu({ x, y, onSelect, onClose }: DoubleClickMenuProp
           position: 'fixed', left, top, zIndex: 99999, width: menuW,
           padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px',
           userSelect: 'none', animation: 'tap-scale-in 120ms var(--tap-ease)',
-          background: 'rgba(23, 23, 23, 0.96)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--tap-panel)',
+          border: '1px solid var(--tap-border)',
         }}>
         {DOUBLE_CLICK_ACTIONS.map(item => (
           <div key={item.type} onClick={() => onSelect(item.type)}

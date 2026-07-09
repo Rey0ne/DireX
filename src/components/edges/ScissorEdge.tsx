@@ -47,7 +47,7 @@ export function ScissorEdge(props: EdgeProps) {
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} style={{ stroke: 'rgba(180,180,185,0.4)', strokeWidth: 1.5 }} markerEnd={markerEnd} />
+      <BaseEdge id={id} path={edgePath} style={{ stroke: '#41CCFA', strokeWidth: 1.5 }} markerEnd={markerEnd} />
       {showScissors && (
         <EdgeLabelRenderer>
           <div

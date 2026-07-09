@@ -114,10 +114,10 @@ function _Roller({ options, index, onChange }: { options: string[]; index: numbe
   return (
     <span style={{ display:'inline-flex',alignItems:'center',gap:'1px',userSelect:'none' }}>
       <span onClick={prev} style={{ cursor:'pointer',fontSize:'7px',color:'var(--tap-text-4)',lineHeight:1,padding:'0 1px' }}
-        onMouseEnter={e=>{e.currentTarget.style.color='#fff'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▲</span>
-      <span style={{ fontSize:'8px',color:'#fff',fontWeight:500,minWidth:'28px',textAlign:'center' }}>{options[index]}</span>
+        onMouseEnter={e=>{e.currentTarget.style.color='var(--tap-text-1)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▲</span>
+      <span style={{ fontSize:'8px',color:'var(--tap-text-1)',fontWeight:500,minWidth:'28px',textAlign:'center' }}>{options[index]}</span>
       <span onClick={next} style={{ cursor:'pointer',fontSize:'7px',color:'var(--tap-text-4)',lineHeight:1,padding:'0 1px' }}
-        onMouseEnter={e=>{e.currentTarget.style.color='#fff'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▼</span>
+        onMouseEnter={e=>{e.currentTarget.style.color='var(--tap-text-1)'}} onMouseLeave={e=>{e.currentTarget.style.color='var(--tap-text-4)'}}>▼</span>
     </span>
   );
 }
@@ -135,8 +135,8 @@ function ImgDropBtn({ label, open, setOpen, anchorRef, onRect, children }: {
         onRect(rect);
         setOpen(!open);
       }}
-        style={{ display:'inline-flex',alignItems:'center',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',background:open?'rgba(255,255,255,0.07)':'transparent',color:'#fff',border:'none',whiteSpace:'nowrap',transition:'all 0.2s' }}
-        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+        style={{ display:'inline-flex',alignItems:'center',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',background:open?'rgba(0,207,255,0.10)':'transparent',color:'var(--tap-text-1)',border:'none',whiteSpace:'nowrap',transition:'all 0.2s' }}
+        onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
         onMouseLeave={e=>{if(!open){e.currentTarget.style.background='transparent'}}}
       >{label}</span>
       {open && anchorRef.current && (
@@ -161,6 +161,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showRatioPicker, setShowRatioPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [hoveredToolbarIdx, setHoveredToolbarIdx] = useState<number | null>(null);
   const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
   const atQueryRef = useRef('');  // tracks @query text for correct replacement in Chinese
   const atPosRef = useRef(-1);    // tracks @ position in prompt (avoids lastIndexOf races with multi-@)
@@ -691,9 +692,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           50% { background-position: 100% 50%; }
         }
         @keyframes direx-light-rim {
-          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
-          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
-          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
         }
       `}</style>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -704,118 +705,101 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         <Handle type="target" position={Position.Left} id="image-in"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             left: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="image-out"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             right: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
-        {/* ── Upload bar (inline absolute, no measurement, no flash) ── */}
-        {selected && !data.multiSelect && !data.imageUrl && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 24px)', left: '50%',
-          transform: `translateX(-50%) scale(${1.5/zoom})`,
-          transformOrigin: 'bottom center', zIndex: 50,
-        }}>
-          <div onClick={() => { /* trigger file upload via hidden input or drop */ }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 20px', background: 'rgba(22,26,34,0.92)',
-              borderRadius: '14px 14px 0 0', backdropFilter: 'blur(16px)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer',
-              border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none',
-              animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
-            }}>
-            <span style={{ fontSize: '16px' }}>↑</span>
-            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--tap-text-2)' }}>上传</span>
-          </div>
-        </div>
-        )}
-        {/* ── Floating Toolbar (inline absolute, no measurement, no flash) ── */}
+        {/* ── Floating Toolbar — individual circles with Dock hover ── */}
         {selected && !data.multiSelect && data.imageUrl && (
         <div style={{
           position: 'absolute', bottom: 'calc(100% + 24px)', left: '50%',
           transform: `translateX(-50%) scale(${1.5/zoom})`,
           transformOrigin: 'bottom center', zIndex: 50,
+          display: 'flex', alignItems: 'center', gap: '7px',
+          animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
         }}>
-          <div style={{
-            opacity: 1,
-            pointerEvents: 'auto',
-            transition: 'opacity 0.1s',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            padding: '4px',
-            background: 'rgba(22,26,34,0.92)',
-            borderRadius: '12px',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
-            animation: 'tap-fade-down var(--tap-dur-fast) var(--tap-ease)',
-          }}>
-            {toolbarActions.map((a, i) => (
-              <span key={a.label} style={{ display: 'flex' }}>
-                <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} />
-                {i === 3 && (
-                  <span style={{ display: 'inline-block', width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '6px 2px', verticalAlign: 'middle' }} />
+          {toolbarActions.map((a, i) => {
+            const d = hoveredToolbarIdx !== null ? i - hoveredToolbarIdx : 999;
+            const ad = Math.abs(d);
+            const s = ad === 0 ? 1.22 : ad === 1 ? 1.07 : 1;
+            const tx = ad === 1 ? Math.sign(d) * 5 : ad === 2 ? Math.sign(d) * 1.5 : 0;
+            const ty = ad === 0 ? -7 : 0;
+            return (
+              <span key={a.label} onMouseEnter={() => setHoveredToolbarIdx(i)} onMouseLeave={() => setHoveredToolbarIdx(null)}
+                style={{ display: 'flex', position: 'relative', zIndex: ad === 0 ? 2 : 1 }}>
+                <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} scale={s} tx={tx} ty={ty} />
+              </span>
+            );
+          })}
+          {/* More */}
+          {(() => {
+            const i = 4;
+            const d = hoveredToolbarIdx !== null ? i - hoveredToolbarIdx : 999;
+            const ad = Math.abs(d);
+            const s = ad === 0 ? 1.22 : ad === 1 ? 1.07 : 1;
+            const tx = ad === 1 ? Math.sign(d) * 5 : ad === 2 ? Math.sign(d) * 1.5 : 0;
+            const ty = ad === 0 ? -7 : 0;
+            return (
+              <span onMouseEnter={() => setHoveredToolbarIdx(i)} onMouseLeave={() => setHoveredToolbarIdx(null)}
+                style={{ position: 'relative', display: 'flex', zIndex: ad === 0 ? 2 : 1 }}>
+                <ToolBtn icon="⋯" label="更多工具" active={showMore} scale={s} tx={tx} ty={ty}
+                  onClick={() => { setShowMore(!showMore); setShowModelPicker(false); setShowRatioPicker(false); }} />
+                {showMore && (
+                  <Panel style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                    width: '200px', padding: 'var(--tap-space-2)',
+                    display: 'flex', flexDirection: 'column', gap: '2px',
+                    zIndex: 200,
+                    animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)',
+                  }}>
+                    {moreActions.map(a => (
+                      <div key={a.label}
+                        onClick={() => { a.onClick(); setShowMore(false); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          height: '36px', padding: '0 12px', borderRadius: 'var(--tap-r-md)',
+                          cursor: 'pointer', fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-2)',
+                          transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
+                      >
+                        <span style={{ fontSize: 'var(--tap-icon-size)' }}>{a.icon}</span>
+                        <span>{a.label}</span>
+                      </div>
+                    ))}
+                  </Panel>
                 )}
               </span>
-            ))}
-            {/* More */}
-            <span style={{ position: 'relative', display: 'flex' }}>
-              <ToolBtn icon="⋯" label="更多工具" active={showMore}
-                onClick={() => { setShowMore(!showMore); setShowModelPicker(false); setShowRatioPicker(false); }}
-              />
-              {showMore && (
-                <Panel style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  width: '200px',
-                  padding: 'var(--tap-space-2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  zIndex: 200,
-                  animation: 'tap-fade-up var(--tap-dur-fast) var(--tap-ease)',
-                }}>
-                  {moreActions.map(a => (
-                    <div key={a.label}
-                      onClick={() => { a.onClick(); setShowMore(false); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        height: '36px', padding: '0 12px', borderRadius: 'var(--tap-r-md)',
-                        cursor: 'pointer', fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-2)',
-                        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-hover)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                    >
-                      <span style={{ fontSize: 'var(--tap-icon-size)' }}>{a.icon}</span>
-                      <span>{a.label}</span>
-                    </div>
-                  ))}
-                </Panel>
-              )}
-            </span>
-
-            {/* Right-side actions (fullscreen, download) */}
-            <span style={{ display: 'inline-block', width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', margin: '6px 2px', verticalAlign: 'middle' }} />
-            {toolbarRight.map(a => (
-              <span key={a.label} style={{ display: 'flex' }}>
-                <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} />
+            );
+          })()}
+          {/* Right actions */}
+          {toolbarRight.map((a, i) => {
+            const idx = 5 + i;
+            const d = hoveredToolbarIdx !== null ? idx - hoveredToolbarIdx : 999;
+            const ad = Math.abs(d);
+            const s = ad === 0 ? 1.22 : ad === 1 ? 1.07 : 1;
+            const tx = ad === 1 ? Math.sign(d) * 5 : ad === 2 ? Math.sign(d) * 1.5 : 0;
+            const ty = ad === 0 ? -7 : 0;
+            return (
+              <span key={a.label} onMouseEnter={() => setHoveredToolbarIdx(idx)} onMouseLeave={() => setHoveredToolbarIdx(null)}
+                style={{ display: 'flex', position: 'relative', zIndex: ad === 0 ? 2 : 1 }}>
+                <ToolBtn icon={a.icon} label={a.label} onClick={a.onClick} scale={s} tx={tx} ty={ty} />
               </span>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
@@ -834,7 +818,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
                 : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
-          background: selected ? 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
+          background: selected ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
           boxShadow: data.isPickTarget
             ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget
@@ -1055,21 +1039,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         }}>
           {/* Unified input panel — textarea wrapping all controls */}
           <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: '#fff',
             borderRadius: 'var(--tap-r-xl)',
             pointerEvents: 'auto',
+            boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)',
           }}>
             {/* Reference strip — inside panel */}
             <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', padding: '6px 8px 0', minHeight: 32, alignItems: 'center' }}>
-              {/* Upload + — left */}
-              {(!data.refUrls || data.refUrls.length === 0) && !styleImgUrl && (
-                <div onClick={e => { e.stopPropagation(); e.preventDefault(); useCanvasStore.getState().setPendingConnection(id); }}
-                  style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '12px', color: 'var(--tap-text-4)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--tap-text-2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; }}
-                >＋</div>
-              )}
               {data.refUrls && data.refUrls.map((uri, i) => (
                 <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
                   <img src={uri} alt="" style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} />
@@ -1148,13 +1124,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 style={{
                   width: '100%',
                   marginLeft: '0',
-                  background: 'transparent',
+                  background: '#fff',
                   border: 'none',
                   borderRadius: 'var(--tap-r-xl) var(--tap-r-xl) 0 0',
                   padding: '10px 14px',
                   paddingRight: '40px',
                   fontSize: '8px',
-                  color: 'var(--tap-text-1)',
+                  color: '#333',
                   resize: 'none',
                   outline: 'none',
                   lineHeight: 1.5,
@@ -1188,7 +1164,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                         const refs = [...(atMentions.filter(r => r.url !== m.url).map(r => r.url)), m.url];
                         data.onChange?.({ referenceUrls: refs } as any);
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--tap-hover)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,207,255,0.10)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
@@ -1226,14 +1202,14 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               <ImgDropBtn label={currentModel} open={showModelPicker} setOpen={(v) => { setShowModelPicker(v); setShowRatioPicker(false); }} anchorRef={modelChipRef} onRect={setModelChipRect}>
                 {MODEL_OPTIONS.map(m => (
                   <div key={m.name} onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
-                    style={{ display:'flex',justifyContent:'space-between',alignItems:'center',height:'32px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:currentModel===m.name?'var(--tap-hover)':'transparent',fontSize:'11px' }}
-                    onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='var(--tap-hover)'}}
+                    style={{ display:'flex',justifyContent:'space-between',alignItems:'center',height:'32px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:currentModel===m.name?'rgba(0,207,255,0.10)':'transparent',fontSize:'11px' }}
+                    onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
                     onMouseLeave={e=>{if(currentModel!==m.name)e.currentTarget.style.background='transparent'}}>
                     <span>{m.name}</span>
                     <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
                   </div>))}
               </ImgDropBtn>
-              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              <span style={{ width:'1px',height:'14px',background:'rgba(0,0,0,0.10)',flexShrink:0 }} />
 
               {/* Aspect + Resolution — combined */}
               <ImgDropBtn label={`${currentAspect}·${currentResolution}`} open={showRatioPicker} setOpen={setShowRatioPicker} anchorRef={ratioChipRef} onRect={setRatioChipRect}>
@@ -1245,9 +1221,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                       const pw=Math.round(a.w*s),ph=Math.round(a.h*s);
                       const active=currentAspect===a.label;
                       return <div key={a.label} onClick={()=>{setCurrentAspect(a.label);patch('aspect',a.label);setShowRatioPicker(false)}}
-                        style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 6px',borderRadius:'4px',cursor:'pointer',background:active?'var(--tap-hover)':'transparent',border:active?'1px solid rgba(255,255,255,0.1)':'1px solid transparent'}}>
+                        style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 6px',borderRadius:'4px',cursor:'pointer',background:active?'rgba(0,207,255,0.10)':'transparent',border:active?'1px solid rgba(0,0,0,0.08)':'1px solid transparent'}}>
                         <div style={{width:B,height:B,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(255,255,255,0.2)'),borderRadius:'1px',background:active?'rgba(74,158,255,0.06)':'transparent'}}/>
+                          <div style={{width:pw,height:ph,border:'1.5px solid '+(active?'var(--tap-accent)':'rgba(0,0,0,0.18)'),borderRadius:'1px',background:active?'rgba(74,158,255,0.06)':'transparent'}}/>
                         </div>
                         <span style={{fontSize:'10px',color:active?'var(--tap-text-1)':'var(--tap-text-3)',fontWeight:active?600:400}}>{a.label}</span>
                       </div>;
@@ -1258,25 +1234,25 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   <div style={{display:'flex',gap:'2px',padding:'0 6px 3px'}}>
                     {RESOLUTION_OPTIONS.map(r=>(
                       <span key={r.label} onClick={()=>{setCurrentResolution(r.label);patch('resolution',r.label)}}
-                        style={{flex:1,padding:'3px 5px',borderRadius:'3px',fontSize:'10px',cursor:'pointer',textAlign:'center',background:currentResolution===r.label?'var(--tap-hover)':'transparent',color:currentResolution===r.label?'var(--tap-text-1)':'var(--tap-text-3)'}}>{r.label}</span>
+                        style={{flex:1,padding:'3px 5px',borderRadius:'3px',fontSize:'10px',cursor:'pointer',textAlign:'center',background:currentResolution===r.label?'rgba(0,207,255,0.10)':'transparent',color:currentResolution===r.label?'var(--tap-text-1)':'var(--tap-text-3)'}}>{r.label}</span>
                     ))}
                   </div>
                 </div>
               </ImgDropBtn>
 
-              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              <span style={{ width:'1px',height:'14px',background:'rgba(0,0,0,0.10)',flexShrink:0 }} />
               {/* Lens trigger */}
               <span ref={camRef} onClick={()=>{setShowCamPick(!showCamPick)}}
-                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'#fff',whiteSpace:'nowrap',maxWidth:'90px',overflow:'hidden',textOverflow:'ellipsis',transition:'all 0.2s'}}
-                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'var(--tap-text-1)',whiteSpace:'nowrap',maxWidth:'90px',overflow:'hidden',textOverflow:'ellipsis',transition:'all 0.2s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
                 onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
                 {CAMERAS[camIdx].name}
               </span>
-              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              <span style={{ width:'1px',height:'14px',background:'rgba(0,0,0,0.10)',flexShrink:0 }} />
               {/* Film stock trigger */}
               <span ref={filmRef} onClick={()=>{setShowFilmPick(!showFilmPick)}}
-                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'#fff',whiteSpace:'nowrap',transition:'all 0.2s'}}
-                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.07)'}}
+                style={{display:'inline-flex',alignItems:'center',gap:'2px',height:'20px',padding:'0 6px',borderRadius:'12px',fontSize:'8px',fontWeight:500,cursor:'pointer',color:'var(--tap-text-1)',whiteSpace:'nowrap',transition:'all 0.2s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
                 onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
                 <ColorBar colors={FILM_STOCKS[filmIdx].colors} width={36} height={10} /> {FILM_STOCKS[filmIdx].name}
               </span>
@@ -1308,7 +1284,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                       { idx:apertureIdx, setIdx:setApertureIdx, len:APERTURES.length },
                     ];el.onwheel=e=>{e.preventDefault();const ci=parseInt((e.target as HTMLElement).closest('[data-ci]')?.getAttribute('data-ci')||'-1');if(ci>=0){const c=cols[ci];c.setIdx((p:number)=>e.deltaY>0?Math.min(p+1,c.len-1):Math.max(p-1,0))}}}}}
                     style={{padding:'30px 16px 16px',display:'flex',alignItems:'stretch',position:'relative'}}>
-                    <div style={{position:'absolute',top:'8px',left:'16px',fontSize:'18px',color:'#fff',fontWeight:700}}>相机设置</div>
+                    <div style={{position:'absolute',top:'8px',left:'16px',fontSize:'18px',color:'var(--tap-text-1)',fontWeight:700}}>相机设置</div>
                     {[
                       { idx:camIdx, setIdx:setCamIdx, items:CAMERAS.map(c=>({img:c.img,line1:c.name,line2:`${c.sensor}`})) },
                       { idx:lensIdx, setIdx:setLensIdx, items:LENSES.map(l=>({img:l.img,line1:l.name,line2:`${l.focal}·${l.aperture}`})) },
@@ -1319,30 +1295,30 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                         <div data-ci={ci} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'3px',height:'68px'}}>
                           {col.idx > 0 ? <>
-                            <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>▲</span>
-                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                              {(()=>{const it=col.items[col.idx-1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'#fff'}}>{it.txt}</span>;return null})()}
+                            <span style={{fontSize:'10px',color:'var(--tap-text-4)'}}>▲</span>
+                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid var(--tap-divider)'}}>
+                              {(()=>{const it=col.items[col.idx-1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'var(--tap-text-1)'}}>{it.txt}</span>;return null})()}
                             </div>
                           </> : <div style={{width:'60px'}} />}
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                          <span style={{fontSize:'14px',color:'rgba(255,255,255,0.25)'}}>◂</span>
-                          <div style={{width:'96px',height:'64px',borderRadius:'12px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:'0 0 16px rgba(255,255,255,0.03)',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'}}>
-                            {(()=>{const it=col.items[col.idx] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.target as HTMLImageElement).style.display='none'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={40}/>;if(it.txt)return <span style={{fontSize:'24px',fontWeight:700,color:'#fff'}}>{it.txt}</span>;return null})()}
+                          <span style={{fontSize:'14px',color:'var(--tap-text-4)'}}>◂</span>
+                          <div style={{width:'96px',height:'64px',borderRadius:'12px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',boxShadow:'0 0 16px rgba(0,0,0,0.03)',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)'}}>
+                            {(()=>{const it=col.items[col.idx] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.target as HTMLImageElement).style.display='none'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={40}/>;if(it.txt)return <span style={{fontSize:'24px',fontWeight:700,color:'var(--tap-text-1)'}}>{it.txt}</span>;return null})()}
                           </div>
-                          <span style={{fontSize:'14px',color:'rgba(255,255,255,0.25)'}}>▸</span>
+                          <span style={{fontSize:'14px',color:'var(--tap-text-4)'}}>▸</span>
                         </div>
                         <div style={{display:'flex',alignItems:'center',gap:'3px',height:'68px'}}>
                           {col.idx < col.items.length - 1 ? <>
-                            <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>▼</span>
-                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid rgba(255,255,255,0.04)'}}>
-                              {(()=>{const it=col.items[col.idx+1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'#fff'}}>{it.txt}</span>;return null})()}
+                            <span style={{fontSize:'10px',color:'var(--tap-text-4)'}}>▼</span>
+                            <div style={{opacity:0.12,width:'60px',height:'40px',borderRadius:'10px',background:'transparent',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:'all 0.3s cubic-bezier(0.4,0,0.2,1)',border:'1px solid var(--tap-divider)'}}>
+                              {(()=>{const it=col.items[col.idx+1] as any;if(it.img)return <img src={it.img} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>;if(it.blades)return <IrisIcon blades={it.blades} size={28}/>;if(it.txt)return <span style={{fontSize:'13px',fontWeight:600,color:'var(--tap-text-1)'}}>{it.txt}</span>;return null})()}
                             </div>
                           </> : <div style={{width:'60px'}} />}
                         </div>
                         <div style={{fontSize:'12px',color:'var(--tap-text-1)',fontWeight:600,textAlign:'center',width:'100px',lineHeight:1.2,marginTop:'6px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(col.items[col.idx] as any).line1}</div>
                       </div>
-                      {ci < arr.length - 1 && <span style={{width:'1px',height:'180px',background:'rgba(255,255,255,0.06)',flexShrink:0,alignSelf:'center'}} />}
+                      {ci < arr.length - 1 && <span style={{width:'1px',height:'180px',background:'var(--tap-divider)',flexShrink:0,alignSelf:'center'}} />}
                       </React.Fragment>
                     ))}
                   </div>
@@ -1352,18 +1328,18 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               <ImgDropBtn label={`×${imgCount}`} open={showCountPicker} setOpen={setShowCountPicker} anchorRef={countRef} onRect={setCountRect}>
                 {[1,2,4].map(c=>(
                   <div key={c} onClick={()=>{setImgCount(c);setShowCountPicker(false)}}
-                    style={{height:'28px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:imgCount===c?'var(--tap-hover)':'transparent',display:'flex',alignItems:'center',fontSize:'11px'}}
-                    onMouseEnter={e=>{if(imgCount!==c)e.currentTarget.style.background='var(--tap-hover)'}}
+                    style={{height:'28px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:imgCount===c?'rgba(0,207,255,0.10)':'transparent',display:'flex',alignItems:'center',fontSize:'11px'}}
+                    onMouseEnter={e=>{if(imgCount!==c)e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
                     onMouseLeave={e=>{if(imgCount!==c)e.currentTarget.style.background='transparent'}}>
                     ×{c}
                   </div>))}
               </ImgDropBtn>
-              <span style={{ width:'1px',height:'14px',background:'rgba(255,255,255,0.10)',flexShrink:0 }} />
+              <span style={{ width:'1px',height:'14px',background:'var(--tap-divider)',flexShrink:0 }} />
 
               {/* Send — glass pill */}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 10px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.03)',flexShrink:0,paddingRight:'2px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px'}}>
                 <button onClick={handleGenerate} disabled={genRunning}
-                  style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#fff',color:genRunning?'#fff':'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
+                  style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
                   onMouseEnter={e=>{if(!genRunning){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}
                   onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)'}}>
                   {genRunning?'⏳':'↑'}
@@ -1432,35 +1408,34 @@ function NodeLabel({ nodeId, initial }: { nodeId: string; initial: string }) {
 }
 
 // ─── Tool button (borderless, hover-only raise) ────
-function ToolBtn({ icon, label, active, onClick }: { icon: string; label: string; active?: boolean; onClick: () => void }) {
-  const [hover, setHover] = useState(false);
-  const isActive = active || hover;
-  const fg = isActive ? 'var(--tap-text-1)' : 'var(--tap-text-2)';
-
+function ToolBtn({ icon, label, active, onClick, scale = 1, tx = 0, ty = 0 }: { icon: string; label: string; active?: boolean; onClick: () => void; scale?: number; tx?: number; ty?: number }) {
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       title={label}
       style={{
-        width: '30px', height: '30px', borderRadius: '8px',
+        width: '30px', height: '30px', borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '16px',
-        color: fg,
-        background: active ? 'rgba(255,255,255,0.12)' : hover ? 'rgba(255,255,255,0.08)' : 'transparent',
+        fontSize: '15px',
+        color: '#fff',
+        background: active ? 'rgba(0,207,255,0.30)' : 'rgba(0,207,255,0.85)',
         border: 'none',
         cursor: 'pointer',
-        transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+        transform: `translateX(${tx}px) translateY(${ty}px) scale(${scale})`,
+        transformOrigin: 'bottom center',
+        transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        position: 'relative',
       }}
     >
       {icon === 'crop-svg' ? (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2v14a2 2 0 0 0 2 2h14" />
           <path d="M18 22V8a2 2 0 0 0-2-2H2" />
         </svg>
       ) : icon === 'relight-svg' ? (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.1">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.1">
           <circle cx="12" cy="13" r="7" />
           <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
         </svg>
@@ -1498,7 +1473,7 @@ const _dropdownItemStyle = (isActive: boolean): React.CSSProperties => ({
   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   height: '38px', padding: '0 12px', borderRadius: 'var(--tap-r-md)',
   cursor: 'pointer', fontSize: 'var(--tap-fs-body)', color: 'var(--tap-text-1)',
-  background: isActive ? 'var(--tap-hover)' : 'transparent',
+  background: isActive ? 'rgba(0,207,255,0.10)' : 'transparent',
 });
 
 const _badgeStyle: React.CSSProperties = {

@@ -20,6 +20,20 @@ export function addLog(log: GenerationLog): void {
   data.logs.push(log);
   if (data.logs.length > MAX_LOGS * 2) data.logs = data.logs.slice(-MAX_LOGS);
   writeJSON(LOGS_PATH, data);
+
+  // 小Q: notify observer hook
+  try {
+    const { onGenerationLogged } = require('../q/q-observer.js');
+    if (onGenerationLogged) {
+      onGenerationLogged({
+        providerId: log.providerId,
+        status: log.status,
+        credits: Math.round((log.cost || 0) * 100),
+        durationMs: log.durationMs || 0,
+        error: log.error,
+      });
+    }
+  } catch { /* Q observer not available — graceful degrade */ }
 }
 
 // ─── Active task tracking ──────────────────────

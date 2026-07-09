@@ -321,9 +321,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           50% { background-position: 100% 50%; }
         }
         @keyframes direx-light-rim {
-          0%   { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
-          50%  { box-shadow: 0 0 20px 10px rgba(94,234,212,0.22), 0 0 52px rgba(94,234,212,0.10); }
-          100% { box-shadow: 0 0 12px 6px rgba(94,234,212,0.10), 0 0 32px rgba(94,234,212,0.05); }
+          0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
+          50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
+          100% { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
         }
       `}</style>
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -336,19 +336,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         <Handle type="target" position={Position.Left} id="refs-in"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             left: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="shot-out"
           style={{
             width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid rgba(180,180,185,0.5)', borderRadius: '50%',
+            border: '2px solid #41CCFA', borderRadius: '50%',
             right: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: 'rgba(180,180,185,0.7)',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
@@ -366,7 +366,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 : '1px solid var(--tap-border)',
           borderRadius: 'var(--tap-r-xl)',
           ...(selected ? {
-            background: 'linear-gradient(115deg, rgba(94,234,212,0.07) 0%, rgba(94,234,212,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
+            background: 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
             backgroundSize: '250% 250%',
             animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
             willChange: 'box-shadow',
@@ -396,7 +396,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             </div>
           )}
 
-          {/* 4 category buttons — vertical full-width */}
+          {/* 4 category buttons — text always visible, button bg/border reveal on hover */}
           {analysisDoneRef.current && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
@@ -408,18 +408,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 <div key={i} onClick={btn.onClick}
                   style={{
                     padding: '6px 10px', cursor: 'pointer', borderRadius: 6,
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'transparent',
+                    border: '1px solid transparent',
                     display: 'flex', flexDirection: 'column', gap: 2,
+                    transition: 'background 0.25s ease, border-color 0.25s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#10FFD1'; e.currentTarget.style.borderColor = '#10FFD1'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
                 >
                   <div style={{ display:'flex',alignItems:'baseline',gap:6 }}>
-                    <span style={{ fontSize:12,fontWeight:600,color:'var(--tap-text-1)' }}>{btn.label}</span>
-                    <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>{btn.count}{btn.unit}</span>
+                    <span style={{ fontSize:12,fontWeight:600,color:'#000' }}>{btn.label}</span>
+                    <span style={{ fontSize:10,color:'#000' }}>{btn.count}{btn.unit}</span>
                   </div>
                   {btn.preview && (
-                    <div style={{ fontSize:9,color:'var(--tap-text-4)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{btn.preview}</div>
+                    <div style={{ fontSize:9,color:'#000',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{btn.preview}</div>
                   )}
                 </div>
               ))}
@@ -440,20 +442,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             left: '50%',
             transform: `translateX(-50%) scale(${1.5/zoom})`,
             transformOrigin: 'top center',
-            width: '400px',
+            width: 'var(--tap-node-width)',
             marginTop: `${10/zoom}px`,
             zIndex: 50,
             animation: 'tap-fade-in 50ms var(--tap-ease)',
           }}>
           <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: '#fff',
             borderRadius: 'var(--tap-r-xl)',
-            overflow: 'hidden',
+            pointerEvents: 'auto',
+            boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)',
           }}>
             <input value={visualStyle} onChange={e=>setVisualStyle(e.target.value)}
               placeholder="请填入风格，如真人/动漫"
-              style={{ width:'100%',background:'#2a2d33',border:'none',borderBottom:'1px solid rgba(255,255,255,0.10)',color:'var(--tap-text-2)',fontSize:11,padding:'8px 14px',outline:'none' }}
+              style={{ width:'100%',background:'#fff',border:'none',borderBottom:'1px solid rgba(0,0,0,0.10)',color:'#333',fontSize:11,padding:'8px 14px',outline:'none' }}
               onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
             <div style={{ padding: '4px 12px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
@@ -480,22 +482,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               placeholder="一个场景一幕，粘贴一段剧本&#10;&#10;例：&#10;外景 雪原 - 夜&#10;风雪中女巫独自立在雪地中央，黑色长袍被横风掀起。&#10;远处传来狼嚎，她缓缓抬头。"
               rows={expanded ? 24 : 8}
               style={{
-                width: '100%', background: 'transparent', border: 'none',
-                padding: '12px 14px', fontSize: '11px',
-                color: 'var(--tap-text-1)', resize: 'none', outline: 'none',
+                width: '100%', background: '#fff', border: 'none',
+                padding: '10px 14px', fontSize: '8px',
+                color: '#333', resize: 'none', outline: 'none',
                 lineHeight: 1.5, minHeight: expanded ? '480px' : '160px',
               }}
             />
             {/* Send — glass pill */}
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'4px 14px 8px' }}>
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.05) 100%)',border:'1px solid rgba(255,255,255,0.08)',boxShadow:'0 0 10px rgba(255,255,255,0.02),inset 0 1px 0 rgba(255,255,255,0.03)',flexShrink:0,paddingRight:'2px' }}>
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
                 <button onClick={handleGenerate} disabled={genRunning}
-                  style={{ width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#fff',color:genRunning?'#fff':'#1a1a1a',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s' }}
+                  style={{ width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s' }}
                   onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
                 >{genRunning ? '⏳' : '↑'}</button>
               </div>
-            </div>
             {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',
@@ -516,7 +516,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                       }
                       setShowMention(false);
                     }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--tap-hover)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,207,255,0.10)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 6, borderRadius: 'var(--tap-r-sm)', cursor: 'pointer', background: 'transparent' }}>
                       <img src={m.url} style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover' }} />
