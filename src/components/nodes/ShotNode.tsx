@@ -316,10 +316,6 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   return (
     <>
       <style>{`
-        @keyframes direx-light-wash {
-          0%,100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
         @keyframes direx-light-rim {
           0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
           50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
@@ -366,9 +362,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 : '1px solid var(--tap-border)',
           borderRadius: 'var(--tap-r-xl)',
           ...(selected ? {
-            background: 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)',
-            backgroundSize: '250% 250%',
-            animation: 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite',
+            animation: 'direx-light-rim 5s ease-in-out infinite',
             willChange: 'box-shadow',
           } : {}),
           boxShadow: data.isPickTarget

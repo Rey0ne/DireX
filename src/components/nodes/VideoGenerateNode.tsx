@@ -156,10 +156,6 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   return (
     <>
       <style>{`
-        @keyframes direx-light-wash {
-          0%,100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
         @keyframes direx-light-rim {
           0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
           50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
@@ -182,7 +178,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             </div>
         )}
 
-        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: selected ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)', backgroundSize: selected ? '250% 250%' : undefined, animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
+        <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: 'var(--tap-panel)', animation: selected ? 'direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
               <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Main video load failed:', data.videoUrl?.slice(0, 60))} />

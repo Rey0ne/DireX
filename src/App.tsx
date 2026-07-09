@@ -1093,7 +1093,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         minZoom={0.01}
         maxZoom={5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-        style={{ background: '#FDF8F2' }}
+        style={{ background: '#FDFAF5' }}
       >
         <Background color="rgba(0,0,0,0.13)" gap={20} size={1.6} />
         <MiniMap

@@ -40,9 +40,6 @@
   --tap-node-border-connect: rgba(14, 168, 138, 0.35);
   --tap-node-border-pick-mode: rgba(14, 168, 138, 0.20);
 
-  /* Node selection background */
-  --tap-node-selected-bg: linear-gradient(115deg, rgba(14,168,138,0.06) 0%, rgba(14,168,138,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%);
-
   /* Danger / Destructive */
   --tap-danger: #e03a3a;
   --tap-danger-hover: #ff4d4f;
@@ -208,10 +205,6 @@
 }
 
 /* ─── Centralized Node Selection Animations ──────── */
-@keyframes direx-light-wash {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
 @keyframes direx-light-rim {
   0%   { box-shadow: 0 0 12px 6px rgba(14, 168, 138, 0.08), 0 0 32px rgba(14, 168, 138, 0.04); }
   50%  { box-shadow: 0 0 20px 10px rgba(14, 168, 138, 0.20), 0 0 52px rgba(14, 168, 138, 0.10); }

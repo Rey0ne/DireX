@@ -687,10 +687,6 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   return (
     <>
       <style>{`
-        @keyframes direx-light-wash {
-          0%,100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
         @keyframes direx-light-rim {
           0%   { box-shadow: 0 0 12px 6px rgba(255,114,255,0.10), 0 0 32px rgba(255,114,255,0.05); }
           50%  { box-shadow: 0 0 20px 10px rgba(255,114,255,0.22), 0 0 52px rgba(255,114,255,0.10); }
@@ -818,15 +814,14 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               : data.isConnectTarget
                 ? '1px solid rgba(180,180,185,0.5)'
                 : selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)',
-          background: selected ? 'linear-gradient(115deg, rgba(255,114,255,0.07) 0%, rgba(255,114,255,0.03) 25%, var(--tap-panel) 50%, var(--tap-panel) 100%)' : 'var(--tap-panel)',
+          background: 'var(--tap-panel)',
           boxShadow: data.isPickTarget
             ? '0 0 32px rgba(180,180,185,0.25)'
             : data.isConnectTarget
               ? '0 0 32px rgba(180,180,185,0.2)'
               : selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)',
           transition: `border var(--tap-dur-fast) var(--tap-ease), box-shadow var(--tap-dur-fast) var(--tap-ease)`,
-          backgroundSize: selected ? '250% 250%' : undefined,
-          animation: selected ? 'direx-light-wash 6s ease-in-out infinite, direx-light-rim 5s ease-in-out infinite' : undefined,
+          animation: selected ? 'direx-light-rim 5s ease-in-out infinite' : undefined,
           willChange: selected ? 'box-shadow' : undefined,
           cursor: data.isPickMode && !data.isPickTarget ? 'pointer' : 'default',
           position: 'relative',
