@@ -418,6 +418,34 @@ qRouter.post('/style/decide', (req: Request, res: Response) => {
   }
 });
 
+// ── Phase 4 — Q Decide (Central Brain Endpoint) ─────
+
+import { qDecide, type QDecideRequest, type QDecideResponse } from './q-decide.js';
+
+/** POST /api/q/decide — Central Q brain decision + execution endpoint */
+qRouter.post('/decide', async (req: Request, res: Response) => {
+  try {
+    const body = req.body as QDecideRequest;
+    if (!body.action || typeof body.action !== 'string' || !body.action.trim()) {
+      res.status(400).json({ error: 'action is required' });
+      return;
+    }
+
+    const response: QDecideResponse = await qDecide({
+      action: body.action.trim(),
+      scriptText: body.scriptText,
+      nodeId: body.nodeId,
+      projectId: body.projectId || 'default',
+      params: body.params,
+      autoExecute: body.autoExecute !== false,
+    });
+
+    res.json(response);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Chat — Conversational interface to Q brain ─────
 
 /** POST /api/q/chat — Talk to 小Q */

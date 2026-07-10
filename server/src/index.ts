@@ -20,6 +20,7 @@ import { getOrCreateProject } from './systems/q/q-state.js';
 import { onPipelineComplete, onIntervalCheck } from './systems/q/q-cognitive-engine.js';
 import { periodicSuggest } from './systems/q/q-suggest.js';
 import { detectAndRoute } from './systems/q/q-orchestrate.js';
+import { qMemory } from './systems/q/q-memory.js';
 import { withKieLimit } from './systems/ai/kie-provider.js';
 import { compilePrompt } from './systems/agent/compiler.js';
 import { buildCamBlock } from './systems/agent/camera-kit-mappings.js';
@@ -29,6 +30,7 @@ import { compileVideoPrompt } from './systems/agent/video-analyzer.js';
 import { pollStoredTask, initVideoTask, uploadDataUrl } from './systems/ai/kie-provider.js';
 import { addLog, getLogs } from './systems/task/manager.js';
 import { handleDownload } from './systems/file/download.js';
+import { cacheGenerationResult } from './systems/file/asset-cache.js';
 import type { KeyStatus, CompileRequest, AgentGenerateRequest, AgentGenerateResult, GenerateResult } from '../../shared/api-types.js';
 
 const app = express();
@@ -66,6 +68,11 @@ app.post('/api/models/delete', (req, res) => {
 const bvhDir = path.join(process.cwd(), 'data', 'bvh');
 app.use('/api/models/bvh', express.static(bvhDir, { fallthrough: false }));
 app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
+
+// ─── Local asset output (generated images/videos/audio cached from CDN) ──
+const OUTPUT_DIR = path.join(process.cwd(), 'data', 'output');
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+app.use('/api/output', express.static(OUTPUT_DIR, { fallthrough: false }));
 
 // ─── Tripo3D Routes ────────────────────────────
 app.post('/api/tripo/generate', async (req, res) => {
@@ -347,7 +354,11 @@ app.post('/api/canvas/sync', (req, res) => {
   console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
   // 小Q: track canvas changes + auto-orchestration
   try { trackCanvasSync('default', canvasState.nodes.length); } catch {}
-  try { detectAndRoute(canvasState.nodes, 'default'); } catch {}
+  try {
+    detectAndRoute(canvasState.nodes, 'default', {
+      autoExecute: process.env.Q_AUTO_EXECUTE === 'true',
+    });
+  } catch {}
   res.json({ ok: true });
 });
 app.get('/api/canvas/state', (_req, res) => {
@@ -519,6 +530,14 @@ app.post('/api/agent/full', async (req: Request, res: Response) => {
   if (!scriptText) { res.status(400).json({ error: 'Missing script text' }); return; }
 
   try {
+    // 小Q: Pre-flight memory recall (non-blocking log only)
+    try {
+      const memories = qMemory.recall(scriptText.slice(0, 200), { projectId: 'default' });
+      if (memories.length > 0) {
+        console.log('[q-hook:full] Recalled', memories.length, 'memories before full pipeline');
+      }
+    } catch { /* Q hook failure must never block pipeline */ }
+
     const pipelineResult = await runUnifiedPipeline(scriptText, visualStyle);
     // 小Q: capture script analysis
     try {
@@ -551,6 +570,16 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   const body = req.body as AgentGenerateRequest;
   if (!body.providerId) { res.status(400).json({ error: 'Missing providerId' }); return; }
   console.log('[agent] providerId received:', body.providerId, 'model:', (body as any).model, 'mode:', body.mode);
+
+  // 小Q: Pre-flight context enrichment (non-blocking — fire-and-forget)
+  try {
+    const projectId = (body as any).projectId || 'default';
+    const memories = qMemory.recall(userPrompt || (body as any).rawText || '', { projectId });
+    if (memories.length > 0) {
+      console.log('[q-hook:generate] Recalled', memories.length, 'relevant memories');
+    }
+  } catch { /* Q hook failure must never block generation */ }
+
   const handler = getProvider(body.providerId);
   if (!handler) { res.status(400).json({ error: 'Unknown provider: ' + body.providerId }); return; }
   const config = getProfile();
@@ -593,7 +622,7 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
 
     // Submit to Kie — passes image/video URLs directly so Seedance can analyze them
     const clientTaskId = uuid();
-    initVideoTask(clientTaskId, body.providerId);
+    initVideoTask(clientTaskId, body.providerId, (body as any).nodeId);
     const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo';
     const result: GenerateResult = await withKieLimit(`video:${body.providerId}`, () => handler({
       providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
@@ -643,9 +672,11 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       // T2I: GPT-5.4 translates Chinese → English
       try {
         const t0 = Date.now();
+        // Dynamic token budget: Chinese→English typically expands ~1.5x, floor 500, ceiling 4096
+        const tknBudget = Math.max(500, Math.min(Math.ceil(enrichedPrompt.length * 1.5), 4096));
         const translated = await gpt5Chat(
-          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. Preserve all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
-          { effort: 'low', timeoutMs: 60000, maxOutputTokens: 500 },
+          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. Preserve background (plain white, studio, or scene), all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
+          { effort: 'low', timeoutMs: 60000, maxOutputTokens: tknBudget },
         );
         if (translated) {
           compiledPrompt = translated;
@@ -692,6 +723,21 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   // so there's no risk of double-prepend regardless of translation path)
   if (camBlock && compiledPrompt) {
     compiledPrompt = camBlock + compiledPrompt;
+  }
+
+  // Safety: cap prompt length for image generation APIs (most cap at 2000-4000 chars)
+  const MAX_PROMPT_LEN = 3000;
+  if (compiledPrompt.length > MAX_PROMPT_LEN) {
+    const originalLen = compiledPrompt.length;
+    const truncated = compiledPrompt.slice(0, MAX_PROMPT_LEN);
+    // Try to cut at last complete sentence (period+space or newline) within last 200 chars
+    const lastBreak = Math.max(
+      truncated.lastIndexOf('. '),
+      truncated.lastIndexOf('.\n'),
+      truncated.lastIndexOf('\n'),
+    );
+    compiledPrompt = lastBreak > MAX_PROMPT_LEN - 200 ? truncated.slice(0, lastBreak + 1) : truncated;
+    console.log('[agent] WARNING: prompt truncated from ' + originalLen + ' to ' + compiledPrompt.length + ' chars (max ' + MAX_PROMPT_LEN + ')');
   }
 
   console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
@@ -747,10 +793,13 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       }).catch(() => {});
     }
   } catch {}
-  // Auto-cache disabled — unused @mention feature wasted Gemini Vision calls
-  // if (result.success && result.assetUrls.length > 0) {
-  //   result.assetUrls.forEach(url => { analyzeAndCache(url).catch(() => {}); });
-  // }
+  // ── Local asset caching ── download external CDN URLs to data/output/
+  if (result.success && result.assetUrls.length > 0) {
+    try {
+      const { localUrls } = await cacheGenerationResult(result.assetUrls);
+      result.assetUrls = localUrls;
+    } catch {}
+  }
   const debugInfo = agentTrace.map(function(t){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
   debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
   debugInfo.push({field:'providerId-received', contribution: body.providerId});
@@ -777,6 +826,13 @@ app.get('/api/task/:taskId/poll', async (req, res) => {
   if (!taskId) { res.status(400).json({ error: 'Missing taskId' }); return; }
   console.log('[poll] Client polling ' + taskId);
   const result = await pollStoredTask(taskId);
+  // Cache completed assets locally so they survive network changes
+  if (result.status === 'succeeded' && result.assetUrls?.length) {
+    try {
+      const { localUrls } = await cacheGenerationResult(result.assetUrls);
+      result.assetUrls = localUrls;
+    } catch {}
+  }
   res.json(result);
 });
 
@@ -902,6 +958,58 @@ app.post('/api/agent/script/sound', async (req, res) => {
     const result = await runSoundComposer(scriptText);
     res.json({ success: true, soundScenes: result.scenes, sunoPrompts: result.sunoPrompts });
   } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+// ─── Regenerate individual section with user feedback ──
+app.post('/api/agent/script/regenerate', async (req, res) => {
+  const { scriptText, section, visualStyle, userFeedback, existingResults } = req.body || {};
+  if (!scriptText || !section) {
+    res.status(400).json({ error: 'Missing scriptText or section. section: characters|scenes|storyboard|music' });
+    return;
+  }
+  const validSections = ['characters', 'scenes', 'storyboard', 'music'];
+  if (!validSections.includes(section)) {
+    res.status(400).json({ error: `Invalid section "${section}". Must be: ${validSections.join(', ')}` });
+    return;
+  }
+  console.log(`[regenerate] section=${section} feedback=${(userFeedback || '').slice(0, 80)}`);
+
+  try {
+    switch (section) {
+      case 'characters': {
+        const existingContent = existingResults?.characters ? JSON.stringify(existingResults.characters) : undefined;
+        const characters = await runCharacterExtraction(scriptText, visualStyle, userFeedback, existingContent);
+        res.json({ success: true, section: 'characters', characters });
+        break;
+      }
+      case 'scenes': {
+        const existingChars = existingResults?.characters as Record<string, string> | undefined;
+        const existingScenesContent = existingResults?.scenes ? JSON.stringify(existingResults.scenes) : undefined;
+        const [scenes, sceneArchitecture] = await Promise.all([
+          runSceneExtraction(scriptText, userFeedback, existingScenesContent),
+          runSceneArchitect(scriptText, userFeedback, existingScenesContent),
+        ]);
+        res.json({ success: true, section: 'scenes', scenes, sceneArchitecture });
+        break;
+      }
+      case 'storyboard': {
+        const existingChars = existingResults?.characters as Record<string, string> | undefined;
+        const existingStoryboardContent = existingResults?.storyboard ? JSON.stringify(existingResults.storyboard) : undefined;
+        const result = await runScriptAnalysis(scriptText, visualStyle, existingChars, userFeedback, existingStoryboardContent);
+        res.json({ success: true, section: 'storyboard', shots: result.shots || [], characterProfiles: result.characters || {} });
+        break;
+      }
+      case 'music': {
+        const existingMusicContent = existingResults?.music ? JSON.stringify(existingResults.music) : undefined;
+        const result = await runSoundComposer(scriptText, userFeedback, existingMusicContent);
+        res.json({ success: true, section: 'music', soundScenes: result.scenes, sunoPrompts: result.sunoPrompts });
+        break;
+      }
+    }
+  } catch (err: any) {
+    console.error('[regenerate] Error:', err.message);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 app.post('/api/agent/script/scene', async (req, res) => {

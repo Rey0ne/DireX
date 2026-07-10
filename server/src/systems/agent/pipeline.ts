@@ -2,13 +2,143 @@
 /* Creative Producer → Art Director → Storyboard Director → Prompt Architect */
 
 import { geminiChat, gpt5Chat, visionAnalyze } from '../ai/gemini.js';
+import { analyzeScriptContext } from '../q/q-template-advisor.js';
 import {
   CREATIVE_PRODUCER, ART_DIRECTOR, STORYBOARD_DIRECTOR, PROMPT_ARCHITECT, PROMPT_ANALYST,
   type AgentProfile,
 } from './profiles.js';
-import { FASHION_STYLE_DB, INTERIOR_STYLE_DB, STYLE_DECISION_RULES } from './style-db.js';
+import { FASHION_STYLE_DB, INTERIOR_STYLE_DB, STYLE_DECISION_RULES, FASHION_COORDINATION_DB, decideStyle, type DimensionInput, type StyleDecision } from './style-db.js';
+import { planMusic, formatMusicPlanForPrompt } from './music-planner.js';
 
 const MAX_PREV_OUTPUT_CHARS = 600; // tight summary of each previous agent output
+
+// ─── 负面提示词（硬注入 userMessage，不经过系统提示词模板）───
+// 目的：在剧本送到 GPT-5.4 之前就明确禁止廉价/工业感/低质服装
+const NEGATIVE_CLOTHING = `## ⚠️ 角色服装品质红线（必须在输出中严格遵守）
+所有角色的服装设计必须以「设计师品牌质感」为最低标准。以下元素在输出中绝对禁止出现，违者视为不合格：
+- 廉价面料：涤纶反光感、化纤网纱、塑料纽扣、廉价蕾丝、尼龙、腈纶、劣质PU革
+- 工装/劳动服：工装裤/工装夹克、劳保服、厂服、食堂围裙、快递/外卖制服、迷彩/军装元素
+- 快时尚/超市服装：普通圆领T恤+牛仔裤组合、卫衣/帽衫、运动服/校服、POLO衫
+- 低质视觉：荧光色/高饱和撞色、卡通印花/热转印图案、廉价水钻/塑料珠串、掉色金属配饰
+- 邋遢/松垮：不修边幅、松垮无形、起球/褪色/缩水面料、不合身剪裁
+- 暴发户式堆砌：同时出现3种以上高亮金属配饰、大面积亮片/烫钻、窗帘布质感印花
+- 过时老气：中年商务西装套装（银行/保险/房产中介式）、厚底松糕鞋、廉价运动鞋、过于保守的及膝A字裙配肉色丝袜
+
+✅ 替换原则（必须执行）：
+涤纶→醋酸/铜氨丝/三醋酸 | 普通棉→丝光棉/长绒棉/有机棉/皮马棉 | 工装→机能剪裁/结构主义外套/工装风时装化处理 | 牛仔裤→垂感西裤/阔腿羊毛裤/修身皮裤/时装牛仔 | T恤→真丝衬衫/羊绒打底/雕塑感上衣/机能内搭 | 卫衣→精纺羊毛针织衫/开司米圆领衫 | PU革→植鞣革/小羊皮/麂皮 | 塑料纽扣→贝母扣/牛角扣/金属暗扣 | 运动鞋→德训鞋/切尔西靴/乐福鞋/厚底德比鞋
+
+当代都市剧角色默认 = 独立设计师品牌 / 轻奢级别审美。非都市剧按时代和世界观匹配对应级别的最优面料与工艺。`;
+
+// ─── 场景空间负面提示词 ──
+const NEGATIVE_INTERIOR = `## ⚠️ 场景空间品质红线
+所有场景空间设计必须以「设计感空间」为最低标准。以下元素绝对禁止：
+- 裸露混凝土/锈蚀金属/未经处理的工业风（除非剧本明确要求废弃工厂/地下室）
+- 廉价瓷砖/塑料地板革/劣质复合板
+- 荧光灯管直射/惨白冷光/无层次平面光
+- 空旷无物的房间/无窗帘裸窗/无装饰白墙
+- 宜家基础款/廉租公寓质感/学生宿舍式布局
+
+✅ 替换：混凝土→微水泥/艺术涂料/天然石材 | 荧光灯→多层次暖光/间接照明/线型灯带 | 大白墙→有色彩倾向的灰调/艺术漆/护墙板 | 空旷→有意的留白+单件设计感家具`;
+
+// ─── KB 搜索引擎（纯代码，0ms）───
+function searchFashionKB(query: string): string {
+  const kws = query.toLowerCase().split(/[\s,，、]+/).filter(k => k.length > 1);
+  if (!kws.length) return '';
+
+  const dbs = [FASHION_STYLE_DB, FASHION_COORDINATION_DB];
+  const scored: { text: string; score: number }[] = [];
+
+  for (const db of dbs) {
+    const sections = db.split(/\n(?=#{1,3}\s)/);
+    for (const sec of sections) {
+      const lower = sec.toLowerCase();
+      let score = 0;
+      for (const kw of kws) {
+        if (lower.includes(kw)) score += kw.length; // longer match = higher score
+        // Partial match bonus
+        for (let i = 0; i <= kw.length - 2; i++) {
+          if (lower.includes(kw.substring(i, i + 2))) score += 0.5;
+        }
+      }
+      if (score > 0) scored.push({ text: sec.trim().slice(0, 800), score });
+    }
+  }
+
+  // Deduplicate & sort
+  scored.sort((a, b) => b.score - a.score);
+  const seen = new Set<string>();
+  const unique = scored.filter(s => {
+    const key = s.text.slice(0, 60);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique.slice(0, 6).map(s => s.text).join('\n\n---\n\n');
+}
+
+function searchInteriorKB(query: string): string {
+  const kws = query.toLowerCase().split(/[\s,，、]+/).filter(k => k.length > 1);
+  if (!kws.length) return '';
+
+  const scored: { text: string; score: number }[] = [];
+  const sections = INTERIOR_STYLE_DB.split(/\n(?=#{1,3}\s)/);
+  for (const sec of sections) {
+    const lower = sec.toLowerCase();
+    let score = 0;
+    for (const kw of kws) if (lower.includes(kw)) score += kw.length;
+    if (score > 0) scored.push({ text: sec.trim().slice(0, 800), score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 4).map(s => s.text).join('\n\n---\n\n');
+}
+
+// ─── KB 目录（给 GPT-5.4 看的"书架标签"）───
+const KB_CATALOG = `## 📚 风格知识库目录（选择你需要检索的内容）
+
+### 服装风格表（25种）
+Classic / Minimalist / Streetwear / High Street / Baggy / Wide-Leg / Bohemian / Romantic / Grunge / Punk / Gothic / Preppy / Y2K / K-Pop / 新中式Guochao / Harajuku / Mori / Dark Academia / Cottagecore / Gorpcore / Cyberpunk / Gender-fluid / Balletcore / Contemporary Chic / Quiet Luxury / Eclectic Artist / French Chic / Italian Sprezzatura
+→ 每种风格含：廓形 / 关键面料 / 配色 / 标志单品
+
+### 设计师品牌深度关键词
+- 欧洲：Hermès / Margiela / Dior / Saint Laurent / Celine / Schiaparelli / Jacquemus / Bottega Veneta / Jil Sander / Prada / Gucci / McQueen / Vivienne Westwood / Simone Rocha / Dries Van Noten
+- 日本：Yohji / Rei Kawakubo / Issey Miyake / Junya Watanabe / Sacai / Undercover
+- 韩国：Low Classic / Recto / EENK / Andersson Bell
+- 北欧：Acne Studios / Totême
+- 街头/潮牌：Fear of God / Off-White / Balenciaga / A-Cold-Wall* / CLOT / SACAI
+- 高级质感：Hermès级安静奢华 / Margiela级解构 / Dries级诗意色彩 / Miu Miu级故意不完美 / Jil Sander级雕塑极简 / Lemaire级松弛优雅 / Bottega级Trompe l'œil
+
+### 搭配核心法则
+- 廓形黄金法则（一松一紧/内紧外松）
+- 叠穿四级结构（Base→Mid→Outer→Detail）
+- 面料轻重搭配（0轻/1中/2重，禁止2+2+2）
+- 2026配色体系（低饱和柔雅/高饱和情绪/暖中性基底）
+- 2026春夏软结构趋势（柔雾轻纱/垂坠上衣/软雕塑廓形）
+- 日韩搭配法则（日式空气感层次/韩式素朴感）
+- 艺术家反模式（禁止机能风/重工风/全身运动装/制服感）
+- 季节默认（春夏轻量/秋冬中量/禁止默认冬装）
+
+### 12时代×16地域×17场景×10氛围×15身份风格默认
+每个维度有预设的服装风格、配色、面料、灯光方向`;
+
+// ─── KB 检索引导 prompt ───
+const KB_RETRIEVAL_PROMPT = `你是一位顶级角色概念设计师。在分析剧本设计角色之前，上面是一个风格知识库的目录。
+请先思考：这个剧本的时代/地域/场景/氛围/身份是什么样的？然后从知识库中选择你需要检索的 5-8 个具体方向。
+
+输出格式（每行一个）：
+关键词：简短说明用途
+
+例如对于一部当代上海都市职场剧：
+当代都市男装极简主义面料与廓形
+新中式Guochao现代改良元素
+Quiet Luxury配色与材质
+French Chic不费力优雅搭配
+意大利Sprezzatura松弛精裁
+2026春夏软结构趋势
+日韩东亚现代商务风格
+轻奢配饰方向
+
+请先给出你对剧本的简要风格判断（1-2句话），然后列出你需要检索的关键词。`;
 
 // ─── Global Image Analysis Cache ─────────────────
 // Avoids re-fetching + re-analyzing the same image URL across all pipelines
@@ -635,34 +765,330 @@ export interface ScriptAnalysisResult {
   durationMs: number;
 }
 
+// ── Layer 1: Script Trigger Extraction (轻量 LLM → 5维结构化信号) ──
+async function extractScriptTriggers(scriptText: string): Promise<DimensionInput | null> {
+  const prompt = `从剧本提取5个风格维度。只输出一行JSON，不要解释。
+
+剧本：
+${scriptText.slice(0, 3000)}
+
+输出格式：{"era":"","region":"","sceneFunction":"","mood":"","identity":""}
+
+可选值：
+era: 远古|古典文明|中世|近古|近代|现代早期|当代|近未来|远未来|架空奇幻|末日
+region: 东亚·中国|东亚·日本|东亚·韩国|东南亚|南亚|中东|北欧|西欧|南欧|东欧|非洲北|非洲南|北美|拉美|大洋洲|极地
+sceneFunction: 宫廷|宗教|军事|学术|商业|街头|地下|乡村|自然|工业|娱乐|运动|医疗|餐饮|居住|交通|废墟
+mood: 浪漫|压抑|活力|肃穆|诡异|荒凉|奢华|简约|温暖|科技
+identity: 统治者|贵族|将领|学者|商人|艺术家|工人|农民|街头|青少年|舞者|黑客|侦探|医生|僧侣|间谍|外星
+
+不确定的用空字符串。只输出JSON一行。`;
+
+  try {
+    const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: prompt }] }];
+    const raw = await gpt5Chat(msgs, { effort: 'low', maxOutputTokens: 300, timeoutMs: 30000 });
+    if (!raw) return null;
+    const jsonStr = raw.replace(/```json\s*|\s*```/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+    const dims: DimensionInput = {
+      era: parsed.era || '',
+      region: parsed.region || '',
+      sceneFunction: parsed.sceneFunction || '',
+      mood: parsed.mood || '',
+      identity: parsed.identity || '',
+    };
+    console.log('[trigger-extract]', JSON.stringify(dims));
+    return dims;
+  } catch (err: any) {
+    console.log('[trigger-extract] Failed:', String(err).slice(0, 100));
+    return null;
+  }
+}
+
+// ── Layer 2: Style Guidance Builder (触发词 → 结构化引导，不屏蔽任何KB内容) ──
+// 设计原则：触发词是"聚光灯"而非"过滤器"——LLM 看到全部知识库，但知道该聚焦哪里。
+// 不同用户的审美不同，系统只提供基准方向，最终选择权在 LLM。
+function buildStyleGuidance(dimensions: DimensionInput, decision: StyleDecision): string {
+  const confPct = Math.round(decision.confidence * 100);
+
+  let guidance = `## 🎯 系统风格引导（由剧本触发词+5维决策引擎生成，作为聚焦参考，非硬性排除）
+
+### 剧本基准
+- 时代：${dimensions.era || '未确定（从剧本上下文自行推断）'}
+- 地域：${dimensions.region || '未确定'}
+- 场景类型：${dimensions.sceneFunction || '未确定'}
+- 氛围：${dimensions.mood || '未确定'}
+- 角色身份：${dimensions.identity || '未确定'}
+
+### 系统推荐方向（置信度 ${confPct}%，作为起点参考，可根据实际审美调整）
+- 🥇 主导(70%)：**${decision.primary || '未匹配'}**
+- 🥈 辅助(20%)：**${decision.secondary || '未匹配'}**
+- 🥉 点缀(10%)：**${decision.accent || '未匹配'}**
+- 配色方向：${decision.colorDirection || '未匹配'}
+- 灯光方向：${decision.lightingDirection || '未匹配'}
+- 材质方向：${decision.materialDirection || '未匹配'}
+${decision.interiorStyles?.length ? `- 🏛️ 匹配的室内/建筑风格：${decision.interiorStyles.join('、')}` : ''}
+${decision.fashionStyles?.length ? `- 👗 匹配的服装风格：${decision.fashionStyles.join('、')}` : ''}
+
+### 🔑 知识库检索提示
+以下提供**完整**风格知识库。请根据剧本基准和用户反馈，主动检索最匹配的章节。
+- 优先阅读与系统推荐方向一致的章节
+- 但如果你判断其他风格方向更符合用户审美 → 可以推翻系统推荐，引用知识库中的其他章节
+- 关键：给出推翻的理由
+`;
+
+  if (confPct < 30) {
+    guidance += `\n⚠️ 系统置信度较低（${confPct}%），请更多依赖剧本上下文自行判断，知识库全部可用。\n`;
+  }
+
+  return guidance;
+}
+
+// ── Style Card (紧凑版，专用于 userMessage 直接注入，不经过系统提示词) ──
+function buildStyleCard(dimensions: DimensionInput, decision: StyleDecision): string {
+  const eraNote = dimensions.era ? `**${dimensions.era}**${decision.fashionStyles[0] ? ' → ' + decision.fashionStyles.slice(0, 3).join(' / ') : ''}` : '未确定';
+  const regionNote = dimensions.region ? `**${dimensions.region}**` : '未确定';
+  const funcNote = dimensions.sceneFunction ? `**${dimensions.sceneFunction}**` : '未确定';
+  const moodNote = dimensions.mood ? `**${dimensions.mood}**` : '未确定';
+  const identityNote = dimensions.identity ? `**${dimensions.identity}**` : '未确定';
+  const confPct = Math.round(decision.confidence * 100);
+
+  return `## 🎯 风格知识库 — 根据剧本自动匹配（以下方向必须体现在角色服装设计中）
+
+### 剧本基准
+- 时代：${eraNote}
+- 地域：${regionNote}
+- 场景类型：${funcNote}
+- 氛围：${moodNote}
+- 角色身份：${identityNote}
+
+### 推荐风格方向（${confPct}%置信度，70/20/10混搭）
+🥇 主导(70%)：**${decision.primary || 'Contemporary'}** | 🥈 辅助(20%)：**${decision.secondary || 'Minimalist'}** | 🥉 点缀(10%)：**${decision.accent || 'Streetwear'}**
+
+### 方向指引
+- 🎨 配色：${decision.colorDirection || '当代默认配色'}
+- 💡 灯光：${decision.lightingDirection || '层次化现代灯光'}
+- 🧵 面料/材质：${decision.materialDirection || '当代默认材质'}
+${decision.fashionStyles?.length ? `- 👗 匹配风格标签：${decision.fashionStyles.join(' / ')}` : ''}
+
+### ⚠️ 关键指令
+请严格参照以上风格方向设计所有角色服装。每个角色的面料、廓形、配色必须与匹配的风格标签一致。不要凭空编造偏离方向的服装描述。`;
+}
+
+// ── Layer 3: Constraint Compiler (完整KB + 结构化引导 → 具体设计约束) ──
+async function compileRegenerationConstraint(
+  userFeedback: string,
+  section: string,
+  dimensions: DimensionInput,
+  styleDecision: StyleDecision | null,
+  existingContent?: string,
+): Promise<string> {
+  const sectionLabel =
+    section === 'characters' ? '角色服装设计' :
+    section === 'scenes' ? '场景空间设计' :
+    section === 'storyboard' ? '分镜视觉设计' : '音乐设计';
+
+  const guidance = styleDecision
+    ? buildStyleGuidance(dimensions, styleDecision)
+    : `## 🎯 系统风格引导\n（触发词提取失败，请完全依赖剧本上下文自行判断。完整知识库如下。）\n`;
+
+  const constraintSysPrompt = `你是视觉风格约束编译器。你的任务是根据系统风格引导 + 用户反馈，输出具体可执行的设计约束。
+
+${guidance}
+
+## 完整风格知识库（全部可用，系统引导只是参考方向）
+
+${FASHION_STYLE_DB}
+
+${FASHION_COORDINATION_DB}
+
+${section === 'scenes' || section === 'storyboard' ? INTERIOR_STYLE_DB + '\n\n' : ''}${STYLE_DECISION_RULES}
+
+## 任务
+用户对「${sectionLabel}」不满意。
+
+**关键原则**：
+- 系统引导是"聚光灯"——指出最可能匹配的方向，但不排除其他可能性
+- 如果你判断系统推荐方向不合适 → 可以推翻，但要说明理由
+- 如果知识库中有比系统推荐更好的选择 → 大胆引用
+- **不要因为系统推荐了某个风格就盲目跟随**
+${section === 'scenes' ? '\n- 🏛️ 你正在设计场景/空间——重点关注**室内设计风格、灯光设计、材质速查、空间配色心理学**章节。不要只给服装建议。' : ''}
+${section === 'storyboard' ? '\n- 🎬 你正在设计分镜——需要同时考虑**角色服装**和**场景空间**两个维度。服装参考FASHION_STYLE_DB，场景参考INTERIOR_STYLE_DB。' : ''}
+
+**第一步：判断系统引导是否合理** — 结合剧本和用户反馈，确认或推翻系统推荐的风格方向。
+
+**第二步：在知识库中主动检索** — 找到最匹配的品牌、面料、廓形、配色${section === 'scenes' ? '、空间特征、灯光氛围、材质' : ''}。如果推翻系统推荐，说明新方向的理由。
+
+**第三步：明确排除不兼容的风格** — 基于剧本基调，列出绝对不应出现的风格方向。每条说明原因。
+
+## 输出格式
+### 系统引导评估
+[确认/推翻，以及理由]
+
+### 风格兼容性判断
+- ✅ 推荐方向：
+- ❌ 绝对不兼容（与剧本基调冲突的）：
+
+### 具体设计约束
+${section === 'scenes' ? `1. **空间特征/建筑风格**：
+2. **材质/材料**：
+3. **配色方向**：
+4. **灯光氛围**：
+5. **风格参考**（引用知识库中的风格名称+空间特征）：` : section === 'storyboard' ? `1. **角色服装约束**（面料/廓形/风格）：
+2. **场景空间约束**（建筑风格/材质/灯光）：
+3. **配色方向**（服装与场景的配色关系）：
+4. **整体风格参考**：` : `1. **面料/材质**：
+2. **廓形/剪裁**：
+3. **配色方向**：
+4. **风格参考**（引用知识库中的品牌+季度）：
+5. **搭配法则**：`}
+
+## 关键规则
+- 所有约束必须引用知识库中的真实内容
+- 控制在500字以内
+- 输出直接注入GPT-5.4系统提示词，必须具体、可执行`;
+
+  const userMsg = `用户反馈：${userFeedback}
+重新生成板块：${sectionLabel}
+${existingContent ? `\n上一版输出（找出不符合剧本和用户期望之处）：\n${existingContent.slice(0, 2000)}` : ''}
+
+请基于系统引导+完整知识库+用户反馈，输出约束分析。`;
+
+  try {
+    const msgs = [
+      { role: 'user' as const, content: [{ type: 'input_text' as const, text: constraintSysPrompt + '\n\n---\n\n' + userMsg }] },
+    ];
+    const result = await gpt5Chat(msgs, { effort: 'low', maxOutputTokens: 1200, timeoutMs: 90000 });
+    if (result && result.length > 20) {
+      console.log('[constraint-compiler] section=' + section + ' dims=' + dimensions.era + '/' + dimensions.region + ' compiled ' + result.length + ' chars → ' + result.slice(0, 150).replace(/\n/g, ' '));
+      return result;
+    }
+    console.log('[constraint-compiler] Empty/short result, fallback to raw feedback');
+  } catch (err: any) {
+    console.log('[constraint-compiler] Failed:', String(err).slice(0, 120));
+  }
+  return `### 用户需求诊断\n用户对当前${sectionLabel}不满意。\n\n### 具体设计约束\n${userFeedback}`;
+}
+
+// ── Feedback injection helper (3层管线：触发→引导→约束) ──
+async function injectFeedback(
+  systemPrompt: string,
+  userFeedback?: string,
+  existingContent?: string,
+  section?: string,
+  scriptExcerpt?: string,
+): Promise<string> {
+  // Layer 1+2: Always run trigger extraction + style decision (even on first run)
+  const dimensions = scriptExcerpt ? (await extractScriptTriggers(scriptExcerpt)) : null;
+  const styleDecision = decideStyle(dimensions || {});
+  const styleCard = buildStyleCard(dimensions || {}, styleDecision);
+
+  let result = styleCard + '\n\n';
+
+  // Layer 3: Only compile detailed constraints when user provides feedback
+  if (userFeedback) {
+    const constraints = await compileRegenerationConstraint(
+      userFeedback,
+      section || 'characters',
+      dimensions || {},
+      styleDecision,
+      existingContent,
+    );
+    result += `## ⚠️ 用户修改要求 — 以下为Agent根据风格知识库+剧本触发词编译的具体设计约束（最高优先级，覆盖一切冲突指令）\n${constraints}\n\n`;
+  }
+
+  if (existingContent) {
+    result += `## 上一版输出（仅用于对比参考，你必须产出明显不同的新版本，不得重复或微调）\n${existingContent.slice(0, 2000)}\n\n`;
+  }
+
+  result += `## 原始指令\n${systemPrompt}`;
+  return result;
+}
+
 // ─── Phase 1: Character Extraction (详尽角色设计，输出长) ──
-export async function runCharacterExtraction(scriptText: string, visualStyle?: string): Promise<Record<string, string>> {
+export async function runCharacterExtraction(scriptText: string, visualStyle?: string, userFeedback?: string, existingContent?: string): Promise<Record<string, string>> {
   const t0 = Date.now();
-  console.log('[char-extract] Starting, script length=' + scriptText.length);
+  console.log('[char-extract] Starting, script length=' + scriptText.length + ' feedback=' + !!userFeedback);
 
-  const styleHint = visualStyle ? `\n用户指定风格：${visualStyle}。请在角色外观设计中体现此风格。` : '';
-  const userMessage = CHARACTER_EXTRACTION.systemPrompt + `\n\n${styleHint}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个角色输出完整设计方案。`;
+  // ─── Regeneration path: use existing injectFeedback with constraint compilation ───
+  if (userFeedback) {
+    const styleHint = visualStyle ? `\n用户指定风格：${visualStyle}。请在角色外观设计中体现此风格。` : '';
+    const basePrompt = await injectFeedback(CHARACTER_EXTRACTION.systemPrompt, userFeedback, existingContent, 'characters', scriptText);
+    const userMessage = basePrompt + `\n\n${styleHint}\n\n${NEGATIVE_CLOTHING}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个角色输出完整设计方案。`;
+    const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
+    let rawOutput: string | null = null;
+    try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[char-extract] Failed:', String(err).slice(0, 100)); return {}; }
+    if (!rawOutput) { console.log('[char-extract] No output'); return {}; }
+    console.log('[char-extract] Regeneration output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+    return parseCharacterBlocks(rawOutput);
+  }
 
-  const gptMsgs = [
-    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
-  ];
+  // ═══════════════════════════════════════════
+  // ─── First-run: Two-round KB retrieval ───
+  // ═══════════════════════════════════════════
 
+  // ── Round 1: Ask GPT-5.4 what KB sections it needs ──
+  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT + '\n\n剧本内容：\n' + scriptText;
+  console.log('[char-extract] Round 1: asking GPT-5.4 what to retrieve...');
+
+  let keywords: string | null = null;
+  try {
+    keywords = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
+      { effort: 'low', maxOutputTokens: 500, timeoutMs: 30000 },
+    );
+  } catch (err: any) { console.log('[char-extract] Round 1 failed:', String(err).slice(0, 100)); }
+
+  // ── Agent: Search KB for each keyword ──
+  let searchResults = '';
+  if (keywords && keywords.length > 20) {
+    console.log('[char-extract] Round 1 response: ' + keywords.slice(0, 200).replace(/\n/g, ' | '));
+    // Parse keywords: each line starting with a Chinese/non-space char
+    const queries = keywords
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 3 && l.length < 80);
+
+    const allResults: string[] = [];
+    for (const q of queries.slice(0, 8)) {
+      const r = searchFashionKB(q);
+      if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+    }
+    searchResults = allResults.join('\n\n');
+    console.log('[char-extract] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
+  }
+
+  if (!searchResults) {
+    // Fallback: use style card approach
+    console.log('[char-extract] KB retrieval returned empty, falling back to style card');
+    const dimensions = await extractScriptTriggers(scriptText);
+    const decision = decideStyle(dimensions || {});
+    searchResults = buildStyleCard(dimensions || {}, decision);
+  }
+
+  // ── Round 2: Feed KB results + script → design characters ──
+  const round2Msg = searchResults
+    + '\n\n' + NEGATIVE_CLOTHING
+    + '\n\n' + CHARACTER_EXTRACTION.systemPrompt
+    + '\n\n## 剧本内容\n' + scriptText
+    + (visualStyle ? '\n\n用户指定风格：' + visualStyle : '')
+    + '\n\n请严格按格式为每个角色输出完整设计方案。';
+
+  console.log('[char-extract] Round 2: designing characters (' + round2Msg.length + ' chars)...');
   let rawOutput: string | null = null;
   try {
-    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
-  } catch (err: any) {
-    console.log('[char-extract] Failed:', String(err).slice(0, 100));
-    return {};
-  }
+    rawOutput = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round2Msg }] }],
+      { effort: 'medium', timeoutMs: 600000 },
+    );
+  } catch (err: any) { console.log('[char-extract] Round 2 failed:', String(err).slice(0, 100)); return {}; }
 
-  if (!rawOutput) {
-    console.log('[char-extract] No output');
-    return {};
-  }
+  if (!rawOutput) { console.log('[char-extract] No output'); return {}; }
 
   console.log('[char-extract] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+  return parseCharacterBlocks(rawOutput);
+}
 
-  // Parse characters — format: === separated blocks, each starting with ## {角色名}
+function parseCharacterBlocks(rawOutput: string): Record<string, string> {
   const characters: Record<string, string> = {};
   const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
   for (const block of blocks) {
@@ -670,20 +1096,19 @@ export async function runCharacterExtraction(scriptText: string, visualStyle?: s
     if (!headerMatch) continue;
     const name = headerMatch[1].trim();
     if (!name || name.length > 30 || /无明确角色/i.test(name)) continue;
-    // Store complete block (including ## header)
     characters[name] = block;
   }
-
   console.log('[char-extract] Parsed ' + Object.keys(characters).length + ' characters');
   return characters;
 }
 
 // ─── Scene Extraction (独立场景提取，GPT-5.4) ──
-export async function runSceneExtraction(scriptText: string): Promise<Record<string, string>> {
+export async function runSceneExtraction(scriptText: string, userFeedback?: string, existingContent?: string): Promise<Record<string, string>> {
   const t0 = Date.now();
   console.log('[scene-extract] Starting, script length=' + scriptText.length);
 
-  const userMessage = SCENE_EXTRACTION.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
+  const basePrompt = await injectFeedback(SCENE_EXTRACTION.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
+  const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
 
   const gptMsgs = [
     { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
@@ -720,11 +1145,12 @@ export async function runSceneExtraction(scriptText: string): Promise<Record<str
 }
 
 // ─── Scene Architect (场景空间设计，GPT-5.4) ──
-export async function runSceneArchitect(scriptText: string): Promise<Record<string, string>> {
+export async function runSceneArchitect(scriptText: string, userFeedback?: string, existingContent?: string): Promise<Record<string, string>> {
   const t0 = Date.now();
   console.log('[scene-architect] Starting, script length=' + scriptText.length);
 
-  const userMessage = SCENE_ARCHITECT.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
+  const basePrompt = await injectFeedback(SCENE_ARCHITECT.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
+  const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
 
   const gptMsgs = [
     { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
@@ -867,7 +1293,7 @@ async function extractMusicMetadata(scriptText: string): Promise<{
 }
 
 // ─── Sound Composer (声音与音乐设计，GPT-5.4 → Suno) ──
-export async function runSoundComposer(scriptText: string): Promise<{ scenes: Record<string, string>; sunoPrompts: Record<string, string> }> {
+export async function runSoundComposer(scriptText: string, userFeedback?: string, existingContent?: string): Promise<{ scenes: Record<string, string>; sunoPrompts: Record<string, string> }> {
   const t0 = Date.now();
   console.log('[sound-composer] Starting, script length=' + scriptText.length);
 
@@ -903,12 +1329,21 @@ export async function runSoundComposer(scriptText: string): Promise<{ scenes: Re
   const cStats = composerStats();
   console.log('[sound-composer] Composer matches:', composerResult.composers.map(c => c.name).join(', '));
 
-  // Step 4: Build enriched prompt with GPT analysis + KB + composer context
+  // Step 3.5: Q Brain music planning — autonomous decision on track count + duration per track
+  const musicPlan = await planMusic(scriptText);
+  const musicPlanBlock = formatMusicPlanForPrompt(musicPlan);
+  if (musicPlan) {
+    console.log('[sound-composer] Q Brain plan: type=%s tracks=%d perTrack=%ds',
+      musicPlan.contentType, musicPlan.trackCount, musicPlan.durationPerTrack);
+  }
+
+  // Step 4: Build enriched prompt with GPT analysis + KB + composer context + Q Brain music plan
   const gptAnalysisBlock = metadata?.analysis
     ? `\n\n## GPT 语义分析 (中文)\n${metadata.analysis}\n\n## GPT 提取关键词 (英文)\n${metadata.enrichedQuery}`
     : '';
 
-  const userMessage = SOUND_COMPOSER.systemPrompt
+  const userMessage = await injectFeedback(SOUND_COMPOSER.systemPrompt, userFeedback, existingContent, 'music', scriptText)
+    + musicPlanBlock
     + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})`
     + gptAnalysisBlock
     + `\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
@@ -965,6 +1400,8 @@ export async function runScriptAnalysis(
   scriptText: string,
   visualStyle?: string,
   characterProfiles?: Record<string, string>,
+  userFeedback?: string,
+  existingContent?: string,
 ): Promise<ScriptAnalysisResult> {
   const t0 = Date.now();
   console.log('[script-analysis] Starting, script length=' + scriptText.length + ' chars=' + (characterProfiles ? Object.keys(characterProfiles).length : 0));
@@ -982,7 +1419,8 @@ export async function runScriptAnalysis(
     }
   }
 
-  const userMessage = SCRIPT_ANALYSIS.systemPrompt + `\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
+  const basePrompt = await injectFeedback(SCRIPT_ANALYSIS.systemPrompt, userFeedback, existingContent, 'storyboard', scriptText);
+  const userMessage = basePrompt + `\n\n${NEGATIVE_CLOTHING}\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
 
   const gptMsgs = [
     { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
@@ -1330,31 +1768,66 @@ export async function runTextPipeline(
 }
 
 // ─── Unified Pipeline — single GPT-5 call outputs all 6 categories ───
-const UNIFIED_PROMPT = `你是一位顶级电影导演兼视觉开发总监。阅读以下剧本，一次性完成六项分析。每项用 ===SECTION_NAME=== 开始标记。禁止输出思考过程，直接输出结构化内容。
+// Template is now DYNAMIC — Q Template Advisor analyzes genre/context to decide
+// which sections are relevant. Fallback: default template (all sections included).
+
+const UNIFIED_HEADER = `你是一位顶级电影导演兼视觉开发总监。阅读以下剧本，一次性完成六项分析。每项用 ===SECTION_NAME=== 开始标记。禁止输出思考过程，直接输出结构化内容。
 
 ## 风格默认原则与视觉参考
 当剧本未明确指定服装风格/时代背景/美学方向时，默认当代时尚审美。有明确约束时严格遵循约束。
 
 ${FASHION_STYLE_DB}
 
+${FASHION_COORDINATION_DB}
+
 ${INTERIOR_STYLE_DB}
 
-${STYLE_DECISION_RULES}
+${STYLE_DECISION_RULES}`;
 
-===CHARACTERS===
-提取每个角色（有名字/有台词），为每个输出：
-- 人种/年龄/身高/体型
-- 面部特征（五官/肤色/伤疤/妆容）
-- 发型/发色
-- 服装（逐层：内衣→上衣→外套→下装→鞋履，含颜色/材质）
-- 配饰（首饰/腰带/头饰/眼镜/纹身）
-- 武器/工具（含材质与磨损）
-- 三视图关键点（正面/侧面/背面）
-- 表情集（8种关键表情描述）
-- 身份/阵营推断[标注]
-用 --- 分隔每个角色。
+function buildCharacterSection(ctx?: { hasWeapons?: boolean; genre?: string }): string {
+  const hasWeapons = ctx?.hasWeapons ?? true; // default: include (backward compatible)
+  const lines = [
+    '===CHARACTERS===',
+    '提取每个角色（有名字/有台词），为每个输出：',
+    '- 人种/年龄/身高/体型',
+    '- 面部特征（五官/肤色/伤疤/妆容）',
+    '- 发型/发色',
+    '- 服装（逐层：内衣→上衣→外套→下装→鞋履，含颜色/材质）',
+    '- 配饰（首饰/腰带/头饰/眼镜/纹身）',
+  ];
+  if (hasWeapons) {
+    lines.push('- 武器/工具（含材质与磨损）');
+  }
+  lines.push('- 三视图描述：正面/侧面/背面，左侧大版式');
+  lines.push('- 表情集（3种：平静/喜悦/愤怒）+ 细节特写（2处：面料材质/标志性道具）');
+  lines.push('- 身份/阵营推断[标注]');
+  lines.push('用 --- 分隔每个角色。');
+  return lines.join('\n');
+}
 
-===SCENES===
+function buildPropsSection(ctx?: { hasMeaningfulProps?: boolean }): string {
+  const hasProps = ctx?.hasMeaningfulProps ?? true; // default: include
+  const lines = [
+    '===PROPS===',
+  ];
+  if (hasProps) {
+    lines.push(
+      '列出所有关键道具，每个包含：',
+      '- 道具名称',
+      '- 材质与结构',
+      '- 时代背景',
+      '- 使用痕迹/老化程度',
+      '- 象征意义',
+      '- 关联角色',
+    );
+  } else {
+    lines.push('仅列出对剧情有实际推动作用的关键道具。如无关键道具，标注"本剧无关键道具"并跳过。');
+  }
+  lines.push('用 --- 分隔每个道具。');
+  return lines.join('\n');
+}
+
+const UNIFIED_SCENES = `===SCENES===
 列出所有场景，每个包含：
 - 场景名称/位置
 - 时间（时刻/季节）
@@ -1362,9 +1835,9 @@ ${STYLE_DECISION_RULES}
 - 光线条件（方向/色温/强度）
 - 色彩基调
 - 关键环境元素
-用 --- 分隔每个场景。
+用 --- 分隔每个场景。`;
 
-===SCENE_ARCHITECTURE===
+const UNIFIED_ARCHITECTURE = `===SCENE_ARCHITECTURE===
 为每个场景输出空间设计方案：
 - 建筑风格/空间类型
 - 空间尺度（层高/面积/纵深）
@@ -1372,26 +1845,16 @@ ${STYLE_DECISION_RULES}
 - 光照方案（光源位置/类型/色温）
 - 色彩体系
 - 空间叙事功能
-用 --- 分隔每个场景。
+用 --- 分隔每个场景。`;
 
-===PROPS===
-列出所有关键道具，每个包含：
-- 道具名称
-- 材质与结构
-- 时代背景
-- 使用痕迹/老化程度
-- 象征意义
-- 关联角色
-用 --- 分隔每个道具。
-
-===MUSIC===
+const UNIFIED_MUSIC = `===MUSIC===
 为全片设计音乐方案，每个场景包含：
 - 音乐风格（流派/乐器/BPM/情绪）
 - Suno格式音乐提示词（英文）
 - 关键音效设计要点
-用 --- 分隔每个场景的音乐设计。
+用 --- 分隔每个场景的音乐设计。`;
 
-===STORYBOARD===
+const UNIFIED_STORYBOARD = `===STORYBOARD===
 输出完整中文分镜表。全片统一1-2个导演风格。每镜用 === 分隔：
 场景：{中文详述}
 景别：{ELS/LS/WS/MS/MCU/CU/ECU}
@@ -1415,6 +1878,18 @@ ${STYLE_DECISION_RULES}
 - 赛博/科幻 → 押井守哲学静止+大友克洋饱和密度
 - 童话/寓言 → 韦斯安德森极致对称+宫崎骏自然敬畏`;
 
+function buildUnifiedPrompt(ctx?: { hasWeapons?: boolean; hasMeaningfulProps?: boolean; genre?: string }): string {
+  return [
+    UNIFIED_HEADER,
+    buildCharacterSection(ctx),
+    UNIFIED_SCENES,
+    UNIFIED_ARCHITECTURE,
+    buildPropsSection(ctx),
+    UNIFIED_MUSIC,
+    UNIFIED_STORYBOARD,
+  ].join('\n\n');
+}
+
 export async function runUnifiedPipeline(
   scriptText: string,
   visualStyle?: string,
@@ -1422,9 +1897,30 @@ export async function runUnifiedPipeline(
 ): Promise<FullPipelineResult> {
   const t0 = Date.now();
   const styleHint = visualStyle ? '\n用户指定视觉风格：' + visualStyle : '';
+
+  // ── Q Template Advisor: analyze genre → dynamic template ──
+  let templateCtx: { hasWeapons?: boolean; hasMeaningfulProps?: boolean; genre?: string } | undefined;
+  try {
+    const qCtx = await analyzeScriptContext(scriptText, visualStyle);
+    templateCtx = {
+      hasWeapons: qCtx.hasWeapons,
+      hasMeaningfulProps: qCtx.hasMeaningfulProps,
+      genre: qCtx.genre,
+    };
+    console.log('[unified] Q advisor:', qCtx.reasoning,
+      '| weapons=' + qCtx.hasWeapons,
+      '| props=' + qCtx.hasMeaningfulProps,
+      '| genre=' + qCtx.genre,
+      '| source=' + qCtx.source);
+  } catch (err: any) {
+    console.log('[unified] Q advisor unavailable, using default template:', err.message?.slice(0, 60));
+    // templateCtx stays undefined → default template with all sections
+  }
+
+  const dynamicPrompt = buildUnifiedPrompt(templateCtx);
   console.log('[unified] Starting single GPT call, script=' + scriptText.length + 'chars');
 
-  const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: UNIFIED_PROMPT + '\n\n===== 剧本 =====\n' + scriptText + styleHint }] }];
+  const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: dynamicPrompt + '\n\n===== 剧本 =====\n' + scriptText + styleHint }] }];
 
   let raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 });
   if (!raw) { await new Promise(r => setTimeout(r, 3000)); raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 }); }

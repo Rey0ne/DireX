@@ -6,6 +6,7 @@ import { generatePredictions } from './q-predict.js';
 import { getDeviations } from './q-state.js';
 import { getOrchestrationStats } from './q-orchestrate.js';
 import { readJSON } from '../db/store.js';
+import { FASHION_STYLE_DB, FASHION_COORDINATION_DB } from '../agent/style-db.js';
 
 // ── Types ────────────────────────────────────────
 
@@ -20,9 +21,17 @@ export interface ChatContext {
   recentMessages?: { role: string; text: string }[];
 }
 
+export interface ChatAction {
+  type: 'execute_pipeline' | 'navigate' | 'open_panel' | 'generate' | 'none';
+  route?: string;           // Pipeline route to execute
+  params?: Record<string, unknown>;
+  label: string;            // Human-readable action label
+}
+
 export interface ChatResponse {
   reply: string;
   suggestions?: string[];
+  action?: ChatAction;      // Executable action Q brain decided to take
   context?: {
     projectId?: string;
     memoriesRecalled: number;
@@ -96,6 +105,10 @@ type ChatIntent =
   | 'memory'         // 记忆/历史/之前
   | 'style'          // 风格/美术/视觉
   | 'help'           // 帮助/能做什么
+  | 'generate_action'// 生成/创建/制作
+  | 'fix_action'     // 修复/重新生成/重试
+  | 'regenerate_section' // 重新生成某一项（角色/场景/分镜/音乐）
+  | 'analyze_action' // 分析/检查/查看
   | 'general';       // 其他
 
 function detectIntent(message: string): ChatIntent {
@@ -116,6 +129,14 @@ function detectIntent(message: string): ChatIntent {
     return 'style';
   if (/帮助|能做什么|功能|help|怎么用|命令/.test(m))
     return 'help';
+  if (/生成|创建|做|制作|产生|帮我生成|重新生成|再生成一次|再生一个/.test(m))
+    return 'generate_action';
+  if (/服装|衣服|穿搭|穿着|造型|换.*风格|太厚|太薄|太暗|太亮|材质|面料|廓形/.test(m))
+    return 'regenerate_section';
+  if (/修复|重新生成|重试|改一下|调整prompt|再来|再生/.test(m))
+    return 'fix_action';
+  if (/分析|检查|查看|看看|评估|检测/.test(m))
+    return 'analyze_action';
   return 'general';
 }
 
@@ -259,9 +280,31 @@ function ruleBasedReply(intent: ChatIntent, message: string, projectSummary?: Re
 
     case 'style':
       return {
-        reply: '我的风格知识库包含数百种视觉风格，涵盖时尚、室内设计、建筑等多个领域。\n\n你可以通过 `/api/q/style/decide` 端点查询 5 维风格决策（时代/地域/功能/情绪/身份），我会给出 70/20/10 混搭法则的风格推荐。\n\n试试在生成提示词里加入风格关键词，我能帮你匹配最佳视觉参考～',
-        suggestions: ['查看项目进度', '当前项目状态'],
+        reply: '我的风格知识库涵盖欧洲/日本/韩国先锋设计、奢侈品秀场、街头潮牌、搭配法则等多个维度。\n\n你可以直接跟我说具体需求——比如"我想要法国南部的慵懒度假风"或"这个角色的服装太厚重了"——我会从知识库里找到最匹配的品牌、面料、廓形、配色来给你建议。\n\n🎨 试试告诉我：\n• "换成 Miu Miu 那种故意不完美的少女感"\n• "要 Lemaire 的松弛知识分子风"\n• "用 2026 春夏的软结构趋势"',
+        suggestions: ['查看项目进度', '当前项目状态', '重新生成角色服装'],
       };
+
+    case 'regenerate_section': {
+      // Detect which section from message
+      const section = /角色|演员|人物|char/i.test(message) ? 'characters'
+        : /场景|环境|scene/i.test(message) ? 'scenes'
+        : /分镜|镜头|shot|storyboard/i.test(message) ? 'storyboard'
+        : /音乐|声音|sound|music|suno/i.test(message) ? 'music'
+        : 'characters'; // default: assume characters (most common complaint)
+      const sectionLabel = section === 'characters' ? '角色' : section === 'scenes' ? '场景' : section === 'storyboard' ? '分镜' : '音乐';
+      const action: ChatAction = {
+        type: 'regenerate_section',
+        route: 'regenerate_section',
+        section,
+        params: { section, userFeedback: message },
+        label: `重新生成${sectionLabel}`,
+      };
+      return {
+        reply: `收到！我帮你重新生成${sectionLabel}设计。\n\n我会根据你的反馈调整风格方向。完成后你可以在画布上查看更新结果。`,
+        suggestions: ['查看项目进度', `重新生成${sectionLabel}`],
+        action,
+      };
+    }
 
     case 'help':
       return {
@@ -279,6 +322,52 @@ function ruleBasedReply(intent: ChatIntent, message: string, projectSummary?: Re
           '• "项目进度如何？"\n• "有什么需要修复的吗？"\n• "给我一些建议"',
         suggestions: ['项目进度如何？', '有什么问题需要处理？', '给我一些建议'],
       };
+
+    case 'generate_action': {
+      const action: ChatAction = {
+        type: 'execute_pipeline',
+        route: projectSummary ? 'full_pipeline' : 'unified_pipeline',
+        params: { action: message },
+        label: '开始生成',
+      };
+      return {
+        reply: '收到！我来为你启动生成管线。',
+        suggestions: ['查看项目进度', '检查偏差'],
+        action,
+      };
+    }
+
+    case 'fix_action': {
+      const shotMatch = message.match(/镜头\s*(\d+)/);
+      const shotNumber = shotMatch ? parseInt(shotMatch[1]) : undefined;
+      const action: ChatAction = {
+        type: 'execute_pipeline',
+        route: 'script_analysis',
+        params: { shotNumber, action: 'autofix' },
+        label: shotNumber ? `修复镜头 ${shotNumber}` : '修复问题',
+      };
+      return {
+        reply: shotNumber
+          ? `好的，我来检查并修复镜头 ${shotNumber} 的问题。`
+          : '我来检查项目中的问题并尝试修复。',
+        suggestions: ['查看项目进度', '检查所有偏差'],
+        action,
+      };
+    }
+
+    case 'analyze_action': {
+      const action: ChatAction = {
+        type: 'execute_pipeline',
+        route: 'script_analysis',
+        params: { action: message },
+        label: '开始分析',
+      };
+      return {
+        reply: '我来分析一下当前的剧本和项目状态。',
+        suggestions: ['查看分析结果', '下一步怎么做？'],
+        action,
+      };
+    }
 
     default: // general
       suggestions.push('项目进度如何？', '小Q 能做什么？');
@@ -324,6 +413,23 @@ const Q_SYSTEM_PROMPT = `你是小Q，DireX AI 内容制作管线的认知助手
 - 如果你不确定某个数据，诚实地说"我查一下"而不是编造
 - 在回复末尾可以给 2-3 个建议追问（用简短的问题形式）
 
+## 可执行动作
+当用户明确要求执行操作时（生成、分析、修复），在回复末尾用特殊标记输出动作指令。
+格式：<!--ACTION:{"type":"execute_pipeline","route":"full_pipeline","label":"开始生成"}-->
+
+可用的 route 值：
+- full_pipeline: 全管线（角色+场景+分镜+音乐+道具，并行）
+- unified_pipeline: 统一管线（一次调用输出全部）
+- script_analysis: 剧本分镜分析
+- character_extraction: 角色提取
+- scene_extraction: 场景环境设计
+- scene_architect: 场景空间架构
+- prop_designer: 道具设计
+- sound_composer: 声音与音乐设计
+- deviation_check: 偏差检测与修复
+
+如果用户只是询问信息，不要输出动作标记。
+
 ## 当前上下文
 项目状态和记忆会在用户消息中提供。`;
 
@@ -366,6 +472,11 @@ export async function chat(
   // ── Try LLM-powered response ──
   if (LLM_CHAT) {
     try {
+      // Inject style knowledge base for style/regenerate intents
+      const styleIntent = intent === 'style' || intent === 'regenerate_section';
+      const systemPrompt = styleIntent
+        ? Q_SYSTEM_PROMPT + `\n\n## 风格知识库（当用户询问服装/穿搭/风格时参考，给出具体品牌/面料/廓形/配色建议）\n\n${FASHION_STYLE_DB}\n\n${FASHION_COORDINATION_DB}`
+        : Q_SYSTEM_PROMPT;
       let userPrompt = `用户说：「${message}」`;
       if (projectSummary) {
         const p = projectSummary;
@@ -385,11 +496,23 @@ Q记忆条目：${p.memory.episodic.total} 个`;
           .join('\n');
       }
 
-      const llmReply = await LLM_CHAT(Q_SYSTEM_PROMPT, userPrompt);
+      const llmReply = await LLM_CHAT(systemPrompt, userPrompt);
       if (llmReply) {
+        // Parse action marker from LLM response
+        let replyText = llmReply;
+        let action: ChatAction | undefined;
+        const actionMatch = replyText.match(/<!--ACTION:\s*(\{[\s\S]*?\})\s*-->/);
+        if (actionMatch) {
+          try {
+            action = JSON.parse(actionMatch[1]) as ChatAction;
+            replyText = replyText.replace(/<!--ACTION:\s*\{[\s\S]*?\}\s*-->/, '').trim();
+          } catch { /* parse failure → no action */ }
+        }
+
         return {
-          reply: llmReply,
+          reply: replyText,
           suggestions: generateFollowUps(intent, projectSummary),
+          action,
           context: {
             projectId: context.projectId,
             memoriesRecalled: 0,

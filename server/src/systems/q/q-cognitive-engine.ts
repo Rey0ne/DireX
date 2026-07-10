@@ -14,6 +14,59 @@ import {
 } from './q-notification.js';
 import { AutoFixer, type AutoFixResult } from './q-autofix.js';
 
+// ── Default Executor (closes autofix loop) ─────────
+// When no custom executor is provided, this default executor
+// can recall autofix results from memory and re-trigger generation.
+
+async function defaultExecutor(
+  action: CycleAction,
+  ctx: CycleContext,
+): Promise<{ success: boolean; output: string }> {
+  // For retry_generation and autofix actions, recall adjusted prompts from memory
+  if (action.type === 'retry_generation' || action.type === 'autofix') {
+    const fixMemories = qMemory.recall('autofix applied', { projectId: ctx.projectId });
+    const relevantFix = fixMemories.find(m => {
+      const detail = (m.entry as any).detail || {};
+      return detail.shotNumber === (action.targetShot || ctx.shotNumber);
+    });
+
+    if (relevantFix) {
+      const detail = (relevantFix.entry as any).detail || {};
+      const adjustedPrompt = detail.adjustedPrompt as string;
+
+      if (adjustedPrompt) {
+        try {
+          // Dynamic import to avoid circular dependency at module level
+          const { executeOrchestration } = await import('./q-orchestrate.js');
+          const decision = {
+            nodeId: ctx.nodeId || '',
+            nodeType: 'text' as const,
+            route: 'unified_pipeline' as const,
+            confidence: 0.9,
+            reasoning: `Retry generation with autofix-adjusted prompt`,
+            dependencies: [] as string[],
+            args: { adjustedPrompt },
+          };
+
+          const result = await executeOrchestration(decision, adjustedPrompt);
+          if (result) {
+            const successMsg = `Re-generated with autofix prompt: ${adjustedPrompt.slice(0, 80)}...`;
+            console.log('[q-default-executor]', successMsg);
+            return { success: true, output: successMsg };
+          }
+          return { success: false, output: 'Re-generation returned null — no route matched' };
+        } catch (err: any) {
+          return { success: false, output: `Re-generation failed: ${err.message}` };
+        }
+      }
+    }
+    return { success: false, output: 'No adjusted prompt found in autofix memory — cannot re-generate' };
+  }
+
+  // For other action types, notification is sufficient
+  return { success: true, output: `Action "${action.type}" completed (no executor needed)` };
+}
+
 // ── Types ────────────────────────────────────────
 
 export type CyclePhase = 'think' | 'plan' | 'execute' | 'verify' | 'reflect';
@@ -486,14 +539,8 @@ async function executePhase(
         // Custom executor (e.g., calling generate API)
         result = await executor(action, context);
       } else {
-        // No executor available — just log
-        push(buildNotification('SUGGESTION', {
-          title: `小Q 建议: ${action.description}`,
-          body: plan.reasoning,
-          actionId: context.projectId,
-          actionLabel: '查看详情',
-        }));
-        result = { success: true, output: `Notified: ${action.description}` };
+        // No custom executor — use default executor that can actually re-generate
+        result = await defaultExecutor(action, context);
       }
 
       if (result.success) {

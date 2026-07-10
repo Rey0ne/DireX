@@ -196,13 +196,28 @@ function decideImageRoute(
   };
 }
 
+// ── Orchestration Options ──────────────────────────
+
+export interface OrchestrationOptions {
+  /** If true, automatically execute pipelines for text nodes (fire-and-forget) */
+  autoExecute?: boolean;
+  /** Script text to pass to pipeline when auto-executing */
+  scriptText?: string;
+  /** Visual style hint */
+  visualStyle?: string;
+}
+
 /**
  * Detect new canvas nodes and return orchestration decisions.
  * Only nodes that haven't been processed before are included.
+ *
+ * When options.autoExecute is true, text nodes that route to a pipeline
+ * will be auto-executed (fire-and-forget, does not block return).
  */
 export function detectAndRoute(
   nodes: CanvasNode[],
   projectId: string,
+  options?: OrchestrationOptions,
 ): OrchestrationDecision[] {
   const project = getOrCreateProject(projectId);
   const decisions: OrchestrationDecision[] = [];
@@ -261,6 +276,28 @@ export function detectAndRoute(
 
       // Mark as orchestrated
       recordOrchestration(node.id, decision.route);
+
+      // Auto-execute if configured (fire-and-forget, don't block canvas sync)
+      if (options?.autoExecute && decision.route !== 'none' && decision.route !== 'deviation_check') {
+        const scriptContent = options.scriptText || extractTextContent(node);
+        executeOrchestration(decision, scriptContent, options.visualStyle)
+          .then(result => {
+            if (result) {
+              console.log(`[q-orchestrate] Auto-executed ${decision.route} for node ${node.id}`);
+              push(buildNotification('GENERATION_COMPLETE', {
+                title: `✅ 自动执行完成: ${decision.route.replace(/_/g, ' ')}`,
+                body: `节点 ${node.id} 的管道执行完成`,
+                severity: 'success',
+                actionable: true,
+                actionId: node.id,
+                actionLabel: '查看结果',
+              }));
+            }
+          })
+          .catch(err => {
+            console.error(`[q-orchestrate] Auto-execute failed for ${node.id}:`, err.message);
+          });
+      }
     }
 
     decisions.push(decision);

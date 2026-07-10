@@ -240,11 +240,76 @@ interface StoredTask {
   assetUrls?: string[];
   error?: string;
   startTime: number;
+  nodeId?: string; // Associated canvas node for auto-update on recovery
 }
 
 const taskStore = new Map<string, StoredTask>();
 
-export function initVideoTask(clientTaskId: string, providerId: string): void {
+// ── Disk persistence (survives server restart) ──
+const TASK_STORE_FILE = 'data/task-store.json';
+
+function loadTaskStore(): void {
+  try {
+    const { readJSON } = require('../db/store.js');
+    const data = readJSON(TASK_STORE_FILE);
+    if (data && data.tasks && Array.isArray(data.tasks)) {
+      for (const t of data.tasks) {
+        if (t.clientTaskId && t.status) {
+          taskStore.set(t.clientTaskId, t as StoredTask);
+        }
+      }
+      console.log(`[taskStore] Loaded ${taskStore.size} tasks from disk`);
+    }
+  } catch { /* file doesn't exist yet — first run */ }
+}
+
+function saveTaskStore(): void {
+  try {
+    const { writeJSON } = require('../db/store.js');
+    const tasks = Array.from(taskStore.values());
+    writeJSON(TASK_STORE_FILE, { tasks, updatedAt: new Date().toISOString() });
+  } catch (err: any) {
+    console.warn('[taskStore] Failed to save to disk:', err.message?.slice(0, 80) || err);
+  }
+}
+
+// Load persisted tasks on module import
+loadTaskStore();
+
+// Resume polling for tasks still in 'submitted' status after restart
+function resumePendingTasks(): void {
+  let pending = 0;
+  for (const [clientTaskId, task] of taskStore) {
+    if (task.status !== 'submitted') continue;
+    if (!task.kieTaskId || !task.apiKey) {
+      // Task was initialized but never submitted to Kie — mark as failed
+      task.status = 'failed';
+      task.error = 'Task lost on server restart (never submitted to Kie)';
+      pending++;
+      continue;
+    }
+    pending++;
+    // Background polling — don't await, let it complete naturally
+    pollStoredTask(clientTaskId).then(result => {
+      if (result.status === 'succeeded') {
+        console.log(`[taskStore] Resumed task ${clientTaskId.slice(0, 8)} completed after restart`);
+      } else if (result.status === 'failed') {
+        console.log(`[taskStore] Resumed task ${clientTaskId.slice(0, 8)} failed after restart`);
+      } else {
+        // Still 'submitted' — pollStoredTask already updated Kie status
+        console.log(`[taskStore] Resumed task ${clientTaskId.slice(0, 8)} still processing`);
+      }
+    }).catch(() => {});
+  }
+  if (pending > 0) {
+    console.log(`[taskStore] Resuming ${pending} pending tasks from previous session`);
+    saveTaskStore(); // Save any status changes
+  }
+}
+// Run after a short delay to let the server finish booting
+setTimeout(resumePendingTasks, 3000);
+
+export function initVideoTask(clientTaskId: string, providerId: string, nodeId?: string): void {
   taskStore.set(clientTaskId, {
     clientTaskId,
     kieTaskId: '',
@@ -252,8 +317,10 @@ export function initVideoTask(clientTaskId: string, providerId: string): void {
     providerId,
     status: 'submitted',
     startTime: Date.now(),
+    nodeId,
   });
-  console.log('[taskStore] init ' + clientTaskId + ' (' + providerId + ')');
+  saveTaskStore();
+  console.log('[taskStore] init ' + clientTaskId + ' (' + providerId + ')' + (nodeId ? ' node=' + nodeId.slice(0, 8) : ''));
 }
 
 export function markTaskSubmitted(clientTaskId: string, kieTaskId: string, apiKey: string, compiledPrompt?: string): void {
@@ -262,6 +329,7 @@ export function markTaskSubmitted(clientTaskId: string, kieTaskId: string, apiKe
   task.kieTaskId = kieTaskId;
   task.apiKey = apiKey;
   if (compiledPrompt) task.compiledPrompt = compiledPrompt;
+  saveTaskStore();
   console.log('[taskStore] submitted ' + clientTaskId + ' → kie:' + kieTaskId.slice(0, 12));
 }
 
@@ -270,6 +338,7 @@ export function markTaskDone(clientTaskId: string, assetUrls: string[]): void {
   if (!task) { console.error('[taskStore] markTaskDone: unknown ' + clientTaskId); return; }
   task.status = 'succeeded';
   task.assetUrls = assetUrls;
+  saveTaskStore();
   console.log('[taskStore] done ' + clientTaskId + ': ' + assetUrls.length + ' assets');
 }
 
@@ -278,6 +347,7 @@ export function markTaskFailed(clientTaskId: string, error: string): void {
   if (!task) { console.error('[taskStore] markTaskFailed: unknown ' + clientTaskId); return; }
   task.status = 'failed';
   task.error = error;
+  saveTaskStore();
   console.log('[taskStore] failed ' + clientTaskId + ': ' + error.slice(0, 80));
 }
 

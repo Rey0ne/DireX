@@ -8,7 +8,10 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 |------|------|---------|------|---------|
 | Classic | 合身A字/直筒、收腰 | 羊毛/羊绒/真丝/斜纹软呢 | 黑/白/藏蓝/驼色/灰 | 精裁西装、小黑裙、风衣、珍珠项链 |
 | Minimalist | 直线条、宽松不臃肿 | 棉/亚麻/羊绒/天丝 | 纯单色：黑/白/灰/米 | 白T恤、直筒裤、结构感西装 |
-| Streetwear | 超大号/Oversize | 棉/涤纶/丹宁/尼龙 | 大胆logo色+霓虹点缀 | 印花T恤、连帽卫衣、工装裤、球鞋 |
+| Streetwear | 超大号/Oversize、落肩、性别模糊 | 棉/涤纶/丹宁/尼龙/抓绒 | 大胆logo色+霓虹点缀+中性基底 | 印花T恤、连帽卫衣、工装裤、球鞋、棒球帽 |
+| High Street / Luxury Street | Oversize精裁、运动×正装混搭 | 重磅棉/羊毛混纺/科技尼龙/小羊皮 | 黑/白/灰×亮色点缀(荧光绿/电光紫/正红) | 廓形连帽衫、宽腿工装裤、解构西装、厚底运动鞋、 oversized bomber |
+| Baggy Silhouette | 极端宽松、垂坠直线条、低腰 | 重磅丹宁/水洗棉/针织/尼龙 | 洗水黑/原色靛蓝/灰/卡其 | 阔腿牛仔裤(30cm+裤口)、宽松工装裤、Oversize帽衫、超长袖T恤 |
+| Wide-Leg Tailoring | 宽腿精裁、高腰、垂坠长线条 | 羊毛混纺/天丝/三醋酸/重磅西装料 | 炭灰/黑/烟草棕/奶油白/藏蓝 | 高腰阔腿西裤(裤口28cm+)、无结构宽肩西装、垂坠长马甲 |
 | Bohemian | 飘逸宽松、层叠不对称 | 棉/亚麻/麂皮/钩编/蕾丝 | 铁锈红/芥末黄/橄榄绿/陶土色 | 超长连衣裙、流苏包、宽檐帽 |
 | Romantic | 收腰A字、荷叶边、泡泡袖 | 蕾丝/雪纺/丝绸/薄纱/缎面 | 粉/薰衣草紫/薄荷绿/奶油白 | 蕾丝连衣裙、蝴蝶结衬衫、芭蕾鞋 |
 | Grunge | 超大松垮、破洞层叠 | 法兰绒/破洞丹宁/皮革 | 暗色褪色：黑+灰+暗红 | 格纹法兰绒、乐队T恤、军靴 |
@@ -26,6 +29,11 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 | Cyberpunk | 不对称、外骨骼感 | 尼龙/PVC/TPU/反光织物 | 黑+霓虹绿/紫/蓝 | 科技面料夹克、多口袋工装裤、护目镜 |
 | Gender-fluid | Oversize、直线条、落肩 | 棉/羊毛/丹宁/针织 | 黑/白/灰/藏蓝/大地色 | 阔腿西裤、Oversize西装、中性衬衫 |
 | Balletcore | 紧身芭蕾廓形 | 薄纱/弹力棉/丝绸 | 粉/奶油白/黑 | 芭蕾平底鞋、裹身上衣、薄纱裙、袜套 |
+| Contemporary Chic | 合身不紧身、线条干净、无意间的时髦 | 羊毛/羊绒/真丝/棉府绸/小羊皮 | 中性色+1个低调亮色(勃艮第红/鼠尾草绿/钴蓝) | 精裁西裤、羊绒针织衫、真丝衬衫、尖头平底鞋、结构感斜挎包 |
+| Quiet Luxury | 极简剪裁、无Logo、面料为王 | Loro Piana级羊绒/小羊皮/双面羊毛/重磅真丝 | 驼色/燕麦色/灰褐/深巧克力棕/奶油白 | 无标羊绒大衣、缎面半裙、软结构西装、皮质托特包 |
+| Eclectic Artist | 个人表达、古着×当代、意外材质组合 | 丝绒/做旧皮革/手织布/丝毛混纺/手工陶瓷配饰 | 焦橙/橄榄绿/芥末黄/勃艮第红/深紫+暖中性基底 | 古着皮夹克、手绘印花衬衫、宽腿裤、手工陶珠项链、异形艺术戒指 |
+| French Chic | 不费力优雅、看似随意实则精心 | 棉府绸/美利奴羊毛/丝缎/小羊皮 | 海军蓝/白/驼色/灰/正红(极少面积) | 条纹船领衫、直筒九分裤、风衣、芭蕾鞋、丝巾 |
+| Italian Sprezzatura | 刻意的不经意、高定级别的松弛感 | 超细羊毛/羊绒/丝绸/软结构亚麻 | 烟草棕/灰蓝/奶油白/酒红 | 无结构西装、软领衬衫(不系第一颗扣)、高腰西裤、乐福鞋(不穿袜) |
 
 ## 设计师风格速查 (Designer Signature Keywords)
 - Chanel: 斜纹软呢套装、珍珠、山茶花、黑白米色、粗花呢
@@ -39,6 +47,75 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 - Rick Owens: 暗黑先锋、末日美学、地台鞋、不对称皮衣、黑/灰/暗绿
 - Simone Rocha: 珍珠装饰、黑暗浪漫、蓬裙、维多利亚×朋克
 - Grace Wales Bonner: 学术×非洲移民文化、精裁+串珠、撒哈拉色调
+
+## 欧洲奢侈品牌秀场速查 (European Luxury Runway Keywords, 2020-2026)
+按品牌精确控制视觉语言。聚焦法/意/英/比/日/韩先锋设计——不含美国品牌。
+
+### 法国 Paris
+- Hermès (Nadège Vanhée): 极简奢华、皮革变形技术、马术传承、真丝斜纹、羊绒针织、大地色系(沙色/灰褐/深巧克力/奶油白)、"安静力量"——看不见Logo但面料即身份。廓形: 合身不紧身、精准肩线、流畅长线条。
+- Margiela Artisanal (John Galliano 2014-2024): 米勒塔日(milletage碎布拼贴)、收缩剪裁(rétrécirage缝后缩)、情感剪裁、解构高定、Tabi×红底鞋。廓形: 不对称、反穿、面料反用、身体变形。
+- Miu Miu (Miuccia Prada): 缩水比例(故意过短/过小)、纤维羊毛(felted wool)、棉缎(cotton satin)、老化皮革、身体漂浮(body-floating)廓形、故意不完美。"少女×成熟"反差。
+- Saint Laurent (Anthony Vaccarello): Le Smoking吸烟装现代版、全黑主导、锋利剪裁、透明衬衫、80年代权力肩线、皮革、金属光泽。
+- Celine (Hedi Slimane 2018-2024): 70年代巴黎夜店×60年代Mod、极度修身→男友风松弛、黑色+金属点缀、骑士短靴、窄身皮夹克。
+- Dior (Maria Grazia Chiuri): 女性赋权、花卉刺绣、薄纱层叠、Bar夹克现代版、灰粉×黑、希腊女神垂坠、运动×高定混搭。
+- Schiaparelli (Daniel Roseberry): 超现实高定、镀金解剖学珠宝、夸张身体部位装饰、雕塑感廓形、黑白+金。标志: 锁孔镂空、Trompe l'œil身体印花。
+- Jacquemus (Simon Porte): 南法度假、超短比例(cropped)、微包(micro bags)、建筑感廓形×地中海松弛、白/米/柠檬黄/赤陶/薰衣草紫。
+- Coperni (Sébastien Meyer): 科技×高定、喷制连衣裙(spray-on dress)、透明PVC/硅胶面料、未来极简、实验室美学、银/白/透明。
+
+### 比利时 Belgium
+- Dries Van Noten (1986-2025): 花园诗人、须边刺绣(organza fraying)、墨流(sumina-gashi大理石纹)、花卉印花、浓郁珠宝色调(翡翠绿/紫水晶/黄玉/红宝石)、色彩大师、比利时知识分子精神。
+- Margiela (Martin Margiela): 四针白标、解构、反穿、匿名性、白色主导、回收改造、"未完成"美学。
+
+### 意大利 Italy
+- Bottega Veneta (Matthieu Blazy→Louise Trotter): 皮革Trompe l'œil(皮制牛仔裤/衬衫——看起来是棉实为皮革)、Intrecciato编织创新、日常奢华。FW24: 全皮革成衣(视觉骗术)。
+- Jil Sander (Meiers→Bellotti): 茧型(cocooning)廓形、羊绒/羊驼毛、雕塑感极简、黑/白/奶油/炭灰、"安静的力量"。
+- Prada (Miuccia+Raf Simons): 知识分子时尚、制服解构、尼龙奢侈品化、不规则层次、意外比例(缩水×超大)、灰/黑/藏蓝+酸色点缀。
+- Gucci (Sabato De Sarno): Ancora深红、极简性感、精裁×休闲、"日常奢华回归"。
+- Zegna: Oasi Lino可溯源亚麻、软结构西装、大地色系、米兰现代主义、"the new tailoring"。
+- Loro Piana: 羊绒/驼马毛之王、无Logo极致面料、中性自然色调(沙色/燕麦/灰褐)、"穿得出身价但看不出价格"。
+- Brunello Cucinelli: 人文资本主义、羊绒精裁、暖中性(沙色/灰褐/奶油)、"gentleman's casual"——随意但有教养。
+
+### 英国 London
+- Alexander McQueen (Seán McGirr): 黑暗浪漫、戏剧廓形、镂空剪裁、黑色主导+血红、链甲式皮革编织。
+- Vivienne Westwood (Andreas Kronthaler): 朋克遗产、格纹、土星珠宝、束腰、18世纪×朋克。
+- Simone Rocha: 珍珠装饰、黑暗浪漫、蓬裙、薄纱层叠、缎带绑带、珍珠发夹。
+
+## 日本设计师深度速查 (Japanese Designer Deep Keywords)
+- Yohji Yamamoto: 不对称剪裁、全黑主导(偶有红/白)、垂坠(drape)、反时尚、日式侘寂×西方裁缝——"衣服不对称、因人体不对称"。标志: 宽松黑外套、垂坠半裙、Fedora宽帽。
+- Rei Kawakubo (Comme des Garçons): 肿块廓形、解构、纯黑、概念先行、身体即雕塑。
+- Issey Miyake: 褶皱技术(Pleats Please)、几何、雕塑感、全色域、A-POC一块布、技术×传统。
+- Junya Watanabe: 解构重组、工装元素时装化、技术面料×传统剪裁——工装/军装→高级时装。
+- Sacai (Chitose Abe): 日式解构层次、异材质拼接、百褶×工装、风衣×MA-1、"一件=两件信息量"。
+- Undercover (Jun Takahashi): 朋克诗歌、黑暗浪漫、超现实印花、街头×高级、"WE MAKE NOISE NOT CLOTHES"。
+- KENZO (Nigo): 日法混血、色彩丰富、街头×高定工艺、东京×巴黎、和风印花×工装。
+- Noir Kei Ninomiya: CDG旗下、无缝合(仅铆钉/金属环连接)、激光切割、朋克×极繁、花卉×金属。
+
+## 韩国设计师深度速查 (Korean Designer Deep Keywords)
+- Low Classic: 首尔极简、干净线条、中性色(黑白米驼灰)、知识分子风、"韩版Old Céline"。
+- Recto: 性别流动、精裁解构、不对称下摆、文字印花、首尔时装周常客。
+- EENK: 复古×当代、大胆色彩、夸张比例、90年代怀旧×现代剪裁——制服×宽肩西装。
+- Andersson Bell: 韩国街头×北欧极简、米兰时装周、拼接丹宁、实验廓形、色彩撞色。
+
+## 北欧设计师深度速查 (Scandinavian Designer Keywords)
+- Acne Studios (Jonny Johansson): 瑞典实验极简、体积游戏(volume play)、异材质拼接、艺术×商业、丹宁创新。
+- Totême (Elin Kling): 斯德哥尔摩极简、胶囊衣橱哲学、精裁外套(水手大衣/箱型西装)、真丝半裙、黑白米驼。
+
+## 街头/潮牌风格速查 (Streetwear & Hype Brand Keywords)
+- Fear of God / Essentials: 极端宽松廓形、中性色调(燕麦/灰褐/炭灰/奶油白)、落肩、超长袖、阔腿裤、194cm模特感
+- Off-White: 工业腰带、引号标语、解构剪裁、斜纹箭头logo、街头×高级时装
+- Balenciaga: 极端Oversize、破坏做旧、厚底运动鞋、茧型轮廓、末世奢华
+- Vetements: 解构比例、超长袖、夸张肩线、讽刺标语、东欧街头
+- Supreme: 红白Box Logo、滑板文化、联名印花、工装裤、棒球帽
+- Stüssy: 冲浪×滑板根源、涂鸦字体、工作服夹克、加州松弛
+- Palace: 英式滑板、三角Logo、复古足球衫、90年代怀旧
+- A-Cold-Wall*: 工装解构、灰色调、不对称剪裁、阶级叙事、工业元素时装化
+- Yeezy: 大地色系、极端宽松分层、解构军装、袜靴、末日美学
+- 032c: 柏林地下文化、概念性剪裁、暗色调、学术×叛逆
+- AMBUSH: 东京街头、金属配饰、未来感、摇滚×嘻哈
+- PEACEMINUSONE (权志龙): 韩国街头、雏菊logo、夹子配饰、做旧丹宁、黑色主导
+- CLOT (陈冠希): 中式元素×街头、丝绸印花、太极拳logo、唐装解构
+- SACAI: 日式解构层次、异材质拼接、百褶+工装、风衣×MA-1、层次丰富但不臃肿
+- Kiko Kostadinov: 保加利亚功能主义、不对称剪裁、工装细节时装化、学院派实验
 
 ## 配饰词汇速查
 - 包袋: Tote托特、Baguette法棍腋下包、Hobo月牙包、Crossbody斜挎、Clutch手拿、Bucket水桶
@@ -55,6 +132,145 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 - 柔和粉彩: 奶油黄/粉末蓝/淡粉
 - 珠宝色调: 电光紫/翡翠绿/蓝绿渐变
 - 核心转变: 纯黑out→墨蓝/浓缩咖啡棕/炭灰/深李子紫替代`;
+
+// ─── Fashion Coordination Rules — 2026 runway + street style research ───
+// Sources: VOGUE, Harper's Bazaar, Elle, GQ, Vogue Adria, Who What Wear (2026春夏/秋冬)
+export const FASHION_COORDINATION_DB = `## 服装搭配核心法则 (2026 Outfit Coordination Rules)
+生成角色服装时必须遵循。风格库定义了"有哪些风格"，搭配法则定义了"怎么穿才好看"。
+2026核心精神：有控制的丰盛(Controlled Abundance)——不是极简也不是乱堆，每层每色都有意图。
+
+### ⚠️ 季节默认原则
+**除非剧本明确指定季节/天气/温度，否则默认春秋过渡季着装。**
+- 默认面料克重: 轻~中等(棉/亚麻/细羊毛/天丝/府绸/三醋酸，禁用厚重呢料羽绒)
+- 默认叠穿层数: 1-2层(内搭+外套)，不超过3层
+- 禁止默认全套冬装——只有剧本提到冬天/雪/寒冷/大衣时才使用厚面料
+- 夏季信号(炎热/高温/海滩) → 单层、轻薄透气(真丝/亚麻/薄棉/雪纺)、适当露肤
+- 冬季信号(寒冷/雪/低温) → 羊绒/羊毛/双面呢/皮草、叠穿2-3层(内紧外松)
+
+### 廓形黄金法则 (2026 Proportion Rules)
+**#1铁律: 永远不要全身oversize或全身紧身。**
+- 上宽下窄(宽松上衣+修身下装) ✅ — 定义腰线
+- 上窄下宽(紧身上衣+阔腿裤/宽腿裤) ✅ — 建筑感轮廓
+- "一松一紧"公式: 宽腿裤+合身上衣、宽松衬衫+直筒裤、Oversize西装+修身内搭
+- 全身oversize → 像裹着床单出门 ❌
+- 全身紧身 → 真空包装既视感 ❌
+- 紧身单品 ≤ 全身面积的30%
+- "内紧外松"铁律: 里层合体→中层微松→外层稍宽，肩线依次外放0.5-1.5cm
+
+### 叠穿四级结构 (2026 Layering Framework)
+叠穿是风格工具，不是保暖手段。每层必须有审美目的。
+**四级框架**:
+| 层 | 作用 | 单品 |
+|----|------|------|
+| Base(贴身层) | 干净基础、常单色/同色系 | 修身T恤、丝质吊带、羊绒打底、挺括衬衫 |
+| Mid(风格层) | 比例塑造、增加深度不增体积 | 细针针织衫、长款开衫、结构感西装 |
+| Outer(轮廓层) | 完成视觉结构、线条干净 | 风衣、羊毛大衣、精裁长外套 |
+| Detail(个性层) | 性格与亮点、整套的"反转" | 丝巾作腰带、胸针、肩披针织衫、陶珠项链 |
+
+**高阶叠穿公式(2026街拍验证)**:
+- 衬衫×针织衫×外套: 解开领口+袖口纽扣，材质与色彩双重碰撞
+- T恤×针织衫×外套: 白T是所有复杂叠穿的"呼吸灵魂"
+- 双外套公式: 西装+大衣——材质必须不同(羊毛西装×风衣)，长的在外
+- 反体积叠穿: 修身马甲/短开衫 × 内搭oversize衬衫——颠覆预期的层次
+- 空气感叠穿(春夏): 半透雪纺×薄水洗棉×微孔针织，三层薄料各自透光，拒绝厚重
+
+**叠穿禁止**:
+- 两件同等厚度/同等硬度的单品相邻(牛仔夹克+牛仔外套)
+- 三层以上厚重面料(毛衣+卫衣+厚夹克 = 臃肿米其林)
+- 所有层次同一长度(无错落=无层次)
+- 为"丰富"而堆砌——每件单品必须能独立穿着成立
+
+### 面料搭配: 内软外挺 + 材质碰撞
+**黄金准则**: 内层垂顺柔软、外层有筋骨挺括。
+**面料重量三档**:
+- 轻量(0): 真丝/雪纺/薄纱/蕾丝/薄棉/亚麻/天丝/三醋酸——单穿或内搭
+- 中量(1): 棉府绸/针织/丹宁/羊毛西装料/斜纹软呢/天鹅绒——主力层
+- 重量(2): 羽绒/厚毛呢/皮草/皮革/厚羊毛大衣——仅外套、仅寒冷环境
+
+**搭配规则**:
+- 日常: 0+1 或 1+1(至多一件2级单品作为最外层)
+- 禁止: 2+2+2(全身重型——只有极地环境允许)
+- 晚装/正装: 真丝+天鹅绒(0+1)、精裁西装+大衣(1+2)
+- 材质对比创造趣味: 哑光棉麻×光泽真丝、粗棒针织×光滑皮革、硬挺丹宁×柔软羊绒
+- 避免: 软塌面料+硬挺粗针织(无版型)、双层厚面料(膨胀显胖)
+
+### 2026配色体系 (Color Rules)
+**核心转变**: 极简米色退潮，饱和自信色回归。但搭配仍需克制。
+
+| 路线 | 代表色 | 用法 |
+|------|--------|------|
+| 低饱和柔雅 | 雾粉/奶咖/灰蓝/燕麦/淡芋泥紫/鼠尾草绿/干枯玫瑰粉 | 全身主色，温润高级 |
+| 高饱和情绪 | 正红/柠黄/宝蓝/钴蓝/电光绿/蜜瓜橙 | ≤10%面积点睛 |
+| 暖中性基底 | 云舞白/奶油黄/驼色/焦糖/浓缩咖啡棕/暖灰褐 | 锚定色，不限面积 |
+
+**搭配规则**:
+- 全身主色 ≤ 3个(不含黑白灰米等中性基础色)
+- 同色系深浅递进: 2-4个色阶(米白→浅杏→卡其→焦糖)，避免完全同色号
+- 2026撞色公式: 绿×黄、蓝×红(年度组合)、蓝×黄(沙与海)、红×紫(华贵)
+- 撞色条件: 互补色之一降饱和度至少40%，否则刺眼
+- 繁简平衡: 印花单品配纯色基础款，禁止"花+花+花"
+- 白T/白衬衫万能提亮: 深色叠穿中露出白领口/下摆，瞬间呼吸感
+- 禁止: 高饱和×高饱和大面积对撞(除非舞台表演者)
+
+### 2026春夏软结构趋势
+生成非冬季场景时，优先使用以下2026SS面料与廓形：
+- **柔雾轻纱**: 欧根纱/雪纺/薄纱，自带哑光柔焦效果，零负重垂坠流动
+- **垂坠上衣**: 针织/真丝/黏胶纤维，折线成为设计结构，包裹但不束缚
+- **软雕塑廓形**: 系结垂坠、抽皱气泡下摆、不对称褶皱——柔软但有力
+- **空气感层次**: 半透明罗纹针织、透感薄纱×蕾丝层叠、异材质拼接(一雾一光)
+- **蓬拢泡泡裙**: 欧根纱/提花棉、半球形立体轮廓、"上紧下松"蓬而不肿
+
+### 时尚出街公式 (Street Style Formulas)
+用于艺术家/创意人士等需要"时髦出街感"的角色：
+- **"一休闲一正式"铁律**: 礼服裤×宽松图案T恤、真丝衬衫×厚框墨镜×工装裤、运动裤×真丝正装衬衫
+- **牛仔裤×针织衫(2026星配)**: 配蛇纹短靴+肩披针织衫作围巾，或配军装夹克+小丝巾
+- **气球裤/宽腿裤×合身上衣×尖头鞋**: 廓形对比+线条延伸
+- **基础款破格**: 牛仔裤+图案T恤→加一件精裁西装+尖头平底鞋，瞬间出街感
+- **一件雕塑感单品**: 建筑肩线/气泡裙摆/不对称垂坠，其余一切从简
+- **"稍错感"原则**: 元素组合轻微不协调=一眼区别于大众
+
+### 2016-2026 色彩时代语境 (Color Era Timeline)
+按时代调整配色——2016年的"时髦"和2026年的"时髦"不是同一套颜色：
+- **2016-2017**: Millennial Pink(千禧粉)、极简米色、黑白主导、Normcore——穿得看不出品牌=最高境界
+- **2018-2019**: 霓虹绿(Gen Z Green)、电光紫、Logomania回归、夸张印花、90s怀旧开始
+- **2020-2021**: 大地色舒适(Pandemic Cozy)、燕麦色、暖棕、家居服时装化
+- **2022-2023**: Barbiecore粉(Valentino Pink PP)、钴蓝、Dopamine Dressing(多巴胺穿搭)、高饱和情绪色
+- **2024-2025**: 低饱和柔雅回归——奶油黄、粉末蓝、淡芋泥紫、安静奢华色盘、Mocha Mousse摩卡慕斯
+- **2026**: Cloud Dancer云舞白(年度色)、电光亮色点缀(钴蓝/柠绿/番茄红)、暖中性基底(蜡纸色/安哥拉羊毛色)
+**规则**: 如果剧本时代明确→匹配时代配色；如果现代/当代→默认2024-2026色盘。
+
+### 欧洲高级时装质感速查 (European Couture Texture Guide)
+生成角色服装时，面料的"精神状态"比单品本身更重要：
+- **Hermès级安静奢华(Quiet Luxury)**: 羊绒→内敛光泽不反光; 小羊皮→柔软如第二层皮肤; 真丝斜纹→哑光面; 所有面料"看起来普通摸着才知价钱"。配饰: 皮革Kelly/Constance手袋(无Logo)。
+- **Margiela级解构先锋(Avant-Garde)**: 面料反用(里衬当外面)、未完成边缘(毛边/须边)、白棉布样衣(toile)直接穿出街、过度洗涤褪色。
+- **Dries Van Noten级诗意色彩(Poetic Color)**: 印花绝不俗气——花卉需有须边/晕染/水墨感; 色彩组合意外但和谐(紫+橙、绿+粉); 1件印花单品+1-2件纯色单品。
+- **Miu Miu级故意不完美(Intentional Wrongness)**: 缩水的毛衣→袖子短一截; 低腰裙→比例不对但是"对的不对"; 老化的皮革→哑光粗糙。
+- **Jil Sander级雕塑极简(Sculptural Minimalism)**: 管状廓形→不贴身的独立结构; 面料厚实有筋骨(羊绒/羊毛/双面呢)→自己站立; 无缝口或最小缝口。
+- **Lemaire级松弛优雅(Relaxed Refinement)**: 面料→柔软但不塌陷; 廓形→随身体移动自然起褶皱; 颜色→同色不同深度; "没刻意打扮但每个细节都对"。
+- **Bottega Veneta级Trompe l'œil(视觉骗术)**: 皮革模仿其他面料(牛仔裤/法兰绒/T恤——实际全是小羊皮); Intrecciato编织纹理超大号; 配饰(包/鞋)做主角。
+- **Schiaparelli级超现实(Surrealist)**: 身体部位金属装饰、龙虾/锁孔/眼睛/耳朵形状刺绣或五金、非对称夸张结构。
+
+### 日韩风格特殊搭配法则 (East Asian Styling Rules)
+生成东亚背景或角色时，区别于欧美的搭配逻辑：
+- **日式层次感**: 4层但每层极薄——半透雪纺×亚麻×细针针织×棉府绸。层次不增体积，增加"空气感"。欧美叠穿=保暖, 日式叠穿=审美。
+- **韩式素朴感**: 看似随意实则全盘规划——超大西装+白T+直筒牛仔裤+尖头平底; 每件单品极其基本, 但面料/剪裁/比例三条同时精准。
+- **日式黑色**: 不以全身同一种黑为错误——Yohji全黑但不同面料(哑光羊毛×光泽真丝×粗糙亚麻×光滑皮革)的黑各不同, 层次在材质不在颜色。
+- **韩式街头**: K-Pop舞台以外的"韩国出街"——中性色基底(黑/白/灰/米)+1个设计重点(超大廓形/不对称下摆/拼接), 球鞋不堆Logo。
+- **中日韩通配**: 直筒宽腿裤+合身上衣(内紧外松律)、尖头平底鞋/乐福鞋+松垮袜、层次错落(每层长度差距≥3cm)。
+
+### 艺术家/创意人士专属反模式 ⚠️
+生成艺术家、设计师、策展人、编剧等创意角色时，禁止以下：
+- **禁止机能风(Gorpcore)**: 防水面料/多口袋马甲/徒步鞋/工装绑带——这不是去徒步
+- **禁止重工风**: 粗帆布/铆钉/金属链/D环/多拉链/工业绑带——这不是建筑工地
+- **禁止全身运动装**: 除非角色正在运动
+- **禁止制服感**: 除非角色是军人/警察/保安
+- 正确方向：Eclectic Artist、Contemporary Chic、French Chic、Quiet Luxury、Italian Sprezzatura——从风格速查表选择这些
+
+### 通用反模式 ⚠️
+- "时装周堆砌": 所有流行元素穿在一套 → 选1个视觉焦点
+- "不分季节": 热带穿皮夹克、沙漠穿高领毛衣 → 致命
+- "地毯式叠穿": 拖地大衣+拖地裤+厚底鞋 → 1件超长即可
+- "为设计而设计": 正常人不会穿的衣服 → 服装必须符合角色身份与场景`;
 
 // ─── Interior: Style → Visual Keywords ───
 export const INTERIOR_STYLE_DB = `## 室内设计风格视觉速查 (Interior Design Visual Reference)
@@ -230,7 +446,7 @@ export const STYLE_DECISION_RULES = `## 场景→风格决策规则 (Scene→Sty
 export const STYLE_POLISH_HINT = `## Style Default Reference
 When no explicit style is specified, default to contemporary, design-conscious aesthetics:
 
-Fashion: clean modern silhouettes, intentional color coordination (low-saturation greys, earthy tones, muted palettes, restrained bright accents), designer sensibility, youthful energy. Avoid: dated traditional looks, factory-uniform styles, over-saturated colors.
+Fashion: clean modern silhouettes, intentional color coordination (low-saturation greys, earthy tones, muted palettes, restrained bright accents), European/Japanese/Korean designer sensibility, youthful energy. Prefer: French Chic, Italian Sprezzatura, Quiet Luxury, Japanese deconstruction, Korean minimalism, Scandinavian clean lines. Avoid: American mall brands, dated traditional looks, factory-uniform styles, over-saturated colors, obvious logos, heavy branding.
 
 Interior: contemporary design-forward spaces — clean architectural lines, curated material palettes, layered modern lighting. Avoid: exposed concrete/rusted metal industrial clichés, generic factory/warehouse settings.
 
