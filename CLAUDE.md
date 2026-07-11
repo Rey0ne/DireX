@@ -68,15 +68,54 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-11 17:00 |
+| 最后更新 | 2026-07-11 01:52 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | (待提交) — 前端: 多图并行生成+扑克牌叠放+积分实时显示+promptRef闭包修复+ShotNode文本溢出修复 |
-| 未提交文件 | 后端系统文件待同步 (server/src/systems/ 10文件 + canvas-state/task-logs 运行时数据) |
-| D盘备份 | `D:/direx-backup-20260711` (待同步) |
-| 已完成板块 | ① Camera/Lens/Film映射 ② 风格知识库接入 ③ 5维决策规则引擎 ④ 小Q Chat + Q大脑指挥官 ⑤ 断网恢复 + 本地资产缓存 ⑥ 多图并行生成 + 扑克牌叠放 + 抽卡网格 + 积分消耗预览 |
-| 后端待同步 | `server/src/systems/` — agent/pipeline.ts, agent/profiles.ts, agent/style-db.ts, ai/kie-provider.ts, q/q-api.ts, q/q-chat.ts, q/q-cognitive-engine.ts, q/q-orchestrate.ts + 新增 q/q-decide.ts, q/q-template-advisor.ts, agent/music-planner.ts, file/asset-cache.ts |
-| 合约变更 | `ImageGenMeta.imageUrls?: string[]` — 多图URL存储；`ImageGenMeta.imgCount?: number` — 用户选择的生成张数。后端 generateWithAgent 需支持并行调用（前端用 Promise.all），或后端内部支持 `imgCount` 参数一次返回多张 |
+| 最新提交 | `2962cb8` — 后端: 两轮对话式KB检索 + 统一角色版式 + 负面提示词注入 |
+| 未提交文件 | 前端文件(17个) + 运行时数据(canvas-state/task-logs) |
+| D盘备份 | `D:/direx-backup-20260711-1328` (2.7M) |
+| 已完成板块 | ① Camera/Lens/Film映射 ② 风格知识库接入 ③ 5维决策规则引擎 ④ 小Q Chat + Q大脑指挥官 ⑤ 断网恢复 + 本地资产缓存 ⑥ 多图并行生成+扑克牌叠放+抽卡网格+积分消耗预览 ⑦ 两轮对话式KB检索(Agent自主决定查什么) ⑧ 统一角色版式(左三视图+右3表情+2细节) ⑨ 负面提示词硬注入 |
 | 下一个板块 | 板块4: T2I分镜模板统一 (4a 后端模板对齐 + 4b/4c 前端 ShotNode 改造) |
+
+---
+
+## 后端架构更新（2026-07-11 已提交 `2962cb8`，供前端工程师同步）
+
+### 角色提取新流程：两轮对话式 KB 检索
+
+```
+Round 1: GPT-5.4 读剧本 + KB_CATALOG(知识库目录) → 返回 5-8 个检索关键词
+Agent:  searchFashionKB() 按关键词搜索 40KB 知识库 → 返回精准 2-3KB
+Round 2: 检索结果 + NEGATIVE_CLOTHING + 剧本 → 设计角色
+```
+
+**核心改变：不再把 40KB 风格库一次性倾倒给 LLM**，而是 LLM 自主决定查什么 → Agent 精准检索 → 结果喂回。
+
+### 角色版式统一（profiles.ts CHARACTER_EXTRACTION）
+
+- 表情集：4→**3种**（平静/喜悦/愤怒）
+- 新增：**细节特写2处**（面料材质 + 标志性道具/配饰）
+- 统一版式：左侧60%三视图（正/侧/背），右侧40%（上排3表情+下排2细节）
+- 禁止非洲人种/黑人角色 + 反廉价服装负面提示词
+
+### 关键组件（pipeline.ts）
+
+| 组件 | 作用 |
+|------|------|
+| `KB_CATALOG` | 知识库目录（~1.5KB），让LLM知道可检索范围 |
+| `searchFashionKB(query)` | 关键词搜索引擎，匹配风格表+设计师+搭配法则 |
+| `searchInteriorKB(query)` | 场景空间搜索引擎 |
+| `buildStyleCard()` | 紧凑风格卡片（~800B），注入userMessage最前面 |
+| `NEGATIVE_CLOTHING` | 服装负面提示词（~1KB），注入userMessage |
+| `NEGATIVE_INTERIOR` | 场景负面提示词（~0.5KB），注入userMessage |
+
+### injectFeedback 修复
+
+- **修复**：首次分析不再跳过风格管线（`if (!userFeedback) return systemPrompt;` 已移除）
+- 每次调用都执行：extractScriptTriggers → decideStyle → buildStyleCard
+
+### 本次提交文件（13个，+2141/-100行）
+
+pipeline.ts(+620) / profiles.ts(+38) / style-db.ts(+220) / music-planner.ts(新) / q-template-advisor.ts(新) / q-decide.ts(新) / asset-cache.ts(新) / kie-provider.ts(+74) / q-api.ts(+28) / q-chat.ts(+131) / q-cognitive-engine.ts(+63) / q-orchestrate.ts(+37) / index.ts(+124) |
 
 ---
 
