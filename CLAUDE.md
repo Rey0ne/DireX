@@ -68,11 +68,12 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-11 01:52 |
+| 最后更新 | 2026-07-11 13:30 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `2962cb8` — 后端: 两轮对话式KB检索 + 统一角色版式 + 负面提示词注入 |
-| 未提交文件 | 前端文件(17个) + 运行时数据(canvas-state/task-logs) |
-| D盘备份 | `D:/direx-backup-20260711-1328` (2.7M) |
+| 最新提交 | `921d0c5` — 前端: 多图并行+扑克牌叠放+积分预览+promptRef闭包修复+ShotNode文本溢出修复 |
+| 上一提交 | `2962cb8` — 后端: 两轮对话式KB检索 + 统一角色版式 + 负面提示词注入 |
+| 未提交文件 | 后端系统文件: server/src/systems/ (10文件, 含新增 q-decide/q-template-advisor/music-planner/asset-cache) + server/src/index.ts + canvas-state/task-logs 运行时数据 |
+| D盘备份 | `D:/direx-backup-20260711-1328` (2.8M) |
 | 已完成板块 | ① Camera/Lens/Film映射 ② 风格知识库接入 ③ 5维决策规则引擎 ④ 小Q Chat + Q大脑指挥官 ⑤ 断网恢复 + 本地资产缓存 ⑥ 多图并行生成+扑克牌叠放+抽卡网格+积分消耗预览 ⑦ 两轮对话式KB检索(Agent自主决定查什么) ⑧ 统一角色版式(左三视图+右3表情+2细节) ⑨ 负面提示词硬注入 |
 | 下一个板块 | 板块4: T2I分镜模板统一 (4a 后端模板对齐 + 4b/4c 前端 ShotNode 改造) |
 
@@ -115,7 +116,46 @@ Round 2: 检索结果 + NEGATIVE_CLOTHING + 剧本 → 设计角色
 
 ### 本次提交文件（13个，+2141/-100行）
 
-pipeline.ts(+620) / profiles.ts(+38) / style-db.ts(+220) / music-planner.ts(新) / q-template-advisor.ts(新) / q-decide.ts(新) / asset-cache.ts(新) / kie-provider.ts(+74) / q-api.ts(+28) / q-chat.ts(+131) / q-cognitive-engine.ts(+63) / q-orchestrate.ts(+37) / index.ts(+124) |
+pipeline.ts(+620) / profiles.ts(+38) / style-db.ts(+220) / music-planner.ts(新) / q-template-advisor.ts(新) / q-decide.ts(新) / asset-cache.ts(新) / kie-provider.ts(+74) / q-api.ts(+28) / q-chat.ts(+131) / q-cognitive-engine.ts(+63) / q-orchestrate.ts(+37) / index.ts(+124)
+
+---
+
+## 前端架构更新（2026-07-11 已提交 `921d0c5`，供后端工程师同步）
+
+### 多图并行生成 + 扑克牌叠放
+
+```
+用户选 ×2/×4 → 前端 Promise.all(N个 generateWithAgent) → 收集所有 assetUrls
+→ imageUrls[] 存入 meta → 叠放显示（最多5层可见，右下16px偏移）
+→ 点击叠放 → createPortal 网格 overlay → 抽卡(点击选图→reorder数组→主图置顶)
+```
+
+### 合约变更（graph.ts ImageGenMeta）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `imageUrls` | `string[]` | 多图URL，[0]为主显示图 |
+| `imgCount` | `number` | 用户选择的生成张数 (1/2/4) |
+
+**后端需支持**: `generateWithAgent` 接收 `imgCount` 参数，一次返回对应数量的 assetUrls；或前端继续用 Promise.all 并行调用（当前方案）。
+
+### 积分消耗预览（ImageGenerateNode）
+
+- `getImageCost(model, resolution, imgCount)` 函数 — 选择模型/分辨率/张数时实时计算
+- 定价: 1K=10, 2K=15, 4K=20 积分（单张基准），Nano Banana ×0.8
+
+### Bug 修复
+
+| 修复 | 文件 | 问题 | 方案 |
+|------|------|------|------|
+| promptRef 闭包 | ImageGenerateNode | Enter发送时prompt状态未更新，onGenerate读到空值提前return | 加 promptRef，onChange 同步写入，handleGenerate 读 ref |
+| hasMulti 条件 | ImageGenerateNode | 后端返回3个变体URL触发了"3张"叠放，用户明明选×1 | hasMulti 增加 `genImgCount > 1` 条件 |
+| 积分挤压按钮 | ImageGenerateNode | `{genRunning && -10积分}` 在50px容器内挤变形 | 去掉固定宽度，积分始终显示在按钮左侧 |
+| ShotNode 文本溢出 | ShotNode | 长文本撑破textarea | boxSizing+overflowWrap+wordBreak+minWidth:0 |
+
+### 本次提交文件（19个，+1101/-517行）
+
+App.tsx(+405) / ImageGenerateNode.tsx(+189) / ShotNode.tsx(+328) / gateway.ts(+99) / QAssistant.tsx(-300) / LeftToolbar.tsx(+69) / persistence.ts(+16) / graph.ts(+3) / 其他11个
 
 ---
 
