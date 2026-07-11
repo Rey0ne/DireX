@@ -325,6 +325,34 @@ const CANVAS_FILE = 'data/canvas-state.json';
 let canvasState: any = readJSON(CANVAS_FILE) || { nodes: [], edges: [], updatedAt: '' };
 console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
 
+// ── Script task persistence ──
+const SCRIPT_TASKS_FILE = 'data/script-tasks.json';
+function loadScriptTasks(): Map<string, any> {
+  const raw = readJSON(SCRIPT_TASKS_FILE) as Record<string, any> | null;
+  const map = new Map<string, any>();
+  if (raw && raw.tasks) {
+    let staleCount = 0;
+    for (const [id, t] of Object.entries(raw.tasks)) {
+      // Tasks that were "processing" when the server went down are now lost
+      if (t.status === 'processing') {
+        map.set(id, { ...t, status: 'lost', error: 'Server restarted while task was in progress' });
+        staleCount++;
+      } else {
+        map.set(id, { ...t, createdAt: t.createdAt || Date.now() });
+      }
+    }
+    console.log(`[script-tasks] Loaded ${map.size} persisted tasks (${staleCount} marked lost)`);
+  }
+  return map;
+}
+function saveScriptTasks() {
+  const obj: Record<string, any> = {};
+  for (const [id, t] of scriptTasks) {
+    obj[id] = { status: t.status, result: t.result, error: t.error, createdAt: t.createdAt };
+  }
+  writeJSON(SCRIPT_TASKS_FILE, { tasks: obj, updatedAt: new Date().toISOString() });
+}
+
 // ── Canvas backup: keep last 20 timestamped snapshots ──
 const BACKUP_DIR = 'data/backups';
 function rotateBackups() {
@@ -842,8 +870,8 @@ app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 // ─── Script Analysis ─────────────────────────
 import { runCharacterExtraction, runSceneExtraction, runSceneArchitect, runPropDesigner, runSoundComposer, runScriptAnalysis, type ScriptAnalysisResult } from './systems/agent/pipeline.js';
 
-// 异步任务存储：taskId → { status, result }
-const scriptTasks = new Map<string, { status: 'processing'|'done'; result?: ScriptAnalysisResult; error?: string; createdAt: number }>();
+// 异步任务存储：taskId → { status, result }。持久化到磁盘，抗服务重启
+const scriptTasks = loadScriptTasks();
 
 // 提交分析任务 → 立即返回 taskId，后台异步处理
 app.post('/api/agent/script/overview', async (req, res) => {
@@ -851,32 +879,58 @@ app.post('/api/agent/script/overview', async (req, res) => {
   if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
   const taskId = uuid();
   scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  saveScriptTasks();
   console.log('[script-analysis] Task ' + taskId + ' started, scriptLen=' + scriptText.length);
-  // 后台异步两阶段处理
-  // Phase 1: 角色提取（快，输出短）
-  // Phase 2: 分镜生成（基于角色 + 镜头规范，输出稳定完整）
+  // 后台异步全管线处理（角色 → 场景+音乐+分镜 并行）
+  // 所有结果存入一个 task，前端只轮询一个 taskId 拿到全部结果
+  const MASTER_TIMEOUT_MS = 900_000; // 15 分钟总超时
   (async () => {
     try {
-      const characters = await runCharacterExtraction(scriptText, visualStyle);
-      console.log('[script-analysis] Task ' + taskId + ' chars extracted: ' + Object.keys(characters).length);
-      const result = await runScriptAnalysis(scriptText, visualStyle, characters);
+      const fullResult = await Promise.race([
+        (async () => {
+          // Phase 1: 角色提取（快，供分镜引用）
+          const characters = await runCharacterExtraction(scriptText, visualStyle);
+          console.log('[script-analysis] Task ' + taskId + ' chars: ' + Object.keys(characters).length);
+
+          // Phase 2: 场景 + 空间架构 + 音乐 + 分镜 — 四路并行
+          const [scenes, sceneArchitecture, soundResult, storyboard] = await Promise.all([
+            runSceneExtraction(scriptText),
+            runSceneArchitect(scriptText),
+            runSoundComposer(scriptText),
+            runScriptAnalysis(scriptText, visualStyle, characters),
+          ]);
+          console.log('[script-analysis] Task ' + taskId + ' scenes:' + Object.keys(scenes).length
+            + ' shots:' + storyboard.shots.length
+            + ' music:' + Object.keys(soundResult.sunoPrompts).length);
+
+          return { characters, scenes, sceneArchitecture, soundResult, storyboard };
+        })(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Pipeline master timeout after 15 minutes')), MASTER_TIMEOUT_MS)
+        ),
+      ]);
+
       const task = scriptTasks.get(taskId);
-      if (task) { task.status = 'done'; task.result = result; }
+      if (task) { task.status = 'done'; task.section = 'overview'; task.result = fullResult; saveScriptTasks(); }
+
       // 小Q: capture script analysis
       try {
         captureScriptAnalysis('default', scriptText, {
-          characters,
-          scenes: result.scenes || {},
-          shots: result.shots || [],
-          sceneArchitecture: result.sceneArchitecture || {},
-          props: result.props || {},
-          music: result.music || { scenes: {}, sunoPrompts: {} },
+          characters: fullResult.characters,
+          scenes: fullResult.scenes || {},
+          shots: fullResult.storyboard.shots || [],
+          sceneArchitecture: fullResult.sceneArchitecture || {},
+          props: {},
+          music: fullResult.soundResult || { scenes: {}, sunoPrompts: {} },
         });
       } catch {}
-      console.log('[script-analysis] Task ' + taskId + ' done, shots=' + result.shots.length + ' chars=' + result.rawOutput.length);
+      console.log('[script-analysis] Task ' + taskId + ' done, shots=' + fullResult.storyboard.shots.length
+        + ' chars=' + Object.keys(fullResult.characters).length
+        + ' scenes=' + Object.keys(fullResult.scenes).length
+        + ' music=' + Object.keys(fullResult.soundResult.sunoPrompts).length);
     } catch (err) {
       const task = scriptTasks.get(taskId);
-      if (task) { task.status = 'done'; task.error = String(err); }
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
       console.log('[script-analysis] Task ' + taskId + ' failed:', String(err).slice(0, 200));
     }
   })();
@@ -886,16 +940,25 @@ app.post('/api/agent/script/overview', async (req, res) => {
 // 轮询任务结果
 app.get('/api/agent/script/result/:taskId', (req, res) => {
   const task = scriptTasks.get(req.params.taskId);
-  if (!task) { res.status(404).json({ error: 'Task not found' }); return; }
+  if (!task) { res.status(404).json({ error: 'Task not found', status: 'lost' }); return; }
   if (task.status === 'processing') { res.json({ status: 'processing' }); return; }
+  if (task.status === 'lost') { res.json({ status: 'lost', error: task.error || 'Task was interrupted by server restart' }); return; }
   const r = task.result;
   res.json({
     status: 'done',
     success: !task.error,
-    shots: r?.shots || [],
+    section: task.section || 'overview',  // null for old overview tasks, 'music'/'characters'/etc for individual regen
+    // Storyboard (shots)
+    shots: r?.storyboard?.shots || [],
     characterProfiles: r?.characters || {},
-    rawOutput: r?.rawOutput || '',
-    durationMs: r?.durationMs || 0,
+    rawOutput: r?.storyboard?.rawOutput || '',
+    durationMs: r?.storyboard?.durationMs || 0,
+    // Scenes
+    scenes: r?.scenes || {},
+    sceneArchitecture: r?.sceneArchitecture || {},
+    // Music / Sound
+    sunoPrompts: r?.soundResult?.sunoPrompts || {},
+    soundScenes: r?.soundResult?.scenes || {},
     error: task.error,
   });
 });
@@ -903,7 +966,9 @@ app.get('/api/agent/script/result/:taskId', (req, res) => {
 // 清理过期任务（每 30 分钟清一次）
 setInterval(() => {
   const cutoff = Date.now() - 30 * 60 * 1000;
-  for (const [id, t] of scriptTasks) { if (t.createdAt < cutoff) scriptTasks.delete(id); }
+  let deleted = 0;
+  for (const [id, t] of scriptTasks) { if (t.createdAt < cutoff) { scriptTasks.delete(id); deleted++; } }
+  if (deleted > 0) { saveScriptTasks(); console.log(`[script-tasks] Cleaned ${deleted} expired tasks`); }
 }, 600_000);
 
 // 小Q: periodic cognitive check + suggestions (every 5 min)
@@ -913,21 +978,74 @@ setInterval(() => {
 }, 300_000);
 
 app.post('/api/agent/script/characters', async (req, res) => {
-  const { scriptText } = req.body;
+  const { scriptText, visualStyle, userFeedback, existingContent } = req.body;
   if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
-  try {
-    const characters = await runCharacterExtraction(scriptText);
-    res.json({ success: true, characters });
-  } catch (err) { res.status(500).json({ error: String(err) }); }
+  const taskId = uuid();
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  saveScriptTasks();
+  console.log('[char-async] Task ' + taskId + ' started, feedback=' + !!userFeedback);
+
+  const TIMEOUT_MS = 600_000; // 10 min
+  (async () => {
+    try {
+      const result = await Promise.race([
+        runCharacterExtraction(scriptText, visualStyle, userFeedback, existingContent),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Character extraction timeout after 10 minutes')), TIMEOUT_MS)
+        ),
+      ]);
+      const task = scriptTasks.get(taskId);
+      if (task) {
+        task.status = 'done';
+        task.result = { characters: result, scenes: {}, sceneArchitecture: {}, storyboard: { shots: [], rawOutput: '', durationMs: 0 }, soundResult: { scenes: {}, sunoPrompts: {} } };
+        task.section = 'characters';
+        saveScriptTasks();
+      }
+      console.log('[char-async] Task ' + taskId + ' done, chars=' + Object.keys(result).length);
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
+      console.log('[char-async] Task ' + taskId + ' failed:', String(err).slice(0, 200));
+    }
+  })();
+  res.json({ taskId, status: 'processing' });
 });
 
 app.post('/api/agent/script/scenes', async (req, res) => {
-  const { scriptText } = req.body;
+  const { scriptText, userFeedback, existingContent } = req.body;
   if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
-  try {
-    const scenes = await runSceneExtraction(scriptText);
-    res.json({ success: true, scenes });
-  } catch (err) { res.status(500).json({ error: String(err) }); }
+  const taskId = uuid();
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  saveScriptTasks();
+  console.log('[scene-async] Task ' + taskId + ' started, feedback=' + !!userFeedback);
+
+  const TIMEOUT_MS = 600_000; // 10 min
+  (async () => {
+    try {
+      const [scenes, sceneArchitecture] = await Promise.race([
+        Promise.all([
+          runSceneExtraction(scriptText, userFeedback, existingContent),
+          runSceneArchitect(scriptText, userFeedback, existingContent),
+        ]),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Scene extraction timeout after 10 minutes')), TIMEOUT_MS)
+        ),
+      ]);
+      const task = scriptTasks.get(taskId);
+      if (task) {
+        task.status = 'done';
+        task.result = { characters: {}, scenes, sceneArchitecture, storyboard: { shots: [], rawOutput: '', durationMs: 0 }, soundResult: { scenes: {}, sunoPrompts: {} } };
+        task.section = 'scenes';
+        saveScriptTasks();
+      }
+      console.log('[scene-async] Task ' + taskId + ' done, scenes=' + Object.keys(scenes).length);
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
+      console.log('[scene-async] Task ' + taskId + ' failed:', String(err).slice(0, 200));
+    }
+  })();
+  res.json({ taskId, status: 'processing' });
 });
 
 // ─── Scene Architect (场景空间设计) ──
@@ -960,7 +1078,7 @@ app.post('/api/agent/script/sound', async (req, res) => {
   } catch (err) { res.status(500).json({ error: String(err) }); }
 });
 
-// ─── Regenerate individual section with user feedback ──
+// ─── Regenerate individual section with user feedback (async, task-based) ──
 app.post('/api/agent/script/regenerate', async (req, res) => {
   const { scriptText, section, visualStyle, userFeedback, existingResults } = req.body || {};
   if (!scriptText || !section) {
@@ -972,44 +1090,99 @@ app.post('/api/agent/script/regenerate', async (req, res) => {
     res.status(400).json({ error: `Invalid section "${section}". Must be: ${validSections.join(', ')}` });
     return;
   }
-  console.log(`[regenerate] section=${section} feedback=${(userFeedback || '').slice(0, 80)}`);
 
-  try {
-    switch (section) {
-      case 'characters': {
-        const existingContent = existingResults?.characters ? JSON.stringify(existingResults.characters) : undefined;
-        const characters = await runCharacterExtraction(scriptText, visualStyle, userFeedback, existingContent);
-        res.json({ success: true, section: 'characters', characters });
-        break;
-      }
-      case 'scenes': {
-        const existingChars = existingResults?.characters as Record<string, string> | undefined;
-        const existingScenesContent = existingResults?.scenes ? JSON.stringify(existingResults.scenes) : undefined;
-        const [scenes, sceneArchitecture] = await Promise.all([
-          runSceneExtraction(scriptText, userFeedback, existingScenesContent),
-          runSceneArchitect(scriptText, userFeedback, existingScenesContent),
-        ]);
-        res.json({ success: true, section: 'scenes', scenes, sceneArchitecture });
-        break;
-      }
-      case 'storyboard': {
-        const existingChars = existingResults?.characters as Record<string, string> | undefined;
-        const existingStoryboardContent = existingResults?.storyboard ? JSON.stringify(existingResults.storyboard) : undefined;
-        const result = await runScriptAnalysis(scriptText, visualStyle, existingChars, userFeedback, existingStoryboardContent);
-        res.json({ success: true, section: 'storyboard', shots: result.shots || [], characterProfiles: result.characters || {} });
-        break;
-      }
-      case 'music': {
-        const existingMusicContent = existingResults?.music ? JSON.stringify(existingResults.music) : undefined;
-        const result = await runSoundComposer(scriptText, userFeedback, existingMusicContent);
-        res.json({ success: true, section: 'music', soundScenes: result.scenes, sunoPrompts: result.sunoPrompts });
-        break;
-      }
+  const taskId = uuid();
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now(), section });
+  saveScriptTasks();
+  console.log(`[regenerate] Task ${taskId} section=${section} feedback=${(userFeedback || '').slice(0, 80)}`);
+
+  const TIMEOUT_MS = 600_000; // 10 min
+  (async () => {
+    try {
+      const existingChars = existingResults?.characters as Record<string, string> | undefined;
+
+      const result = await Promise.race([
+        (async () => {
+          switch (section) {
+            case 'characters': {
+              const existingContent = existingResults?.characters ? JSON.stringify(existingResults.characters) : undefined;
+              const characters = await runCharacterExtraction(scriptText, visualStyle, userFeedback, existingContent);
+              return { characters, scenes: {}, sceneArchitecture: {}, storyboard: { shots: [], rawOutput: '', durationMs: 0 }, soundResult: { scenes: {}, sunoPrompts: {} } };
+            }
+            case 'scenes': {
+              const existingScenesContent = existingResults?.scenes ? JSON.stringify(existingResults.scenes) : undefined;
+              const [scenes, sceneArchitecture] = await Promise.all([
+                runSceneExtraction(scriptText, userFeedback, existingScenesContent),
+                runSceneArchitect(scriptText, userFeedback, existingScenesContent),
+              ]);
+              return { characters: {}, scenes, sceneArchitecture, storyboard: { shots: [], rawOutput: '', durationMs: 0 }, soundResult: { scenes: {}, sunoPrompts: {} } };
+            }
+            case 'storyboard': {
+              const existingStoryboardContent = existingResults?.storyboard ? JSON.stringify(existingResults.storyboard) : undefined;
+              const analysisResult = await runScriptAnalysis(scriptText, visualStyle, existingChars, userFeedback, existingStoryboardContent);
+              return { characters: analysisResult.characters || {}, scenes: {}, sceneArchitecture: {}, storyboard: { shots: analysisResult.shots || [], rawOutput: analysisResult.rawOutput || '', durationMs: analysisResult.durationMs || 0 }, soundResult: { scenes: {}, sunoPrompts: {} } };
+            }
+            case 'music': {
+              const existingMusicContent = existingResults?.music ? JSON.stringify(existingResults.music) : undefined;
+              const soundResult = await runSoundComposer(scriptText, userFeedback, existingMusicContent);
+              return { characters: {}, scenes: {}, sceneArchitecture: {}, storyboard: { shots: [], rawOutput: '', durationMs: 0 }, soundResult: { scenes: soundResult.scenes, sunoPrompts: soundResult.sunoPrompts } };
+            }
+            default:
+              throw new Error('Invalid section: ' + section);
+          }
+        })(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Regeneration timeout after 10 minutes (section: ${section})`)), TIMEOUT_MS)
+        ),
+      ]);
+
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.result = result; saveScriptTasks(); }
+      console.log(`[regenerate] Task ${taskId} done, section=${section}`);
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
+      console.log(`[regenerate] Task ${taskId} failed:`, String(err).slice(0, 200));
     }
-  } catch (err: any) {
-    console.error('[regenerate] Error:', err.message);
-    res.status(500).json({ error: String(err) });
-  }
+  })();
+
+  res.json({ taskId, status: 'processing' });
+});
+
+// ─── Music-only async regeneration (task-based, survives refresh) ──
+app.post('/api/agent/script/music', async (req, res) => {
+  const { scriptText, userFeedback, existingMusic } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+  const taskId = uuid();
+  const existingMusicContent = existingMusic ? JSON.stringify(existingMusic) : undefined;
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  saveScriptTasks();
+  console.log('[music-regen] Task ' + taskId + ' started, feedback=' + (userFeedback || '').slice(0, 60));
+
+  const MASTER_TIMEOUT_MS = 600_000; // 10 min
+  (async () => {
+    try {
+      const result = await Promise.race([
+        runSoundComposer(scriptText, userFeedback, existingMusicContent),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Music pipeline timeout after 10 minutes')), MASTER_TIMEOUT_MS)
+        ),
+      ]);
+      const task = scriptTasks.get(taskId);
+      if (task) {
+        task.status = 'done';
+        task.section = 'music';
+        task.result = { soundResult: result, characters: {}, scenes: {}, sceneArchitecture: {}, storyboard: { shots: [], rawOutput: '', durationMs: 0 } };
+        saveScriptTasks();
+      }
+      console.log('[music-regen] Task ' + taskId + ' done, music=' + Object.keys(result.sunoPrompts).length);
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
+      console.log('[music-regen] Task ' + taskId + ' failed:', String(err).slice(0, 200));
+    }
+  })();
+  res.json({ taskId, status: 'processing' });
 });
 
 app.post('/api/agent/script/scene', async (req, res) => {

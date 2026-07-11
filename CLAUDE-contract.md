@@ -25,6 +25,7 @@
 
 | 时间 | 从 | 到 | 消息 |
 |------|-----|-----|------|
+| 2026-07-11 | 后端 | 前端 | ⚠️ **scriptTasks 持久化了！** `GET /api/agent/script/result/:taskId` 新增 `status: 'lost'` 响应（服务器重启导致任务丢失时返回）。前端需处理此状态，显示"任务丢失"而非无限转圈。详情见下方 Script Task 定义。 |
 | 2026-07-10 | 后端 | 前端 | ⚠️ **生成结果现在存在本地了！** `imageUrl`/`videoUrl`/`audioUrl` 返回 `/api/output/asset_*.{ext}` 格式而非外部 CDN URL。`<img src={data.imageUrl}>` 直接能用，不需要改前端代码。切网络不会再丢图片。 |
 | 2026-07-09 | 后端 | 前端 | ⚠️ **小Q 聊天已接通！** QChatPanel 可以接 `/api/q/chat` 了。详情见下方 Chat API 定义。 |
 
@@ -74,6 +75,12 @@
 | POST `/api/q/chat` | 🟢 stable | 2026-07-09 | 前后端 |
 | POST `/api/q/decide` | 🟢 stable | 2026-07-10 | 前后端 |
 | GET `/api/output/*` | 🆕 new | 2026-07-10 | 后端 |
+| POST `/api/agent/script/overview` | 🟢 stable | 2026-07-11 | 后端 |
+| GET `/api/agent/script/result/:taskId` | 🟢 stable | 2026-07-12 | 后端 |
+| POST `/api/agent/script/regenerate` | 🆕 new | 2026-07-12 | 后端 |
+| POST `/api/agent/script/characters` | 🆕 new | 2026-07-12 | 后端 |
+| POST `/api/agent/script/scenes` | 🆕 new | 2026-07-12 | 后端 |
+| POST `/api/agent/script/music` | 🆕 new | 2026-07-12 | 后端 |
 
 **状态符号**：🟢 stable（稳定可用）| 🟡 changing（正在改）| 🔴 breaking（破坏性变更中）| 🆕 new（新增，前端尚未接入）| ⚫ deprecated（已废弃）
 
@@ -83,6 +90,9 @@
 
 | 日期 | 谁 | 做了什么 | 影响前端？ |
 |------|-----|---------|-----------|
+| 2026-07-12 | 后端 | **单独板块异步再生** — `regenerate`/`characters`/`scenes`/`music` 全部改为异步 taskId 模式，复用同一个 `scriptTasks` 持久化 + 轮询端点。用户刷新不会丢结果，可单独重新生成某一板块。 | **是** — ShotNode 需改 3 处：改异步端点调用 + 轮询 + section 防护 |
+| 2026-07-11 | 后端 | **管线上总超时（15分钟）** — `POST /api/agent/script/overview` 异步 Pipeline 加 `Promise.race` 总超时。 | **否** — 前端已有 `status: 'done'` + `success: false` 处理逻辑 |
+| 2026-07-11 | 后端 | **scriptTasks 落盘持久化** — 任务从内存 Map 改为 JSON 文件存储。 | **是** — 前端需处理 `status: 'lost'` |
 | 2026-07-10 | 后端 | **断网恢复 + 本地资产缓存** — 生成结果下载到 `data/output/`, `/api/output/*` 静态服务, taskStore 落盘+启动恢复, clientTaskId 持久化+重连轮询 | **否** — `<img src>` 直接能用， `/api/output/` 路径格式对前端透明 |
 | 2026-07-09 | 后端 | 小Q Phase 2 — 新增认知循环引擎 + AutoFix + API | 是 — `/analyze`/`/autofix`/`/cycles/active` |
 | 2026-07-09 | 后端 | 小Q Phase 3 — 预测引擎 + 建议引擎 + 自动编排 + pipeline回调 | 是 — `/predict`/`/suggest`/`/orchestrate` |
@@ -118,6 +128,82 @@
 | POST | `/api/agent/storyboard` | `{ scriptText, shots }` | 分镜表 |
 | POST | `/api/agent/unified` | `{ scriptText, visualStyle? }` | 全部分析结果 |
 | POST | `/api/visual-extract` | `{ providerId, rawText, extractMode?, referenceUrls?, shot? }` | 视觉解析结果 |
+
+### Script Task
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/agent/script/overview` | 提交脚本分析任务（异步），返回 `{ taskId }` — 全管线 |
+| POST | `/api/agent/script/regenerate` | 🆕 单独重新生成某一板块（异步），返回 `{ taskId }` |
+| POST | `/api/agent/script/characters` | 🆕 单独生成角色（异步），返回 `{ taskId }` |
+| POST | `/api/agent/script/scenes` | 🆕 单独生成场景+空间架构（异步），返回 `{ taskId }` |
+| POST | `/api/agent/script/music` | 🆕 单独生成音乐（异步），返回 `{ taskId }` |
+| GET | `/api/agent/script/result/:taskId` | 轮询任务结果（所有异步端点共用） |
+
+#### 🆕 `POST /api/agent/script/regenerate` — 单独重新生成某一板块
+
+```typescript
+// 请求
+{
+  scriptText: string,
+  section: 'characters' | 'scenes' | 'storyboard' | 'music',
+  visualStyle?: string,
+  userFeedback: string,   // 用户对当前结果的反馈（自然语言，无格式要求）
+  existingResults?: {     // 当前已有的全部结果（供 GPT 对比）
+    characters?: Record<string, string>,
+    scenes?: Record<string, string>,
+    storyboard?: { shots: any[], rawOutput: string, durationMs: number },
+    music?: { sunoPrompts: Record<string, string>, soundScenes: Record<string, string> }
+  }
+}
+
+// 响应（立即返回）
+{ taskId: string, status: 'processing' }
+```
+
+#### 🆕 `GET /api/agent/script/result/:taskId` — 响应更新
+
+新增 `section` 字段，标记任务是全管线还是单独板块：
+
+```typescript
+// 处理中
+{ "status": "processing" }
+// 完成
+{
+  "status": "done",
+  "success": true,
+  "section": "overview" | "characters" | "scenes" | "storyboard" | "music",
+  // 以下字段仅在相关板块有数据时非空，否则为 {} 或 []
+  "shots": Shot[],           // 分镜（仅 overview / storyboard）
+  "characterProfiles": {},   // 角色（仅 overview / characters / storyboard）
+  "scenes": {},              // 场景（仅 overview / scenes）
+  "sceneArchitecture": {},   // 场景空间（仅 overview / scenes）
+  "sunoPrompts": {},         // Suno 提示词（仅 overview / music）
+  "soundScenes": {}          // 声音场景（仅 overview / music）
+}
+// 失败
+{ "status": "failed", "error": "错误描述" }
+// 服务器重启丢失
+{ "status": "lost", "error": "Server restarted while task was in progress" }
+```
+
+**🆕 前端轮询安全规则（防止覆盖已有数据）：**
+
+| `section` 值 | 只更新哪些字段 | 不碰哪些字段 |
+|-------------|-------------|------------|
+| `'overview'` | 全部 | — |
+| `'characters'` | `characterProfiles` | shots, scenes, sunoPrompts 等 |
+| `'scenes'` | `scenes`, `sceneArchitecture` | shots, characterProfiles, sunoPrompts 等 |
+| `'storyboard'` | `shots`, `characterProfiles` | scenes, sunoPrompts 等 |
+| `'music'` | `sunoPrompts`, `soundScenes` | shots, characterProfiles, scenes 等 |
+
+**关键规则：** 如果 `json.shots` 是空数组 `[]` 且 `section !== 'overview'`，**不要** patch `scriptOverview`（否则会覆盖已有的分镜数据）。
+
+**前端改动（ShotNode.tsx）：**
+
+1. `handleSoundComposer`（~line 337）— 改用 `POST /api/agent/script/music` + taskId 轮询
+2. `handleRegenerateSection`（~line 365）— 改用 `POST /api/agent/script/regenerate` + taskId 轮询
+3. 轮询回调（main + resume）— 按 `section` 选择性 patch，不覆盖无关字段
 
 ### Other
 
@@ -476,5 +562,5 @@ package.json ← 共享（加了依赖告知对方）
 
 ---
 
-> 📅 最后更新：2026-07-09
+> 📅 最后更新：2026-07-11
 > 👥 维护者：后端 + 前端 Claude（通过本文件的 Read/Write 协作）
