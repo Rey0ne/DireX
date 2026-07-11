@@ -68,14 +68,14 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-11 13:30 |
+| 最后更新 | 2026-07-12 01:00 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `921d0c5` — 前端: 多图并行+扑克牌叠放+积分预览+promptRef闭包修复+ShotNode文本溢出修复 |
-| 上一提交 | `2962cb8` — 后端: 两轮对话式KB检索 + 统一角色版式 + 负面提示词注入 |
-| 未提交文件 | 后端系统文件: server/src/systems/ (10文件, 含新增 q-decide/q-template-advisor/music-planner/asset-cache) + server/src/index.ts + canvas-state/task-logs 运行时数据 |
-| D盘备份 | `D:/direx-backup-20260711-1328` (2.8M) |
-| 已完成板块 | ① Camera/Lens/Film映射 ② 风格知识库接入 ③ 5维决策规则引擎 ④ 小Q Chat + Q大脑指挥官 ⑤ 断网恢复 + 本地资产缓存 ⑥ 多图并行生成+扑克牌叠放+抽卡网格+积分消耗预览 ⑦ 两轮对话式KB检索(Agent自主决定查什么) ⑧ 统一角色版式(左三视图+右3表情+2细节) ⑨ 负面提示词硬注入 |
-| 下一个板块 | 板块4: T2I分镜模板统一 (4a 后端模板对齐 + 4b/4c 前端 ShotNode 改造) |
+| 最新提交 | `102a360` — 前端: ShotNode异步轮询+section选择性patch+lost/failed处理+兼容同步/异步响应+Handle样式统一+选中文字颜色修复 |
+| 上一提交 | `1c5ab43` — docs: CLAUDE.md 前端架构更新章节 + 合约变更同步 |
+| 未提交文件 | 后端: server/src/systems/ (10+文件) + server/src/index.ts + CLAUDE-contract.md(已更新合约) + canvas-state/task-logs 运行时数据 |
+| D盘备份 | `D:/direx-backup-20260712` |
+| 已完成板块 | ①~⑭ 同前 ⑮ ShotNode: 异步轮询+4种终止状态处理(lost/failed/done/timeout)+section选择性patch+同步/异步响应双兼容+错误UI条幅 ⑯ Audio/VideoGenerateNode Handle统一#00CFFF |
+| 下一个板块 | ⚠️ 后端: `/api/agent/script/regenerate` 和 `/api/agent/script/music` 实际返回同步格式 `{success, data}` 而非 `{taskId}`，需重启/对齐异步格式 |
 
 ---
 
@@ -159,6 +159,111 @@ App.tsx(+405) / ImageGenerateNode.tsx(+189) / ShotNode.tsx(+328) / gateway.ts(+9
 
 ---
 
+## 前端架构更新（2026-07-12 已提交 `102a360`，供后端工程师同步）
+
+### ShotNode 异步轮询重构
+
+**核心问题**: 前端轮询只认 `status: 'done'`，遇到 `lost`/`failed` 继续轮询直到25分钟超时。
+
+**修复**: 三种提交入口统一处理全部终止状态
+
+```
+handleScriptAnalysis → POST /api/agent/script/overview → taskId → 轮询(50×30s)
+handleSoundComposer → POST /api/agent/script/music → taskId → 轮询(20×15s)
+handleRegenerateSection → POST /api/agent/script/regenerate → taskId → 轮询(20×15s)
+```
+
+### 状态处理矩阵
+
+| 后端返回 | 前端行为 |
+|---------|---------|
+| `done`/`completed` + `success:true` | `applySectionResult()` 按 section 选择性 patch |
+| `done`/`completed` + `success:false` | 显示错误条幅 + 停止轮询 |
+| `lost` | 显示"任务丢失，请重试" + 停止轮询 |
+| `failed` | 显示错误信息 + 停止轮询 |
+| 超时 (50次/25min 或 20次/5min) | 显示超时错误 + 清 taskId |
+| `processing` | 继续轮询 |
+
+### applySectionResult — section 选择性 patch
+
+按 CLAUDE-contract.md 规则，避免覆盖无关数据：
+
+| `section` | 写入字段 | 不碰字段 |
+|-----------|---------|---------|
+| `overview` | shots, characterProfiles, scenes, sceneArchitecture, sunoPrompts, soundScenes | — |
+| `characters` | scriptCharacters | shots, scenes, sunoPrompts |
+| `scenes` | scriptScenes, scriptSceneArchitecture | shots, characterProfiles |
+| `storyboard` | scriptOverview.shots + characterProfiles (合并现有) | scenes, sunoPrompts |
+| `music` | scriptSunoPrompts, scriptSoundScenes | shots, characterProfiles, scenes |
+
+### 同步/异步双兼容
+
+后端 `/api/agent/script/regenerate` 和 `/api/agent/script/music` 当前返回同步格式 `{success, data}`，但合约要求异步 `{taskId}`。前端同时兼容：
+- 响应有 `success` 字段 → 同步结果，直接 `applySectionResult`
+- 响应有 `taskId` 字段 → 异步任务，走轮询
+
+### 其他修复
+
+- `analysisError` state + 红色错误条幅 UI（可关闭）
+- resume useEffect 刷新恢复轮询时设 genRunning 显示 loading
+- `regenerateRunning` 加入 loading 指示器
+- AudioGenerateNode/VideoGenerateNode Handle 统一实心蓝底 #00CFFF + 白色+号
+- `index.css` `::selection` 从白色18%透明 → rgba(0,207,255,0.30) 青色
+
+### 本次提交文件（4个，+222/-94行）
+
+ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
+
+### ⚠️ 后端待办
+
+`/api/agent/script/regenerate` 和 `/api/agent/script/music` 当前实际返回同步格式 `{success, section, ...}`（非 taskId），前端已做双兼容但建议后端重启对齐异步格式。
+
+---
+
+## 后端架构更新（2026-07-11 未提交，供前端工程师同步）
+
+### scriptTasks 持久化（index.ts）
+
+**问题**: ShotNode 提交剧本分析 → 后台异步处理 → 前端轮询结果。但 `scriptTasks` 是内存 Map，服务重启后任务丢失，前端永久卡等待。
+
+**修复**:
+- `scriptTasks` 从内存 Map → JSON 文件 (`server/data/script-tasks.json`) 持久化
+- 服务启动时从磁盘恢复任务
+- 启动前状态为 `processing` 的任务自动标记为 `lost`
+- 清理定时器同步写盘
+
+### API 合约变更（⚠️ 前端需同步）
+
+`GET /api/agent/script/result/:taskId` 新增一种响应状态：
+
+```json
+// 新增：任务因服务中断而丢失
+{ "status": "lost", "error": "Server restarted while task was in progress" }
+```
+
+**前端需要处理 `status: 'lost'`**（等同于失败，需重新提交），否则界面会一直转圈等待。
+
+### 音乐 KB 大规模补充（music-kb.ts +893→1046行）
+
+| 新增类别 | 数量 | 内容 |
+|---------|------|------|
+| Fashion/Runway 流派 | 10 子流派 | Runway Deep House, Runway Techno, Runway Hyperpop, Vogue Ballroom 等 |
+| Avant-Garde/Experimental 流派 | 14 子流派 | Noise Music, Drone, Musique Concrète, Power Electronics 等 |
+| 电子子流派补充 | 22 | Minimal Techno, Dub Techno, UK Garage, Phonk, Amapiano 等 |
+| 流行子流派补充 | 10 | Hyperpop, Bedroom Pop, City Pop, Funk Pop 等 |
+| 爵士子流派补充 | 12 | Hard Bop, Nu Jazz, Acid Jazz, Jazz-Hop, Spiritual Jazz 等 |
+| 嘻哈子流派补充 | 8 | Grime, Gangsta Rap, Latin Trap, Mumble Rap 等 |
+| 摇滚/Metal 补充 | 12 | Thrash Metal, Nu Metal, Shoegaze, Grunge, Math Rock 等 |
+| 情绪 (EMOTIONS) | +12 | Glamorous, Confident, Edgy, Sleek, Fierce, Seductive + TVC 情绪 |
+| 制作风格 | +7 | Runway Ready, Luxury Minimal, Industrial Catwalk, Commercial Clean 等 |
+| 叙事场景 | +18 | TVC(8) + Runway(10) |
+
+### KB_CATALOG + KB_RETRIEVAL_PROMPT_MUSIC 更新（pipeline.ts）
+
+目录和检索引导已同步反映新增的音乐流派/情绪/场景，GPT Round 1 现在能自主检索 TVC/Runway/先锋音乐方向。
+
+---
+
 ## 核心禁止事项
 - 不要改端口号（3001/5173/8888）
 - 不要改认证密钥
@@ -194,6 +299,64 @@ App.tsx(+405) / ImageGenerateNode.tsx(+189) / ShotNode.tsx(+328) / gateway.ts(+9
 3. **上下文压缩后重查已知道的信息** → 依赖 session-handoff.md 写清楚，而不是靠记忆
 4. **擅自修改未授权的代码** → 用户说「先汇报别改」时必须只读不改
 5. **忘记 direx-project 是符号链接** → 它就是 direx-backup，同目录，不需要「同步」
+
+---
+
+## 模型 Provider 稳定性与备选路线调研（2026-07，供后端工程师同步）
+
+> 背景：现走 kie.ai 调用全部生成模型，痛点 = **生成数量/限速太紧**。有资深工程师建议走 AWS Bedrock。以下为核实后的完整评估。
+
+### 现状模型栈（kie-provider.ts）
+
+| 模型 | 类型 | 归属 |
+|------|------|------|
+| `nano-banana-pro` | 图 | Google |
+| `gpt-image-2` | 图 | OpenAI |
+| `kling-3.0` | 视频 | 快手可灵 |
+| `seedance-2` | 视频 | 字节 |
+| Suno | 音乐 | Suno |
+| Tripo | 3D | Tripo（已直连 `tripo-provider.ts`） |
+
+### 核心结论
+
+1. 这些模型**全是闭源**，无法自托管 → 只能选"用谁的服务器/池子"。
+2. **kie.ai 是小聚合器（二道贩子），共享池 = 限速紧、不可控**，这是痛点根因。
+3. 解法优先级：**换更大聚合器（止痛最快）→ 核心模型转第一方（最可控）→ 多 provider 并存 + 失败降级（架构最靠谱）**。
+4. ⚠️ **AWS Bedrock 不适用本项目生成栈**：你用的模型一个都不在 Bedrock 目录（Bedrock 只有 Claude / Amazon Nova / Stability / Llama 等）。Bedrock 仅适合把**文本/LLM 推理**迁到 Claude（配额高、可提额）。
+
+### 每个模型的推荐第一方路线
+
+| 模型 | 首选第一方 | 靠谱度 | 备注 |
+|------|-----------|--------|------|
+| Seedance | **火山方舟**（字节自家） | ★★★★★ | 国产模型、国内可直连，**最该先转** |
+| Kling | **可灵开放平台**（快手） | ★★★★★ | 同上，国内官方 |
+| Nano Banana | Google **Vertex AI** | ★★★★★ | 需海外主体 + 跨境网络 + 美元结算 |
+| GPT-image | **Azure OpenAI** | ★★★★ | 海外 |
+| Suno | ❌ 无官方 API | — | 只能代理，见下 |
+| Tripo | 官方（已直连） | ✅ | 无需改 |
+
+### 聚合器横评（针对本项目模型栈）
+
+| 平台 | 覆盖 | 稳定性 | 容量 | 国内直连 | 迁移成本 |
+|------|------|--------|------|---------|---------|
+| kie.ai（现状） | 全 | 中 | **低 ← 痛点** | 尚可 | — |
+| **302.ai** | 几乎全 | 中上 | 中上 | ✅ 好 | **极低（≈kie）** |
+| **fal.ai** | 图/视频强，**无 Suno** | 高 | 高 | 需海外网络 | 低 |
+| PiAPI | Suno/MJ/Kling 代理强 | 中上 | 中上 | 需海外网络 | 低 |
+| Replicate | 海量偏开源 | 高 | 高（按秒） | 需海外网络 | 中 |
+
+### Suno 特例（合规提醒）
+
+- Suno 至 2026 **无官方开放 API**，所有路径都是**逆向代理**（灰区）。
+- 对要融资的产品：① 选运营久 / 有 SLA 的代理（PiAPI / sunoapi.org）；② 代码里做成可一键切换；③ **不要把 Suno 写进对外宣传的"核心技术"**。
+
+### 落地建议（不用重构）
+
+- `kie-provider.ts` 已是抽象层 → 平行加 `fal-provider` / `volcengine-provider`（火山）/ `kling-provider` / `vertex-provider`。
+- 按模型分流 + **失败自动降级到备用家**（任何一家挂了不断服务）——多家并存本身就是最大"靠谱"。
+- 建议顺序：① kie → **302.ai** 止痛；② Seedance→火山、Kling→可灵 转第一方；③ Nano Banana 有海外主体后转 Vertex；④ Suno 换更稳代理 + fallback。
+
+**调研来源**：Amazon Bedrock 模型目录 2026(hidekazu-konishi.com) / Best AI inference platforms 2026(dev.to) / Seedance 2 API 服务商对比(blog.laozhang.ai) / Suno API Review 2026(aimlapi.com)
 
 ---
 
