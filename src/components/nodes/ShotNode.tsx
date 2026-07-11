@@ -55,6 +55,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [prompt, setPrompt] = useState(gen.prompt || (data as any).prompt || '');
   const [expanded, setExpanded] = useState(false);
   const [genRunning, setGenRunning] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [sceneRunning, setSceneRunning] = useState(false);
   const [charRunning, setCharRunning] = useState(false);
   const [spaceRunning, setSpaceRunning] = useState(false);
@@ -62,6 +63,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [soundRunning, setSoundRunning] = useState(false);
   const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null); // 'characters'|'scenes'|'storyboard'|'music'
   const [regenerateFeedback, setRegenerateFeedback] = useState('');
+  const feedbackRef = useRef(regenerateFeedback);  // always current — handleRegenerateSection reads from this
   const [regenerateRunning, setRegenerateRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
   const g = gen as Record<string, any>;
@@ -85,6 +87,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   // 自动保存输入框内容（200ms 防抖）
   const promptRef = useRef(prompt);
   promptRef.current = prompt;
+  feedbackRef.current = regenerateFeedback;
   useEffect(() => {
     const t = setTimeout(() => { if (promptRef.current) patch('prompt', promptRef.current); }, 200);
     return () => clearTimeout(t);
@@ -125,6 +128,49 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     return resp.json();
   };
 
+  // ── Section-aware result patcher (per CLAUDE-contract.md Script Task rules) ──
+  const applySectionResult = (json: any, setPhaseFn?: (p: 'input'|'overview'|'shots') => void) => {
+    const section = json.section || 'overview';
+    switch (section) {
+      case 'overview':
+        patch('scriptOverview', {
+          shots: json.shots || [],
+          characterProfiles: json.characterProfiles || {},
+          rawOutput: json.rawOutput || '',
+          durationMs: json.durationMs || 0,
+        });
+        if (json.scenes && Object.keys(json.scenes).length) patch('scriptScenes', json.scenes);
+        if (json.sceneArchitecture && Object.keys(json.sceneArchitecture).length) patch('scriptSceneArchitecture', json.sceneArchitecture);
+        if (json.sunoPrompts && Object.keys(json.sunoPrompts).length) patch('scriptSunoPrompts', json.sunoPrompts);
+        if (json.soundScenes && Object.keys(json.soundScenes).length) patch('scriptSoundScenes', json.soundScenes);
+        setPhaseFn?.('overview');
+        break;
+      case 'characters':
+        if (json.characterProfiles && Object.keys(json.characterProfiles).length) {
+          patch('scriptCharacters', json.characterProfiles);
+        }
+        break;
+      case 'scenes':
+        if (json.scenes && Object.keys(json.scenes).length) patch('scriptScenes', json.scenes);
+        if (json.sceneArchitecture && Object.keys(json.sceneArchitecture).length) patch('scriptSceneArchitecture', json.sceneArchitecture);
+        break;
+      case 'storyboard': {
+        const ov = getOverview() || {} as Record<string, any>;
+        const merged: Record<string, any> = { ...ov };
+        if (json.shots && json.shots.length > 0) merged.shots = json.shots;
+        if (json.characterProfiles && Object.keys(json.characterProfiles).length) merged.characterProfiles = json.characterProfiles;
+        if (json.rawOutput) merged.rawOutput = json.rawOutput;
+        if (json.durationMs) merged.durationMs = json.durationMs;
+        patch('scriptOverview', merged);
+        break;
+      }
+      case 'music':
+        if (json.sunoPrompts && Object.keys(json.sunoPrompts).length) patch('scriptSunoPrompts', json.sunoPrompts);
+        if (json.soundScenes && Object.keys(json.soundScenes).length) patch('scriptSoundScenes', json.soundScenes);
+        break;
+    }
+  };
+
   const handleScriptAnalysis = async () => {
     if (!prompt.trim()) return;
     genRunningRef.current = true; setGenRunning(true);
@@ -136,41 +182,44 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},
         body:JSON.stringify({scriptText:prompt,visualStyle}),
       });
-      const { taskId } = await submitResp.json();
-      if (!taskId) throw new Error('No taskId returned');
+      const submitJson = await submitResp.json();
+      console.log('[analysis] Submit response:', submitResp.status, submitJson);
+      const { taskId } = submitJson;
+      if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
 
       // ── Persist taskId so polling survives page refresh ──
       patch('scriptTaskId', taskId);
 
-      // 2. 场景+音乐同步API在后台并行跑
-      const H = {'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`};
-      const B = JSON.stringify({scriptText:prompt});
-      Promise.allSettled([
-        fetch(`${apiBase}/api/agent/script/scenes`,{method:'POST',headers:H,body:B}).then(r=>r.json()).then(j=>{if(j.success&&j.scenes)patch('scriptScenes',j.scenes)}).catch(e=>console.error('[analysis] scenes failed:',e)),
-        fetch(`${apiBase}/api/agent/script/sound`,{method:'POST',headers:H,body:B}).then(r=>r.json()).then(j=>{if(j.success&&j.sunoPrompts)patch('scriptSunoPrompts',j.sunoPrompts)}).catch(e=>console.error('[analysis] sound failed:',e)),
-      ]);
-
-      // 3. 轮询 overview 结果
+      // 2. 轮询 overview 结果（包含角色+场景+音乐+分镜全部）
       analysisDoneRef.current = true; // 先显示占位，数据陆续填充
+      setAnalysisError(null); // Clear any previous error
       const MAX_POLLS = 50;
       const POLL_INTERVAL = 30_000;
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
         try {
           const json = await pollResult(taskId);
-          if (json.status === 'done') {
+          // Handle terminal statuses — 'done' (current backend) or 'completed' (contract)
+          if (json.status === 'done' || json.status === 'completed') {
             if (json.success) {
-              patch('scriptOverview', {
-                shots: json.shots || [],
-                characterProfiles: json.characterProfiles || {},
-                rawOutput: json.rawOutput || '',
-                durationMs: json.durationMs || 0,
-              });
-              setPhase('overview');
+              applySectionResult(json, setPhase);
             } else {
               console.error('[analysis] Task error:', json.error);
+              setAnalysisError(json.error || '分析失败，请重试');
             }
-            patch('scriptTaskId', null); // Clear taskId — analysis complete
+            patch('scriptTaskId', null);
+            return;
+          }
+          if (json.status === 'failed') {
+            console.error('[analysis] Task failed:', json.error);
+            setAnalysisError(json.error || '分析失败，请重试');
+            patch('scriptTaskId', null);
+            return;
+          }
+          if (json.status === 'lost') {
+            console.warn('[analysis] Task lost — server may have restarted');
+            setAnalysisError('任务丢失（服务器可能重启了），请重试');
+            patch('scriptTaskId', null);
             return;
           }
           console.log(`[analysis] Poll ${i + 1}/${MAX_POLLS}: still processing...`);
@@ -179,7 +228,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         }
       }
       console.error('[analysis] Timeout after 50 polls (~25 min)');
-    } catch (err) { console.error('[analysis] Error:', err); }
+      setAnalysisError('分析超时（超过25分钟），请重试');
+      patch('scriptTaskId', null);
+    } catch (err) { console.error('[analysis] Error:', err); setAnalysisError('提交失败：' + String(err).slice(0, 80)); }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
@@ -193,8 +244,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       patch('scriptTaskId', null);
       return;
     }
-    // Resume polling for in-flight task
+    // Resume polling for in-flight task (page refresh recovery)
     console.log('[analysis] Resuming poll for taskId:', taskId);
+    genRunningRef.current = true; setGenRunning(true); setAnalysisError(null);
     let cancelled = false;
     const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
     const resumePoll = async () => {
@@ -207,23 +259,33 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         try {
           const resp = await fetch(`${apiBase}/api/agent/script/result/${taskId}`);
           const json = await resp.json();
-          if (json.status === 'done') {
+          // Handle terminal statuses
+          if (json.status === 'done' || json.status === 'completed') {
             if (json.success) {
-              patch('scriptOverview', {
-                shots: json.shots || [],
-                characterProfiles: json.characterProfiles || {},
-                rawOutput: json.rawOutput || '',
-                durationMs: json.durationMs || 0,
-              });
-              setPhase('overview');
+              applySectionResult(json, setPhase);
+            } else {
+              setAnalysisError(json.error || '分析失败，请重试');
             }
-            patch('scriptTaskId', null); // Clear taskId
+            patch('scriptTaskId', null);
+            genRunningRef.current = false; setGenRunning(false);
+            return;
+          }
+          if (json.status === 'lost') {
+            setAnalysisError('任务丢失（服务器可能重启了），请重试');
+            patch('scriptTaskId', null);
+            genRunningRef.current = false; setGenRunning(false);
+            return;
+          }
+          if (json.status === 'failed') {
+            setAnalysisError(json.error || '分析失败，请重试');
+            patch('scriptTaskId', null);
+            genRunningRef.current = false; setGenRunning(false);
             return;
           }
         } catch {}
       }
       // Timeout — clear stale taskId so user can re-trigger
-      if (!cancelled) patch('scriptTaskId', null);
+      if (!cancelled) { patch('scriptTaskId', null); setAnalysisError('分析超时，请重试'); genRunningRef.current = false; setGenRunning(false); }
     };
     resumePoll();
     return () => { cancelled = true; };
@@ -303,20 +365,58 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
   const handleSoundComposer = async () => {
     if (!prompt.trim() || soundRunning) return;
-    setSoundRunning(true);
+    setSoundRunning(true); setAnalysisError(null);
     const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
     try {
-      const resp = await fetch(`${apiBase}/api/agent/script/sound`, {
+      const submitResp = await fetch(`${apiBase}/api/agent/script/music`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
         body: JSON.stringify({ scriptText: prompt }),
       });
-      const json = await resp.json();
-      if (json.success) {
-        if (json.soundScenes) patch('scriptSound', json.soundScenes);
-        if (json.sunoPrompts) patch('scriptSunoPrompts', json.sunoPrompts);
+      const submitJson = await submitResp.json();
+      console.log('[music] Submit response:', submitResp.status, submitJson);
+      // Compat: if backend returns async { taskId }, poll; if sync { success }, apply directly
+      if (submitJson.success !== undefined) {
+        if (submitJson.success) {
+          applySectionResult(submitJson);
+        } else {
+          setAnalysisError(submitJson.error || '音乐生成失败');
+        }
+        return;
       }
-    } catch (err) { console.error('[sound] Error:', err); }
+      const { taskId } = submitJson;
+      if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
+
+      const MAX_POLLS = 20;
+      const POLL_INTERVAL = 15_000;
+      for (let i = 0; i < MAX_POLLS; i++) {
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        try {
+          const json = await pollResult(taskId);
+          if (json.status === 'done' || json.status === 'completed') {
+            if (json.success) {
+              applySectionResult(json);
+            } else {
+              console.error('[music] Task error:', json.error);
+              setAnalysisError(json.error || '音乐生成失败');
+            }
+            return;
+          }
+          if (json.status === 'failed') {
+            setAnalysisError(json.error || '音乐生成失败');
+            return;
+          }
+          if (json.status === 'lost') {
+            setAnalysisError('音乐任务丢失，请重试');
+            return;
+          }
+        } catch (pollErr) {
+          console.warn('[music] Poll failed:', pollErr, '— retrying...');
+        }
+      }
+      console.error('[music] Timeout after 20 polls (~5 min)');
+      setAnalysisError('音乐生成超时，请重试');
+    } catch (err) { console.error('[music] Error:', err); setAnalysisError('提交失败：' + String(err).slice(0, 80)); }
     finally { setSoundRunning(false); }
   };
 
@@ -331,7 +431,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   // ── Section Regeneration ──
   const handleRegenerateSection = async (section: string) => {
     if (regenerateRunning) return;
-    const feedback = regenerateFeedback.trim();
+    const feedback = feedbackRef.current.trim();
     if (!feedback) {
       setRegeneratingSection(section);
       return; // Open feedback input first, wait for user to type
@@ -340,6 +440,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     setRegenerateRunning(true);
     setRegeneratingSection(null);
     setRegenerateFeedback('');
+    setAnalysisError(null);
     const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
     try {
       const existingResults: Record<string, any> = {};
@@ -352,7 +453,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const sd = _getSound();
       if (sp || sd) existingResults.music = { sunoPrompts: sp, soundScenes: sd };
 
-      const resp = await fetch(`${apiBase}/api/agent/script/regenerate`, {
+      const submitResp = await fetch(`${apiBase}/api/agent/script/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
         body: JSON.stringify({
@@ -363,39 +464,54 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           existingResults,
         }),
       });
-      const json = await resp.json();
-      if (!json.success) { console.error('[regenerate] Failed:', json.error); return; }
+      const submitJson = await submitResp.json();
+      console.log('[regenerate] Submit response:', submitResp.status, submitJson);
+      // Compat: if backend returns async { taskId }, poll; if sync { success }, apply directly
+      if (submitJson.success !== undefined) {
+        // Sync response — apply directly
+        if (submitJson.success) {
+          applySectionResult(submitJson);
+        } else {
+          setAnalysisError(submitJson.error || '重新生成失败');
+        }
+        return;
+      }
+      const { taskId } = submitJson;
+      if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
 
-      // Update only the specific section in node meta
-      const patchData: Record<string, any> = {};
-      switch (section) {
-        case 'characters':
-          if (json.characters) patchData.scriptCharacters = json.characters;
-          break;
-        case 'scenes':
-          if (json.scenes) patchData.scriptScenes = json.scenes;
-          if (json.sceneArchitecture) patchData.scriptSpatialDesigns = json.sceneArchitecture;
-          break;
-        case 'storyboard':
-          if (json.shots?.length > 0 || json.characterProfiles) {
-            const existingOv = ov || {};
-            patchData.scriptOverview = {
-              ...existingOv,
-              shots: json.shots || existingOv.shots || [],
-              characterProfiles: json.characterProfiles || existingOv.characterProfiles || {},
-            };
+      // Poll for result
+      const MAX_POLLS = 20;
+      const POLL_INTERVAL = 15_000;
+      for (let i = 0; i < MAX_POLLS; i++) {
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        try {
+          const json = await pollResult(taskId);
+          if (json.status === 'done' || json.status === 'completed') {
+            if (json.success) {
+              applySectionResult(json);
+            } else {
+              console.error('[regenerate] Task error:', json.error);
+              setAnalysisError(json.error || '重新生成失败');
+            }
+            return;
           }
-          break;
-        case 'music':
-          if (json.sunoPrompts) patchData.scriptSunoPrompts = json.sunoPrompts;
-          if (json.soundScenes) patchData.scriptSound = json.soundScenes;
-          break;
+          if (json.status === 'failed') {
+            setAnalysisError(json.error || '重新生成失败');
+            return;
+          }
+          if (json.status === 'lost') {
+            setAnalysisError('重新生成任务丢失，请重试');
+            return;
+          }
+        } catch (pollErr) {
+          console.warn('[regenerate] Poll failed:', pollErr, '— retrying...');
+        }
       }
-      if (Object.keys(patchData).length > 0) {
-        Object.entries(patchData).forEach(([k, v]) => patch(k, v));
-      }
+      console.error('[regenerate] Timeout after 20 polls (~5 min)');
+      setAnalysisError('重新生成超时，请重试');
     } catch (err) {
       console.error('[regenerate] Error:', err);
+      setAnalysisError('提交失败：' + String(err).slice(0, 80));
     } finally {
       setRegenerateRunning(false);
     }
@@ -555,12 +671,27 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           <span style={{ fontSize: 9, color: 'var(--tap-text-4)', lineHeight: 1 }}>点击按键自动生成节点</span>
 
           {/* Loading / Status */}
-          {(genRunning || sceneRunning || charRunning || soundRunning) && (
+          {(genRunning || sceneRunning || charRunning || soundRunning || regenerateRunning) && (
             <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'4px 0' }}>
               <div style={{ width:14,height:14,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.1)',borderTopColor:'var(--tap-accent)',animation:'tap-spin 0.8s linear infinite' }} />
               <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>
-                {soundRunning ? '音乐设计中…' : sceneRunning ? '提取场景中…' : charRunning ? '提取角色中…' : 'Agent 分析中…'}
+                {regenerateRunning ? '重新生成中…' : soundRunning ? '音乐设计中…' : sceneRunning ? '提取场景中…' : charRunning ? '提取角色中…' : 'Agent 分析中…'}
               </span>
+            </div>
+          )}
+
+          {/* Error banner — shown when analysis fails (lost/failed/timeout) */}
+          {analysisError && !genRunning && (
+            <div style={{
+              display:'flex',alignItems:'center',justifyContent:'space-between',gap:6,
+              padding:'6px 8px',borderRadius:6,
+              background:'rgba(255,80,80,0.08)',border:'1px solid rgba(255,80,80,0.2)',
+            }}>
+              <span style={{ fontSize:10,color:'#E04040',flex:1,minWidth:0 }}>{analysisError}</span>
+              <span onClick={() => setAnalysisError(null)}
+                style={{ fontSize:12,color:'#E04040',cursor:'pointer',flexShrink:0,lineHeight:1 }}
+                title="关闭"
+              >✕</span>
             </div>
           )}
 
@@ -618,7 +749,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                         autoFocus
                         type="text"
                         value={regenerateFeedback}
-                        onChange={e => setRegenerateFeedback(e.target.value)}
+                        onChange={e => { setRegenerateFeedback(e.target.value); feedbackRef.current = e.target.value; }}
                         onKeyDown={e => {
                           if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); handleRegenerateSection(btn.section); }
                           if (e.key === 'Escape') { e.stopPropagation(); setRegeneratingSection(null); setRegenerateFeedback(''); }
@@ -717,13 +848,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               padding: '4px 12px 8px 8px',
             }}>
               {/* Send — glass pill */}
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
-                {genRunning && <span style={{color:'#00CFFF',fontSize:'10px',fontWeight:500,marginRight:'4px'}}>-5 积分</span>}
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'55px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
                 <button onClick={handleGenerate} disabled={genRunning}
-                  style={{ width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s' }}
+                  style={{ width:'16px',height:'16px',borderRadius:'50%',background:'#FFF65D',color:'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',opacity:genRunning?0.7:1,transition:'transform 0.15s,box-shadow 0.15s,opacity 0.15s' }}
                   onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
-                >{genRunning ? '⏳' : '↑'}</button>
+                >{genRunning ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#333" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}</button>
               </div>
             </div>
             {showMention && mentionList.length > 0 && createPortal(

@@ -63,8 +63,8 @@ html, body, #root {
 
 /* Text selection */
 ::selection {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--tap-text-1);
+  background: rgba(0, 207, 255, 0.30);
+  color: #111;
 }
 
 /* Anchor reset */
