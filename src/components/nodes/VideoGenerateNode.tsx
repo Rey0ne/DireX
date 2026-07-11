@@ -317,6 +317,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Send */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '50px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingRight: '2px' }}>
+              {genRunning && <span style={{color:'#00CFFF',fontSize:'10px',fontWeight:500,marginRight:'4px'}}>-80 积分</span>}
               <button onClick={handleGenerate} disabled={genRunning}
                 style={{ width: '16px', height: '16px', borderRadius: '50%', background: genRunning ? 'var(--tap-warning)' : '#FFF65D', color: genRunning ? '#fff' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: genRunning ? '8px' : '9px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', transition: 'transform 0.15s, box-shadow 0.15s' }}
                 onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}

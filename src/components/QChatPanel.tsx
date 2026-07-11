@@ -119,8 +119,8 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
         zIndex: 10000,
         display: 'flex', flexDirection: 'column',
         borderRadius: 16,
-        background: '#10FFD1',
-        boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.08)',
+        background: 'rgb(16, 255, 209)',
+        boxShadow: '0 0 0 1px #0000000A, 0 4px 24px #00000014',
         fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif',
         userSelect: 'none',
       }}
@@ -142,11 +142,11 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
                 }}>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
-                  <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.30)', whiteSpace: 'nowrap' }}>
+                  <div style={{ flex: 1, height: 1, background: '#00000014' }} />
+                  <span style={{ fontSize: 10, color: '#0000004D', whiteSpace: 'nowrap' }}>
                     {formatGapTime(prev!.ts)}
                   </span>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+                  <div style={{ flex: 1, height: 1, background: '#00000014' }} />
                 </div>
               )}
               <div style={{
@@ -190,7 +190,7 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
             flex: 1, borderRadius: 20,
             padding: '8px 14px', fontSize: 12,
             color: '#111', background: 'transparent',
-            border: '1px solid rgba(0,0,0,0.10)',
+            border: '1px solid #0000001A',
             outline: 'none', fontFamily: 'inherit',
           }}
         />
@@ -205,7 +205,7 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.2s',
             opacity: input.trim() && !thinking ? 1 : 0.45,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            boxShadow: '0 2px 8px #0000002E',
           }}
         >↑</button>
       </div>
@@ -215,7 +215,7 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
           0%, 100% { opacity: 0.3; transform: translateY(0); }
           50%      { opacity: 1;   transform: translateY(-4px); }
         }
-        .q-chat-input::placeholder { color: rgba(0,0,0,0.30); }
+        .q-chat-input::placeholder { color: #0000004D; }
       `}</style>
     </div>
   );

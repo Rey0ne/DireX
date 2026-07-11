@@ -30,6 +30,11 @@ interface ImageGenNodeData {
   onCropApply?: (croppedDataUrl: string, cropW: number, cropH: number) => void;
   onCropCancel?: () => void;
   onOpenTool?: (toolName: string) => void;
+  // Multi-image card stacking
+  imageUrls?: string[];
+  gridExpanded?: boolean;
+  onGridExpand?: () => void;
+  onGridCollapse?: () => void;
 }
 
 const ASPECT_OPTIONS = [
@@ -62,6 +67,15 @@ const RESOLUTION_OPTIONS = [
   { label: '2K', desc: '1792×1024' },
   { label: '4K', desc: '2048×2048' },
 ];
+
+// ── Credit cost calculator (updates as user changes model / resolution / count) ──
+function getImageCost(model: string, resolution: string, imgCount: number): number {
+  let base = 10;
+  if (resolution === '2K') base = 15;
+  else if (resolution === '4K') base = 20;
+  if (model === 'Nano Banana') base = Math.round(base * 0.8);
+  return base * imgCount;
+}
 
 
 // ── Lens icon (black ring + glass lens) ──
@@ -158,6 +172,7 @@ function PD2({ children, onClose, anchorRect }: { children: React.ReactNode; onC
 function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: ImageGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const [prompt, setPrompt] = useState(gen.prompt || '');
+  const promptRef = useRef(prompt);  // always current — handleGenerate reads from this to avoid stale closure
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showRatioPicker, setShowRatioPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -246,6 +261,22 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
     (data.gen?.styleImageUrl as string) || (data.styleImageUrl as string) || null
   );
 
+  // ─── Multi-image card stacking ──
+  const imageUrls = (data.imageUrls && data.imageUrls.length > 0)
+    ? data.imageUrls
+    : (data.gen as any)?.imageUrls as string[] | undefined;
+  const genImgCount = (data.gen as any)?.imgCount as number | undefined;
+  const hasMulti = imageUrls && imageUrls.length > 1 && genImgCount != null && genImgCount > 1;
+  const gridExpanded = data.gridExpanded || false;
+
+  // ─── Card selection (reorder imageUrls, bring selected to front) ──
+  const selectCard = useCallback((idx: number) => {
+    if (!imageUrls || idx === 0) { data.onGridCollapse?.(); return; }
+    const reordered = [imageUrls[idx], ...imageUrls.filter((_, i) => i !== idx)];
+    data.onChange?.({ imageUrls: reordered, imageUrl: reordered[0] } as any);
+    data.onGridCollapse?.();
+  }, [imageUrls, data]);
+
   // ─── Crop state ────────────────────────────────
   const CROP_RATIOS = [
     { label: '自由', w: 0, h: 0 },
@@ -286,12 +317,12 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
   // Sync measurement before paint — no flash
   useLayoutEffect(() => {
-    if (!selected || !cardRef.current) { setCardRect(null); return; }
+    if ((!selected && !gridExpanded) || !cardRef.current) { setCardRect(null); return; }
     setCardRect(cardRef.current.getBoundingClientRect());
-  }, [selected, data.imageUrl, (data as any).videoUrl]);
+  }, [selected, data.imageUrl, (data as any).videoUrl, gridExpanded]);
   // Keep cardRect updated during scroll/resize
   useEffect(() => {
-    if (!selected || !cardRef.current) return;
+    if ((!selected && !gridExpanded) || !cardRef.current) return;
     let raf = 0;
     const update = () => {
       if (cardRef.current) setCardRect(cardRef.current.getBoundingClientRect());
@@ -605,10 +636,11 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const genRunningRef = useRef(false);
 
   const handleGenerate = () => {
-    if (genRunningRef.current || !prompt.trim()) return;
+    const latestPrompt = promptRef.current;
+    if (genRunningRef.current || !latestPrompt.trim()) return;
     genRunningRef.current = true;
     setGenRunning(true);
-    patch('prompt', prompt);
+    patch('prompt', latestPrompt);
     patch('model', currentModel);
     patch('aspect', currentAspect);
     patch('resolution', currentResolution);
@@ -700,20 +732,20 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         {/* Ports — centered on both sides, close to node */}
         <Handle type="target" position={Position.Left} id="image-in"
           style={{
-            width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid #41CCFA', borderRadius: '50%',
+            width: '19px', height: '19px', background: '#00CFFF',
+            borderRadius: '50%',
             left: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#fff',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="image-out"
           style={{
-            width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid #41CCFA', borderRadius: '50%',
+            width: '19px', height: '19px', background: '#00CFFF',
+            borderRadius: '50%',
             right: '-20px', top: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#fff',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
@@ -838,7 +870,49 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
           position: 'relative',
           overflow: 'hidden',
         }}>
-          {data.imageUrl ? (
+          {hasMulti && !gridExpanded ? (
+            /* ── Stacked cards (multi-image, collapsed) ── */
+            <div style={{ position: 'relative', width: '100%', height: '100%', cursor: 'pointer' }}
+              onClick={() => data.onGridExpand?.()}>
+              {/* Show max 5 layers: top card + up to 4 corner peeks */}
+              {imageUrls!.slice(0, 5).map((url, i) => {
+                const isTop = i === 0;
+                const visualIdx = imageUrls!.length - 1 - i;
+                const ox = Math.min(visualIdx, 4) * 16;
+                const oy = Math.min(visualIdx, 4) * 16;
+                return (
+                  <div key={i} style={{
+                    position: 'absolute',
+                    left: ox, top: oy,
+                    right: isTop ? 0 : undefined,
+                    bottom: isTop ? 0 : undefined,
+                    width: isTop ? undefined : `calc(100% - ${ox}px)`,
+                    height: isTop ? undefined : `calc(100% - ${oy}px)`,
+                    zIndex: i,
+                    borderRadius: 'var(--tap-r-lg)',
+                    overflow: 'hidden',
+                    border: isTop ? '2px solid rgba(255,255,255,0.18)' : '1px solid rgba(255,255,255,0.06)',
+                    boxShadow: isTop ? '0 6px 24px rgba(0,0,0,0.45)' : '0 2px 6px rgba(0,0,0,0.25)',
+                    background: '#0a0a10',
+                    transition: 'transform 0.2s ease',
+                  }}>
+                    <img src={url} alt="" style={{
+                      width: '100%', height: '100%',
+                      objectFit: isTop ? 'contain' : 'cover',
+                      opacity: isTop ? 1 : 0.55,
+                    }} />
+                  </div>
+                );
+              })}
+              {/* Count badge */}
+              <div style={{
+                position: 'absolute', top: '8px', right: '8px', zIndex: 100,
+                background: 'rgba(0,0,0,0.7)', color: '#fff',
+                fontSize: '10px', fontWeight: 600, padding: '2px 8px',
+                borderRadius: 'var(--tap-r-full)', letterSpacing: '0.05em',
+              }}>{imageUrls!.length}张</div>
+            </div>
+          ) : data.imageUrl ? (
             (data as any).videoUrl ? (
               <video ref={imgRef as any} src={(data as any).videoUrl} controls loop style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             ) : (
@@ -1015,6 +1089,91 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
         document.body
       );})()}
 
+      {/* ── Grid overlay (portal, shown above card when expanded) ── */}
+      {gridExpanded && hasMulti && cardRect && (() => {
+        const cw = cardRef.current?.offsetWidth || 380;
+        const total = imageUrls!.length;
+        const cols = total <= 2 ? total : total <= 4 ? 2 : 4;
+        const cellSize = Math.min((cw - 24) / cols, 180);
+        const gridW = cols * cellSize + (cols - 1) * 8 + 24;
+        const maxGridH = Math.min(window.innerHeight * 0.6, 520);
+        const rawGridH = Math.ceil(total / cols) * (cellSize + 8) + 44;
+        const gridH = Math.min(rawGridH, maxGridH);
+        const needScroll = rawGridH > maxGridH;
+        return createPortal(
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={(e) => { e.stopPropagation(); data.onGridCollapse?.(); }}>
+            <div style={{
+              position: 'fixed',
+              left: Math.max(12, cardRect.left + cw / 2 - gridW / 2),
+              top: Math.max(8, cardRect.top - gridH - 16),
+              zIndex: 9999,
+              width: gridW,
+              maxHeight: gridH,
+              background: 'rgba(18,20,24,0.97)',
+              borderRadius: 'var(--tap-r-xl)',
+              padding: '12px',
+              border: '1px solid rgba(255,255,255,0.10)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(24px)',
+              animation: 'tap-fade-up 180ms var(--tap-ease)',
+              display: 'flex', flexDirection: 'column', gap: '8px',
+              pointerEvents: 'auto',
+              onClick: (e) => e.stopPropagation(),
+            }}>
+              <div style={{ fontSize: '11px', color: 'var(--tap-text-3)', fontWeight: 500, textAlign: 'center', flexShrink: 0 }}>
+                抽卡 — 点击选择一张图（{total}张）
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gap: '8px',
+                overflowY: needScroll ? 'auto' : 'visible',
+                flex: 1,
+                paddingRight: needScroll ? '4px' : 0,
+              }}>
+                {imageUrls!.map((url, i) => {
+                  const isSelected = i === 0;
+                  return (
+                    <div key={i} onClick={() => selectCard(i)} style={{
+                      width: cellSize, height: cellSize,
+                      borderRadius: 'var(--tap-r-lg)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: isSelected ? '2px solid var(--tap-accent)' : '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: isSelected ? '0 0 16px rgba(0,207,255,0.25)' : '0 2px 8px rgba(0,0,0,0.3)',
+                      position: 'relative',
+                      transition: 'border 0.15s, box-shadow 0.15s',
+                      background: '#0a0a10',
+                      flexShrink: 0,
+                    }}
+                      onMouseEnter={e => {
+                        if (!isSelected) { e.currentTarget.style.border = '1px solid rgba(0,207,255,0.40)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(0,207,255,0.15)'; }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isSelected) { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'; }
+                      }}>
+                      <img src={url} alt="" style={{
+                        width: '100%', height: '100%', objectFit: 'cover',
+                      }} />
+                      {isSelected && (
+                        <div style={{
+                          position: 'absolute', top: '6px', left: '6px',
+                          background: 'var(--tap-accent)', color: '#fff',
+                          fontSize: '11px', fontWeight: 700, padding: '1px 8px',
+                          borderRadius: 'var(--tap-r-full)',
+                        }}>当前</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
+
       {/* ── Bottom Prompt Panel (inline — scales with zoom) ── */}
       {selected && !data.multiSelect && (
         <div
@@ -1086,6 +1245,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                 onChange={e => {
                   const val = e.target.value;
                   setPrompt(val);
+                  promptRef.current = val; // sync ref immediately — handleGenerate needs latest on Enter
                   // Detect @ trigger
                   const cursorPos = e.target.selectionStart || 0;
                   const textBefore = val.slice(0, cursorPos);
@@ -1331,8 +1491,9 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
               </ImgDropBtn>
               <span style={{ width:'1px',height:'14px',background:'var(--tap-divider)',flexShrink:0 }} />
 
-              {/* Send — glass pill */}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px'}}>
+              {/* Send — glass pill with cost preview */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingLeft:'8px',paddingRight:'2px',gap:'4px'}}>
+                <span style={{fontSize:'9px',color:'var(--tap-text-4)',fontWeight:500,whiteSpace:'nowrap'}}>{getImageCost(currentModel, currentResolution, imgCount)} 积分</span>
                 <button onClick={handleGenerate} disabled={genRunning}
                   style={{width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s'}}
                   onMouseEnter={e=>{if(!genRunning){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}

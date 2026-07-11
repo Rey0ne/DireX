@@ -9,7 +9,7 @@
   --tap-bg-glass: rgba(252, 252, 252, 0.88);
 
   /* Panel & Surface */
-  --tap-panel: rgba(255, 255, 255, 0.88);
+  --tap-panel: #fff;
   --tap-panel-light: rgba(248, 248, 248, 0.94);
   --tap-border: rgba(0, 0, 0, 0.08);
   --tap-border-light: rgba(0, 0, 0, 0.14);

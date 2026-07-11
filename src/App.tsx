@@ -20,7 +20,8 @@ import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
-import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage } from './store/persistence';
+import type { UserProfile } from '../shared/api-types.js';
+import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
@@ -116,10 +117,9 @@ function getNodeProviderId(store: ReturnType<typeof useCanvasStore.getState>, no
   return mapModelNameToProviderId(model);
 }
 
-function UserBadge({ onLogout }: { onLogout: () => void }) {
-  const user = useAuthStore(s => s.user);
+function UserBadge({ onLogout, user }: { onLogout: () => void; user: UserProfile | null }) {
+  const credits = user?.credits ?? 0;
   const [showPanel, setShowPanel] = useState(false);
-  if (!user) return null;
   return (
     <>
       <div style={{
@@ -133,26 +133,26 @@ function UserBadge({ onLogout }: { onLogout: () => void }) {
           onClick={() => setShowPanel(true)}
           style={{ color: '#5EEAD4', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
           title="积分中心"
-        >{user.credits}</span>
+        >{credits}</span>
         <button onClick={onLogout} title="登出"
           style={{
             width: '26px', height: '26px', borderRadius: '50%',
             border: '1px solid rgba(255,255,255,0.10)',
             background: 'rgba(255,255,255,0.04)',
-            color: 'var(--tap-text-4)', cursor: 'pointer',
+            color: '#fff', cursor: 'pointer',
             fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.15s',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,80,80,0.2)'; e.currentTarget.style.color = '#ff6b6b'; e.currentTarget.style.borderColor = 'rgba(255,80,80,0.3)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'var(--tap-text-4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
-        >⏻</button>
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+        >✕</button>
       </div>
-      {showPanel && <CreditPanel onClose={() => setShowPanel(false)} />}
+      {showPanel && <CreditPanel onClose={() => setShowPanel(false)} user={user} />}
     </>
   );
 }
 
-function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogout: () => void }) {
+function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; onLogout: () => void; user: UserProfile | null }) {
   // Demo expiration — only in production builds (Vite define injects __BUILD_TIME__)
   // @ts-ignore
   const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
@@ -310,13 +310,16 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
   const [activeImageTool, setActiveImageTool] = useState<string | null>(null);
   const [activeToolNodeId, setActiveToolNodeId] = useState<string | null>(null);
   const [fullscreenImg, setFullscreenImg] = useState<{ url: string; prompt: string; model: string; aspect: string; quality: string } | null>(null);
-  const [snapEnabled, setSnapEnabled] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
   const [connectMenu, setConnectMenu] = useState<{ x: number; y: number; flowX: number; flowY: number; sourceNodeId: string; sourcePortId: string } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectTargetId, setConnectTargetId] = useState<string | null>(null);
   const [cropNodeId, setCropNodeId] = useState<string | null>(null);
+  const [expandedGridNodeId, setExpandedGridNodeId] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [qPos, setQPos] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 200 });
+  const [bgColor, setBgColor] = useState('#FDFAF5');
+  const [showBgPicker, setShowBgPicker] = useState(false);
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<Node>([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -358,10 +361,12 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         // Restore saved viewport so nodes appear where user left them
         const vp = useCanvasStore.getState().viewport;
         if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
+        markInitialized(); // ← Gate: allow saves now that data is loaded
       }
       if (!restored) {
         if (isNewCanvas) {
           console.log('[persist] Fresh canvas — new project, skipping server fallback');
+          markInitialized(); // ← Gate: allow saves even for fresh canvases
           return;
         }
         // IndexedDB empty/corrupted — try server fallback
@@ -383,6 +388,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               console.log('[persist] Fresh canvas — no local or server data');
             }
           }
+          markInitialized(); // ← Gate: allow saves after server/emergency chain completes
         });
       }
     });
@@ -391,6 +397,78 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount — NOT when nodes change
+
+  // ── Resume pending async tasks after page refresh / reconnect ──
+  const resumeAttemptedRef = useRef(false);
+  useEffect(() => {
+    const store = useCanvasStore.getState();
+    if (resumeAttemptedRef.current || store.nodes.size === 0) return;
+
+    const pendingTasks: { nodeId: string; taskId: string }[] = [];
+    for (const [id, n] of store.nodes) {
+      const taskId = (n.meta?.gen as any)?.clientTaskId as string | undefined;
+      if (taskId && n.status === 'running') {
+        pendingTasks.push({ nodeId: id, taskId });
+      }
+    }
+    if (pendingTasks.length === 0) return;
+    resumeAttemptedRef.current = true;
+
+    console.log('[recovery] Resuming ' + pendingTasks.length + ' pending tasks after reconnect');
+    const pollers: Array<ReturnType<typeof setInterval>> = [];
+
+    for (const { nodeId, taskId } of pendingTasks) {
+      console.log('[recovery] Resuming poll for node=' + nodeId.slice(0, 8) + ' task=' + taskId.slice(0, 8));
+      const interval = setInterval(async () => {
+        const currentStore = useCanvasStore.getState();
+        const node = currentStore.nodes.get(nodeId);
+        if (!node || node.status !== 'running') {
+          clearInterval(interval);
+          return;
+        }
+        try {
+          const pollResult = await pollVideoTask(taskId);
+          const meta = (node.meta || {}) as Record<string, unknown>;
+          const gen = (meta.gen || {}) as Record<string, unknown>;
+          const genPatch: Record<string, unknown> = { ...gen };
+
+          if (pollResult.compiledPrompt) {
+            genPatch.compiledPrompt = pollResult.compiledPrompt;
+          }
+          if (pollResult.status === 'succeeded' && pollResult.assetUrls?.length) {
+            clearInterval(interval);
+            const isVid = (node.type === 'video.generate');
+            const urlField = isVid ? 'videoUrl' : 'imageUrl';
+            Object.assign(genPatch, { [urlField]: pollResult.assetUrls[0], resultAssetIds: pollResult.assetUrls, clientTaskId: null });
+            currentStore.updateNode(nodeId, { meta: { ...meta, gen: genPatch } });
+            currentStore.setNodeStatus(nodeId, 'succeeded');
+            currentStore.triggerSync();
+            console.log('[recovery] Task ' + taskId.slice(0, 8) + ' completed after reconnect');
+          } else if (pollResult.status === 'failed') {
+            clearInterval(interval);
+            Object.assign(genPatch, { clientTaskId: null, lastError: pollResult.error });
+            currentStore.updateNode(nodeId, { meta: { ...meta, gen: genPatch } });
+            currentStore.setNodeStatus(nodeId, 'failed');
+            console.log('[recovery] Task ' + taskId.slice(0, 8) + ' failed after reconnect: ' + pollResult.error);
+          }
+          // else: still processing, keep polling
+        } catch {
+          // network error during resume — keep polling
+        }
+      }, 30_000);
+      pollers.push(interval);
+    }
+
+    // Cleanup after 30 min max
+    const maxTimeout = setTimeout(() => {
+      for (const p of pollers) clearInterval(p);
+    }, 30 * 60 * 1000);
+
+    return () => {
+      for (const p of pollers) clearInterval(p);
+      clearTimeout(maxTimeout);
+    };
+  }, [nodesMap.size]); // Trigger when nodes are loaded from DB/server
 
   // ─── Sync store → ReactFlow ──
   const prevNodeIdsRef = useRef('');
@@ -438,6 +516,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           shot: n.meta?.shot || defaultShotMeta,
           gen: n.meta?.gen || defaultGenMeta,
           imageUrl: (n.meta?.gen as Record<string, unknown>)?.imageUrl as string || undefined,
+          imageUrls: (n.meta?.gen as Record<string, unknown>)?.imageUrls as string[] || undefined,
           videoUrl: (n.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
           status: n.status,
           isConnecting,
@@ -445,6 +524,9 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           isPickTarget: n.id === pendingConn,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
           refUrls: refUrlsMap.get(n.id)?.slice(0, 20) || [],
+          gridExpanded: expandedGridNodeId === n.id,
+          onGridExpand: () => setExpandedGridNodeId(n.id),
+          onGridCollapse: () => setExpandedGridNodeId(null),
           onChange: (patch: Record<string, unknown>) => {
             const current = useCanvasStore.getState().nodes.get(n.id);
             if (current) {
@@ -501,99 +583,116 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
             const promptText = (meta.prompt as string) || '';
             const useExtraction = !isTextNode && refUrls?.length && hasExtractionIntent(promptText);
             console.log('[onGenerate] nodeType:', n.type, 'model:', actualModel, 'providerId:', mapModelNameToProviderId(actualModel), 'refUrls:', refUrls?.length, 'refPrompts:', refPrompts?.length, 'extraction:', useExtraction);
-            const agentResult = isTextNode
-              ? await analyzeText({
-                  providerId: 'text',
-                  mode: 'text-analysis' as any,
-                  rawText: promptText,
-                  referenceUrls: refUrls,
-                  referencePrompts: refPrompts,
-                } as any)
-              : useExtraction
-                ? await visualExtract({
-                    providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
-                    mode: 'image-to-image',
-                    rawText: promptText,
-                    aspect: meta.aspect as string | undefined,
-                    resolution: meta.resolution as string || '2K',
-                    referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
-                    referenceUrls: refUrls,
-                    referencePrompts: refPrompts,
-                    styleImageUrl: meta.styleImageUrl as string | undefined,
-                    seed: meta.seed as number | undefined,
-                    negativePrompt: meta.negativePrompt as string | undefined,
-                    duration: meta.duration as string | undefined,
-                    videoUrls: videoUrls as string[] | undefined,
-                    extractMode: meta.extractMode as string || 'auto',
-                    // Model-specific params
-                    genMode: meta.genMode as string | undefined,
-                    firstFrameUrl: meta.firstFrameUrl as string | undefined,
-                    lastFrameUrl: meta.lastFrameUrl as string | undefined,
-                    characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
-                    keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
-                    fixedCamera: meta.fixedCamera as boolean | undefined,
-                    generateAudio: meta.generateAudio as boolean | undefined,
-                    webSearch: meta.webSearch as boolean | undefined,
-                    // Audio (Suno)
-                    instrumental: meta.instrumental as boolean | undefined,
-                    lyrics: meta.lyrics as string | undefined,
-                    // Audio (ElevenLabs)
-                    voice: meta.voice as string | undefined,
-                    language: meta.language as string | undefined,
-                    stability: meta.stability as number | undefined,
-                    dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
-                    // Camera kit
-                    camera: meta.camera as string | undefined,
-                    lens: meta.lens as string | undefined,
-                    focalLength: meta.focalLength as string | undefined,
-                    aperture: meta.aperture as string | undefined,
-                    filmStock: meta.filmStock as string | undefined,
-                  } as any)
-                : await generateWithAgent({
-                  providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : isAudio ? 'Suno v4' : 'GPT Image2')),
-                  mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
-                  rawText: promptText,
-                  aspect: meta.aspect as string | undefined,
-                  resolution: meta.resolution as string || '2K',
-                  referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
-                  referenceUrls: refUrls,
-                  referencePrompts: refPrompts,
-                  styleImageUrl: meta.styleImageUrl as string | undefined,
-                  seed: meta.seed as number | undefined,
-                  negativePrompt: meta.negativePrompt as string | undefined,
-                  duration: meta.duration as string | undefined,
-                  videoUrls: videoUrls as string[] | undefined,
-                  // Model-specific params
-                  genMode: meta.genMode as string | undefined,
-                  firstFrameUrl: meta.firstFrameUrl as string | undefined,
-                  lastFrameUrl: meta.lastFrameUrl as string | undefined,
-                  characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
-                  keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
-                  fixedCamera: meta.fixedCamera as boolean | undefined,
-                  generateAudio: meta.generateAudio as boolean | undefined,
-                  webSearch: meta.webSearch as boolean | undefined,
-                  // Audio (Suno)
-                  instrumental: meta.instrumental as boolean | undefined,
-                  lyrics: meta.lyrics as string | undefined,
-                  // Audio (ElevenLabs)
-                  voice: meta.voice as string | undefined,
-                  language: meta.language as string | undefined,
-                  stability: meta.stability as number | undefined,
-                  dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
-                  // Camera kit
-                  camera: meta.camera as string | undefined,
-                  lens: meta.lens as string | undefined,
-                  focalLength: meta.focalLength as string | undefined,
-                  aperture: meta.aperture as string | undefined,
-                  filmStock: meta.filmStock as string | undefined,
-                } as any);
+            // ── Build image-generation request (shared for single & multi) ──
+            const buildImgReq = () => ({
+              providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : isAudio ? 'Suno v4' : 'GPT Image2')),
+              mode: (refUrls?.length || meta.firstFrameUrl) ? 'image-to-image' : 'text-to-image',
+              rawText: promptText,
+              aspect: meta.aspect as string | undefined,
+              resolution: meta.resolution as string || '2K',
+              referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
+              referenceUrls: refUrls,
+              referencePrompts: refPrompts,
+              styleImageUrl: meta.styleImageUrl as string | undefined,
+              seed: meta.seed as number | undefined,
+              negativePrompt: meta.negativePrompt as string | undefined,
+              duration: meta.duration as string | undefined,
+              videoUrls: videoUrls as string[] | undefined,
+              // Model-specific params
+              genMode: meta.genMode as string | undefined,
+              firstFrameUrl: meta.firstFrameUrl as string | undefined,
+              lastFrameUrl: meta.lastFrameUrl as string | undefined,
+              characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
+              keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
+              fixedCamera: meta.fixedCamera as boolean | undefined,
+              generateAudio: meta.generateAudio as boolean | undefined,
+              webSearch: meta.webSearch as boolean | undefined,
+              // Audio (Suno)
+              instrumental: meta.instrumental as boolean | undefined,
+              lyrics: meta.lyrics as string | undefined,
+              // Audio (ElevenLabs)
+              voice: meta.voice as string | undefined,
+              language: meta.language as string | undefined,
+              stability: meta.stability as number | undefined,
+              dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
+              // Camera kit
+              camera: meta.camera as string | undefined,
+              lens: meta.lens as string | undefined,
+              focalLength: meta.focalLength as string | undefined,
+              aperture: meta.aperture as string | undefined,
+              filmStock: meta.filmStock as string | undefined,
+            } as any);
+
+            const numImages = (!isTextNode && !isAudio && !useExtraction) ? ((meta.imgCount as number) || 1) : 1;
+
+            let agentResult;
+            let allImageUrls: string[] = [];
+
+            if (isTextNode) {
+              agentResult = await analyzeText({
+                providerId: 'text',
+                mode: 'text-analysis' as any,
+                rawText: promptText,
+                referenceUrls: refUrls,
+                referencePrompts: refPrompts,
+              } as any);
+            } else if (useExtraction) {
+              agentResult = await visualExtract({
+                providerId: mapModelNameToProviderId((meta.model as string) || (n.type === 'video.generate' ? 'Seedance 2.0' : 'GPT Image2')),
+                mode: 'image-to-image',
+                rawText: promptText,
+                aspect: meta.aspect as string | undefined,
+                resolution: meta.resolution as string || '2K',
+                referenceImage: meta.imageUrl as string | undefined || (meta.firstFrameUrl as string),
+                referenceUrls: refUrls,
+                referencePrompts: refPrompts,
+                styleImageUrl: meta.styleImageUrl as string | undefined,
+                seed: meta.seed as number | undefined,
+                negativePrompt: meta.negativePrompt as string | undefined,
+                duration: meta.duration as string | undefined,
+                videoUrls: videoUrls as string[] | undefined,
+                extractMode: meta.extractMode as string || 'auto',
+                // Model-specific params
+                genMode: meta.genMode as string | undefined,
+                firstFrameUrl: meta.firstFrameUrl as string | undefined,
+                lastFrameUrl: meta.lastFrameUrl as string | undefined,
+                characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
+                keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
+                fixedCamera: meta.fixedCamera as boolean | undefined,
+                generateAudio: meta.generateAudio as boolean | undefined,
+                webSearch: meta.webSearch as boolean | undefined,
+                // Audio (Suno)
+                instrumental: meta.instrumental as boolean | undefined,
+                lyrics: meta.lyrics as string | undefined,
+                // Audio (ElevenLabs)
+                voice: meta.voice as string | undefined,
+                language: meta.language as string | undefined,
+                stability: meta.stability as number | undefined,
+                dialogue: meta.dialogue as { text: string; voice: string }[] | undefined,
+                // Camera kit
+                camera: meta.camera as string | undefined,
+                lens: meta.lens as string | undefined,
+                focalLength: meta.focalLength as string | undefined,
+                aperture: meta.aperture as string | undefined,
+                filmStock: meta.filmStock as string | undefined,
+              } as any);
+            } else if (numImages > 1) {
+              const results = await Promise.all(Array.from({ length: numImages }, () => generateWithAgent(buildImgReq())));
+              agentResult = results[0];
+              allImageUrls = results.flatMap(r => r.result?.assetUrls || []);
+            } else {
+              agentResult = await generateWithAgent(buildImgReq());
+            }
 
             const result = agentResult.result;
             if (result.needsPoll && result.taskId) {
               // Video generation — server submitted, client polls
               // compiledPrompt will be updated from poll response when compilation finishes
               const taskId = result.taskId;
-              const genPatch: Record<string, unknown> = { compiledPrompt: '(compiling…)', compiledPromptCn: agentResult.compiled?.cn || '' };
+              // Persist clientTaskId on node so polling can resume after page refresh / reconnect
+              const genPatch: Record<string, unknown> = { compiledPrompt: '(compiling…)', compiledPromptCn: agentResult.compiled?.cn || '', clientTaskId: taskId };
+              store.updateNode(n.id, { meta: { ...node!.meta, gen: { ...meta, ...genPatch } } });
+              store.triggerSync();
               console.log('[poll] Starting client poll for ' + taskId);
               const pollInterval = setInterval(async () => {
                 try {
@@ -606,13 +705,16 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
                     clearInterval(pollInterval);
                     const isVideo2 = n.type === 'video.generate';
                     const urlField2 = isVideo2 ? 'videoUrl' : 'imageUrl';
-                    Object.assign(genPatch, { [urlField2]: pollResult.assetUrls[0], resultAssetIds: pollResult.assetUrls });
+                    // Clear clientTaskId since task is complete
+                    Object.assign(genPatch, { [urlField2]: pollResult.assetUrls[0], resultAssetIds: pollResult.assetUrls, clientTaskId: null });
                     store.updateNode(n.id, { meta: { ...node!.meta, gen: { ...meta, ...genPatch } } });
                     store.setNodeStatus(n.id, 'succeeded');
                     store.triggerSync();
                     console.log('[poll] ' + taskId + ' done: ' + pollResult.assetUrls.length + ' assets, prompt=' + (genPatch.compiledPrompt as string).slice(0, 80));
                   } else if (pollResult.status === 'failed') {
                     clearInterval(pollInterval);
+                    // Clear clientTaskId since task is complete (failed)
+                    store.updateNode(n.id, { meta: { ...node!.meta, gen: { ...meta, ...genPatch, clientTaskId: null } } });
                     store.setNodeStatus(n.id, 'failed');
                     console.log('[poll] ' + taskId + ' failed: ' + pollResult.error);
                   }
@@ -628,11 +730,16 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
               const compiledEn = agentResult.compiled?.en || '';
               const compiledCn = agentResult.compiled?.cn || '';
               const genPatch: Record<string, unknown> = { compiledPrompt: compiledEn, compiledPromptCn: compiledCn };
-              if (result.assetUrls.length > 0) {
+              const effectiveUrls = allImageUrls.length > 0 ? allImageUrls : result.assetUrls;
+              if (effectiveUrls.length > 0) {
                 const isVideo = n.type === 'video.generate';
                 const isAudio = n.type === 'audio.generate';
                 const urlField = isVideo ? 'videoUrl' : isAudio ? 'audioUrl' : 'imageUrl';
-                Object.assign(genPatch, { [urlField]: result.assetUrls[0], resultAssetIds: result.assetUrls });
+                Object.assign(genPatch, { [urlField]: effectiveUrls[0], resultAssetIds: effectiveUrls });
+                // Multi-image: store all URLs for card stacking
+                if (effectiveUrls.length > 1 && !isVideo && !isAudio) {
+                  Object.assign(genPatch, { imageUrls: effectiveUrls });
+                }
               }
               store.updateNode(n.id, {
                 meta: { ...node!.meta, gen: { ...meta, ...genPatch } },
@@ -904,13 +1011,18 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
     }
     // Normal click: select node
     store.setSelectedNodes([node.id]);
-  }, [addEdge, setRfEdges]);
+    // Collapse image grid if clicking a different node
+    if (expandedGridNodeId && expandedGridNodeId !== node.id) {
+      setExpandedGridNodeId(null);
+    }
+  }, [addEdge, setRfEdges, expandedGridNodeId]);
 
   const onPaneClick = useCallback(() => {
     const store = useCanvasStore.getState();
     store.setSelectedNodes([]);
     store.setPendingConnection(null);
     setCropNodeId(null);
+    setExpandedGridNodeId(null);
     closeMenu();
   }, [closeMenu]);
 
@@ -1093,7 +1205,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
         minZoom={0.01}
         maxZoom={5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-        style={{ background: '#FDFAF5' }}
+        style={{ background: bgColor }}
       >
         <Background color="rgba(0,0,0,0.13)" gap={20} size={1.6} />
         <MiniMap
@@ -1148,7 +1260,7 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
       </div>
 
       {/* ── User Badge (top-right) ── */}
-      <UserBadge onLogout={onLogout} />
+      <UserBadge onLogout={onLogout} user={user} />
 
       {/* ── Home Button ── */}
       <button onClick={onGoHome} title="返回项目选择"
@@ -1161,9 +1273,53 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
           backdropFilter: 'blur(12px)', cursor: 'pointer',
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--tap-active)'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'var(--tap-panel)'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#E5E5E5'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
       >⌂</button>
+
+      {/* ── Background Mode Button ── */}
+      <div style={{ position: 'fixed', top: '18px', left: '58px', zIndex: 500 }}>
+        <button onClick={() => setShowBgPicker(!showBgPicker)} title="背景模式"
+          style={{
+            width: '44px', height: '32px', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+            fontSize: '12px', color: 'var(--tap-text-3)',
+            background: 'var(--tap-panel)', border: 'none',
+            backdropFilter: 'blur(12px)', cursor: 'pointer',
+            transition: `all var(--tap-dur-fast) var(--tap-ease)`,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#E5E5E5'; e.currentTarget.style.color = 'var(--tap-text-1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--tap-text-3)'; }}
+        >
+          <span style={{ width:'14px',height:'14px',borderRadius:'50%',background:bgColor,flexShrink:0,outline:bgColor==='#FCFCFC'||bgColor==='#FDFAF5'?'1px solid rgba(0,0,0,0.15)':'none' }} />
+          <span style={{ fontSize:'9px' }}>▾</span>
+        </button>
+        {showBgPicker && (
+          <div style={{
+            position: 'absolute', top: '40px', left: '0',
+            display: 'flex', gap: '6px', padding: '8px',
+            background: 'var(--tap-panel)', borderRadius: '12px',
+            border: '1px solid var(--tap-border)',
+            boxShadow: 'var(--tap-shadow-lg)',
+            backdropFilter: 'blur(16px)',
+            animation: 'tap-fade-down 120ms var(--tap-ease)',
+          }}>
+            {['#FCFCFC', '#FDFAF5', '#1B1B1B', '#00CFFF', '#FFF65D', '#10FFD1', '#FF72FF'].map(c => (
+              <div key={c} onClick={() => { setBgColor(c); setShowBgPicker(false); }}
+                style={{
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: c,
+                  border: bgColor === c ? '2px solid var(--tap-accent)' : '2px solid transparent',
+                  cursor: 'pointer', outline: (c === '#FCFCFC' || c === '#FDFAF5') ? '1px solid rgba(0,0,0,0.12)' : 'none',
+                  transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── Pick-source mode banner ── */}
       {pendingConnection && (
@@ -1386,9 +1542,32 @@ function CanvasWorkspace({ onGoHome, onLogout }: { onGoHome: () => void; onLogou
 }
 
 // ─── Root: two-layer routing ────────────────────
+
+// Dev guest user — used when skip-login / 免登录 (no real auth data)
+const DEV_GUEST: UserProfile = {
+  userId: 'guest-dev',
+  email: 'dev@localhost',
+  credits: 5000,
+  plan: 'free',
+};
+
+// Direct localStorage read — bypass Zustand for reliability in child components
+function readAuthFromStorage(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem('direx_auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.user || null;
+  } catch { return null; }
+}
+
 export default function App() {
-  const authUser = useAuthStore(s => s.user);
-  const [authReady, setAuthReady] = useState(() => useAuthStore.getState().isLoggedIn());
+  const zustandUser = useAuthStore(s => s.user);
+  // Fallback chain: Zustand → localStorage → dev guest (skip-login mode)
+  const authUser = useMemo(() => zustandUser ?? readAuthFromStorage() ?? DEV_GUEST, [zustandUser]);
+  const [authReady, setAuthReady] = useState(() => useAuthStore.getState().isLoggedIn() || !!readAuthFromStorage());
+  // Note: DEV_GUEST is NOT used for authReady — only real auth data bypasses login page.
+  // Skip-login users see LoginPage → click 免登录 → handleEnter sets authReady=true.
   const [entering, setEntering] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -1474,7 +1653,7 @@ export default function App() {
   if (!currentProjectId) {
     return (
       <>
-        <UserBadge onLogout={handleLogout} />
+        <UserBadge onLogout={handleLogout} user={authUser} />
         <ProjectSelector
           onSelectProject={handleSelectProject}
           onCreateNew={handleCreateNew}
@@ -1491,20 +1670,20 @@ export default function App() {
         @keyframes direx-enter {
           0% { opacity: 0; filter: brightness(0.15) blur(12px); }
           40% { opacity: 0.6; filter: brightness(1.2) blur(3px); }
-          100% { opacity: 1; filter: brightness(1) blur(0); }
+          100% { opacity: 1; filter: none; }
         }
         @keyframes direx-leave {
-          0% { opacity: 1; filter: brightness(1) blur(0); }
+          0% { opacity: 1; filter: none; }
           100% { opacity: 0; filter: brightness(0.1) blur(18px); }
         }
       `}</style>
       <div style={{
         animation: leaving
           ? 'direx-leave 0.7s ease-in forwards'
-          : 'direx-enter 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
+          : 'direx-enter 0.7s cubic-bezier(0.16,1,0.3,1)',
         width: '100%', height: '100%',
       }}>
-        <CanvasWorkspace onGoHome={handleGoHome} onLogout={handleLogout} />
+        <CanvasWorkspace onGoHome={handleGoHome} onLogout={handleLogout} user={authUser} />
       </div>
     </ReactFlowProvider>
   );

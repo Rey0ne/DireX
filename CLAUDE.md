@@ -68,13 +68,15 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-08 19:40 |
+| 最后更新 | 2026-07-11 17:00 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `4605994` — fix: 节点刷新后位置漂移 — 3处修复 |
-| 未提交文件 | 多项代码改动 (CLAUDE多角色 + Camera/Lens/Film视觉映射 + 风格DB + T2I模板替换) |
-| D盘备份 | `D:/direx-backup-20260707-1943` (含 desktop-shortcuts) |
-| 当前板块 | Camera/Lens/Film视觉描述映射 + 风格知识库导入Agent + 5维决策规则 + T2I分镜模板替换 + 多角色CLAUDE文件 |
-| 下一个板块 | 等用户指令 |
+| 最新提交 | (待提交) — 前端: 多图并行生成+扑克牌叠放+积分实时显示+promptRef闭包修复+ShotNode文本溢出修复 |
+| 未提交文件 | 后端系统文件待同步 (server/src/systems/ 10文件 + canvas-state/task-logs 运行时数据) |
+| D盘备份 | `D:/direx-backup-20260711` (待同步) |
+| 已完成板块 | ① Camera/Lens/Film映射 ② 风格知识库接入 ③ 5维决策规则引擎 ④ 小Q Chat + Q大脑指挥官 ⑤ 断网恢复 + 本地资产缓存 ⑥ 多图并行生成 + 扑克牌叠放 + 抽卡网格 + 积分消耗预览 |
+| 后端待同步 | `server/src/systems/` — agent/pipeline.ts, agent/profiles.ts, agent/style-db.ts, ai/kie-provider.ts, q/q-api.ts, q/q-chat.ts, q/q-cognitive-engine.ts, q/q-orchestrate.ts + 新增 q/q-decide.ts, q/q-template-advisor.ts, agent/music-planner.ts, file/asset-cache.ts |
+| 合约变更 | `ImageGenMeta.imageUrls?: string[]` — 多图URL存储；`ImageGenMeta.imgCount?: number` — 用户选择的生成张数。后端 generateWithAgent 需支持并行调用（前端用 Promise.all），或后端内部支持 `imgCount` 参数一次返回多张 |
+| 下一个板块 | 板块4: T2I分镜模板统一 (4a 后端模板对齐 + 4b/4c 前端 ShotNode 改造) |
 
 ---
 

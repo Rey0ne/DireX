@@ -8,7 +8,7 @@ import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
-import { getSharedApiKey } from '../../api/gateway';
+import { getSharedApiKey, qDecide, type QDecideResponse } from '../../api/gateway';
 
 
 interface ShotNodeData {
@@ -60,6 +60,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [spaceRunning, setSpaceRunning] = useState(false);
   const [propRunning, setPropRunning] = useState(false);
   const [soundRunning, setSoundRunning] = useState(false);
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null); // 'characters'|'scenes'|'storyboard'|'music'
+  const [regenerateFeedback, setRegenerateFeedback] = useState('');
+  const [regenerateRunning, setRegenerateRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
   const g = gen as Record<string, any>;
   const getOverview = () => g.scriptOverview || null;
@@ -91,7 +94,29 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   // ShotNode：剧本 → 脚本分析（GPT-5.4）。T2I 生图走下游 ImageGenerateNode
   const handleGenerate = () => {
     if (genRunningRef.current || !prompt.trim()) return;
+    // Q brain runs as a sidecar for insight only — never blocks user action
+    handleQSidecar();
     handleScriptAnalysis();
+  };
+
+  // ── Q Brain sidecar — fire-and-forget insight, doesn't gate execution ──
+  const handleQSidecar = () => {
+    if (!prompt.trim()) return;
+    qDecide({
+      action: '分析剧本并生成分镜',
+      scriptText: prompt,
+      nodeId: id,
+      autoExecute: false, // Never auto-execute — Q is observer, not gatekeeper
+      extraParams: { visualStyle },
+    }).then(qResponse => {
+      if (!qResponse) return;
+      console.log('[ShotNode] Q insight:', qResponse.intent.category,
+        'route:', qResponse.routing.route,
+        'confidence:', qResponse.intent.confidence);
+      if (qResponse.context.knownIssues.length > 0) {
+        console.log('[ShotNode] Q remembered issues:', qResponse.context.knownIssues);
+      }
+    }).catch(() => {});
   };
 
   const pollResult = async (taskId: string): Promise<any> => {
@@ -113,6 +138,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       });
       const { taskId } = await submitResp.json();
       if (!taskId) throw new Error('No taskId returned');
+
+      // ── Persist taskId so polling survives page refresh ──
+      patch('scriptTaskId', taskId);
 
       // 2. 场景+音乐同步API在后台并行跑
       const H = {'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`};
@@ -142,6 +170,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             } else {
               console.error('[analysis] Task error:', json.error);
             }
+            patch('scriptTaskId', null); // Clear taskId — analysis complete
             return;
           }
           console.log(`[analysis] Poll ${i + 1}/${MAX_POLLS}: still processing...`);
@@ -154,6 +183,51 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
+  // ── Resume polling on mount if a previous analysis was interrupted (e.g., page refresh) ──
+  useEffect(() => {
+    const taskId = g.scriptTaskId as string | undefined;
+    if (!taskId) return; // No pending task
+    const overview = g.scriptOverview as Record<string, any> | undefined;
+    if (overview?.shots && Array.isArray(overview.shots) && overview.shots.length > 0) {
+      // Already have results — clear stale taskId
+      patch('scriptTaskId', null);
+      return;
+    }
+    // Resume polling for in-flight task
+    console.log('[analysis] Resuming poll for taskId:', taskId);
+    let cancelled = false;
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const resumePoll = async () => {
+      const MAX_POLLS = 50;
+      const POLL_INTERVAL = 30_000;
+      for (let i = 0; i < MAX_POLLS; i++) {
+        if (cancelled) return;
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        if (cancelled) return;
+        try {
+          const resp = await fetch(`${apiBase}/api/agent/script/result/${taskId}`);
+          const json = await resp.json();
+          if (json.status === 'done') {
+            if (json.success) {
+              patch('scriptOverview', {
+                shots: json.shots || [],
+                characterProfiles: json.characterProfiles || {},
+                rawOutput: json.rawOutput || '',
+                durationMs: json.durationMs || 0,
+              });
+              setPhase('overview');
+            }
+            patch('scriptTaskId', null); // Clear taskId
+            return;
+          }
+        } catch {}
+      }
+      // Timeout — clear stale taskId so user can re-trigger
+      if (!cancelled) patch('scriptTaskId', null);
+    };
+    resumePoll();
+    return () => { cancelled = true; };
+  }, [g.scriptTaskId]);
 
   const handleSceneExtraction = async () => {
     if (!prompt.trim() || sceneRunning) return;
@@ -254,13 +328,112 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const _clickProp = () => { const d=getProps(); if(d&&Object.keys(d).length){createPropNodes()}else{handlePropDesigner()} };
   const clickSuno = () => { const d=getSunoPrompts(); if(d&&Object.keys(d).length){createSunoNodes()}else{handleSoundComposer()} };
 
+  // ── Section Regeneration ──
+  const handleRegenerateSection = async (section: string) => {
+    if (regenerateRunning) return;
+    const feedback = regenerateFeedback.trim();
+    if (!feedback) {
+      setRegeneratingSection(section);
+      return; // Open feedback input first, wait for user to type
+    }
+    // If feedback already entered, submit immediately
+    setRegenerateRunning(true);
+    setRegeneratingSection(null);
+    setRegenerateFeedback('');
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const existingResults: Record<string, any> = {};
+      const ov = getOverview();
+      if (ov?.characterProfiles) existingResults.characters = ov.characterProfiles;
+      if (ov?.shots) existingResults.storyboard = ov.shots;
+      const sc = getScenes();
+      if (sc) existingResults.scenes = sc;
+      const sp = getSunoPrompts();
+      const sd = _getSound();
+      if (sp || sd) existingResults.music = { sunoPrompts: sp, soundScenes: sd };
+
+      const resp = await fetch(`${apiBase}/api/agent/script/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({
+          scriptText: prompt,
+          section,
+          visualStyle,
+          userFeedback: feedback,
+          existingResults,
+        }),
+      });
+      const json = await resp.json();
+      if (!json.success) { console.error('[regenerate] Failed:', json.error); return; }
+
+      // Update only the specific section in node meta
+      const patchData: Record<string, any> = {};
+      switch (section) {
+        case 'characters':
+          if (json.characters) patchData.scriptCharacters = json.characters;
+          break;
+        case 'scenes':
+          if (json.scenes) patchData.scriptScenes = json.scenes;
+          if (json.sceneArchitecture) patchData.scriptSpatialDesigns = json.sceneArchitecture;
+          break;
+        case 'storyboard':
+          if (json.shots?.length > 0 || json.characterProfiles) {
+            const existingOv = ov || {};
+            patchData.scriptOverview = {
+              ...existingOv,
+              shots: json.shots || existingOv.shots || [],
+              characterProfiles: json.characterProfiles || existingOv.characterProfiles || {},
+            };
+          }
+          break;
+        case 'music':
+          if (json.sunoPrompts) patchData.scriptSunoPrompts = json.sunoPrompts;
+          if (json.soundScenes) patchData.scriptSound = json.soundScenes;
+          break;
+      }
+      if (Object.keys(patchData).length > 0) {
+        Object.entries(patchData).forEach(([k, v]) => patch(k, v));
+      }
+    } catch (err) {
+      console.error('[regenerate] Error:', err);
+    } finally {
+      setRegenerateRunning(false);
+    }
+  };
+
+  // ── Node placement utilities (anti-overlap) ──
+  const SHOT_TO_CHILD_GAP_X = 40;
+  const SHOT_TO_CHILD_GAP_Y = 60;
+  const getGrid = (count: number, cols: number, startX: number, startY: number, itemW: number, itemH: number, gapX: number, gapY: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      x: startX + (i % cols) * (itemW + gapX),
+      y: startY + Math.floor(i / cols) * (itemH + gapY),
+    }));
+  const computeStartPos = (nodes: Map<string, any>, edges: Map<string, any>) => {
+    const shot = nodes.get(id);
+    const shotRight = (shot?.pos?.x || 0) + (shot?.size?.w || 380);
+    const shotBottom = (shot?.pos?.y || 0) + (shot?.size?.h || 200);
+    let maxBottom = shotBottom;
+    // Only scan children of THIS ShotNode (connected via edges), not all canvas nodes
+    edges.forEach((e: any) => {
+      if (e.from?.nodeId === id) {
+        const child = nodes.get(e.to?.nodeId);
+        if (child) {
+          const b = (child.pos?.y || 0) + (child.size?.h || 200);
+          if (b > maxBottom) maxBottom = b;
+        }
+      }
+    });
+    return { startX: shotRight + SHOT_TO_CHILD_GAP_X, startY: maxBottom + SHOT_TO_CHILD_GAP_Y };
+  };
+
   const createSceneNodes = () => {
     const scenes=getScenes();if(!scenes||!Object.keys(scenes).length)return;
     const e=Object.entries(scenes)as[string,string][];
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:bx+(i%3)*340,y:by+Math.floor(i/3)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景概念设计：'+n+'。'+d.slice(0,500)+'。电影级场景设定。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
+    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景概念设计：'+n+'。'+d.slice(0,500)+'。电影级场景设定。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sc_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -268,9 +441,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const d=getSpatialDesigns();if(!d||!Object.keys(d).length)return;
     const e=Object.entries(d)as[string,string][];
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:bx+(i%3)*340,y:by+Math.floor(i/3)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景空间设计：'+n+'。'+de.slice(0,500)+'。电影级场景概念设计。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
+    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景空间设计：'+n+'。'+de.slice(0,500)+'。电影级场景概念设计。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sp_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -278,9 +451,9 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const p=getProps();if(!p||!Object.keys(p).length)return;
     const e=Object.entries(p)as[string,string][];
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    e.forEach(([n,de],i)=>{const nid='pr_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:bx+(i%4)*220,y:by+Math.floor(i/4)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt:'道具设计：'+n+'。'+de.slice(0,500)+'。白色背景。产品级道具设定图。',model:'GPT Image2',aspect:'1:1',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
+    e.forEach(([n,de],i)=>{const nid='pr_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'纯白背景棚拍。道具设计：'+n+'。'+de.slice(0,500)+'。产品级道具设定图。',model:'GPT Image2',aspect:'1:1',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_pr_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -288,27 +461,27 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const su=getSunoPrompts();if(!su||!Object.keys(su).length)return;
     const e=Object.entries(su)as[string,any][];
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    e.forEach(([n,de],i)=>{const nid='su_'+ts+'_'+i;next.set(nid,{id:nid,type:'audio.generate',title:n,pos:{x:bx+i*320,y:by},size:{w:300,h:180},ports:[],status:'idle',meta:{prompt:(de as any)?.sunoPrompt||String(de),gen:{prompt:(de as any)?.sunoPrompt||String(de),model:'Suno v4'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,180,40,80);
+    e.forEach(([n,de],i)=>{const nid='su_'+ts+'_'+i;next.set(nid,{id:nid,type:'audio.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:180},ports:[],status:'idle',meta:{prompt:(de as any)?.sunoPrompt||String(de),gen:{prompt:(de as any)?.sunoPrompt||String(de),model:'Suno v4'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_su_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
   const createShotNodes = () => {
     const ov=getOverview();const ss=ov?.shots||[];if(!ss.length)return;
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    ss.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:bx+(si%3)*340,y:by+Math.floor(si/3)*400},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:(sh.visualPrompt||sh.contentCN||''),model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,lens:sh.lens,composition:sh.composition,emotion:sh.emotion}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(ss.length,5,bx,by,380,200,40,80);
+    ss.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:grid[si].x,y:grid[si].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:(sh.visualPrompt||sh.contentCN||''),model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,lens:sh.lens,composition:sh.composition,emotion:sh.emotion}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_'+si;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
   const createCharNodes = () => {
     const ov=getOverview();const cs=ov?.characterProfiles||{};const e=Object.entries(cs)as[string,string][];if(!e.length)return;
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
-    const bx=(canvasStore.nodes.get(id)?.pos?.x||0)+340;const by=(canvasStore.nodes.get(id)?.pos?.y||0)+200;
-    const ts=Date.now();
-    e.forEach(([n,de],ci)=>{const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:bx+(ci%4)*220,y:by+Math.floor(ci/4)*220},size:{w:200,h:200},ports:[],status:'idle',meta:{gen:{prompt:'角色设定图：'+n+'。'+de+'。白色背景。三视图（正面、侧面、背面）。包含全身服装与标志性道具。完整角色参考图。',model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
+    const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
+    e.forEach(([n,de],ci)=>{const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[ci].x,y:grid[ci].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'白色无缝影棚背景。专业服装定妆照多角度拍摄。角色设定图：'+n+'。'+de,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_c_'+ci;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -331,20 +504,20 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         
         <Handle type="target" position={Position.Left} id="refs-in"
           style={{
-            width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid #41CCFA', borderRadius: '50%',
+            width: '19px', height: '19px', background: '#00CFFF',
+            borderRadius: '50%',
             left: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#fff',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
         <Handle type="source" position={Position.Right} id="shot-out"
           style={{
-            width: '19px', height: '19px', background: 'var(--tap-panel)',
-            border: '2px solid #41CCFA', borderRadius: '50%',
+            width: '19px', height: '19px', background: '#00CFFF',
+            borderRadius: '50%',
             right: '-20px', top: '50%', opacity: selected || hovered || data.isConnecting || data.hasConnections ? 1 : 0, pointerEvents: "all", transition: 'opacity 0.15s',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#41CCFA',
+            fontSize: '13px', fontWeight: 700, lineHeight: 1, color: '#fff',
           }}
         ><svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}><line x1="5" y1="0" x2="5" y2="10" stroke="currentColor" strokeWidth="1.5"/><line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" strokeWidth="1.5"/></svg></Handle>
 
@@ -352,6 +525,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         <div style={{
           width: 'var(--tap-node-width)',
           minHeight: '220px',
+          overflow: 'hidden',
           background: 'var(--tap-panel)',
           border: data.isPickTarget
             ? '2px solid rgba(180,180,185,0.55)'
@@ -394,28 +568,80 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           {analysisDoneRef.current && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
-                { label: '场景', count: getScenes() ? Object.keys(getScenes()!).length : 0, unit: '场', preview: getScenes() ? Object.keys(getScenes()!).join('、') : '', onClick: clickScene },
-                { label: '演员', count: getCharacters() ? Object.keys(getCharacters()!).length : 0, unit: '名', preview: getCharacters() ? Object.keys(getCharacters()!).join('、') : '', onClick: clickChar },
-                { label: '分镜', count: getOverview()?.shots?.length || 0, unit: '镜', preview: getOverview()?.shots?.slice(0,3).map((s:any)=>s.shotType+'#'+s.shotNumber).join(' ') || '', onClick: clickShot },
-                { label: '音乐', count: getSunoPrompts() ? Object.keys(getSunoPrompts()!).length : 0, unit: '曲', preview: getSunoPrompts() ? Object.keys(getSunoPrompts()!).join('、') : '', onClick: clickSuno },
+                { label: '场景', section: 'scenes', count: getScenes() ? Object.keys(getScenes()!).length : 0, unit: '场', preview: getScenes() ? Object.keys(getScenes()!).join('、') : '', onClick: clickScene },
+                { label: '演员', section: 'characters', count: getCharacters() ? Object.keys(getCharacters()!).length : 0, unit: '名', preview: getCharacters() ? Object.keys(getCharacters()!).join('、') : '', onClick: clickChar },
+                { label: '分镜', section: 'storyboard', count: getOverview()?.shots?.length || 0, unit: '镜', preview: getOverview()?.shots?.slice(0,3).map((s:any)=>s.shotType+'#'+s.shotNumber).join(' ') || '', onClick: clickShot },
+                { label: '音乐', section: 'music', count: getSunoPrompts() ? Object.keys(getSunoPrompts()!).length : 0, unit: '曲', preview: getSunoPrompts() ? Object.keys(getSunoPrompts()!).join('、') : '', onClick: clickSuno },
               ].map((btn, i) => (
-                <div key={i} onClick={btn.onClick}
-                  style={{
-                    padding: '6px 10px', cursor: 'pointer', borderRadius: 6,
-                    background: 'transparent',
-                    border: '1px solid transparent',
-                    display: 'flex', flexDirection: 'column', gap: 2,
-                    transition: 'background 0.25s ease, border-color 0.25s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#10FFD1'; e.currentTarget.style.borderColor = '#10FFD1'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
-                >
-                  <div style={{ display:'flex',alignItems:'baseline',gap:6 }}>
-                    <span style={{ fontSize:12,fontWeight:600,color:'#000' }}>{btn.label}</span>
-                    <span style={{ fontSize:10,color:'#000' }}>{btn.count}{btn.unit}</span>
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <div onClick={btn.onClick}
+                      style={{
+                        flex: 1, minWidth: 0, padding: '6px 10px', cursor: 'pointer', borderRadius: 6,
+                        background: 'transparent', border: '1px solid transparent',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                        transition: 'background 0.25s ease, border-color 0.25s ease',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#10FFD1'; e.currentTarget.style.borderColor = '#10FFD1'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+                    >
+                      <div style={{ display:'flex',alignItems:'baseline',gap:6 }}>
+                        <span style={{ fontSize:12,fontWeight:600,color:'#000' }}>{btn.label}</span>
+                        <span style={{ fontSize:10,color:'#000' }}>{btn.count}{btn.unit}</span>
+                      </div>
+                      {btn.preview && (
+                        <div style={{ fontSize:9,color:'#000',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{btn.preview}</div>
+                      )}
+                    </div>
+                    {/* ↻ Regenerate button */}
+                    <div
+                      onClick={e => { e.stopPropagation(); handleRegenerateSection(btn.section); }}
+                      title="重新生成此项"
+                      style={{
+                        width: 24, height: 24, borderRadius: 4, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, color: regenerateRunning ? 'var(--tap-accent)' : '#999',
+                        background: 'transparent', border: '1px solid transparent',
+                        transition: 'color 0.2s, border-color 0.2s',
+                        opacity: regenerateRunning ? 0.5 : 1,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--tap-accent)'; e.currentTarget.style.borderColor = 'rgba(16,255,209,0.3)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#999'; e.currentTarget.style.borderColor = 'transparent'; }}
+                    >
+                      {regenerateRunning ? '⏳' : '↻'}
+                    </div>
                   </div>
-                  {btn.preview && (
-                    <div style={{ fontSize:9,color:'#000',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{btn.preview}</div>
+                  {/* Inline feedback input — appears when this section is selected for regen */}
+                  {regeneratingSection === btn.section && (
+                    <div style={{ display: 'flex', gap: 4, padding: '0 2px' }} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={regenerateFeedback}
+                        onChange={e => setRegenerateFeedback(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); handleRegenerateSection(btn.section); }
+                          if (e.key === 'Escape') { e.stopPropagation(); setRegeneratingSection(null); setRegenerateFeedback(''); }
+                        }}
+                        placeholder="哪里不满意？如：服装太厚重…"
+                        style={{
+                          flex: 1, padding: '3px 6px', fontSize: 10,
+                          border: '1px solid var(--tap-accent)', borderRadius: 4,
+                          background: 'rgba(16,255,209,0.05)', color: 'var(--tap-text-1)',
+                          outline: 'none',
+                        }}
+                      />
+                      <button
+                        onClick={e => { e.stopPropagation(); handleRegenerateSection(btn.section); }}
+                        style={{
+                          padding: '2px 8px', fontSize: 10, fontWeight: 600,
+                          background: 'var(--tap-accent)', color: '#000', border: 'none',
+                          borderRadius: 4, cursor: 'pointer',
+                        }}
+                      >
+                        重生成
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -477,19 +703,29 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               rows={expanded ? 24 : 8}
               style={{
                 width: '100%', background: '#fff', border: 'none',
+                borderRadius: 'var(--tap-r-xl) var(--tap-r-xl) 0 0',
                 padding: '10px 14px', fontSize: '8px',
                 color: '#333', resize: 'none', outline: 'none',
                 lineHeight: 1.5, minHeight: expanded ? '480px' : '160px',
+                boxSizing: 'border-box',
+                overflowWrap: 'break-word', wordBreak: 'break-word',
               }}
             />
-            {/* Send — glass pill */}
+            {/* Bottom bar — send capsule at right:12px, bottom:8px (measured from ImageGenerateNode) */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px',
+              padding: '4px 12px 8px 8px',
+            }}>
+              {/* Send — glass pill */}
               <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'50px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
+                {genRunning && <span style={{color:'#00CFFF',fontSize:'10px',fontWeight:500,marginRight:'4px'}}>-5 积分</span>}
                 <button onClick={handleGenerate} disabled={genRunning}
                   style={{ width:'16px',height:'16px',borderRadius:'50%',background:genRunning?'var(--tap-warning)':'#FFF65D',color:genRunning?'#fff':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:genRunning?'8px':'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',transition:'transform 0.15s,box-shadow 0.15s' }}
                   onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
                 >{genRunning ? '⏳' : '↑'}</button>
               </div>
+            </div>
             {showMention && mentionList.length > 0 && createPortal(
                 <div onMouseDown={e => e.preventDefault()} style={{
                   position: 'fixed',

@@ -80,7 +80,7 @@ export function ZoomSlider({ zoom, onZoomChange, snapEnabled, onSnapToggle }: Zo
           style={{
             width: '100%', height: '4px',
             WebkitAppearance: 'none', appearance: 'none',
-            background: 'rgba(255,255,255,0.12)', borderRadius: '2px',
+            background: 'rgba(255,255,255,0.12)', borderRadius: '2px', border: '1px solid #1B1B1B',
             outline: 'none', cursor: 'pointer',
           }}
         />

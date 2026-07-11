@@ -255,6 +255,105 @@ export async function analyzeFull(scriptText: string, visualStyle?: string): Pro
   }
 }
 
+// ─── Q Brain Central Decision ──────────────────────
+export interface QDecideResponse {
+  intent: {
+    understood: string;
+    confidence: number;
+    category: 'generate' | 'analyze' | 'fix' | 'query' | 'unknown';
+  };
+  routing: {
+    route: string;
+    reasoning: string;
+    alternatives: string[];
+  };
+  context: {
+    memoriesRecalled: number;
+    relevantMemories: { content: string; layer: string }[];
+    knownIssues: string[];
+  };
+  execution?: {
+    success: boolean;
+    result: unknown;
+    durationMs: number;
+  };
+  validation?: {
+    deviationsFound: number;
+    violationsFound: number;
+    suggestions: string[];
+  };
+  planOnly: boolean;
+  trace: { step: string; description: string; durationMs: number }[];
+}
+
+/** POST /api/q/decide — Q brain analyzes intent, routes, executes, validates. */
+export async function qDecide(params: {
+  action: string;
+  scriptText?: string;
+  nodeId?: string;
+  projectId?: string;
+  autoExecute?: boolean;
+  extraParams?: Record<string, unknown>;
+}): Promise<QDecideResponse | null> {
+  const url = BACKEND_URL ? `${BACKEND_URL}/api/q/decide` : '/api/q/decide';
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getSharedApiKey()}`,
+      },
+      body: JSON.stringify({
+        action: params.action,
+        scriptText: params.scriptText,
+        nodeId: params.nodeId,
+        projectId: params.projectId || 'default',
+        params: params.extraParams,
+        autoExecute: params.autoExecute !== false,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('[qDecide] Server returned', response.status);
+      return null;
+    }
+
+    return await response.json() as QDecideResponse;
+  } catch (err) {
+    console.warn('[qDecide] Failed:', err);
+    return null;
+  }
+}
+
+/** Q-gated generation wrapper — asks Q brain to decide the pipeline, falls back to direct API on failure. */
+export async function generateWithQGatekeeper(params: {
+  action: string;
+  scriptText: string;
+  nodeId?: string;
+  visualStyle?: string;
+  onQInsight?: (response: QDecideResponse) => void;
+}): Promise<{ usedQBrain: boolean; qResponse: QDecideResponse | null }> {
+  const qResponse = await qDecide({
+    action: params.action,
+    scriptText: params.scriptText,
+    nodeId: params.nodeId,
+    autoExecute: true,
+    extraParams: { visualStyle: params.visualStyle },
+  });
+
+  if (qResponse) {
+    params.onQInsight?.(qResponse);
+    if (qResponse.execution?.success) {
+      console.log('[Q Gatekeeper] Q executed pipeline:', qResponse.routing.route, 'in', qResponse.execution.durationMs, 'ms');
+      return { usedQBrain: true, qResponse };
+    }
+    console.log('[Q Gatekeeper] Q decided but execution skipped/failed. Route:', qResponse.routing.route);
+  }
+
+  return { usedQBrain: false, qResponse };
+}
+
 // ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
 export function getSharedApiKey(): string {
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';

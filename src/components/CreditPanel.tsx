@@ -5,6 +5,7 @@ import type { UserProfile } from '../../shared/api-types.js';
 
 interface CreditPanelProps {
   onClose: () => void;
+  user: UserProfile | null;
 }
 
 // Pro 五档积分选择
@@ -117,8 +118,10 @@ async function callApi(path: string, body: any) {
   return resp.json();
 }
 
-export function CreditPanel({ onClose }: CreditPanelProps) {
-  const user = useAuthStore(s => s.user)!;
+export function CreditPanel({ onClose, user }: CreditPanelProps) {
+  if (!user) {
+    return <div style={{position:'fixed',inset:0,zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.7)'}} onClick={onClose}><div style={{background:'#1B1B1B',borderRadius:16,padding:'32px',color:'#fff',textAlign:'center'}}><p>无法加载用户信息，请重新登录</p><button onClick={onClose} style={{marginTop:16,padding:'8px 24px',borderRadius:8,background:'#5EEAD4',color:'#1B1B1B',border:'none',cursor:'pointer',fontWeight:600}}>关闭</button></div></div>;
+  }
   const [tab, setTab] = useState<'plan' | 'topup'>('plan');
   const [proTier, setProTier] = useState(2); // 默认高级
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');

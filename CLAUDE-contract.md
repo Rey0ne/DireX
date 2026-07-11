@@ -25,7 +25,7 @@
 
 | 时间 | 从 | 到 | 消息 |
 |------|-----|-----|------|
-| — | — | — | 暂无交接 |
+| 2026-07-10 | 后端 | 前端 | ⚠️ **生成结果现在存在本地了！** `imageUrl`/`videoUrl`/`audioUrl` 返回 `/api/output/asset_*.{ext}` 格式而非外部 CDN URL。`<img src={data.imageUrl}>` 直接能用，不需要改前端代码。切网络不会再丢图片。 |
 | 2026-07-09 | 后端 | 前端 | ⚠️ **小Q 聊天已接通！** QChatPanel 可以接 `/api/q/chat` 了。详情见下方 Chat API 定义。 |
 
 ---
@@ -72,6 +72,8 @@
 | POST `/api/q/orchestrate/reset/:nodeId` | 🆕 new | 2026-07-09 | 后端 |
 | POST `/api/q/style/decide` | 🆕 new | 2026-07-09 | 后端 |
 | POST `/api/q/chat` | 🟢 stable | 2026-07-09 | 前后端 |
+| POST `/api/q/decide` | 🟢 stable | 2026-07-10 | 前后端 |
+| GET `/api/output/*` | 🆕 new | 2026-07-10 | 后端 |
 
 **状态符号**：🟢 stable（稳定可用）| 🟡 changing（正在改）| 🔴 breaking（破坏性变更中）| 🆕 new（新增，前端尚未接入）| ⚫ deprecated（已废弃）
 
@@ -81,6 +83,7 @@
 
 | 日期 | 谁 | 做了什么 | 影响前端？ |
 |------|-----|---------|-----------|
+| 2026-07-10 | 后端 | **断网恢复 + 本地资产缓存** — 生成结果下载到 `data/output/`, `/api/output/*` 静态服务, taskStore 落盘+启动恢复, clientTaskId 持久化+重连轮询 | **否** — `<img src>` 直接能用， `/api/output/` 路径格式对前端透明 |
 | 2026-07-09 | 后端 | 小Q Phase 2 — 新增认知循环引擎 + AutoFix + API | 是 — `/analyze`/`/autofix`/`/cycles/active` |
 | 2026-07-09 | 后端 | 小Q Phase 3 — 预测引擎 + 建议引擎 + 自动编排 + pipeline回调 | 是 — `/predict`/`/suggest`/`/orchestrate` |
 | 2026-07-09 | 后端 | 小Q Phase 1 — 新增 `/api/q/*` 14个端点 + SSE通知流 | 是 — 前端可接入 SSE 通知和记忆查询 |
@@ -154,6 +157,7 @@
 | POST | `/api/q/orchestrate/reset/:nodeId` | — | `{ success, nodeId }` |
 | POST | `/api/q/style/decide` | `{ era?, region?, sceneFunction?, mood?, identity? }` | `{ decision: StyleDecision, styleInstruction: string }` |
 | POST | `/api/q/chat` | `{ message: string, projectId?: string, history?: [...] }` | `ChatResponse` (see below) |
+| POST | `/api/q/decide` | `{ action: string, scriptText?, nodeId?, autoExecute? }` | `QDecideResponse` (see below) |
 
 #### Chat (`POST /api/q/chat`) — 🔥 前端优先接这个
 
@@ -197,6 +201,52 @@ const data = await resp.json();
 ```
 
 **当前状态：** DeepSeek LLM 已接通，测试通过（问候/项目状态/帮助/空消息 4 场景）。无 projectId 时会自动查找最近活跃项目。
+
+此外 `ChatResponse` 已新增 `action?: ChatAction` 字段。当用户要求执行操作时（"帮我生成"、"修复镜头3"），Q 大脑会在 LLM 回复中嵌入 `<!--ACTION:{...}-->` 标记。前端可解析 action 字段来触发管道执行。
+
+#### Decide (`POST /api/q/decide`) — 🧠 Q 大脑中央决策入口
+
+Q 大脑的指挥中心。接受自然语言 action，用 DeepSeek 理解意图 → 决定管道路线 → 执行 → 验证 → 返回结果 + 完整 trace。
+
+**请求：**
+```typescript
+POST /api/q/decide
+{
+  action: string;          // Natural language: "分析剧本", "给镜头3重新生成"
+  scriptText?: string;     // Script content if available
+  nodeId?: string;         // Canvas node ID for context
+  projectId?: string;      // Defaults to 'default'
+  params?: Record;         // Additional params (shot number, provider, etc.)
+  autoExecute?: boolean;   // If true, Q actually runs the pipeline. Default: true
+}
+```
+
+**响应：**
+```typescript
+{
+  intent: { understood: string; confidence: number; category: 'generate'|'analyze'|'fix'|'query'|'unknown' };
+  routing: { route: PipelineRoute; reasoning: string; alternatives: string[] };
+  context: { memoriesRecalled: number; relevantMemories: {...}[]; knownIssues: string[] };
+  execution?: { success: boolean; result: unknown; durationMs: number };
+  validation?: { deviationsFound: number; violationsFound: number; suggestions: string[] };
+  planOnly: boolean;
+  trace: { step: string; description: string; durationMs: number }[];
+}
+```
+
+**前端接入示例：**
+```typescript
+const resp = await fetch('/api/q/decide', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+  body: JSON.stringify({ action: '分析剧本并生成分镜', scriptText: '...', autoExecute: true }),
+});
+const { intent, routing, execution } = await resp.json();
+// intent.category → 'generate' | routing.route → 'full_pipeline'
+// execution.result → actual pipeline output
+```
+
+**当前状态：** 2026-07-10 上线。DeepSeek 意图分析 + 规则路由降级。autoExecute=true 时自动调用 Agent 管道。
 
 #### Cognitive Cycle (`/api/q/analyze`)
 

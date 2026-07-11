@@ -18,6 +18,15 @@ let saveMutex = false;          // prevent concurrent saveNow() calls
 const MIN_SAVE_INTERVAL = 3000; // min 3s between saves to avoid drag-lag
 const SAVE_DEBOUNCE = 1000;     // debounce 1s after last change
 
+// ── Safety gate: prevent saving before initial load completes ──
+// Without this, startAutoSave() can trigger saveNow() while loadFromDB()
+// is still async, overwriting existing data with an empty/partial store.
+let initialized = false;
+export function markInitialized() {
+  initialized = true;
+  console.log('[persist] Storage initialized — auto-save now active');
+}
+
 export function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
   const since = Date.now() - lastSaveTime;
@@ -54,6 +63,13 @@ function sanitizeMeta(obj: unknown): unknown {
 }
 
 export async function saveNow() {
+  // ── Safety gate: don't save before initial load completes ──
+  // This prevents the race where startAutoSave() fires a save via store
+  // subscription while loadFromDB() is still reading from IndexedDB.
+  if (!initialized) {
+    console.log('[persist] Skipping save — store not yet initialized (data still loading)');
+    return;
+  }
   // ── Mutex guard: if a save is already in flight, re-schedule aggressively ──
   // Previous code only set saveTimer if none existed — but scheduleSave() always
   // sets one, so the !saveTimer guard never fired. The deferred timer from

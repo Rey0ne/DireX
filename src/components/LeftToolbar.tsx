@@ -15,13 +15,13 @@ interface ToolDef {
 
 const TOOLS: ToolDef[] = [
   { id: 'crop', icon: 'crop-svg', label: '裁切', shortcut: 'C' },
-  { id: 'inpaint', icon: '◐', label: '擦除 / 重绘', shortcut: 'B' },
+  { id: 'inpaint', icon: 'inpaint-svg', label: '重绘', shortcut: 'B' },
   { id: 'relight', icon: 'relight-svg', label: '重打光', shortcut: 'L' },
   { id: 'multiAngle', icon: 'multiangle-svg', label: '多角度', shortcut: 'A' },
-  { id: 'expand', icon: '↕', label: '扩图', shortcut: 'E', divider: true },
-  { id: 'extract', icon: '◌', label: '抠图', shortcut: 'X' },
-  { id: 'enhance', icon: '◇', label: '画质增强', shortcut: 'U' },
-  { id: 'annotate', icon: '⊕', label: '标注', shortcut: 'N' },
+  { id: 'expand', icon: 'expand-svg', label: '扩图', shortcut: 'E', divider: true },
+  { id: 'extract', icon: 'extract-svg', label: '抠图', shortcut: 'X' },
+  { id: 'enhance', icon: 'hd-text', label: '画质增强', shortcut: 'U' },
+  { id: 'annotate', icon: 'annotate-svg', label: '标注', shortcut: 'N' },
 ];
 
 interface LeftToolbarProps {
@@ -87,26 +87,59 @@ export function LeftToolbar({ activeTool, onToolSelect }: LeftToolbarProps) {
                   <path d="M18 22V8a2 2 0 0 0-2-2H2" />
                 </svg>
               ) : tool.icon === 'relight-svg' ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="#fff" strokeWidth="1.1">
+                <svg width="17" height="17" viewBox="2 1 20 22" fill="none"
+                  stroke="#fff" strokeWidth="1.3">
                   <circle cx="12" cy="13" r="7" />
                   <ellipse cx="12" cy="13" rx="11" ry="3.5" transform="rotate(-25 12 13)" />
                 </svg>
               ) : tool.icon === 'multiangle-svg' ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
                   stroke="#fff" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-                  <g transform="rotate(45, 12, 11)">
-                    <polygon points="12,4 18,7.5 18,14.5 12,18 6,14.5 6,7.5" />
-                    <line x1="12" y1="11" x2="6" y2="7.5" />
-                    <line x1="12" y1="11" x2="12" y2="4" />
-                    <line x1="12" y1="11" x2="18" y2="7.5" />
+                  <g transform="translate(12,11) scale(1.55) translate(-12,-11)">
+                    <g transform="rotate(45, 12, 11)">
+                      <polygon points="12,4 18,7.5 18,14.5 12,18 6,14.5 6,7.5" />
+                      <line x1="12" y1="11" x2="6" y2="7.5" />
+                      <line x1="12" y1="11" x2="12" y2="4" />
+                      <line x1="12" y1="11" x2="18" y2="7.5" />
+                    </g>
+                    <path d="M20 9 A5 5 0 0 1 20 16" />
+                    <polyline points="18,14 20,16 22,13.5" fill="none" />
                   </g>
-                  <path d="M20 9 A5 5 0 0 1 20 16" />
-                  <polyline points="18,14 20,16 22,13.5" fill="none" />
                 </svg>
-              ) : (
-                tool.icon
-              )}
+              ) : tool.icon === 'inpaint-svg' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2a10 10 0 0 1 0 20" fill="#fff" />
+                </svg>
+              ) : tool.icon === 'expand-svg' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <g transform="rotate(45, 12, 12)">
+                    <line x1="12" y1="10" x2="12" y2="8" />
+                    <polyline points="7,6 12,1 17,6" />
+                    <line x1="12" y1="14" x2="12" y2="16" />
+                    <polyline points="7,18 12,23 17,18" />
+                  </g>
+                </svg>
+              ) : tool.icon === 'extract-svg' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="11" r="7" strokeDasharray="3 3" />
+                  <path d="M12,11 L12,6.5 M12,11 L12,15.5 M12,11 L6.5,11 M12,11 L17.5,11
+                           M12,11 L8,7 M12,11 L16,15 M12,11 L8,15 M12,11 L16,7" />
+                  <polygon points="13,11 16.5,7.5 24,15 20.5,18.5" fill="none" stroke="#fff" />
+                </svg>
+              ) : tool.icon === 'hd-text' ? (
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 800, color: '#fff', lineHeight: 1 }}>HD</span>
+              ) : tool.icon === 'annotate-svg' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                  stroke="#fff" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12,1.5 C18,1.5 22,6 22,12 C22,14 20,16 16,19 L12,24 L8,19 C4,16 2,14 2,12 C2,6 6,1.5 12,1.5 Z
+                           M12,6.5 A4,4 0 1,0 12,14.5 A4,4 0 1,0 12,6.5 Z"
+                    fill="#fff" fillRule="evenodd" stroke="#fff" strokeWidth="0.5" />
+                </svg>
+              ) : null}
             </button>
             <span style={{
               fontSize: '11px', color: '#000',

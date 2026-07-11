@@ -167,8 +167,9 @@ export interface ImageGenMeta {
   seed?: number;
   styleImageUrl?: string;
   resultAssetIds: string[];
-  // Generation count
+  // Generation count + multi-image
   imgCount?: number;
+  imageUrls?: string[];
   // Camera kit
   camera?: string;
   lens?: string;

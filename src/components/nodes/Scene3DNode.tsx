@@ -334,13 +334,13 @@ export function Scene3DNode({id,data,selected}:{id:string;data:{title?:string;is
       <Handle type="source" position={Position.Right} id="image-out" style={{background:'rgba(180,180,200,0.4)',width:9,height:9,border:'none',borderRadius:5}}/>
       <Handle type="target" position={Position.Bottom} id="model-in"
         style={{
-          width: 19, height: 19, background: 'var(--tap-panel)',
-          border: '2px solid #41CCFA', borderRadius: '50%',
+          width: 19, height: 19, background: '#00CFFF',
+          borderRadius: '50%',
           bottom: '-10px', left: '50%', transform: 'translateX(-50%)',
           opacity: selected || data.isConnecting ? 1 : 0,
           pointerEvents: 'all', transition: 'opacity 0.15s',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: '#41CCFA',
+          fontSize: 11, fontWeight: 700, color: '#fff',
         }}
       >
         <svg width="10" height="10" viewBox="0 0 10 10" style={{ display: 'block' }}>
