@@ -68,14 +68,13 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-12 01:00 |
+| 最后更新 | 2026-07-12 02:25 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `102a360` — 前端: ShotNode异步轮询+section选择性patch+lost/failed处理+兼容同步/异步响应+Handle样式统一+选中文字颜色修复 |
-| 上一提交 | `1c5ab43` — docs: CLAUDE.md 前端架构更新章节 + 合约变更同步 |
-| 未提交文件 | 后端: server/src/systems/ (10+文件) + server/src/index.ts + CLAUDE-contract.md(已更新合约) + canvas-state/task-logs 运行时数据 |
-| D盘备份 | `D:/direx-backup-20260712` |
-| 已完成板块 | ①~⑭ 同前 ⑮ ShotNode: 异步轮询+4种终止状态处理(lost/failed/done/timeout)+section选择性patch+同步/异步响应双兼容+错误UI条幅 ⑯ Audio/VideoGenerateNode Handle统一#00CFFF |
-| 下一个板块 | ⚠️ 后端: `/api/agent/script/regenerate` 和 `/api/agent/script/music` 实际返回同步格式 `{success, data}` 而非 `{taskId}`，需重启/对齐异步格式 |
+| 最新提交 | `ec84685` — 后端: 单独板块异步再生+默认禁止歌词 — regenerate/characters/scenes/music 4端点全部taskId异步化，复用scriptTasks轮询。SOUND_COMPOSER默认instrumental，禁用Rap流派名裸写防止Suno生成歌词 |
+| 上一提交 | `102a360` — 前端: ShotNode异步轮询+section选择性patch+lost/failed处理+兼容同步/异步响应 |
+| D盘备份 | `D:/direx-backup-20260712-0224` |
+| 已完成板块 | ①~⑯ 同前 ⑰ 后端: 4端点异步化(regenerate/characters/scenes/music)+轮询section字段+SOUND_COMPOSER默认instrumental |
+| 下一个板块 | 前端 ShotNode 需改用新的异步端点（已写进 CLAUDE-contract.md 合约） |
 
 ---
 
