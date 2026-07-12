@@ -549,7 +549,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景概念设计：'+n+'。'+d.slice(0,500)+'。电影级场景设定。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+d,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sc_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -559,7 +559,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景空间设计：'+n+'。'+de.slice(0,500)+'。电影级场景概念设计。',model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+de,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sp_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -592,13 +592,24 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const eid='e_'+ts+'_'+si;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
+  // Extract Character Sheet Image Prompt from profile text (~300 char English layout instruction)
+  // Backend CHARACTER_EXTRACTION appends it between "### 角色参考图生图提示词" and "==="
+  const extractCharSheetPrompt = (profileText: string): string | null => {
+    const m = profileText.match(/###\s*角色参考图生图提示词[：:]*\s*\n([\s\S]*?)(?=\n===|$)/);
+    return m?.[1]?.trim() || null;
+  };
   const createCharNodes = () => {
     const ov=getOverview();const cs=ov?.characterProfiles||{};const e=Object.entries(cs)as[string,string][];if(!e.length)return;
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,de],ci)=>{const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[ci].x,y:grid[ci].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'白色无缝影棚背景。专业服装定妆照多角度拍摄。角色设定图：'+n+'。'+de,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-    const eid='e_'+ts+'_c_'+ci;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
+    e.forEach(([n,de],ci)=>{
+      const sheetPrompt = extractCharSheetPrompt(de);
+      const genPrompt = sheetPrompt
+        || '白色无缝影棚背景。专业服装定妆照多角度拍摄。角色设定图：'+n+'。'+de;
+      const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[ci].x,y:grid[ci].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:genPrompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      const eid='e_'+ts+'_c_'+ci;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});
+    });
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
 
