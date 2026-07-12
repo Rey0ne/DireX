@@ -700,11 +700,11 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       // T2I: GPT-5.4 translates Chinese → English
       try {
         const t0 = Date.now();
-        // Dynamic token budget: Chinese→English typically expands ~1.5x, floor 500, ceiling 4096
-        const tknBudget = Math.max(500, Math.min(Math.ceil(enrichedPrompt.length * 1.5), 4096));
+        // Full translation — no artificial token cap. The full Chinese prompt works
+        // directly in kie.ai playground; translation must preserve ALL content.
         const translated = await gpt5Chat(
-          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. Preserve background (plain white, studio, or scene), all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
-          { effort: 'low', timeoutMs: 60000, maxOutputTokens: tknBudget },
+          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. CRITICAL: Preserve ALL layout and format instructions (character sheet layout, left/right split, orthographic views, expression grid, detail close-ups, aspect ratios, placement percentages). Also preserve: background (plain white, studio, or scene), all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
+          { effort: 'low', timeoutMs: 120000 },
         );
         if (translated) {
           compiledPrompt = translated;
@@ -753,8 +753,10 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
     compiledPrompt = camBlock + compiledPrompt;
   }
 
-  // Safety: cap prompt length for image generation APIs (most cap at 2000-4000 chars)
-  const MAX_PROMPT_LEN = 3000;
+  // Safety: cap prompt length for image generation APIs
+  // Increased from 3000 → 8000 — detailed character sheets with full layout
+  // instructions (三视图/表情/特写) need more room after CN→EN translation
+  const MAX_PROMPT_LEN = 8000;
   if (compiledPrompt.length > MAX_PROMPT_LEN) {
     const originalLen = compiledPrompt.length;
     const truncated = compiledPrompt.slice(0, MAX_PROMPT_LEN);
