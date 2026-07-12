@@ -90,7 +90,7 @@
 
 | 日期 | 谁 | 做了什么 | 影响前端？ |
 |------|-----|---------|-----------|
-| 2026-07-12 | 后端 | **Character Sheet 生图提示词** — CHARACTER_EXTRACTION 输出末尾新增 `角色参考图生图提示词 (Character Sheet Image Prompt)` 英文字段，明确三视图60%+表情特写40%版式。 | **是** — 前端 `createCharNodes` 应提取此字段作为生图 prompt，而非用全文 |
+| 2026-07-12 | 后端 | **Character Sheet 生图提示词** — CHARACTER_EXTRACTION 输出末尾新增 `角色参考图生图提示词 (Character Sheet Image Prompt)` 英文字段，明确三视图60%+表情特写40%版式。 | **是** — 前端 `createCharNodes` 不要用全文(几千字)，提取 `角色参考图生图提示词` 段作为生图 prompt（~300字符英文精准版式指令） |
 | 2026-07-11 | 后端 | **管线上总超时（15分钟）** — `POST /api/agent/script/overview` 异步 Pipeline 加 `Promise.race` 总超时。 | **否** — 前端已有 `status: 'done'` + `success: false` 处理逻辑 |
 | 2026-07-11 | 后端 | **scriptTasks 落盘持久化** — 任务从内存 Map 改为 JSON 文件存储。 | **是** — 前端需处理 `status: 'lost'` |
 | 2026-07-10 | 后端 | **断网恢复 + 本地资产缓存** — 生成结果下载到 `data/output/`, `/api/output/*` 静态服务, taskStore 落盘+启动恢复, clientTaskId 持久化+重连轮询 | **否** — `<img src>` 直接能用， `/api/output/` 路径格式对前端透明 |
@@ -204,6 +204,7 @@
 1. `handleSoundComposer`（~line 337）— 改用 `POST /api/agent/script/music` + taskId 轮询
 2. `handleRegenerateSection`（~line 365）— 改用 `POST /api/agent/script/regenerate` + taskId 轮询
 3. 轮询回调（main + resume）— 按 `section` 选择性 patch，不覆盖无关字段
+4. 🆕 `createCharNodes`（~line 600）— **不要用全文 `de` 当生图 prompt**。角色提取输出末尾已有独立英文 `Character Sheet Image Prompt` 字段（`### 角色参考图生图提示词` 到 `===` 之间），提取此段作为 `gen.prompt`。这样每次生图只有 ~300 字符精准版式指令，而非几千字全文
 
 ### Other
 
