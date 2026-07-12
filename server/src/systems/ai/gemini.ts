@@ -44,17 +44,24 @@ export interface Gpt5ContentItem {
   file_url?: string;
 }
 
+// ─── GPT model constants ───────────────────────
+const GPT_MODEL = {
+  PRIMARY: 'gpt-5-6-sol',   // GPT-5.6 Sol — 主力模型（更快、更好）
+  FALLBACK: 'gpt-5-4',      // GPT-5.4 — 备选模型
+} as const;
+
 export async function gpt5Chat(
   messages: Gpt5Message[],
-  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number; maxOutputTokens?: number },
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number; maxOutputTokens?: number; model?: string },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
 
+  const model = opts?.model || GPT_MODEL.PRIMARY;
   const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
   try {
     const body: any = {
-      model: 'gpt-5-4',
+      model,
       input: messages,
       stream: true, // 持续推送 SSE，防止 Cloudflare/路由器将空闲 TCP 断开
       reasoning: { effort: opts?.effort || 'high' },
@@ -72,7 +79,7 @@ export async function gpt5Chat(
 
     const url = 'https://api.kie.ai/codex/v1/responses';
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
-    console.log('[gpt5] Calling ' + url + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
+    console.log('[gpt5] Calling ' + model + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
     const timeoutMs = opts?.timeoutMs || 120000;
     const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), timeoutMs); fetchOpts.signal = ac.signal;
     const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
