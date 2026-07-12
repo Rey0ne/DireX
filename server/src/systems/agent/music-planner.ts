@@ -59,15 +59,10 @@ const MUSIC_PLANNER_PROMPT = `你是一位资深影视音乐总监。分析剧�
 // ── Planner ────────────────────────────────────────
 
 export async function planMusic(scriptText: string): Promise<MusicPlan | null> {
-  const MAX_CHARS = 4000;
-  const truncated = scriptText.length > MAX_CHARS
-    ? scriptText.slice(0, MAX_CHARS) + '\n\n[...剧本后续内容已截断...]'
-    : scriptText;
-
   try {
     const raw = await deepseekChat(
       MUSIC_PLANNER_PROMPT,
-      `剧本内容:\n${truncated}`,
+      `剧本内容:\n${scriptText}`,
       800
     );
 

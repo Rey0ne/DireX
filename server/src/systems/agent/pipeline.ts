@@ -9,6 +9,8 @@ import {
 } from './profiles.js';
 import { FASHION_STYLE_DB, INTERIOR_STYLE_DB, STYLE_DECISION_RULES, FASHION_COORDINATION_DB, decideStyle, type DimensionInput, type StyleDecision } from './style-db.js';
 import { planMusic, formatMusicPlanForPrompt } from './music-planner.js';
+import { searchWritersKB, WRITERS_KB_CATALOG, KB_RETRIEVAL_PROMPT_SCRIPT } from './writers-kb.js';
+import { searchVisualKB, VISUAL_KB_CATALOG, KB_RETRIEVAL_PROMPT_STORYBOARD } from './cinematography-kb.js';
 
 const MAX_PREV_OUTPUT_CHARS = 600; // tight summary of each previous agent output
 
@@ -119,9 +121,28 @@ Classic / Minimalist / Streetwear / High Street / Baggy / Wide-Leg / Bohemian / 
 - 季节默认（春夏轻量/秋冬中量/禁止默认冬装）
 
 ### 12时代×16地域×17场景×10氛围×15身份风格默认
-每个维度有预设的服装风格、配色、面料、灯光方向`;
+每个维度有预设的服装风格、配色、面料、灯光方向
 
-// ─── KB 检索引导 prompt ───
+### 室内/建筑设计风格（38种）
+Traditional / Modern / Mid-Century Modern / Minimalist / Scandinavian / Japandi / Industrial / Bohemian / Farmhouse / Coastal / French Country / Art Deco / Mediterranean / Organic Modern / Neo-Traditional / Warm Post-Minimalism / 新中式 / 日式传统 / 侘寂Wabi-Sabi / 韩式 / Afrohemian / Color Drenching / Bauhaus / Space Age / Brutalism / Gothic / Cyberpunk / Memphis / Streamline Moderne / Googie / 隈研吾(木格柵·粒子化) / 藤本壮介(内外消融·平台叠加) / 石上纯也(极致轻盈·柱林) / 西泽立卫(地形空间·无墙) / 坂茂(纸管建筑·材料诚实) / 西扎(白色混凝土·诗意现代) / 莫内欧(砖的叙事·考古层叠) / Mario Bellini(家具=建筑地形·意大利现代)
+→ 每种风格含：空间特征 / 关键材质 / 配色 / 灯光氛围
+→ 另有：灯光设计速查(三层法则+灯具匹配+2026趋势)、材质速查(木材/石材/金属/织物)、空间配色心理学
+
+### 音乐/配乐知识库
+→ 音乐流派(Genre)图谱：Epic Orchestral / Dark Ambient / Synthwave / Lo-Fi / Jazz Noir / Chinese Folk / Nordic Folk / Industrial / Classical / Post-Rock / Hyperpop / Phonk / Amapiano 等200+流派
+→ 时尚秀场流派：Runway Deep House / Runway Techno / Runway Hyperpop / Runway Nu-Disco / Vogue Ballroom / Avant-Garde Noise 等
+→ 先锋实验流派：Noise Music / Drone / Musique Concrète / Electroacoustic / Power Electronics / Glitch / Generative Music 等
+→ 情绪词(Color)映射：Heroic / Melancholic / Tense / Romantic / Serene / Mysterious / Energetic / Glamorous / Confident / Edgy / Sleek / Sophisticated
+→ 配器(Instrument)推荐：Strings / Brass / Woodwinds / Percussion / Synth / Ethnic Instruments / Electronic Textures
+→ 民族风格(Ethnic)：Chinese Folk / Japanese Gagaku / Indian Classical / Middle Eastern / Celtic / Nordic / African
+→ 电影作曲家风格参考库：Hans Zimmer / John Williams / Ennio Morricone / 久石让 / 坂本龙一 / Max Richter / Ólafur Arnalds 等(SSS/SS/S/A 四级)
+→ 叙事场景→音乐映射：影视(Battle→Epic / Chase→Tension / Romance→Lush / Horror→Dissonance) + TVC(Product Reveal→Cinematic Build / Brand Anthem→Emotional / Sports→Phonk/Trap / Tech→Futuristic Minimal / Luxury→Sophisticated) + Runway(Opening→Deep House / Peak→Techno / Finale→Nu-Disco / Avant-Garde→Noise)
+
+${WRITERS_KB_CATALOG}
+
+${VISUAL_KB_CATALOG}`;
+
+// ─── KB 检索引导 prompt（服装/角色）───
 const KB_RETRIEVAL_PROMPT = `你是一位顶级角色概念设计师。在分析剧本设计角色之前，上面是一个风格知识库的目录。
 请先思考：这个剧本的时代/地域/场景/氛围/身份是什么样的？然后从知识库中选择你需要检索的 5-8 个具体方向。
 
@@ -139,6 +160,118 @@ French Chic不费力优雅搭配
 轻奢配饰方向
 
 请先给出你对剧本的简要风格判断（1-2句话），然后列出你需要检索的关键词。`;
+
+// ─── KB 检索引导 prompt（室内/场景）───
+const KB_RETRIEVAL_PROMPT_SCENE = `你是一位顶级场景概念设计师和室内建筑师。在分析剧本站设计场景之前，上面是一个风格知识库的目录。
+请先思考：这个剧本的时代/地域/场景功能/氛围/角色身份是什么样的？然后从知识库中选择你需要检索的 5-8 个具体方向。
+
+你需要重点考虑的维度：
+- 时代背景（古代/近代/当代/未来？）→ 匹配对应时代建筑风格
+- 地域文化（哪个国家/城市？）→ 匹配地域建筑传统
+- 场景类型（宫廷/办公/居住/街头/工业/自然？）→ 匹配场景功能风格
+- 角色身份（富人/平民/艺术家/权力者？）→ 空间反映身份
+- 灯光氛围（自然光/烛光/霓虹/荧光？）→ 匹配灯光设计
+- 材质语言（木/石/金属/混凝土/玻璃？）→ 匹配材质速查
+
+输出格式（每行一个）：
+关键词：简短说明用途
+
+例如对于一部 2049 年东京近未来都市剧：
+Cyberpunk霓虹都市室内外
+Space Age复古未来主义胶囊空间
+隈研吾木格柵粒子化当代日式
+石上纯也极致轻盈柱林开放空间
+Warm Post-Minimalism温暖极简居住
+灯光设计三层法则+2026趋势
+空间配色心理学蓝绿色系
+材质速查混凝土+微水泥+和紙
+
+请先给出你对剧本空间场景的简要风格判断（1-2句话），然后列出你需要检索的关键词。`;
+
+// ─── KB 检索引导 prompt（音乐/配乐）───
+const KB_RETRIEVAL_PROMPT_MUSIC = `你是一位世界级音乐总监，精通全品类内容配乐——从TVC广告到时尚秀场，从品牌大片到影视剧。上面是一个音乐知识库的目录。
+请先判断这个项目的内容类型（影视剧/TVC广告/时尚秀场/品牌大片/其他？），然后选择你需要检索的 5-8 个方向。
+
+⚠️ 重要：大部分项目不是影视剧。请根据实际内容选择匹配的音乐方向，不要默认使用电影配乐。
+
+关键维度：
+- 内容类型：TVC(15s/30s/60s) / 秀场Runway / 品牌大片 / 影视剧 / 其他 → 决定音乐框架
+- 情绪基调：奢华/自信/前卫/强势/诱惑/冷酷/中性/松弛/能量/梦幻/宁静/神秘？
+- 秀场方向：Runway Deep House / Runway Techno / Runway Hyperpop / Vogue Ballroom / Runway Nu-Disco / Luxury Minimal？
+- TVC方向：Commercial Clean / 产品揭幕 / 生活方式 / 品牌调性 → voice-over友好？
+- 节奏：秀场120-128 BPM / TVC 100-120 BPM / 品牌大片90-120 BPM / 影视60-155 BPM
+- 配器：电子/合成器/真实乐器/实验噪音/混合？
+- 先锋程度：商业/先锋/解构/噪音/极简？
+
+输出格式（每行一个）：
+关键词：简短说明用途
+
+例如对于一个奢侈品牌TVC(30秒)：
+Runway Nu-Disco秀场新迪斯科奢基调
+Luxury Minimal极简奢华制作风格
+Glamorous奢华+Sophisticated精致
+Commercial Clean广告干净后期(voice-over友好)
+Piano+String Quartet极简精致配器
+BPM 108舒适节奏30秒快剪
+
+例如对于一个先锋设计师秀场：
+Runway Techno秀场科技舞曲工业能量
+Industrial Catwalk工业走秀金属质感
+Noise Music噪音音乐解构美学
+Edgy前卫+Fierce强势情绪
+Distorted Synth失真合成器+Metallic Percussion
+BPM 124走秀黄金区
+
+例如对于一个品牌大片(创意内容)：
+Luxury Minimal极简奢华+Nu Jazz爵士温暖
+Runway Deep House秀场深浩室奢华基调
+Glamorous奢华+Confident自信+Sophisticated精致
+Piano+Synth Bass+String Pad高级感配置
+Balenciaga式暗黑极简or Maison Margiela式解构优雅
+
+例如对于一部影视剧（仅限确实是影视内容时）：
+Epic Orchestral史诗管弦战斗场景
+Chinese Folk民族器乐宫廷仪式
+Hans Zimmer式渐进层叠
+请先给出你对内容类型的判断（1-2句话），然后列出关键词。`;
+
+// ─── KB 检索引导 prompt（分镜视觉方向 — 摄影+导演+画家+摄影+色彩+灯光+构图）───
+const KB_RETRIEVAL_PROMPT_VISUAL_DIRECTION = `你是一位世界级分镜导演和视觉设计师。在分析剧本设计分镜之前，上面有多个知识库：
+- 服装/场景风格知识库 — 角色服装、面料、场景空间、室内设计、灯光设计
+- 编剧/叙事理论库 — 叙事结构、POV策略、语言节奏、对话风格
+- 摄影/视觉风格库 — 摄影师技法、导演视觉体系、画家风格参考、动画导演手法、摄影师构图、色彩理论、灯光设计、构图法则
+
+请先思考这个剧本的视觉基调、灯光风格、色彩方向、镜头语言，然后从所有知识库中选择你需要检索的 10-15 个方向。
+
+你需要重点考虑的维度：
+- 灯光风格（自然主义？表现主义？柔光浪漫？硬光戏剧？Rembrandt式？霓虹黑色？）→ 匹配摄影师技法
+- 色彩方向（低饱和严肃？单色专制？粉彩童话？霓虹科幻？互补冲突？）→ 匹配色彩理论+导演视觉
+- 构图策略（对称？负空间？纪念碑式？三分法？框中框？长镜头跟随？）→ 匹配导演视觉+画家风格
+- 镜头偏好（广角亲密？长焦窥视？标准观察？IMAX大画幅？）→ 匹配焦段叙事
+- 运镜风格（手持纪录片？Steadicam流动？静态上帝视角？缓慢推轨？）→ 匹配运镜语意
+- 绘画参考（Rembrandt明暗法？Vermeer窗光？Hopper都市孤独？Monet光分解？）→ 匹配画家技法
+- 服装方向（什么时代/地域的服装风格？廓形？面料？配色？）→ 匹配服装风格表
+- 场景空间（什么建筑风格？材质语言？灯光氛围？空间特征？）→ 匹配室内/建筑设计风格
+- 叙事结构（三幕？英雄之旅？章回体？复调？）→ 匹配编剧/叙事理论
+
+输出格式（每行一个）：
+关键词：简短说明用途
+
+例如对于一部赛博朋克都市悬疑剧：
+Deakins自然主义单光源+负补光 → 审讯室内戏灯光
+Bradford Young暗部曝光+阴影叙事 → 暗调悬疑氛围
+Blade Runner霓虹色彩污染+混合色温 → 街道夜景色彩
+Villeneuve纪念碑式构图+负空间 → 城市巨物镜头
+Fincher锁定机位+控制狂色调 → 悬疑推进节奏
+Wong Kar-wai步进印片+抽帧拖尾+霓虹调色板 → 情感记忆片段
+Libatique动态手持+俱乐部灯光 → 追逐打斗场景
+Rembrandt/Chiaroscuro戏剧光比+三角光斑 → 人物对峙镜头
+当代都市机能风面料与廓形 → 主角街头服装
+Cyberpunk霓虹都市室内外空间 → 街道/酒吧/地下场景
+石上纯也极致轻盈柱林开放空间 → 上层阶级居住空间
+灯光设计Low-Key硬光审讯感 → 审讯室+地下黑市
+
+请先给出你对剧本视觉基调的简要判断（1-2句话），然后列出你需要检索的关键词。`;
 
 // ─── Global Image Analysis Cache ─────────────────
 // Avoids re-fetching + re-analyzing the same image URL across all pipelines
@@ -1052,6 +1185,9 @@ export async function runCharacterExtraction(scriptText: string, visualStyle?: s
     for (const q of queries.slice(0, 8)) {
       const r = searchFashionKB(q);
       if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+      // Also search for supplementary material from other KBs
+      const w = searchWritersKB(q);
+      if (w) allResults.push(`### 🔍 编剧检索："${q}"\n${w}`);
     }
     searchResults = allResults.join('\n\n');
     console.log('[char-extract] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
@@ -1105,31 +1241,88 @@ function parseCharacterBlocks(rawOutput: string): Record<string, string> {
 // ─── Scene Extraction (独立场景提取，GPT-5.4) ──
 export async function runSceneExtraction(scriptText: string, userFeedback?: string, existingContent?: string): Promise<Record<string, string>> {
   const t0 = Date.now();
-  console.log('[scene-extract] Starting, script length=' + scriptText.length);
+  console.log('[scene-extract] Starting, script length=' + scriptText.length + ' feedback=' + !!userFeedback);
 
-  const basePrompt = await injectFeedback(SCENE_EXTRACTION.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
-  const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
+  // ─── Regeneration path: use existing injectFeedback with constraint compilation ───
+  if (userFeedback) {
+    const basePrompt = await injectFeedback(SCENE_EXTRACTION.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
+    const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
+    const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
+    let rawOutput: string | null = null;
+    try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[scene-extract] Failed:', String(err).slice(0, 100)); return {}; }
+    if (!rawOutput) { console.log('[scene-extract] No output'); return {}; }
+    console.log('[scene-extract] Regeneration output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+    return parseSceneBlocks(rawOutput);
+  }
 
-  const gptMsgs = [
-    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
-  ];
+  // ═══════════════════════════════════════════
+  // ─── First-run: Two-round KB retrieval ───
+  // ═══════════════════════════════════════════
 
+  // ── Round 1: Ask GPT-5.4 what interior/architecture KB sections it needs ──
+  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT_SCENE + '\n\n剧本内容：\n' + scriptText;
+  console.log('[scene-extract] Round 1: asking GPT-5.4 what to retrieve...');
+
+  let keywords: string | null = null;
+  try {
+    keywords = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
+      { effort: 'low', maxOutputTokens: 500, timeoutMs: 30000 },
+    );
+  } catch (err: any) { console.log('[scene-extract] Round 1 failed:', String(err).slice(0, 100)); }
+
+  // ── Agent: Search interior KB for each keyword ──
+  let searchResults = '';
+  if (keywords && keywords.length > 20) {
+    console.log('[scene-extract] Round 1 response: ' + keywords.slice(0, 200).replace(/\n/g, ' | '));
+    const queries = keywords
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 3 && l.length < 80);
+
+    const allResults: string[] = [];
+    for (const q of queries.slice(0, 8)) {
+      const r = searchInteriorKB(q);
+      if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+      // Also search writers KB for scene mood / narrative context
+      const w = searchWritersKB(q);
+      if (w) allResults.push(`### 🔍 编剧检索："${q}"\n${w}`);
+    }
+    searchResults = allResults.join('\n\n');
+    console.log('[scene-extract] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
+  }
+
+  if (!searchResults) {
+    // Fallback: use style card approach
+    console.log('[scene-extract] KB retrieval returned empty, falling back to style card');
+    const dimensions = await extractScriptTriggers(scriptText);
+    const decision = decideStyle(dimensions || {});
+    searchResults = buildStyleCard(dimensions || {}, decision);
+  }
+
+  // ── Round 2: Feed KB results + script → design scenes ──
+  const round2Msg = searchResults
+    + '\n\n' + NEGATIVE_INTERIOR
+    + '\n\n' + SCENE_EXTRACTION.systemPrompt
+    + '\n\n## 剧本内容\n' + scriptText
+    + '\n\n请严格按格式为每个场景输出完整设计方案。';
+
+  console.log('[scene-extract] Round 2: designing scenes (' + round2Msg.length + ' chars)...');
   let rawOutput: string | null = null;
   try {
-    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
-  } catch (err: any) {
-    console.log('[scene-extract] Failed:', String(err).slice(0, 100));
-    return {};
-  }
+    rawOutput = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round2Msg }] }],
+      { effort: 'medium', timeoutMs: 600000 },
+    );
+  } catch (err: any) { console.log('[scene-extract] Round 2 failed:', String(err).slice(0, 100)); return {}; }
 
-  if (!rawOutput) {
-    console.log('[scene-extract] No output');
-    return {};
-  }
+  if (!rawOutput) { console.log('[scene-extract] No output'); return {}; }
 
   console.log('[scene-extract] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+  return parseSceneBlocks(rawOutput);
+}
 
-  // Parse scenes — format: === separated blocks, each starting with ## {场景名}
+function parseSceneBlocks(rawOutput: string): Record<string, string> {
   const scenes: Record<string, string> = {};
   const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
   for (const block of blocks) {
@@ -1139,35 +1332,93 @@ export async function runSceneExtraction(scriptText: string, userFeedback?: stri
     if (!name || name.length > 30 || /无明确场景/i.test(name)) continue;
     scenes[name] = block;
   }
-
-  console.log('[scene-extract] Parsed ' + Object.keys(scenes).length + ' scenes');
   return scenes;
 }
 
 // ─── Scene Architect (场景空间设计，GPT-5.4) ──
 export async function runSceneArchitect(scriptText: string, userFeedback?: string, existingContent?: string): Promise<Record<string, string>> {
   const t0 = Date.now();
-  console.log('[scene-architect] Starting, script length=' + scriptText.length);
+  console.log('[scene-architect] Starting, script length=' + scriptText.length + ' feedback=' + !!userFeedback);
 
-  const basePrompt = await injectFeedback(SCENE_ARCHITECT.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
-  const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
+  // ─── Regeneration path ───
+  if (userFeedback) {
+    const basePrompt = await injectFeedback(SCENE_ARCHITECT.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
+    const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
+    const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
+    let rawOutput: string | null = null;
+    try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[scene-architect] Failed:', String(err).slice(0, 100)); return {}; }
+    if (!rawOutput) { console.log('[scene-architect] No output'); return {}; }
+    console.log('[scene-architect] Regeneration output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+    return parseArchitectBlocks(rawOutput);
+  }
 
-  const gptMsgs = [
-    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
-  ];
+  // ═══════════════════════════════════════════
+  // ─── First-run: Two-round KB retrieval ───
+  // ═══════════════════════════════════════════
 
+  // ── Round 1: Ask GPT-5.4 what interior/architecture KB sections it needs ──
+  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT_SCENE + '\n\n剧本内容：\n' + scriptText;
+  console.log('[scene-architect] Round 1: asking GPT-5.4 what to retrieve...');
+
+  let keywords: string | null = null;
+  try {
+    keywords = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
+      { effort: 'low', maxOutputTokens: 500, timeoutMs: 30000 },
+    );
+  } catch (err: any) { console.log('[scene-architect] Round 1 failed:', String(err).slice(0, 100)); }
+
+  // ── Agent: Search interior KB ──
+  let searchResults = '';
+  if (keywords && keywords.length > 20) {
+    console.log('[scene-architect] Round 1 response: ' + keywords.slice(0, 200).replace(/\n/g, ' | '));
+    const queries = keywords
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 3 && l.length < 80);
+
+    const allResults: string[] = [];
+    for (const q of queries.slice(0, 8)) {
+      const r = searchInteriorKB(q);
+      if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+      // Also search writers KB for scene mood / narrative context
+      const w = searchWritersKB(q);
+      if (w) allResults.push(`### 🔍 编剧检索："${q}"\n${w}`);
+    }
+    searchResults = allResults.join('\n\n');
+    console.log('[scene-architect] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
+  }
+
+  if (!searchResults) {
+    console.log('[scene-architect] KB retrieval returned empty, falling back to style card');
+    const dimensions = await extractScriptTriggers(scriptText);
+    const decision = decideStyle(dimensions || {});
+    searchResults = buildStyleCard(dimensions || {}, decision);
+  }
+
+  // ── Round 2: Feed KB results + script → design spatial architecture ──
+  const round2Msg = searchResults
+    + '\n\n' + NEGATIVE_INTERIOR
+    + '\n\n' + SCENE_ARCHITECT.systemPrompt
+    + '\n\n## 剧本内容\n' + scriptText
+    + '\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。';
+
+  console.log('[scene-architect] Round 2: designing spaces (' + round2Msg.length + ' chars)...');
   let rawOutput: string | null = null;
   try {
-    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
-  } catch (err: any) {
-    console.log('[scene-architect] Failed:', String(err).slice(0, 100));
-    return {};
-  }
+    rawOutput = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round2Msg }] }],
+      { effort: 'medium', timeoutMs: 600000 },
+    );
+  } catch (err: any) { console.log('[scene-architect] Round 2 failed:', String(err).slice(0, 100)); return {}; }
 
   if (!rawOutput) { console.log('[scene-architect] No output'); return {}; }
 
   console.log('[scene-architect] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+  return parseArchitectBlocks(rawOutput);
+}
 
+function parseArchitectBlocks(rawOutput: string): Record<string, string> {
   const designs: Record<string, string> = {};
   const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
   for (const block of blocks) {
@@ -1177,8 +1428,6 @@ export async function runSceneArchitect(scriptText: string, userFeedback?: strin
     if (!name || name.length > 50) continue;
     designs[name] = block;
   }
-
-  console.log('[scene-architect] Parsed ' + Object.keys(designs).length + ' spatial designs');
   return designs;
 }
 
@@ -1257,7 +1506,7 @@ async function extractMusicMetadata(scriptText: string): Promise<{
 } | null> {
   try {
     const msgs = [
-      { role: 'user' as const, content: [{ type: 'input_text' as const, text: `${MUSIC_EXTRACTION_PROMPT}\n\n剧本内容:\n${scriptText.slice(0, 3000)}` }] },
+      { role: 'user' as const, content: [{ type: 'input_text' as const, text: `${MUSIC_EXTRACTION_PROMPT}\n\n剧本内容:\n${scriptText}` }] },
     ];
     const raw = await gpt5Chat(msgs, { effort: 'low', timeoutMs: 30000, maxOutputTokens: 1024 });
     if (!raw) { console.log('[extract-metadata] No GPT output'); return null; }
@@ -1292,79 +1541,139 @@ async function extractMusicMetadata(scriptText: string): Promise<{
   }
 }
 
+// ─── Semantic Music Extractor (Round 1 augmented with KB directions) ──
+async function extractMusicMetadataWithHints(scriptText: string, kbDirections: string): Promise<{
+  enrichedQuery: string; genres: string[]; emotions: string[]; sceneTypes: string[];
+  instruments: string[]; ethnicStyles: string[]; bpmEstimate: [number, number]; analysis: string;
+} | null> {
+  try {
+    const augmentedPrompt = MUSIC_EXTRACTION_PROMPT + `\n\n## 知识库检索方向（Round 1 GPT自主决定的搜索范围，优先参考）\n${kbDirections}`;
+    const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: `${augmentedPrompt}\n\n剧本内容:\n${scriptText}` }] }];
+    const raw = await gpt5Chat(msgs, { effort: 'low', timeoutMs: 30000, maxOutputTokens: 1024 });
+    if (!raw) { console.log('[extract-metadata-hints] No GPT output'); return null; }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) { console.log('[extract-metadata-hints] No JSON found'); return null; }
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      enrichedQuery: parsed.enrichedQuery || '',
+      genres: parsed.genres || [], emotions: parsed.emotions || [],
+      sceneTypes: parsed.sceneTypes || [], instruments: parsed.instruments || [],
+      ethnicStyles: parsed.ethnicStyles || [],
+      bpmEstimate: Array.isArray(parsed.bpmEstimate) && parsed.bpmEstimate.length === 2
+        ? [parsed.bpmEstimate[0], parsed.bpmEstimate[1]] as [number, number] : [60, 120] as [number, number],
+      analysis: parsed.analysis || '',
+    };
+  } catch (err: any) { console.log('[extract-metadata-hints] Failed:', String(err).slice(0, 150)); return null; }
+}
+
 // ─── Sound Composer (声音与音乐设计，GPT-5.4 → Suno) ──
 export async function runSoundComposer(scriptText: string, userFeedback?: string, existingContent?: string): Promise<{ scenes: Record<string, string>; sunoPrompts: Record<string, string> }> {
   const t0 = Date.now();
-  console.log('[sound-composer] Starting, script length=' + scriptText.length);
+  console.log('[sound-composer] Starting, script length=' + scriptText.length + ' feedback=' + !!userFeedback);
 
-  // Step 1: Semantic extraction — GPT analyzes Chinese script → English keywords
-  const metadata = await extractMusicMetadata(scriptText);
+  // ─── Regeneration path ───
+  if (userFeedback) {
+    const metadata = await extractMusicMetadata(scriptText);
+    const { queryMusicKBWithHints, formatKBContext, generateKBSummary } = await import('./music-kb.js');
+    const kbResult = metadata ? queryMusicKBWithHints(scriptText, metadata) : queryMusicKBWithHints(scriptText);
+    const kbContext = formatKBContext(kbResult); const kbSummary = generateKBSummary();
+    const { recommendComposersWithHints, formatComposerContext, composerStats } = await import('./composer-kb.js');
+    const composerHints = metadata ? { genres: metadata.genres, emotions: metadata.emotions, sceneTypes: metadata.sceneTypes, instruments: metadata.instruments, ethnicStyles: metadata.ethnicStyles, enrichedQuery: metadata.enrichedQuery } : undefined;
+    const composerResult = recommendComposersWithHints(scriptText, composerHints, 5);
+    const composerContext = formatComposerContext(scriptText, 5); const cStats = composerStats();
+    const musicPlan = await planMusic(scriptText); const musicPlanBlock = formatMusicPlanForPrompt(musicPlan);
+    const gptAnalysisBlock = metadata?.analysis ? `\n\n## GPT 语义分析 (中文)\n${metadata.analysis}\n\n## GPT 提取关键词 (英文)\n${metadata.enrichedQuery}` : '';
 
-  // Step 2: Query music KB with semantic hints
+    const userMessage = await injectFeedback(SOUND_COMPOSER.systemPrompt, userFeedback, existingContent, 'music', scriptText)
+      + musicPlanBlock
+      + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})`
+      + gptAnalysisBlock
+      + `\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
+
+    const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
+    let rawOutput: string | null = null;
+    try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[sound-composer] Failed:', String(err).slice(0, 100)); return { scenes: {}, sunoPrompts: {} }; }
+    if (!rawOutput) { console.log('[sound-composer] No output'); return { scenes: {}, sunoPrompts: {} }; }
+    console.log('[sound-composer] Regeneration output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+    return parseSoundBlocks(rawOutput);
+  }
+
+  // ═══════════════════════════════════════════
+  // ─── First-run: Two-round KB retrieval ───
+  // ═══════════════════════════════════════════
+
+  // ── Round 1: Ask GPT-5.4 what music KB sections it needs ──
+  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT_MUSIC + '\n\n剧本内容：\n' + scriptText;
+  console.log('[sound-composer] Round 1: asking GPT-5.4 what to retrieve...');
+
+  let keywords: string | null = null;
+  try {
+    keywords = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
+      { effort: 'low', maxOutputTokens: 500, timeoutMs: 30000 },
+    );
+  } catch (err: any) { console.log('[sound-composer] Round 1 failed:', String(err).slice(0, 100)); }
+
+  const kbDirections = keywords && keywords.length > 20 ? keywords.slice(0, 800) : '';
+  if (kbDirections) console.log('[sound-composer] Round 1 response: ' + keywords!.slice(0, 200).replace(/\n/g, ' | '));
+
+  // ── Step 1: Semantic extraction (augmented with Round 1 KB directions) ──
+  const metadata = kbDirections
+    ? await extractMusicMetadataWithHints(scriptText, kbDirections)
+    : await extractMusicMetadata(scriptText);
+
+  // ── Step 2: Query music KB ──
   const { queryMusicKBWithHints, formatKBContext, generateKBSummary } = await import('./music-kb.js');
-  const kbResult = metadata
-    ? queryMusicKBWithHints(scriptText, metadata)
-    : queryMusicKBWithHints(scriptText);
-  const kbContext = formatKBContext(kbResult);
-  const kbSummary = generateKBSummary();
+  const kbResult = metadata ? queryMusicKBWithHints(scriptText, metadata) : queryMusicKBWithHints(scriptText);
+  const kbContextFormatted = formatKBContext(kbResult); const kbSummary = generateKBSummary();
   console.log('[sound-composer] KB matches:', {
     genres: kbResult.genres.map(g => g.name).join(','),
     emotions: kbResult.emotions.map(e => e.name).join(','),
     instruments: kbResult.instruments.map(i => i.name).join(','),
-    hints: metadata ? `genres=${metadata.genres.join(',')} emotions=${metadata.emotions.join(',')}` : 'none',
+    hints: metadata ? `genres=${metadata.genres.join(',')}` : 'none',
   });
 
-  // Step 3: Query composer KB with semantic hints
+  // ── Step 3: Query composer KB ──
   const { recommendComposersWithHints, formatComposerContext, composerStats } = await import('./composer-kb.js');
   const composerHints = metadata ? {
-    genres: metadata.genres,
-    emotions: metadata.emotions,
-    sceneTypes: metadata.sceneTypes,
-    instruments: metadata.instruments,
-    ethnicStyles: metadata.ethnicStyles,
-    enrichedQuery: metadata.enrichedQuery,
+    genres: metadata.genres, emotions: metadata.emotions, sceneTypes: metadata.sceneTypes,
+    instruments: metadata.instruments, ethnicStyles: metadata.ethnicStyles, enrichedQuery: metadata.enrichedQuery,
   } : undefined;
   const composerResult = recommendComposersWithHints(scriptText, composerHints, 5);
-  const composerContext = formatComposerContext(scriptText, 5);
-  const cStats = composerStats();
+  const composerContext = formatComposerContext(scriptText, 5); const cStats = composerStats();
   console.log('[sound-composer] Composer matches:', composerResult.composers.map(c => c.name).join(', '));
 
-  // Step 3.5: Q Brain music planning — autonomous decision on track count + duration per track
+  // ── Step 3.5: Q Brain music planning ──
   const musicPlan = await planMusic(scriptText);
   const musicPlanBlock = formatMusicPlanForPrompt(musicPlan);
-  if (musicPlan) {
-    console.log('[sound-composer] Q Brain plan: type=%s tracks=%d perTrack=%ds',
-      musicPlan.contentType, musicPlan.trackCount, musicPlan.durationPerTrack);
-  }
+  if (musicPlan) console.log('[sound-composer] Q Brain plan: type=%s tracks=%d perTrack=%ds', musicPlan.contentType, musicPlan.trackCount, musicPlan.durationPerTrack);
 
-  // Step 4: Build enriched prompt with GPT analysis + KB + composer context + Q Brain music plan
-  const gptAnalysisBlock = metadata?.analysis
-    ? `\n\n## GPT 语义分析 (中文)\n${metadata.analysis}\n\n## GPT 提取关键词 (英文)\n${metadata.enrichedQuery}`
-    : '';
+  // ── Round 2: Feed KB results + directions + script → design music ──
+  const round1Block = kbDirections ? `\n\n## 🎯 音乐总监检索方向（GPT Round 1 自主决定）\n${kbDirections}` : '';
+  const gptAnalysisBlock = metadata?.analysis ? `\n\n## GPT 语义分析 (中文)\n${metadata.analysis}\n\n## GPT 提取关键词 (英文)\n${metadata.enrichedQuery}` : '';
 
-  const userMessage = await injectFeedback(SOUND_COMPOSER.systemPrompt, userFeedback, existingContent, 'music', scriptText)
+  const round2Msg = round1Block
+    + '\n\n' + SOUND_COMPOSER.systemPrompt
     + musicPlanBlock
     + `\n\n## 音乐知识库概览\n${kbSummary}\n作曲家库: ${cStats.total}位 (SSS:${cStats.tiers.SSS} SS:${cStats.tiers.SS} S:${cStats.tiers.S} A:${cStats.tiers.A})`
     + gptAnalysisBlock
-    + `\n\n## 知识库匹配结果\n${kbContext}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
+    + `\n\n## 知识库匹配结果\n${kbContextFormatted}\n\n${composerContext}\n\n## 剧本内容\n${scriptText}\n\n请为每个关键场景输出完整的声音设计方案，参考以上知识库的流派/情绪/配器推荐及音乐家风格参考，每个场景的 Suno Prompt 必须输出英文。`;
 
-  const gptMsgs = [
-    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
-  ];
-
+  console.log('[sound-composer] Round 2: designing music (' + round2Msg.length + ' chars)...');
   let rawOutput: string | null = null;
   try {
-    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 });
-  } catch (err: any) {
-    console.log('[sound-composer] Failed:', String(err).slice(0, 100));
-    return { scenes: {}, sunoPrompts: {} };
-  }
+    rawOutput = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round2Msg }] }],
+      { effort: 'medium', timeoutMs: 600000 },
+    );
+  } catch (err: any) { console.log('[sound-composer] Round 2 failed:', String(err).slice(0, 100)); return { scenes: {}, sunoPrompts: {} }; }
 
   if (!rawOutput) { console.log('[sound-composer] No output'); return { scenes: {}, sunoPrompts: {} }; }
-
   console.log('[sound-composer] Got output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+  return parseSoundBlocks(rawOutput);
+}
 
-  // Parse blocks — each === block contains both sound design + embedded 【Suno Prompt】
+function parseSoundBlocks(rawOutput: string): { scenes: Record<string, string>; sunoPrompts: Record<string, string> } {
   const scenes: Record<string, string> = {};
   const sunoPrompts: Record<string, string> = {};
   const blocks = rawOutput.split(/===+/).map(b => b.trim()).filter(b => b.length > 30);
@@ -1419,19 +1728,120 @@ export async function runScriptAnalysis(
     }
   }
 
-  const basePrompt = await injectFeedback(SCRIPT_ANALYSIS.systemPrompt, userFeedback, existingContent, 'storyboard', scriptText);
-  const userMessage = basePrompt + `\n\n${NEGATIVE_CLOTHING}\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
+  // ─── Regeneration path: use existing injectFeedback with constraint compilation ───
+  if (userFeedback) {
+    const basePrompt = await injectFeedback(SCRIPT_ANALYSIS.systemPrompt, userFeedback, existingContent, 'storyboard', scriptText);
+    const userMessage = basePrompt + `\n\n${NEGATIVE_CLOTHING}\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
 
-  const gptMsgs = [
-    { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
-  ];
+    const gptMsgs = [
+      { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
+    ];
 
-  // 单次调用，不重试。
-  // 原因：超时重试 = 同一份提示词发给 kie.ai 多份，产生重复计费。
-  // 网络瞬时错误由 gpt5Chat 内部的 AbortController 处理即可。
+    // 单次调用，不重试。
+    // 原因：超时重试 = 同一份提示词发给 kie.ai 多份，产生重复计费。
+    // 网络瞬时错误由 gpt5Chat 内部的 AbortController 处理即可。
+    let rawOutput: string | null = null;
+    try {
+      rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 900000 });
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        console.log('[script-analysis] 超时（15分钟）— kie.ai 仍在处理中，不重试');
+      } else {
+        console.log('[script-analysis] 网络错误:', String(err).slice(0, 100));
+      }
+    }
+
+    if (!rawOutput) {
+      console.log('[script-analysis] GPT-5 call failed');
+      return { shots: [], characters: {}, rawOutput: '', durationMs: Date.now() - t0 };
+    }
+
+    console.log('[script-analysis] Regeneration output ' + rawOutput.length + ' chars in ' + (Date.now() - t0) + 'ms');
+    const characters = characterProfiles || {};
+    const shots = parseShotBlocks(rawOutput);
+    console.log('[script-analysis] Parsed ' + shots.length + ' shots, ' + Object.keys(characters).length + ' characters');
+
+    return {
+      shots,
+      characters,
+      rawOutput,
+      durationMs: Date.now() - t0,
+    };
+  }
+
+  // ═══════════════════════════════════════════
+  // ─── First-run: Two-round KB retrieval ───
+  // ═══════════════════════════════════════════
+
+  // ── Round 1: Ask GPT-5.4 what KB sections it needs for visual direction ──
+  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT_VISUAL_DIRECTION + '\n\n剧本内容：\n' + scriptText;
+  console.log('[script-analysis] Round 1: asking GPT-5.4 what to retrieve (visual+fashion+scene+writers)...');
+
+  let keywords: string | null = null;
+  try {
+    keywords = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
+      { effort: 'low', maxOutputTokens: 800, timeoutMs: 30000 },
+    );
+  } catch (err: any) { console.log('[script-analysis] Round 1 failed:', String(err).slice(0, 100)); }
+
+  // ── Agent: Search ALL KB engines for each keyword ──
+  let searchResults = '';
+  if (keywords && keywords.length > 20) {
+    console.log('[script-analysis] Round 1 response: ' + keywords.slice(0, 300).replace(/\n/g, ' | '));
+    // Parse keywords: each line starting with a Chinese/non-space char
+    const queries = keywords
+      .split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 3 && l.length < 120);
+
+    const allResults: string[] = [];
+    for (const q of queries.slice(0, 12)) {
+      const visual = searchVisualKB(q);
+      const fashion = searchFashionKB(q);
+      const interior = searchInteriorKB(q);
+      const writers = searchWritersKB(q);
+
+      if (visual) allResults.push(`### 🔍 视觉检索："${q}"\n${visual}`);
+      if (fashion) allResults.push(`### 🔍 服装检索："${q}"\n${fashion}`);
+      if (interior) allResults.push(`### 🔍 场景检索："${q}"\n${interior}`);
+      if (writers) allResults.push(`### 🔍 编剧检索："${q}"\n${writers}`);
+    }
+    searchResults = allResults.join('\n\n');
+    console.log('[script-analysis] KB search: ' + queries.length + ' queries → ' + allResults.length + ' result blocks, ' + searchResults.length + ' chars');
+  }
+
+  if (!searchResults) {
+    // Fallback: use style card approach
+    console.log('[script-analysis] KB retrieval returned empty, falling back to style card');
+    const dims = await extractScriptTriggers(scriptText);
+    const dec = decideStyle(dims || {});
+    searchResults = buildStyleCard(dims || {}, dec);
+  }
+
+  // ── Also extract script triggers for style card (always, even with search results) ──
+  const dimensions = await extractScriptTriggers(scriptText);
+  const decision = decideStyle(dimensions || {});
+  const styleCard = buildStyleCard(dimensions || {}, decision);
+
+  // ── Round 2: Feed KB results + style card + script → design storyboard ──
+  const round2Msg = searchResults
+    + '\n\n' + styleCard
+    + '\n\n' + NEGATIVE_CLOTHING
+    + '\n' + NEGATIVE_INTERIOR
+    + '\n\n' + SCRIPT_ANALYSIS.systemPrompt
+    + '\n\n## 剧本内容\n' + scriptText
+    + styleHint
+    + charBlock
+    + '\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。';
+
+  console.log('[script-analysis] Round 2: designing storyboard (' + round2Msg.length + ' chars)...');
   let rawOutput: string | null = null;
   try {
-    rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 900000 });
+    rawOutput = await gpt5Chat(
+      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round2Msg }] }],
+      { effort: 'medium', timeoutMs: 900000 },
+    );
   } catch (err: any) {
     if (err?.name === 'AbortError') {
       console.log('[script-analysis] 超时（15分钟）— kie.ai 仍在处理中，不重试');

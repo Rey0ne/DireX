@@ -25,6 +25,7 @@
 
 | 时间 | 从 | 到 | 消息 |
 |------|-----|-----|------|
+| 2026-07-12 | 后端 | 前端 | ✅ **移除所有硬编码提示词截断** — T2I翻译不再限制maxOutputTokens、不再截断MAX_PROMPT_LEN；音乐元数据/规划器不再截断剧本。全量内容完整送达LLM和生图模型。 |
 | 2026-07-11 | 后端 | 前端 | ⚠️ **scriptTasks 持久化了！** `GET /api/agent/script/result/:taskId` 新增 `status: 'lost'` 响应（服务器重启导致任务丢失时返回）。前端需处理此状态，显示"任务丢失"而非无限转圈。详情见下方 Script Task 定义。 |
 | 2026-07-10 | 后端 | 前端 | ⚠️ **生成结果现在存在本地了！** `imageUrl`/`videoUrl`/`audioUrl` 返回 `/api/output/asset_*.{ext}` 格式而非外部 CDN URL。`<img src={data.imageUrl}>` 直接能用，不需要改前端代码。切网络不会再丢图片。 |
 | 2026-07-09 | 后端 | 前端 | ⚠️ **小Q 聊天已接通！** QChatPanel 可以接 `/api/q/chat` 了。详情见下方 Chat API 定义。 |
