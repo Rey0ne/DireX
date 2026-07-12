@@ -1175,7 +1175,7 @@ TVC - 生活方式:
 辅助乐器 1-3 件（丰富和声/色彩）
 打击乐 1-2 件（驱动节奏，秀场必须清晰有力）
 人声：默认不用。本项目为 Runway/TVC/品牌内容，不含剧情演唱需求。除非剧本明确写了"有人在唱歌/说唱"，否则一律人声=无。
-⚠️ 如果 Suno Prompt 用了 Jazz Rap/Boom Bap/Hip-Hop 等流派名，必须写 `instrumental hip-hop groove (no rapping, no vocals)` 而非裸写流派名，避免 Suno 误解为带歌词的说唱。
+⚠️ 如果 Suno Prompt 用了 Jazz Rap/Boom Bap/Hip-Hop 等流派名，必须写 \`instrumental hip-hop groove (no rapping, no vocals)\` 而非裸写流派名，避免 Suno 误解为带歌词的说唱。
 
 ## 输出模板
 
@@ -1206,7 +1206,7 @@ BPM：{数值}  理由：{一句话}
 【Suno Prompt】
 ⚠️ 此字段必须输出英文。不超300字符。
 ⚠️ 默认 instrumental 纯器乐 — 本项目为 Runway/TVC/品牌内容，不产生歌词/演唱内容。
-⚠️ 如果用 Jazz Rap/Boom Bap/Hip-Hop 等含 Rap 含义的流派，写成 `instrumental hip-hop groove (no rapping, no vocals)` 而非裸流派名。
+⚠️ 如果用 Jazz Rap/Boom Bap/Hip-Hop 等含 Rap 含义的流派，写成 \`instrumental hip-hop groove (no rapping, no vocals)\` 而非裸流派名。
 
 将音乐类型、情绪、节奏、配器、结构融合成流畅英文叙事散文。不是标签堆砌。
 
