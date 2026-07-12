@@ -738,7 +738,6 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
         const desc = summaries[refIdx] ? `: ${summaries[refIdx]}` : '';
         compiledPrompt = compiledPrompt.split(tag).join(`[Ref ${refIdx + 1}${desc}]`);
         });
-        if (compiledPrompt.length > 3500) compiledPrompt = compiledPrompt.slice(0, 3500);
         console.log('[agent] Vision merged, prompt length:', compiledPrompt.length);
     }
   }
@@ -751,23 +750,6 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
   // so there's no risk of double-prepend regardless of translation path)
   if (camBlock && compiledPrompt) {
     compiledPrompt = camBlock + compiledPrompt;
-  }
-
-  // Safety: cap prompt length for image generation APIs
-  // Increased from 3000 → 8000 — detailed character sheets with full layout
-  // instructions (三视图/表情/特写) need more room after CN→EN translation
-  const MAX_PROMPT_LEN = 8000;
-  if (compiledPrompt.length > MAX_PROMPT_LEN) {
-    const originalLen = compiledPrompt.length;
-    const truncated = compiledPrompt.slice(0, MAX_PROMPT_LEN);
-    // Try to cut at last complete sentence (period+space or newline) within last 200 chars
-    const lastBreak = Math.max(
-      truncated.lastIndexOf('. '),
-      truncated.lastIndexOf('.\n'),
-      truncated.lastIndexOf('\n'),
-    );
-    compiledPrompt = lastBreak > MAX_PROMPT_LEN - 200 ? truncated.slice(0, lastBreak + 1) : truncated;
-    console.log('[agent] WARNING: prompt truncated from ' + originalLen + ' to ' + compiledPrompt.length + ' chars (max ' + MAX_PROMPT_LEN + ')');
   }
 
   console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
