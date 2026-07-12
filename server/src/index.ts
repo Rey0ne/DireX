@@ -70,7 +70,7 @@ app.use('/api/models/bvh', express.static(bvhDir, { fallthrough: false }));
 app.use('/api/models', express.static(MODELS_DIR, { fallthrough: false }));
 
 // ─── Local asset output (generated images/videos/audio cached from CDN) ──
-const OUTPUT_DIR = path.join(process.cwd(), 'data', 'output');
+const OUTPUT_DIR = path.join(process.cwd(), 'server', 'data', 'output');
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 app.use('/api/output', express.static(OUTPUT_DIR, { fallthrough: false }));
 
