@@ -398,6 +398,10 @@ ${STYLE_DECISION_RULES}
 ### 细节特写（2处）
 1. 面料材质特写：{最具代表性的服装局部——如领口绣花/袖口盘扣/腰带金属件/面料织纹，特写展示材质质感、编织纹理、颜色层次}
 2. 标志性道具/配饰特写：{角色最重要的武器或配饰的近距离特写——如剑柄雕花/吊坠链节/冠冕镶嵌/戒指纹章，展示材质光泽与工艺细节}
+
+### 角色参考图生图提示词 (Character Sheet Image Prompt)
+⚠️ 此字段必须输出英文，不超300字符。用于直接喂给图像生成模型。必须严格按以下版式描述：
+A professional character reference sheet on pure white seamless studio background. Left 60% area: three full-body orthographic views stacked vertically — front view, side profile, back view — {角色名} standing in neutral A-pose, showing complete outfit and accessories. Right 40% area divided into two rows: top row shows three expression close-ups (neutral/calm, joyful/smiling, angry/furious), bottom row shows two detail macro close-ups — fabric texture close-up of {写出最具代表性面料}, and prop/accessory close-up of {写出标志性道具或配饰}. Clean commercial studio lighting, sharp focus, no background elements.
 ===
 
 无角色则输出：

@@ -90,7 +90,7 @@
 
 | 日期 | 谁 | 做了什么 | 影响前端？ |
 |------|-----|---------|-----------|
-| 2026-07-12 | 后端 | **单独板块异步再生** — `regenerate`/`characters`/`scenes`/`music` 全部改为异步 taskId 模式，复用同一个 `scriptTasks` 持久化 + 轮询端点。用户刷新不会丢结果，可单独重新生成某一板块。 | **是** — ShotNode 需改 3 处：改异步端点调用 + 轮询 + section 防护 |
+| 2026-07-12 | 后端 | **Character Sheet 生图提示词** — CHARACTER_EXTRACTION 输出末尾新增 `角色参考图生图提示词 (Character Sheet Image Prompt)` 英文字段，明确三视图60%+表情特写40%版式。 | **是** — 前端 `createCharNodes` 应提取此字段作为生图 prompt，而非用全文 |
 | 2026-07-11 | 后端 | **管线上总超时（15分钟）** — `POST /api/agent/script/overview` 异步 Pipeline 加 `Promise.race` 总超时。 | **否** — 前端已有 `status: 'done'` + `success: false` 处理逻辑 |
 | 2026-07-11 | 后端 | **scriptTasks 落盘持久化** — 任务从内存 Map 改为 JSON 文件存储。 | **是** — 前端需处理 `status: 'lost'` |
 | 2026-07-10 | 后端 | **断网恢复 + 本地资产缓存** — 生成结果下载到 `data/output/`, `/api/output/*` 静态服务, taskStore 落盘+启动恢复, clientTaskId 持久化+重连轮询 | **否** — `<img src>` 直接能用， `/api/output/` 路径格式对前端透明 |
