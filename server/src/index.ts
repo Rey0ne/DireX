@@ -290,10 +290,6 @@ const VISION_CACHE_FILE = 'data/vision-cache.json';
 const imageCache: Map<string, string> = new Map(Object.entries((readJSON(VISION_CACHE_FILE) as Record<string, string>) || {}));
 console.log('[vision-cache] Loaded ' + imageCache.size + ' cached analyses from disk');
 let lastCompiled: any = null; // last compiled prompt for debugging
-
-// Analyze a single image and cache the result (disk-persisted)
-async function analyzeAndCache(url: string): Promise<string> {
-  if (imageCache.has(url)) return imageCache.get(url)!;
   try {
     const analyses = await analyzeReferenceImages([url]);
     const desc = analyses[0] || '';
@@ -697,25 +693,9 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
         }
       } catch(e) { console.log('[agent] I2I assembly failed:', String(e).slice(0, 80)); compiledPrompt = enrichedPrompt; }
     } else {
-      // T2I: GPT-5.4 translates Chinese → English
-      try {
-        const t0 = Date.now();
-        // Full translation — no artificial token cap. The full Chinese prompt works
-        // directly in kie.ai playground; translation must preserve ALL content.
-        const translated = await gpt5Chat(
-          [{ role: 'user', content: [{ type: 'input_text', text: 'Translate the following Chinese image generation prompt into English. CRITICAL: Preserve ALL layout and format instructions (character sheet layout, left/right split, orthographic views, expression grid, detail close-ups, aspect ratios, placement percentages). Also preserve: background (plain white, studio, or scene), all visual details, camera specs, composition, lighting, mood. Output ONLY the English prompt, no explanations.\n\n' + enrichedPrompt }] }],
-          { effort: 'low', timeoutMs: 120000 },
-        );
-        if (translated) {
-          compiledPrompt = translated;
-          console.log('[agent] T2I GPT-5.4 translated in ' + (Date.now() - t0) + 'ms, ' + translated.length + ' chars');
-        } else {
-          compiledPrompt = enrichedPrompt; // fallback: use Chinese directly
-        }
-      } catch(e) {
-        console.log('[agent] T2I translation failed:', String(e).slice(0, 80));
-        compiledPrompt = enrichedPrompt;
-      }
+      // T2I: Send prompt directly to kie.ai — no translation.
+      // User verified Chinese prompts produce correct layouts in playground.
+      compiledPrompt = enrichedPrompt;
     }
   } else {
     compiledPrompt = enrichedPrompt;
