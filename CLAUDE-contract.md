@@ -12,7 +12,8 @@
 | 状态 | 谁 | 在做什么 | 涉及 API/文件 | 开始时间 |
 |------|-----|---------|-------------|---------|
 | ✅ 已完成 | 后端 | GPT-5.6 直接看图反推提示词 — `reversePromptFromImages()` 已部署 + IndexedDB 膨胀自动清理 | pipeline.ts, persistence.ts | 2026-07-14 |
-| ⏳ 等待前端 | 后端→前端 | **ShotNode 反推空节点修复** + **IndexedDB 自动清理已落地**（详见交接信号 #1、#2） | ShotNode.tsx, persistence.ts | 2026-07-14 |
+| ✅ 已完成 | 前端 | **ShotNode 反推空节点修复** — `handleGenerate` 已改：有图→反推（不管 textarea），没图+有文本→剧本分析 | ShotNode.tsx | 2026-07-14 |
+| ✅ 已完成 | 后端 | **IndexedDB 膨胀自动清理** — `loadFromDB` sanitizeMeta + 5MB 阈值已落地 | persistence.ts | 2026-07-14 |
 | ✅ 已完成 | 前端 | ShotNode 分镜提示词组装 + 结果摘要 UI + ImageGenerateNode 镜头标识 | ShotNode.tsx, ImageGenerateNode.tsx | 2026-07-13 |
 | ⬜ 待做 | 前端 | 后续迭代 — Markdown 渲染、SSE 通知流 | QChatPanel, SSE | — |
 

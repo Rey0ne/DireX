@@ -8,8 +8,20 @@ dist/
 server/dist/
 server/node_modules/
 .netlify/
+# ═══════════════════════════════════════════
+# RUNTIME DATA — 用户数据，git 绝不能碰
+# ═══════════════════════════════════════════
 server/data/canvas-state.json
+server/data/canvas-state.json.*
 server/data/task-logs.json
+server/data/task-store.json
+server/data/script-tasks.json
 server/data/credit-transactions.json
 server/data/users.json
+server/data/vision-cache.json
+server/data/q-state.json
+server/data/q-memory-*.json
 server/data/backups/
+server/data/output/
+server/data/projects/
+server/data/restore-*.js

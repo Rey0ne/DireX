@@ -321,9 +321,140 @@ loadKeys(); // Restore persisted API keys
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ─── Canvas Sync ─────────────────────────────
-const CANVAS_FILE = 'data/canvas-state.json';
-let canvasState: any = readJSON(CANVAS_FILE) || { nodes: [], edges: [], updatedAt: '' };
-console.log(`[canvas] Loaded state: ${canvasState.nodes?.length||0} nodes`);
+const DATA_DIR = path.join(process.cwd(), 'server', 'data');
+const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
+const LEGACY_CANVAS_FILE = path.join(DATA_DIR, 'canvas-state.json');
+
+function getProjectFile(projectId: string): string {
+  return path.join(PROJECTS_DIR, projectId, 'state.json');
+}
+function readProjectState(projectId: string): any {
+  try {
+    const f = getProjectFile(projectId);
+    if (!fs.existsSync(f)) return { nodes: [], edges: [], updatedAt: '' };
+    return JSON.parse(fs.readFileSync(f, 'utf-8'));
+  } catch { return { nodes: [], edges: [], updatedAt: '' }; }
+}
+function writeProjectState(projectId: string, state: any): void {
+  const f = getProjectFile(projectId);
+  const dir = path.dirname(f);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  // Backup before overwrite
+  if (fs.existsSync(f)) { try { fs.copyFileSync(f, f + '.bak'); } catch {} }
+  // Rotate backups (last 20)
+  try {
+    const backupDir = path.join(dir, 'backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    const backups = fs.readdirSync(backupDir).filter(x => x.startsWith('state-'));
+    if (backups.length >= 20) {
+      backups.sort();
+      for (let i = 0; i < backups.length - 19; i++) {
+        try { fs.unlinkSync(path.join(backupDir, backups[i])); } catch {}
+      }
+    }
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(f, path.join(backupDir, `state-${ts}.json`));
+  } catch {}
+  fs.writeFileSync(f, JSON.stringify(state, null, 2), 'utf-8');
+}
+function listAllProjects(): { id: string; name: string; nodeCount: number; edgeCount: number; updatedAt: string }[] {
+  const out: any[] = [];
+  try {
+    if (!fs.existsSync(PROJECTS_DIR)) return out;
+    for (const d of fs.readdirSync(PROJECTS_DIR)) {
+      const sf = getProjectFile(d);
+      if (!fs.existsSync(sf)) continue;
+      try {
+        const s = JSON.parse(fs.readFileSync(sf, 'utf-8'));
+        out.push({ id: d, name: d, nodeCount: s.nodes?.length || 0, edgeCount: s.edges?.length || 0, updatedAt: s.updatedAt || '' });
+      } catch {}
+    }
+  } catch {}
+  return out;
+}
+
+// Migrate legacy single-file canvas to multi-project structure
+function migrateLegacyCanvas(): string | null {
+  if (!fs.existsSync(LEGACY_CANVAS_FILE)) return null;
+  try {
+    const legacy = JSON.parse(fs.readFileSync(LEGACY_CANVAS_FILE, 'utf-8'));
+    if (!legacy?.nodes?.length) return null;
+    // Only migrate if default project doesn't already exist
+    if (fs.existsSync(getProjectFile('default'))) return null;
+    writeProjectState('default', { nodes: legacy.nodes || [], edges: legacy.edges || [], updatedAt: legacy.updatedAt || new Date().toISOString() });
+    // Rename legacy file out of the way (keep as backup, don't delete)
+    try { fs.renameSync(LEGACY_CANVAS_FILE, LEGACY_CANVAS_FILE + '.migrated'); } catch {}
+    console.log(`[canvas] Migrated legacy → projects/default (${legacy.nodes.length} nodes)`);
+    return 'default';
+  } catch (e) { console.error('[canvas] Migration failed:', e); return null; }
+}
+migrateLegacyCanvas();
+
+// Active state cache (for fast /api/canvas/state without disk read)
+const projectStateCache = new Map<string, any>();
+let defaultProject = 'default';
+
+// Ensure default project exists
+if (!fs.existsSync(getProjectFile('default'))) {
+  writeProjectState('default', { nodes: [], edges: [], updatedAt: new Date().toISOString() });
+}
+
+// ── Graph consistency validation ──
+function validateGraph(state: any, projectId: string): { fixed: number; warnings: string[] } {
+  const warnings: string[] = [];
+  let fixed = 0;
+  const nodes = (state.nodes || []) as any[];
+  const edges = (state.edges || []) as any[];
+
+  // 1. Duplicate node IDs
+  const nodeIds = new Set<string>();
+  const dupeIds = new Set<string>();
+  for (const n of nodes) {
+    if (nodeIds.has(n.id)) dupeIds.add(n.id);
+    else nodeIds.add(n.id);
+  }
+  if (dupeIds.size > 0) {
+    warnings.push(`${dupeIds.size} duplicate node ID(s): ${[...dupeIds].join(', ')}`);
+  }
+
+  // 2. Dangling edges — point to non-existent nodes
+  const validEdges = edges.filter((e: any) => {
+    const fromOk = nodeIds.has(e.from?.nodeId);
+    const toOk = nodeIds.has(e.to?.nodeId);
+    if (!fromOk || !toOk) {
+      warnings.push(`Dangling edge ${e.id}: ${!fromOk ? 'from=' + e.from?.nodeId : ''} ${!toOk ? 'to=' + e.to?.nodeId : ''}`);
+      return false;
+    }
+    return true;
+  });
+  if (validEdges.length < edges.length) {
+    fixed += edges.length - validEdges.length;
+    state.edges = validEdges;
+    console.log(`[validate] ${projectId}: removed ${fixed} dangling edge(s)`);
+  }
+
+  // 3. Failed nodes
+  const failedNodes = nodes.filter((n: any) => n.status === 'failed');
+  if (failedNodes.length > 0) {
+    warnings.push(`${failedNodes.length} failed node(s): ${failedNodes.map((n: any) => n.id.slice(0, 12)).join(', ')}`);
+  }
+
+  // 4. Nodes with empty type
+  const typeless = nodes.filter((n: any) => !n.type);
+  if (typeless.length > 0) {
+    warnings.push(`${typeless.length} node(s) missing type`);
+  }
+
+  if (warnings.length > 0 || fixed > 0) {
+    console.log(`[validate] ${projectId}: ${warnings.length} warning(s), ${fixed} auto-fixed`);
+    for (const w of warnings) console.log(`[validate]   ⚠ ${w}`);
+  }
+  return { fixed, warnings };
+}
+
+const initialState = readProjectState('default');
+projectStateCache.set('default', initialState);
+console.log(`[canvas] Loaded: ${initialState.nodes?.length||0} nodes (project=default)`);
 
 // ── Script task persistence ──
 const SCRIPT_TASKS_FILE = 'data/script-tasks.json';
@@ -368,33 +499,47 @@ function rotateBackups() {
   } catch {}
 }
 app.post('/api/canvas/sync', (req, res) => {
-  canvasState = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
-  // Backup old state before overwriting — prevents accidental data loss
-  if (fs.existsSync(CANVAS_FILE)) {
-    try { fs.copyFileSync(CANVAS_FILE, CANVAS_FILE + '.bak'); } catch {}
-  }
-  try {
-    rotateBackups();
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    fs.copyFileSync(CANVAS_FILE, path.join(BACKUP_DIR, `canvas-${ts}.json`));
-  } catch {}
-  writeJSON(CANVAS_FILE, canvasState);
-  console.log(`[canvas] Synced: ${canvasState.nodes.length} nodes, ${canvasState.edges.length} edges → disk`);
+  const projectId = req.body.projectId || 'default';
+  const state = { nodes: req.body.nodes || [], edges: req.body.edges || [], updatedAt: new Date().toISOString() };
+  writeProjectState(projectId, state);
+  projectStateCache.set(projectId, state);
+  console.log(`[canvas] Synced project=${projectId}: ${state.nodes.length} nodes, ${state.edges.length} edges → disk`);
   // 小Q: track canvas changes + auto-orchestration
-  try { trackCanvasSync('default', canvasState.nodes.length); } catch {}
-  try {
-    detectAndRoute(canvasState.nodes, 'default', {
-      autoExecute: process.env.Q_AUTO_EXECUTE === 'true',
-    });
-  } catch {}
+  try { trackCanvasSync(projectId, state.nodes.length); } catch {}
+  try { detectAndRoute(state.nodes, projectId, { autoExecute: process.env.Q_AUTO_EXECUTE === 'true' }); } catch {}
   res.json({ ok: true });
 });
-app.get('/api/canvas/state', (_req, res) => {
+app.get('/api/canvas/state', (req, res) => {
+  const projectId = (req.query.project as string) || 'default';
+  let state = projectStateCache.get(projectId);
+  if (!state) {
+    state = readProjectState(projectId);
+    projectStateCache.set(projectId, state);
+  }
+  // Run graph validation on every load — auto-fix dangling edges
+  const { fixed, warnings } = validateGraph(state, projectId);
+  if (fixed > 0) {
+    writeProjectState(projectId, state); // persist auto-fixes
+  }
   res.json({
-    nodes: canvasState.nodes || [],
-    edges: canvasState.edges || [],
-    updatedAt: canvasState.updatedAt,
+    nodes: state.nodes || [],
+    edges: state.edges || [],
+    updatedAt: state.updatedAt,
+    _validate: warnings.length > 0 ? { warnings, autoFixed: fixed } : undefined,
   });
+});
+app.get('/api/canvas/projects', (_req, res) => {
+  const projects = listAllProjects();
+  // Validate each project, attach health status
+  for (const p of projects) {
+    try {
+      const state = readProjectState(p.id);
+      const { warnings } = validateGraph(state, p.id);
+      p.health = warnings.length === 0 ? 'ok' : 'warn';
+      p.warnings = warnings;
+    } catch { p.health = 'error'; }
+  }
+  res.json({ projects });
 });
 
 // ─── File Upload (data URL → public URL) ──────
@@ -1210,20 +1355,23 @@ app.post('/api/agent/script/supplement', async (req, res) => {
       }
       console.log('[supplement] Task ' + taskId + ' done in ' + (Date.now() - t0) + 'ms, chars=' + Object.keys(chars).length + ' scenes=' + Object.keys(scenes).length + ' music=' + Object.keys(music.sunoPrompts || {}).length);
 
-      // Write to canvas node if nodeId provided
+      // Write to canvas node if nodeId provided (scan all projects to find node)
       if (nodeId) {
         try {
-          const { readJSON, writeJSON } = await import('./systems/db/store.js');
-          const canvasState = readJSON('canvas-state');
-          const node = canvasState.nodes?.find((n: any) => n.id === nodeId);
-          if (node) {
-            if (!node.meta) node.meta = {};
-            if (!node.meta.gen) node.meta.gen = {};
-            if (chars) node.meta.gen.scriptCharacters = chars;
-            if (scenes) node.meta.gen.scriptScenes = scenes;
-            if (music?.sunoPrompts) node.meta.gen.scriptSunoPrompts = music.sunoPrompts;
-            if (music?.scenes) node.meta.gen.scriptSoundScenes = music.scenes;
-            writeJSON('canvas-state', canvasState);
+          const sf = getProjectFile('default');
+          if (fs.existsSync(sf)) {
+            const st = JSON.parse(fs.readFileSync(sf, 'utf-8'));
+            const node = st.nodes?.find((n: any) => n.id === nodeId);
+            if (node) {
+              if (!node.meta) node.meta = {};
+              if (!node.meta.gen) node.meta.gen = {};
+              if (chars) node.meta.gen.scriptCharacters = chars;
+              if (scenes) node.meta.gen.scriptScenes = scenes;
+              if (music?.sunoPrompts) node.meta.gen.scriptSunoPrompts = music.sunoPrompts;
+              if (music?.scenes) node.meta.gen.scriptSoundScenes = music.scenes;
+              fs.writeFileSync(sf, JSON.stringify(st, null, 2), 'utf-8');
+              projectStateCache.delete('default');
+            }
           }
         } catch (e) { console.warn('[supplement] Canvas write failed:', e); }
       }
