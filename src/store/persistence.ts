@@ -367,11 +367,11 @@ export async function loadFromDB() {
       throw readErr;
     }
 
-    // Sanity check: skip nodes with massive data URLs (>1MB meta) that
-    // would crash the browser renderer. Filter them out instead of nuking all data.
+    // Sanity check: skip nodes with massive meta (>500KB) that
+    // would bloat the browser store. Filter them out instead of nuking all data.
     const skippedNodes: string[] = [];
     const safeNodes = dbNodes.filter(n => {
-      if (JSON.stringify(n.meta).length > 1_000_000) {
+      if (JSON.stringify(n.meta).length > 500_000) {
         skippedNodes.push(n.id);
         return false;
       }
@@ -394,7 +394,7 @@ export async function loadFromDB() {
         size: n.size,
         ports: (n.ports || []) as [],
         status: n.status as 'idle' | 'running' | 'succeeded' | 'failed' | 'blocked',
-        meta: (n.meta as Record<string, unknown>) || {},
+        meta: (sanitizeMeta(n.meta) as Record<string, unknown>) || {},
         createdAt: n.createdAt,
         updatedAt: n.updatedAt,
       });
