@@ -115,13 +115,16 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   // 有连接参考图 → 反推提示词（GPT-5.6 直接看图→提示词，写入 textarea）
   // 无参考图 → 剧本分析（GPT-5.6 角色/场景/分镜/音乐）
   const handleGenerate = () => {
-    if (genRunningRef.current || !prompt.trim()) return;
-    handleQSidecar();
+    if (genRunningRef.current) return;
+    // 反推模式：有参考图就走（文本可选），GPT-5.6 直接看图→提示词
     if (data.refUrls && data.refUrls.length > 0) {
       handleReversePrompt();
-    } else {
-      handleScriptAnalysis();
+      return;
     }
+    // 剧本分析模式：必须有文本
+    if (!prompt.trim()) return;
+    handleQSidecar();
+    handleScriptAnalysis();
   };
 
   // ── Q Brain sidecar — fire-and-forget insight, doesn't gate execution ──

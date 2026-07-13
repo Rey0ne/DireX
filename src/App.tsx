@@ -21,7 +21,7 @@ import '@xyflow/react/dist/style.css';
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
 import type { UserProfile } from '../shared/api-types.js';
-import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized, mergeServerGenData } from './store/persistence';
+import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized, mergeServerGenData, restoreMissingProjects } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
@@ -373,6 +373,8 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
         markInitialized(); // ← Gate: allow saves now that data is loaded
         // Pull any server-direct-written gen data (e.g., pipeline finished while frontend was closed)
         mergeServerGenData();
+        // Recover projects lost to IndexedDB auto-clear from server backups
+        restoreMissingProjects().then(n => { if (n > 0) console.log('[persist] Restored', n, 'missing project(s) — refresh ProjectSelector to see them'); });
       }
       if (!restored) {
         if (isNewCanvas) {
@@ -775,7 +777,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
             setCropNodeId(n.id);
             setToolMode('crop');
           },
-          onCropApply: (croppedDataUrl: string, cropW: number, cropH: number) => {
+          onCropApply: async (croppedDataUrl: string, cropW: number, cropH: number) => {
             console.log('[App] onCropApply called, dataUrl length:', croppedDataUrl?.length, 'size:', cropW, 'x', cropH);
             const store2 = useCanvasStore.getState();
             const currentNode = store2.nodes.get(n.id);
@@ -787,6 +789,22 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
             const cropRatio = cropW / cropH;
             const cropAspect = closestAspect(cropRatio);
             console.log('[App] crop aspect:', cropAspect, 'from', cropW, 'x', cropH, 'ratio:', cropRatio);
+
+            // Upload cropped data URL → public URL (prevents IndexedDB bloat)
+            let cropUrl = croppedDataUrl;
+            try {
+              const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+              const resp = await fetch(`${apiBase}/api/upload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataUrl: croppedDataUrl }),
+              });
+              if (resp.ok) {
+                const json = await resp.json();
+                if (json.url) { cropUrl = json.url; console.log('[crop] Uploaded →', cropUrl.slice(0, 60)); }
+              }
+            } catch (err) { console.warn('[crop] Upload failed, using data URL fallback:', (err as Error).message?.slice(0, 80)); }
+
             const newId = addNode('image.generate', { x: newX, y: newY }, newTitle);
             useCanvasStore.getState().updateNode(newId, {
               meta: {
@@ -797,7 +815,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
                   aspect: cropAspect,
                   resolution: currentGen.resolution || '2K',
                   quality: currentGen.quality || 'high',
-                  imageUrl: croppedDataUrl,
+                  imageUrl: cropUrl,
                   resultAssetIds: [],
                 },
               },
@@ -1137,26 +1155,47 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
         const isVideo = file.type.startsWith('video/');
         if (!isImage && !isVideo) return;
         const reader = new FileReader();
-        reader.onload = () => {
-          const url = reader.result as string;
+        reader.onload = async () => {
+          const dataUrl = reader.result as string;
           const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+          // Upload data URL → public URL first (prevents IndexedDB bloat from base64)
+          const uploadDataUrl = async (dUrl: string): Promise<string> => {
+            try {
+              const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+              const resp = await fetch(`${apiBase}/api/upload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataUrl: dUrl }),
+              });
+              if (resp.ok) {
+                const json = await resp.json();
+                if (json.url) { console.log('[drop] Uploaded →', json.url.slice(0, 60)); return json.url; }
+              }
+            } catch (err) { console.warn('[drop] Upload failed:', (err as Error).message?.slice(0, 80)); }
+            console.warn('[drop] ⚠ Using data URL fallback — image may be lost if IndexedDB is cleared');
+            return dUrl; // fallback to data URL
+          };
+
+          const publicUrl = await uploadDataUrl(dataUrl);
+
           if (isVideo) {
             const id = addNode('video.generate', { x: flowPos.x - 190, y: flowPos.y - 110 }, file.name);
             useCanvasStore.getState().updateNode(id, {
-              meta: { gen: { prompt: '', model: 'Kling 2.1', duration: '5s', resolution: '1080P', videoUrl: url, resultAssetIds: [] } as any },
+              meta: { gen: { prompt: '', model: 'Kling 2.1', duration: '5s', resolution: '1080P', videoUrl: publicUrl, resultAssetIds: [] } as any },
             });
           } else {
-            // Get image dimensions to match aspect ratio
+            // Use dataUrl locally for dimension detection; store public URL in node
             const img = new Image();
             img.onload = () => {
               const ratio = img.naturalWidth / img.naturalHeight;
               const aspect = closestAspect(ratio);
               const id = addNode('image.generate', { x: flowPos.x - 190, y: flowPos.y - 110 }, file.name);
               useCanvasStore.getState().updateNode(id, {
-                meta: { gen: { prompt: '', model: 'GPT Image2', aspect, resolution: '2K', quality: 'high', imageUrl: url, resultAssetIds: [] } },
+                meta: { gen: { prompt: '', model: 'GPT Image2', aspect, resolution: '2K', quality: 'high', imageUrl: publicUrl, resultAssetIds: [] } },
               });
             };
-            img.src = url;
+            img.src = dataUrl;
           }
         };
         reader.readAsDataURL(file);

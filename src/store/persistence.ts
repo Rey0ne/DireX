@@ -5,7 +5,7 @@ import { useCanvasStore } from './useCanvasStore';
 import { db } from './db';
 
 function getProjectId(): string {
-  return localStorage.getItem('tapnow-current-project') || 'default-project';
+  return localStorage.getItem('tapnow-current-project') || 'default';
 }
 function getCanvasId(): string {
   return `${getProjectId()}-canvas`;
@@ -185,7 +185,7 @@ export async function saveNow() {
       fetch('/api/canvas/sync',{
         method:'POST',
         headers:{'Content-Type':'application/json',Authorization:'Bearer tapnow-dev-key'},
-        body:JSON.stringify({nodes:nodesData,edges:edgesData}),
+        body:JSON.stringify({projectId:getProjectId(),nodes:nodesData,edges:edgesData}),
       }).catch(()=>{});
     } catch {}
     console.log('[persist] Saved', nodes.length, 'nodes,', edges.length, 'edges');
@@ -253,7 +253,7 @@ export function wasPreviousCrash(): boolean {
 // ─── Server fallback: restore canvas when IndexedDB is empty/corrupted ──
 export async function loadFromServer(): Promise<boolean> {
   try {
-    const resp = await fetch('/api/canvas/state', {
+    const resp = await fetch(`/api/canvas/state?project=${encodeURIComponent(getProjectId())}`, {
       headers: { Authorization: 'Bearer tapnow-dev-key' },
     });
     const json = await resp.json();
@@ -333,6 +333,17 @@ export function loadEmergencyFromLocalStorage(): boolean {
 }
 
 export async function loadFromDB() {
+  // ── Server-first: data lives on server, IndexedDB is local cache ──
+  try {
+    const serverOk = await loadFromServer();
+    if (serverOk) {
+      console.log('[persist] Loaded from server (primary) — IndexedDB is cache only');
+      // Save to IndexedDB as offline cache
+      try { await saveNow(); } catch {}
+      return true;
+    }
+  } catch (e) { console.warn('[persist] Server unavailable, falling back to IndexedDB:', e); }
+
   // Crash sentinel: if previous session crashed, check IndexedDB before skipping
   if (wasPreviousCrash()) {
     clearHeartbeat();
@@ -493,6 +504,16 @@ export async function clearAllData():Promise<void>{
 const KNOWN_PROJECT_BACKUPS: Record<string, string> = {
   'queen-surli': '/api/output/_queen-restore.json',
   'sync-payload': '/api/output/_sync-restore.json',
+  'project-105': '/api/output/_proj-105.json',
+  'project-59': '/api/output/_proj-59.json',
+  'project-12': '/api/output/_proj-12.json',
+};
+const KNOWN_PROJECT_NAMES: Record<string, string> = {
+  'queen-surli': '苏尔里女王',
+  'sync-payload': '同步数据',
+  'project-105': '大型项目 (105节点)',
+  'project-59': '中型项目 (59节点)',
+  'project-12': '小型项目 (12节点)',
 };
 
 export async function restoreMissingProjects(): Promise<number> {
@@ -508,7 +529,7 @@ export async function restoreMissingProjects(): Promise<number> {
 
       const cid = pid + '-canvas';
       await db.transaction('rw', [db.projects, db.canvases, db.nodes, db.edges], async () => {
-        await db.projects.put({ id: pid, name: '苏尔里女王', description: '', updatedAt: new Date().toISOString() });
+        await db.projects.put({ id: pid, name: KNOWN_PROJECT_NAMES[pid] || pid, description: '', updatedAt: new Date().toISOString() });
         await db.canvases.put({ id: cid, projectId: pid, name: '主画布', viewport: { x: 0, y: 0, zoom: 1 }, updatedAt: new Date().toISOString() });
         for (const n of data.nodes) {
           await db.nodes.put({
@@ -547,7 +568,7 @@ function isEmpty(v: unknown): boolean {
 }
 export async function mergeServerGenData(): Promise<number> {
   try {
-    const resp = await fetch('/api/canvas/state', {
+    const resp = await fetch(`/api/canvas/state?project=${encodeURIComponent(getProjectId())}`, {
       headers: { Authorization: 'Bearer tapnow-dev-key' },
     });
     if (!resp.ok) return 0;
