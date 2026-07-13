@@ -9,7 +9,6 @@ import { v4 as uuid } from 'uuid';
 import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenKeys, hideKeySlot, restoreKeySlot } from './config.js';
 import { submitTask, checkTask, downloadModel as downloadTripoModel, checkRig, submitRig, retargetAnimation } from './systems/ai/tripo-provider.js';
 import { authMiddleware } from './middleware/auth.js';
-import blenderRouter from './routes/blender.js';
 import authRouter from './routes/auth.js';
 import kimodoRouter from './routes/kimodo.js';
 import { getProvider, listProviders } from './systems/ai/registry.js';
@@ -263,22 +262,42 @@ async function proxyAsset(req: Request, res: Response) {
   const url = req.query.url as string;
   if (!url) { res.status(400).json({ error: 'Missing url' }); return; }
   try {
-    const fetchResp = await fetch(url, {
-      headers: { 'User-Agent': 'TapNow/1.0' },
-    });
+    const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    const fetchOpts: any = { headers: { 'User-Agent': 'TapNow/1.0' } };
+    // Use proxy for CDN downloads if configured (faster in China)
+    if (proxy) {
+      try {
+        const { ProxyAgent } = await import('undici');
+        fetchOpts.dispatcher = new ProxyAgent(proxy);
+      } catch {}
+    }
+
+    const fetchResp = await fetch(url, fetchOpts);
     if (!fetchResp.ok) { res.status(502).json({ error: `Upstream fetch failed: ${fetchResp.status}` }); return; }
-    const buffer = Buffer.from(await fetchResp.arrayBuffer());
+
+    const contentLength = fetchResp.headers.get('content-length');
     const contentType = fetchResp.headers.get('content-type') || 'image/png';
     res.setHeader('Content-Type', contentType);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(buffer);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+
+    // Stream CDN → browser (no buffering — bytes flow as they arrive)
+    if (fetchResp.body) {
+      const reader = fetchResp.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+    }
+    res.end();
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    if (!res.headersSent) res.status(500).json({ error: String(err) });
+    else res.end();
   }
 }
 
-app.use('/api/blender', blenderRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/kimodo', kimodoRouter);
 
@@ -290,21 +309,6 @@ const VISION_CACHE_FILE = 'data/vision-cache.json';
 const imageCache: Map<string, string> = new Map(Object.entries((readJSON(VISION_CACHE_FILE) as Record<string, string>) || {}));
 console.log('[vision-cache] Loaded ' + imageCache.size + ' cached analyses from disk');
 let lastCompiled: any = null; // last compiled prompt for debugging
-  try {
-    const analyses = await analyzeReferenceImages([url]);
-    const desc = analyses[0] || '';
-    // Use full detailed analysis (materials, facial features, clothing, weathering, etc.)
-    const summary = desc.slice(0, 800);
-    imageCache.set(url, summary);
-    // Persist to disk so restart doesn't re-trigger analysis
-    writeJSON(VISION_CACHE_FILE, Object.fromEntries(imageCache));
-    console.log('[vision-cache] Cached (' + imageCache.size + ' total):', summary.slice(0, 60) + '...');
-    return summary;
-  } catch (err) {
-    console.log('[vision-cache] Failed:', String(err).slice(0, 60));
-    return '';
-  }
-}
 
 // ─── Startup ──────────────────────────────────
 loadKeys(); // Restore persisted API keys
@@ -644,6 +648,40 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       }
     }
 
+    // Upload local reference files to public hosting — kie.ai can't access localhost
+    const uploadLocalRef = async (u: string): Promise<string | null> => {
+      if (!u) return null;
+      if (u.startsWith('http://') || u.startsWith('https://')) return u;
+      // Map /api/output/... → disk file
+      let filePath: string;
+      if (u.startsWith('/api/output/')) {
+        filePath = path.join(OUTPUT_DIR, u.replace('/api/output/', ''));
+      } else if (u.startsWith('/')) {
+        filePath = u; // absolute disk path
+      } else {
+        console.log('[agent] Cannot resolve ref URL: ' + u.slice(0, 80));
+        return null;
+      }
+      try {
+        if (!fs.existsSync(filePath)) { console.log('[agent] Ref file not found: ' + filePath); return null; }
+        const buf = fs.readFileSync(filePath);
+        const ext = path.extname(filePath).toLowerCase();
+        const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : ext === '.webm' ? 'video/webm' : ext === '.mp4' ? 'video/mp4' : 'application/octet-stream';
+        const dataUrl = `data:${mime};base64,${buf.toString('base64')}`;
+        const uploaded = await uploadDataUrl(dataUrl);
+        if (uploaded) console.log('[agent] Uploaded ref: ' + u.slice(0, 40) + ' → ' + uploaded.slice(0, 50));
+        return uploaded;
+      } catch (e) {
+        console.log('[agent] Upload ref failed: ' + String(e).slice(0, 80));
+        return null;
+      }
+    };
+    const resolvedRefs = (await Promise.all((refUrls || []).map(uploadLocalRef))).filter(Boolean) as string[];
+    const resolvedVideoUrls = (await Promise.all((videoUrls || []).map(uploadLocalRef))).filter(Boolean) as string[];
+    const resolvedFirstFrame = (body as any).firstFrameUrl ? await uploadLocalRef((body as any).firstFrameUrl) : undefined;
+    const resolvedLastFrame = (body as any).lastFrameUrl ? await uploadLocalRef((body as any).lastFrameUrl) : undefined;
+    const resolvedRefImage = body.referenceImage ? await uploadLocalRef(body.referenceImage) : undefined;
+
     // Submit to Kie — passes image/video URLs directly so Seedance can analyze them
     const clientTaskId = uuid();
     initVideoTask(clientTaskId, body.providerId, (body as any).nodeId);
@@ -652,11 +690,11 @@ app.post('/api/agent/generate', async (req: Request, res: Response) => {
       providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
       negativePrompt: i2iNegPrompt,
       aspect: body.aspect || '16:9', resolution: body.resolution || config.defaultResolution,
-      referenceImage: body.referenceImage, referenceUrls: refUrls, maskImage: body.maskImage,
+      referenceImage: resolvedRefImage, referenceUrls: resolvedRefs, maskImage: body.maskImage,
       styleImageUrl: body.styleImageUrl,
-      videoUrls: videoUrls, duration: (body as any).duration,
+      videoUrls: resolvedVideoUrls, duration: (body as any).duration,
       genMode: (body as any).genMode,
-      firstFrameUrl: (body as any).firstFrameUrl, lastFrameUrl: (body as any).lastFrameUrl,
+      firstFrameUrl: resolvedFirstFrame, lastFrameUrl: resolvedLastFrame,
       characterOrientation: (body as any).characterOrientation,
       keepOriginalSound: (body as any).keepOriginalSound,
       fixedCamera: (body as any).fixedCamera,
@@ -828,7 +866,7 @@ app.get('/api/task/:taskId/poll', async (req, res) => {
   res.json(result);
 });
 
-app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled || { en: '(no generation yet)' }, kieReq: (globalThis as any).__lastKieReq || null }));
+app.get('/api/last-compiled', (_req, res) => res.json({ compiled: lastCompiled || { en: '(no generation yet)' }, kieReq: (globalThis as any).__lastKieReq || null, kieResp: (globalThis as any).__lastKieResp || null }));
 app.get('/api/agent/logs', (_req, res) => res.json({ logs: getLogs() }));
 
 // ─── Script Analysis ─────────────────────────
@@ -847,32 +885,26 @@ app.post('/api/agent/script/overview', async (req, res) => {
   console.log('[script-analysis] Task ' + taskId + ' started, scriptLen=' + scriptText.length);
   // 后台异步全管线处理（角色 → 场景+音乐+分镜 并行）
   // 所有结果存入一个 task，前端只轮询一个 taskId 拿到全部结果
-  const MASTER_TIMEOUT_MS = 900_000; // 15 分钟总超时
+  // 统一管线：一次 GPT 调用完成全部 6 项分析（角色/场景/空间/道具/音乐/分镜）
   (async () => {
     try {
-      const fullResult = await Promise.race([
-        (async () => {
-          // Phase 1: 角色提取（快，供分镜引用）
-          const characters = await runCharacterExtraction(scriptText, visualStyle);
-          console.log('[script-analysis] Task ' + taskId + ' chars: ' + Object.keys(characters).length);
+      const t0 = Date.now();
+      const result = await runUnifiedPipeline(scriptText, visualStyle);
 
-          // Phase 2: 场景 + 空间架构 + 音乐 + 分镜 — 四路并行
-          const [scenes, sceneArchitecture, soundResult, storyboard] = await Promise.all([
-            runSceneExtraction(scriptText),
-            runSceneArchitect(scriptText),
-            runSoundComposer(scriptText),
-            runScriptAnalysis(scriptText, visualStyle, characters),
-          ]);
-          console.log('[script-analysis] Task ' + taskId + ' scenes:' + Object.keys(scenes).length
-            + ' shots:' + storyboard.shots.length
-            + ' music:' + Object.keys(soundResult.sunoPrompts).length);
+      console.log('[script-analysis] Task ' + taskId
+        + ' chars:' + Object.keys(result.characters || {}).length
+        + ' shots:' + (result.shots?.shots?.length || 0)
+        + ' scenes:' + Object.keys(result.scenes || {}).length
+        + ' music:' + Object.keys(result.music?.scenes || {}).length
+        + ' time=' + (Date.now() - t0) + 'ms');
 
-          return { characters, scenes, sceneArchitecture, soundResult, storyboard };
-        })(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Pipeline master timeout after 15 minutes')), MASTER_TIMEOUT_MS)
-        ),
-      ]);
+      const fullResult = {
+        characters: result.characters || {},
+        scenes: result.scenes || {},
+        sceneArchitecture: result.sceneArchitecture || {},
+        soundResult: result.music || { scenes: {}, sunoPrompts: {} },
+        storyboard: result.shots || { shots: [] as any[], characters: {} as Record<string, string>, rawOutput: '', durationMs: 0 },
+      };
 
       const task = scriptTasks.get(taskId);
       if (task) { task.status = 'done'; task.section = 'overview'; task.result = fullResult; saveScriptTasks(); }
@@ -880,18 +912,14 @@ app.post('/api/agent/script/overview', async (req, res) => {
       // 小Q: capture script analysis
       try {
         captureScriptAnalysis('default', scriptText, {
-          characters: fullResult.characters,
-          scenes: fullResult.scenes || {},
-          shots: fullResult.storyboard.shots || [],
-          sceneArchitecture: fullResult.sceneArchitecture || {},
-          props: {},
-          music: fullResult.soundResult || { scenes: {}, sunoPrompts: {} },
+          characters: result.characters || {},
+          scenes: result.scenes || {},
+          shots: result.shots?.shots || [],
+          sceneArchitecture: result.sceneArchitecture || {},
+          props: result.props || {},
+          music: result.music || { scenes: {}, sunoPrompts: {} },
         });
       } catch {}
-      console.log('[script-analysis] Task ' + taskId + ' done, shots=' + fullResult.storyboard.shots.length
-        + ' chars=' + Object.keys(fullResult.characters).length
-        + ' scenes=' + Object.keys(fullResult.scenes).length
-        + ' music=' + Object.keys(fullResult.soundResult.sunoPrompts).length);
     } catch (err) {
       const task = scriptTasks.get(taskId);
       if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
@@ -1149,6 +1177,65 @@ app.post('/api/agent/script/music', async (req, res) => {
   res.json({ taskId, status: 'processing' });
 });
 
+// ─── Supplement: run characters + scenes + music in parallel, skip storyboard ──
+app.post('/api/agent/script/supplement', async (req, res) => {
+  const { scriptText, visualStyle, nodeId } = req.body;
+  if (!scriptText) { res.status(400).json({ error: 'Missing scriptText' }); return; }
+
+  const taskId = uuid();
+  scriptTasks.set(taskId, { status: 'processing', createdAt: Date.now() });
+  saveScriptTasks();
+  console.log('[supplement] Task ' + taskId + ' started: chars+scenes+music in parallel');
+
+  (async () => {
+    const t0 = Date.now();
+    try {
+      const [chars, scenes, music] = await Promise.all([
+        runCharacterExtraction(scriptText, visualStyle),
+        runSceneExtraction(scriptText),
+        runSoundComposer(scriptText),
+      ]);
+      const task = scriptTasks.get(taskId);
+      if (task) {
+        task.status = 'done';
+        task.section = 'supplement';  // 不覆盖已有分镜
+        task.result = {
+          characters: chars,
+          scenes: scenes,
+          sceneArchitecture: {},
+          soundResult: music,
+          storyboard: { shots: [], rawOutput: '', durationMs: 0 },
+        };
+        saveScriptTasks();
+      }
+      console.log('[supplement] Task ' + taskId + ' done in ' + (Date.now() - t0) + 'ms, chars=' + Object.keys(chars).length + ' scenes=' + Object.keys(scenes).length + ' music=' + Object.keys(music.sunoPrompts || {}).length);
+
+      // Write to canvas node if nodeId provided
+      if (nodeId) {
+        try {
+          const { readJSON, writeJSON } = await import('./systems/db/store.js');
+          const canvasState = readJSON('canvas-state');
+          const node = canvasState.nodes?.find((n: any) => n.id === nodeId);
+          if (node) {
+            if (!node.meta) node.meta = {};
+            if (!node.meta.gen) node.meta.gen = {};
+            if (chars) node.meta.gen.scriptCharacters = chars;
+            if (scenes) node.meta.gen.scriptScenes = scenes;
+            if (music?.sunoPrompts) node.meta.gen.scriptSunoPrompts = music.sunoPrompts;
+            if (music?.scenes) node.meta.gen.scriptSoundScenes = music.scenes;
+            writeJSON('canvas-state', canvasState);
+          }
+        } catch (e) { console.warn('[supplement] Canvas write failed:', e); }
+      }
+    } catch (err) {
+      const task = scriptTasks.get(taskId);
+      if (task) { task.status = 'done'; task.error = String(err); saveScriptTasks(); }
+      console.log('[supplement] Task ' + taskId + ' failed:', String(err).slice(0, 200));
+    }
+  })();
+  res.json({ taskId, status: 'processing' });
+});
+
 app.post('/api/agent/script/scene', async (req, res) => {
   req.setTimeout(600000); // 10 min — per-scene pipeline
   const { scene, scriptExcerpt, visualBible, characterProfiles } = req.body;
@@ -1337,12 +1424,7 @@ app.post('/api/agent/visual-extract', async (req: Request, res: Response) => {
 // ─── 小Q Brain API ────────────────────────
 app.use('/api/q', qRouter);
 
-// ─── UE5 Proxy ────────────────────────────
 import { createProxyMiddleware } from 'http-proxy-middleware';
-// UE5 HTTP player page
-app.use('/ue5', createProxyMiddleware({ target: 'http://127.0.0.1:80', changeOrigin: true, pathRewrite: { '^/ue5': '' } }));
-// UE5 WebSocket signalling (Pixel Streaming needs ws:// → ws://localhost:8888)
-app.use('/ue5-ws', createProxyMiddleware({ target: 'ws://127.0.0.1:8888', changeOrigin: true, ws: true, pathRewrite: { '^/ue5-ws': '' } }));
 
 // ─── Serve static files ──
 import path from 'node:path';
@@ -1358,7 +1440,7 @@ app.use('/', createProxyMiddleware({
   target: 'http://127.0.0.1:5173',
   changeOrigin: true,
   ws: true,
-  filter: (pathname: string) => !pathname.startsWith('/api/') && !pathname.startsWith('/admin/') && !pathname.startsWith('/ue5'),
+  filter: (pathname: string) => !pathname.startsWith('/api/') && !pathname.startsWith('/admin/'),
 }));
 
 // Create HTTP server explicitly for WebSocket upgrade proxying
@@ -1368,21 +1450,6 @@ server.timeout = 0;           // 禁用空闲超时，允许长请求（kie.ai �
 server.requestTimeout = 0;    // 禁用请求体超时
 server.headersTimeout = 0;    // 禁用请求头超时
 server.keepAliveTimeout = 0;  // 禁用 keep-alive 超时
-
-// UE5 Pixel Streaming WebSocket proxy (created once, reused)
-const ue5WsProxy = createProxyMiddleware({
-  target: 'ws://127.0.0.1:8888',
-  changeOrigin: true,
-  ws: true,
-  pathRewrite: { '^/ue5-ws': '' },
-});
-server.on('upgrade', (req, socket, head) => {
-  if (req.url?.startsWith('/ue5-ws')) {
-    console.log('[ws-proxy] Upgrade:', req.url);
-    // @ts-ignore
-    ue5WsProxy.upgrade(req, socket, head);
-  }
-});
 
 // Auto-start Kimodo motion server (runs `python -m uvicorn server:app` on port 8000)
 import { startKimodo } from './systems/kimodo-launcher.js';

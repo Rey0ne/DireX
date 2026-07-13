@@ -21,7 +21,7 @@ import '@xyflow/react/dist/style.css';
 import { useCanvasStore } from './store/useCanvasStore';
 import type { CanvasNode, NodeType } from './types/graph';
 import type { UserProfile } from '../shared/api-types.js';
-import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized } from './store/persistence';
+import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized, mergeServerGenData } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
@@ -43,6 +43,9 @@ import { AudioGenerateNode } from './components/nodes/AudioGenerateNode';
 import { Scene3DNode } from './components/nodes/Scene3DNode';
 import { Tripo3DNode } from './components/nodes/Tripo3DNode';
 import { ScissorEdge } from './components/edges/ScissorEdge';
+
+// Expose store for debugging / emergency data injection
+(window as any).__direxStore = useCanvasStore;
 
 // Node type registry — defined below in App component with useMemo
 
@@ -351,7 +354,13 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
           }
         }
         localStorage.removeItem('__direx_pos_deltas');
-        if (merged > 0) console.log('[persist] Merged', merged, 'position deltas from emergency store');
+        // Force syncTick bump so the store→ReactFlow sync effect picks up
+        // the merged positions. Without this, pos-only updates are skipped
+        // by the sync effect (no structure/edge change, syncTick unchanged).
+        if (merged > 0) {
+          useCanvasStore.setState(s => ({ syncTick: s.syncTick + 1 }));
+          console.log('[persist] Merged', merged, 'position deltas from emergency store');
+        }
       } catch {}
     };
 
@@ -362,6 +371,8 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
         const vp = useCanvasStore.getState().viewport;
         if (vp && vp.zoom > 0) setViewport(vp, { duration: 0 });
         markInitialized(); // ← Gate: allow saves now that data is loaded
+        // Pull any server-direct-written gen data (e.g., pipeline finished while frontend was closed)
+        mergeServerGenData();
       }
       if (!restored) {
         if (isNewCanvas) {
@@ -692,6 +703,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
               // Persist clientTaskId on node so polling can resume after page refresh / reconnect
               const genPatch: Record<string, unknown> = { compiledPrompt: '(compiling…)', compiledPromptCn: agentResult.compiled?.cn || '', clientTaskId: taskId };
               store.updateNode(n.id, { meta: { ...node!.meta, gen: { ...meta, ...genPatch } } });
+              store.setNodeStatus(n.id, 'running'); // keep spinner alive during async polling
               store.triggerSync();
               console.log('[poll] Starting client poll for ' + taskId);
               const pollInterval = setInterval(async () => {

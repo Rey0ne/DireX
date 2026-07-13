@@ -117,6 +117,34 @@ export const GENRES: GenreNode[] = [
     { name: 'IDM', nameCN: '智能舞曲', tempo: [80, 150], tags: ['Aphex Twin', 'experimental', 'glitch'] },
     { name: 'Chillwave', nameCN: '寒潮', tempo: [60, 100], tags: ['lo-fi', 'reverb', 'nostalgic'] },
     { name: 'Vaporwave', nameCN: '蒸汽波', tempo: [60, 100], tags: ['slowed', 'sampled', 'aesthetic'] },
+    // ── House 子类补充 ──
+    { name: 'Minimal Techno', nameCN: '极简科技舞曲', tempo: [125, 130], tags: ['stripped', 'hypnotic', 'Robert Hood', 'loop'] },
+    { name: 'Dub Techno', nameCN: '回声科技', tempo: [120, 130], tags: ['dub chord', 'tape delay', 'Basic Channel', 'deep'] },
+    { name: 'Acid House', nameCN: '酸性浩室', tempo: [120, 130], tags: ['TB-303', 'squelch', 'Phuture', 'rave'] },
+    { name: 'Tech House', nameCN: '科技浩室', tempo: [125, 128], tags: ['groove', 'minimal', 'underground', 'warehouse'] },
+    { name: 'Progressive House', nameCN: '渐进浩室', tempo: [125, 130], tags: ['long build', 'cinematic', 'Sasha', 'atmospheric'] },
+    { name: 'Electro House', nameCN: '电气浩室', tempo: [128, 130], tags: ['buzzing bass', 'big room', 'festival', 'Benny Benassi'] },
+    { name: 'Bass House', nameCN: '贝斯浩室', tempo: [125, 128], tags: ['wobble bass', 'heavy', 'UK', 'drop'] },
+    { name: 'Afro House', nameCN: '非洲浩室', tempo: [118, 125], tags: ['African percussion', 'tribal', 'soulful', 'organic'] },
+    { name: 'Lo-Fi House', nameCN: '低保真浩室', tempo: [115, 125], tags: ['dusty', 'degraded', 'tape', 'vintage drum machine'] },
+    { name: 'French House', nameCN: '法式浩室', tempo: [120, 128], tags: ['filtered disco', 'Daft Punk', 'sidechain', 'chic'] },
+    { name: 'Nu-Disco', nameCN: '新迪斯科', tempo: [115, 125], tags: ['modern disco', 'funky bass', 'chic', 'velvet rope'] },
+    { name: 'Electroclash', nameCN: '电子碰撞', tempo: [120, 135], tags: ['electro + punk', 'retro', 'edgy', 'fashion'] },
+    // ── UK Bass 体系 ──
+    { name: 'UK Garage', nameCN: '英式车库', tempo: [130, 135], tags: ['shuffled 2-step', 'swung hi-hats', 'chopped vocals', 'London'] },
+    { name: '2-Step', nameCN: '两步', tempo: [130, 135], tags: ['syncopated kick', 'skipping beat', 'UKG', 'soulful'] },
+    { name: 'Grime', nameCN: '污垢', tempo: [140, 140], tags: ['MC-driven', 'aggressive', 'eskibeat', 'Skepta'] },
+    { name: 'Jungle', nameCN: '丛林', tempo: [160, 175], tags: ['Amen break', 'reggae sub-bass', 'ragga', 'UK rave'] },
+    { name: 'Breakbeat', nameCN: '碎拍', tempo: [120, 140], tags: ['syncopated drums', 'Chemical Brothers', 'Fatboy Slim', 'big beat'] },
+    { name: 'Phonk', nameCN: '冯克', tempo: [130, 150], tags: ['Memphis rap', 'distorted bass', 'cowbell', 'drift'] },
+    // ── 全球电子 ──
+    { name: 'Amapiano', nameCN: '南非钢琴', tempo: [110, 115], tags: ['log drum bass', 'jazzy chords', 'South Africa', 'soulful'] },
+    { name: 'Baile Funk', nameCN: '巴西放克', tempo: [130, 140], tags: ['favela', 'Miami bass', 'Portuguese', 'raw'] },
+    { name: 'Hardstyle', nameCN: '硬派', tempo: [150, 160], tags: ['distorted kick', 'reverse bass', 'euphoric', 'Defqon'] },
+    { name: 'Gabber', nameCN: '加巴', tempo: [160, 200], tags: ['distorted 909', 'Dutch', 'Rotterdam', 'extreme'] },
+    // ── 实验电子 ──
+    { name: 'Glitch', nameCN: '故障音乐', tempo: [60, 120], tags: ['digital error', 'Oval', 'Alva Noto', 'micro-edit'] },
+    { name: 'Deconstructed Club', nameCN: '解构俱乐部', tempo: [60, 160], tags: ['fragmented', 'Arca', 'SOPHIE', 'experimental beats'] },
   ]},
 
   // ── Rock ──
@@ -134,6 +162,17 @@ export const GENRES: GenreNode[] = [
     { name: 'Doom Metal', nameCN: '毁灭金属', tempo: [40, 80], tags: ['slow', 'heavy', 'despair'] },
     { name: 'Power Metal', nameCN: '力量金属', tempo: [130, 200], tags: ['fantasy', 'fast', 'high vocal'] },
     { name: 'Gothic Metal', nameCN: '哥特金属', tempo: [60, 120], tags: ['dark', 'romantic', 'female vocal'] },
+    { name: 'Thrash Metal', nameCN: '鞭击金属', tempo: [120, 180], tags: ['fast', 'aggressive', 'Metallica', 'Slayer', 'riffs'] },
+    { name: 'Death Metal', nameCN: '死亡金属', tempo: [120, 200], tags: ['growl vocal', 'blast beat', 'Morbid Angel', 'extreme'] },
+    { name: 'Nu Metal', nameCN: '新金属', tempo: [80, 120], tags: ['rap + metal', 'Korn', 'Linkin Park', 'groove'] },
+    { name: 'Metalcore', nameCN: '金属核', tempo: [120, 180], tags: ['hardcore + metal', 'breakdown', 'Killswitch Engage', 'screaming'] },
+    { name: 'Industrial Metal', nameCN: '工业金属', tempo: [80, 140], tags: ['machine', 'distorted', 'Rammstein', 'mechanical'] },
+    { name: 'Stoner Rock', nameCN: '石人摇滚', tempo: [60, 100], tags: ['fuzz', 'desert', 'Kyuss', 'heavy groove', 'psychedelic'] },
+    { name: 'Shoegaze', nameCN: '盯鞋', tempo: [80, 120], tags: ['reverb wall', 'My Bloody Valentine', 'ethereal guitar', 'noise'] },
+    { name: 'Grunge', nameCN: '垃圾摇滚', tempo: [100, 130], tags: ['Seattle', 'Nirvana', 'distorted', 'angst', '90s'] },
+    { name: 'Krautrock', nameCN: '德国泡菜摇滚', tempo: [60, 120], tags: ['motorik beat', 'Neu!', 'Can', 'experimental', 'Kraftwerk'] },
+    { name: 'Math Rock', nameCN: '数学摇滚', tempo: [80, 160], tags: ['odd time sigs', 'complex', 'tapping', 'angular'] },
+    { name: 'Emo', nameCN: '情绪摇滚', tempo: [120, 180], tags: ['emotional', 'confessional', 'Jimmy Eat World', 'post-hardcore'] },
   ]},
 
   // ── Pop ──
@@ -148,6 +187,16 @@ export const GENRES: GenreNode[] = [
     { name: 'C-Pop', nameCN: '华语流行', tempo: [70, 130], tags: ['Mandarin', 'ballad', 'folk influence'] },
     { name: 'Art Pop', nameCN: '艺术流行', tempo: [60, 130], tags: ['experimental', 'avant-garde', 'Bjork'] },
     { name: 'Baroque Pop', nameCN: '巴洛克流行', tempo: [70, 120], tags: ['orchestral pop', 'chamber', 'harpsichord'] },
+    { name: 'Hyperpop', nameCN: '超流行', tempo: [130, 160], tags: ['maximalist', 'glitchy', 'Charli XCX', '100 gecs', 'distorted'] },
+    { name: 'Bedroom Pop', nameCN: '卧室流行', tempo: [60, 100], tags: ['DIY', 'lo-fi', 'intimate', 'home-recorded', 'Clairo'] },
+    { name: 'Pop-Punk', nameCN: '流行朋克', tempo: [140, 200], tags: ['punk energy', 'pop melodies', 'Blink-182', 'Paramore'] },
+    { name: 'Pop-Rock', nameCN: '流行摇滚', tempo: [80, 140], tags: ['pop melody', 'rock guitars', 'Maroon 5', 'Kelly Clarkson'] },
+    { name: 'Country Pop', nameCN: '乡村流行', tempo: [70, 120], tags: ['country + pop', 'Taylor Swift', 'Shania Twain', 'crossover'] },
+    { name: 'City Pop', nameCN: '城市流行', tempo: [80, 120], tags: ['Japanese 80s', 'funk/disco', 'Mariya Takeuchi', 'nostalgic'] },
+    { name: 'Funk Pop', nameCN: '放克流行', tempo: [90, 120], tags: ['funky grooves', 'Bruno Mars', 'Prince', 'bass-driven'] },
+    { name: 'R&B Pop', nameCN: '节奏蓝调流行', tempo: [70, 100], tags: ['R&B + pop', 'Beyoncé', 'The Weeknd', 'smooth'] },
+    { name: 'Afro-Pop', nameCN: '非洲流行', tempo: [100, 120], tags: ['African rhythms', 'global', 'Burna Boy', 'upbeat'] },
+    { name: 'Noise Pop', nameCN: '噪音流行', tempo: [80, 120], tags: ['melody + distortion', 'shoegaze', 'feedback', 'underground'] },
   ]},
 
   // ── Hip-Hop ──
@@ -159,6 +208,14 @@ export const GENRES: GenreNode[] = [
     { name: 'Jazz Rap', nameCN: '爵士说唱', tempo: [80, 100], tags: ['jazz samples', 'Tribe Called Quest', 'conscious'] },
     { name: 'Old School Hip-Hop', nameCN: '老派嘻哈', tempo: [90, 110], tags: ['breakbeat', 'scratching', '80s'] },
     { name: 'Cloud Rap', nameCN: '云说唱', tempo: [100, 140], tags: ['ambient', 'ethereal', 'trap influence'] },
+    { name: 'Grime (Hip-Hop)', nameCN: '英式污垢嘻哈', tempo: [140, 140], tags: ['UK MC', 'Stormzy', 'aggressive', 'eskibeat'] },
+    { name: 'Gangsta Rap', nameCN: '匪帮说唱', tempo: [80, 100], tags: ['West Coast', 'N.W.A', 'street', 'G-funk'] },
+    { name: 'Conscious Rap', nameCN: '意识说唱', tempo: [80, 100], tags: ['social commentary', 'Kendrick', 'Common', 'lyrical'] },
+    { name: 'Alternative Hip-Hop', nameCN: '另类嘻哈', tempo: [70, 100], tags: ['experimental', 'Tyler the Creator', 'OutKast', 'genre-bending'] },
+    { name: 'Instrumental Hip-Hop', nameCN: '器乐嘻哈', tempo: [80, 100], tags: ['beat tape', 'J Dilla', 'DJ Shadow', 'no vocals'] },
+    { name: 'Crunk', nameCN: '旷克', tempo: [80, 100], tags: ['Southern', 'Lil Jon', 'hype', 'club'] },
+    { name: 'Mumble Rap', nameCN: '模糊说唱', tempo: [120, 150], tags: ['triplet flow', 'Future', 'migrated', 'ad-libs'] },
+    { name: 'Latin Trap', nameCN: '拉丁陷阱', tempo: [120, 140], tags: ['trap + reggaeton', 'Bad Bunny', 'Spanish', 'urban Latin'] },
   ]},
 
   // ── Jazz ──
@@ -172,6 +229,18 @@ export const GENRES: GenreNode[] = [
     { name: 'Smooth Jazz', nameCN: '柔顺爵士', tempo: [70, 110], tags: ['saxophone', 'commercial', 'relaxing'] },
     { name: 'Latin Jazz', nameCN: '拉丁爵士', tempo: [100, 160], tags: ['afro-cuban', 'bossa', 'percussion'] },
     { name: 'Gypsy Jazz', nameCN: '吉普赛爵士', tempo: [100, 180], tags: ['Django Reinhardt', 'acoustic guitar', 'violin'] },
+    { name: 'Hard Bop', nameCN: '硬波普', tempo: [100, 160], tags: ['blues/gospel influence', 'Art Blakey', 'soulful', 'Horace Silver'] },
+    { name: 'Soul Jazz', nameCN: '灵魂爵士', tempo: [80, 120], tags: ['organ trio', 'Jimmy Smith', 'groove', 'funky'] },
+    { name: 'Nu Jazz', nameCN: '新爵士', tempo: [80, 130], tags: ['jazz + electronic', 'St Germain', 'Cinematic Orchestra', 'broken beat'] },
+    { name: 'Acid Jazz', nameCN: '酸性爵士', tempo: [90, 110], tags: ['soul/funk + jazz', 'Jamiroquai', 'Brand New Heavies', 'groove'] },
+    { name: 'Jazz-Hop', nameCN: '爵士嘻哈', tempo: [80, 100], tags: ['hip-hop beats + jazz', 'Nujabes', 'A Tribe Called Quest', 'lo-fi'] },
+    { name: 'Spiritual Jazz', nameCN: '灵性爵士', tempo: [50, 100], tags: ['Coltrane', 'Pharoah Sanders', 'meditative', 'transcendent'] },
+    { name: 'Jazz-Funk', nameCN: '爵士放克', tempo: [90, 120], tags: ['Herbie Hancock', 'Head Hunters', 'groove', 'electric'] },
+    { name: 'Electro Swing', nameCN: '电子摇摆', tempo: [100, 130], tags: ['swing + EDM', 'Parov Stelar', 'vintage + modern', 'dance'] },
+    { name: 'Jazz Noir', nameCN: '黑色爵士', tempo: [40, 70], tags: ['film noir', 'Bohren', 'slow', 'smoky', 'twin peaks'] },
+    { name: 'Ethio-Jazz', nameCN: '埃塞俄比亚爵士', tempo: [60, 120], tags: ['Ethiopian scales', 'Mulatu Astatke', 'vibraphone', 'hypnotic'] },
+    { name: 'Cape Jazz', nameCN: '开普爵士', tempo: [80, 120], tags: ['South African', 'Cape Town', 'Abdullah Ibrahim', 'township'] },
+    { name: 'Post-Bop', nameCN: '后波普', tempo: [60, 160], tags: ['assimilates hard bop+modal+avant-garde', 'Wayne Shorter', '1960s', 'acoustic'] },
   ]},
 
   // ── Fantasy Sub-genres ──
@@ -257,6 +326,38 @@ export const GENRES: GenreNode[] = [
     { name: 'Samurai Music', nameCN: '武士音乐', tempo: [50, 100], tags: ['biwa', 'taiko', 'battle', 'bushido'] },
     { name: 'Matsuri', nameCN: '祭典音乐', tempo: [80, 140], tags: ['festival', 'taiko', 'shinobue', 'dance'] },
     { name: 'Japanese Folk', nameCN: '日本民谣', tempo: [60, 110], tags: ['minyo', 'shamisen', 'regional'] },
+  ]},
+
+  // ── Fashion / Runway (TVC+秀场) ──
+  { name: 'Fashion Runway', nameCN: '时尚秀场音乐', tempo: [100, 130], mood: ['confident', 'glamorous', 'edgy', 'sleek'], sub: [
+    { name: 'Runway Deep House', nameCN: '秀场深浩室', tempo: [120, 124], tags: ['sleek', 'pulsating bass', 'sophisticated', 'Chanel', 'four-on-floor'] },
+    { name: 'Runway Techno', nameCN: '秀场科技舞曲', tempo: [126, 130], tags: ['dark', 'industrial', 'Balenciaga', 'metallic', 'warehouse'] },
+    { name: 'Runway Hyperpop', nameCN: '秀场超流行', tempo: [130, 160], tags: ['glitchy', 'distorted', 'rebellious', 'brat', 'Charli XCX'] },
+    { name: 'Runway Electroclash', nameCN: '秀场电子碰撞', tempo: [120, 135], tags: ['edgy', 'retro-futuristic', 'Versace', 'bold'] },
+    { name: 'Runway Afro-House', nameCN: '秀场非洲浩室', tempo: [110, 120], tags: ['tribal', 'global', 'Off-White', 'percussion', 'soulful'] },
+    { name: 'Runway Nu-Disco', nameCN: '秀场新迪斯科', tempo: [115, 125], tags: ['chic', 'velvet-rope', 'Saint Laurent', 'filtered bass'] },
+    { name: 'Runway Vogue Ballroom', nameCN: '秀场Vogue', tempo: [120, 125], tags: ['ballroom', 'fierce', 'whisper vocal', '90s house'] },
+    { name: 'Runway Dark Cinematic', nameCN: '秀场暗黑电影', tempo: [60, 100], tags: ['art pop', 'ambient tension', 'McQueen', 'avant-garde'] },
+    { name: 'Runway Minimal Luxury', nameCN: '秀场极简奢华', tempo: [60, 100], tags: ['sparse', 'glassy', 'high-end', 'Jil Sander', 'restraint'] },
+    { name: 'Runway Jazz Noir', nameCN: '秀场黑色爵士', tempo: [40, 70], tags: ['smoky', 'noir', 'Dries Van Noten', 'slow burn'] },
+  ]},
+
+  // ── Avant-Garde / Experimental ──
+  { name: 'Avant-Garde', nameCN: '先锋实验音乐', tempo: [20, 200], mood: ['experimental', 'dark', 'unsettling', 'abstract'], sub: [
+    { name: 'Noise Music', nameCN: '噪音音乐', tempo: [30, 120], tags: ['pure noise', 'Merzbow', 'harsh', 'deconstructed beauty', 'Japanese'] },
+    { name: 'Drone', nameCN: '持续音', tempo: [20, 60], tags: ['sustained tone', 'Sunn O)))', 'low frequency', 'ritualistic', 'immersive'] },
+    { name: 'Musique Concrète', nameCN: '具象音乐', tempo: [20, 100], tags: ['tape collage', 'Pierre Schaeffer', 'found sound', 'acousmatic'] },
+    { name: 'Electroacoustic', nameCN: '电声音乐', tempo: [20, 100], tags: ['academic', 'computer music', 'IRCAM', 'spatial'] },
+    { name: 'Power Electronics', nameCN: '强电', tempo: [60, 120], tags: ['extreme noise', 'Whitehouse', 'confrontational', 'transgressive'] },
+    { name: 'Industrial Noise', nameCN: '工业噪音', tempo: [80, 130], tags: ['Throbbing Gristle', 'machine', 'dystopian', 'metallic'] },
+    { name: 'Sound Art', nameCN: '声音艺术', tempo: [10, 100], tags: ['installation', 'gallery', 'site-specific', 'conceptual'] },
+    { name: 'Field Recording', nameCN: '田野录音', tempo: [10, 80], tags: ['nature', 'Chris Watson', 'phonography', 'environment'] },
+    { name: 'Microsound', nameCN: '微声', tempo: [20, 80], tags: ['granular', 'microscopic', 'glitch particles', 'extreme quiet'] },
+    { name: 'Plunderphonics', nameCN: '采样拼贴', tempo: [40, 120], tags: ['radical sampling', 'John Oswald', 'collage', 'copyright'] },
+    { name: 'Dark Ambient Drone', nameCN: '黑暗氛围持续音', tempo: [20, 50], tags: ['Lustmord', 'deep space', 'cosmic horror', 'sub-bass'] },
+    { name: 'Ritual Industrial', nameCN: '仪式工业', tempo: [50, 90], tags: ['tribal percussion', 'industrial noise', 'ceremony', 'pagan'] },
+    { name: 'Lowercase', nameCN: '微小声学', tempo: [10, 50], tags: ['extreme quiet', 'Steve Roden', 'amplified silence', 'fragile'] },
+    { name: 'Generative Music', nameCN: '生成音乐', tempo: [20, 120], tags: ['algorithmic', 'Brian Eno', 'autonomous', 'evolving system'] },
   ]},
 ];
 
@@ -493,6 +594,22 @@ export const EMOTIONS: EmotionEntry[] = [
   { name: 'Epic Battle', nameCN: '史诗战斗', category: 'action', intensity: 1.0, instruments: ['Taiko', 'Choir', 'Brass', 'Strings', 'Orchestral Percussion'], tempo: [110, 155] },
   { name: 'Chase', nameCN: '追逐', category: 'action', intensity: 0.8, instruments: ['Strings (ostinato)', 'Percussion', 'Brass', 'Synth Bass', 'Piano (staccato)'], tempo: [120, 170] },
   { name: 'Rising Tension', nameCN: '紧张上升', category: 'action', intensity: 0.7, instruments: ['Strings (tremolo)', 'Percussion', 'Synth', 'Brass (crescendo)'], tempo: [80, 140] },
+
+  // ── Fashion / Runway 情绪 ──
+  { name: 'Glamorous', nameCN: '奢华', category: 'positive', intensity: 0.7, instruments: ['Synth Bass', 'String Pad', 'Clean Percussion', 'Whisper Vocal', 'Piano'], tempo: [100, 124] },
+  { name: 'Confident', nameCN: '自信', category: 'positive', intensity: 0.8, instruments: ['Four-on-floor Kick', 'Bassline', 'Sharp Claps', 'Brass Stabs', 'Synth Lead'], tempo: [110, 130] },
+  { name: 'Edgy', nameCN: '前卫', category: 'dark', intensity: 0.8, instruments: ['Distorted Synth', 'Industrial Percussion', 'Dissonant Pad', 'Metallic Hits', 'Noise'], tempo: [100, 140] },
+  { name: 'Sleek', nameCN: '精致', category: 'ethereal', intensity: 0.4, instruments: ['Minimal Piano', 'Filtered Synth', 'Glassy Percussion', 'Soft Pad', 'Clean Bass'], tempo: [60, 100] },
+  { name: 'Fierce', nameCN: '强势', category: 'action', intensity: 0.9, instruments: ['Heavy Bass', 'Aggressive Drums', 'Metallic Hits', 'Distorted Synth', 'Chant Vocal'], tempo: [120, 140] },
+  { name: 'Seductive', nameCN: '魅惑', category: 'romantic', intensity: 0.6, instruments: ['Deep Bass', 'Breath Vocal', 'Slow Groove', 'Saxophone', 'Rhodes'], tempo: [60, 100] },
+
+  // ── Advertising / TVC 情绪 ──
+  { name: 'Upbeat', nameCN: '积极向上', category: 'positive', intensity: 0.7, instruments: ['Acoustic Guitar', 'Piano', 'Drums', 'Hand Claps', 'Glockenspiel'], tempo: [100, 130] },
+  { name: 'Inspirational', nameCN: '激励人心', category: 'positive', intensity: 0.8, instruments: ['Strings', 'Piano', 'Brass', 'Choir', 'Drums'], tempo: [80, 120] },
+  { name: 'Playful', nameCN: '俏皮趣味', category: 'positive', intensity: 0.5, instruments: ['Ukulele', 'Pizzicato Strings', 'Glockenspiel', 'Whistle', 'Accordion'], tempo: [90, 130] },
+  { name: 'Sophisticated', nameCN: '成熟精致', category: 'ethereal', intensity: 0.4, instruments: ['Piano', 'Jazz Guitar', 'Double Bass', 'Brush Drums', 'Vibraphone'], tempo: [70, 100] },
+  { name: 'Nostalgic', nameCN: '怀旧', category: 'ethereal', intensity: 0.5, instruments: ['Vintage Synth', 'Tape Piano', 'Vinyl Crackle', 'Lo-Fi Drums', 'Reverb Guitar'], tempo: [60, 90] },
+  { name: 'Energetic', nameCN: '高能动感', category: 'action', intensity: 0.9, instruments: ['Distorted Bass', 'Fast Drums', 'Synth Lead', 'Brass', 'Electric Guitar'], tempo: [130, 160] },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -604,6 +721,17 @@ export const PRODUCTION_STYLES: ProductionStyle[] = [
   { name: 'Dark Industrial', nameCN: '黑暗工业', description: 'Metallic percussion, distorted textures, mechanical rhythms, dystopian', tags: ['industrial', 'metal', 'distorted', 'mechanical'] },
   { name: 'Meditative Minimal', nameCN: '冥想极简', description: 'Sparse arrangement, long decays, silence as instrument, zen aesthetic', tags: ['minimal', 'space', 'silence', 'zen'] },
   { name: 'Folk Acoustic', nameCN: '民谣原声', description: 'Natural room sound, wood resonance, finger noise, organic warmth', tags: ['acoustic', 'folk', 'natural', 'wood'] },
+
+  // ── Fashion / Runway 制作风格 ──
+  { name: 'Runway Ready', nameCN: '秀场标准', description: 'Tight 4/4 kick, deep hypnotic bassline, sharp claps, whispered/spoken vocals, heavy sidechain compression, long DJ-friendly intro/outro for model walking', tags: ['runway', 'four-on-floor', 'sidechain', 'whisper vocal', 'catwalk'] },
+  { name: 'Luxury Minimal', nameCN: '极简奢华', description: 'Sparse arrangement with strategic negative space, glassy percussion, high-end algorithmic reverb, sophisticated restraint, every sound intentional', tags: ['minimal', 'luxury', 'glassy', 'reverb', 'high-end'] },
+  { name: 'Industrial Catwalk', nameCN: '工业走秀', description: 'Metallic percussion, camera-shutter FX, heel-click rhythms, distorted textures, dark warehouse reverb, mechanical precision', tags: ['industrial', 'catwalk', 'metallic', 'distorted', 'mechanical'] },
+  { name: 'Hyperpop Runway', nameCN: '超流行秀场', description: 'Maximalist production, glitchy edits, pitch-shifted vocals, explosive drop sections, internet-age energy, genre collision', tags: ['hyperpop', 'glitchy', 'maximalist', 'pitch-shift', 'internet'] },
+
+  // ── Advertising / TVC 制作风格 ──
+  { name: 'Commercial Clean', nameCN: '广告干净', description: 'Polished, radio-ready production, voice-over friendly mid-range, clear frequency separation, edit-friendly structure with 15s/30s/60s cut points', tags: ['clean', 'commercial', 'voice-over', 'polished', 'broadcast'] },
+  { name: 'Brand Anthem', nameCN: '品牌颂歌', description: 'Emotional build from intimate to epic, cinematic orchestration, memorable melodic hook, brand identity baked into sonic DNA', tags: ['brand', 'anthem', 'cinematic', 'emotional', 'memorable'] },
+  { name: 'Short-Form Social', nameCN: '短视频社交', description: 'Instant hook in first 2 seconds, loop-friendly, vertical-mix optimized, TikTok/Reels energy, trend-aware production', tags: ['short-form', 'TikTok', 'loop', 'hook', 'viral'] },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -611,6 +739,32 @@ export const PRODUCTION_STYLES: ProductionStyle[] = [
 // ═══════════════════════════════════════════════════════
 
 export const NARRATIVE_SCENES: NarrativeScene[] = [
+  // ═══════════════════════════════════════════════════
+  // TVC / Advertising Scenes (8)
+  // ═══════════════════════════════════════════════════
+  { name: 'Product Reveal', nameCN: '产品揭幕', description: 'Dramatic product unveiling with building anticipation', genre: ['Cinematic Soundtrack', 'Epic Orchestral', 'Hybrid Orchestral'], instruments: ['Strings (tremolo)', 'Brass (crescendo)', 'Percussion (impact)', 'Synth Bass', 'Piano'], mood: ['Majestic', 'Inspirational'], bpm: [60, 120], template: 'Cinematic product reveal, Building anticipation, Tremolo strings crescendo, Brass fanfare reveal, Impact percussion, Epic but clean, 30-second broadcast mix, voice-over friendly' },
+  { name: 'Brand Anthem', nameCN: '品牌大片', description: 'Emotional brand storytelling film, 60-90 seconds', genre: ['Emotional Score', 'Indie Folk', 'Cinematic Pop'], instruments: ['Piano', 'Acoustic Guitar', 'Strings', 'Light Percussion', 'Pad'], mood: ['Inspirational', 'Hopeful', 'Warm'], bpm: [70, 100], template: 'Brand anthem, Emotional storytelling, Piano + Acoustic Guitar intimate, Strings swell, Hopeful uplifting, Warm and human, Clean modern production, 60-second film version' },
+  { name: 'Fast Montage', nameCN: '快节奏蒙太奇', description: 'Rapid-cut product montage, 15-30 seconds high energy', genre: ['Electropop', 'Future Bass', 'Dance Pop'], instruments: ['Synth Lead', 'Sharp Drums', 'Bass', 'Percussion', 'Vocal Chop'], mood: ['Energetic', 'Upbeat'], bpm: [120, 140], template: 'High-energy montage, Fast cuts, Electropop beat, Sharp percussion, Vocal chops, Synth lead hook, 15-second social cut, Gen Z energy' },
+  { name: 'Lifestyle Showcase', nameCN: '生活方式展示', description: 'Warm, aspirational lifestyle footage with real moments', genre: ['Indie Pop', 'Folk Pop', 'Lo-Fi Hip-Hop'], instruments: ['Acoustic Guitar', 'Piano', 'Ukulele', 'Light Drums', 'Hand Claps'], mood: ['Warm', 'Upbeat', 'Joyful'], bpm: [90, 115], template: 'Lifestyle feel-good, Warm acoustic, Hand claps, Whistling melody, Real moments, Aspirational but relatable, Instagram-friendly, sunshine' },
+  { name: 'Luxury Showcase', nameCN: '奢华质感', description: 'High-end product showcase with sophisticated elegance', genre: ['Runway Nu-Disco', 'Smooth Jazz', 'Neoclassical'], instruments: ['Piano', 'String Quartet', 'Clean Bass', 'Jazz Guitar', 'Glassy Percussion'], mood: ['Sophisticated', 'Sleek', 'Glamorous'], bpm: [60, 100], template: 'Luxury showcase, Sophisticated elegance, Piano + String Quartet, Clean minimal bass, Glassy percussion, Negative space, High-end restraint, Vogue editorial' },
+  { name: 'Sports Action', nameCN: '运动动感', description: 'High-intensity sports or action product footage', genre: ['Phonk', 'Trap', 'Hybrid Orchestral'], instruments: ['Distorted Bass', 'Heavy Drums', 'Brass Stabs', 'Synth Lead', '808'], mood: ['Energetic', 'Aggressive', 'Fierce'], bpm: [130, 160], template: 'Sports action, High intensity, Phonk distortion, Heavy 808 drums, Brass stabs, Aggressive energy, Stadium-ready, motivational workout' },
+  { name: 'Tech Reveal', nameCN: '科技新品', description: 'Futuristic tech product launch or feature demo', genre: ['Futuristic Ambient', 'Cyberpunk', 'Minimal Techno'], instruments: ['Synth Pad', 'Arpeggiator Synth', 'Clean Drums', 'Sub Bass', 'Glitch FX'], mood: ['Sleek', 'Mysterious', 'Confident'], bpm: [90, 120], template: 'Tech reveal, Futuristic clean electronic, Arpeggiator pulse, Glitch details, Minimal precision, Spatial audio feel, Apple-keynote energy, cutting-edge' },
+  { name: 'Quirky Fun', nameCN: '趣味广告', description: 'Playful, humorous commercial with whimsical tone', genre: ['Indie Pop', 'Electro Swing', 'Baroque Pop'], instruments: ['Ukulele', 'Pizzicato Strings', 'Glockenspiel', 'Whistle', 'Accordion', 'Music Box'], mood: ['Playful', 'Joyful', 'Curious'], bpm: [90, 130], template: 'Quirky commercial, Playful pizzicato strings, Ukulele strum, Glockenspiel twinkle, Whistling hook, Wes Anderson whimsy, Funny but charming, 30-second spot' },
+
+  // ═══════════════════════════════════════════════════
+  // Fashion Runway Scenes (10)
+  // ═══════════════════════════════════════════════════
+  { name: 'Runway Opening', nameCN: '秀场开场', description: 'First model walks, setting the collection tone', genre: ['Runway Deep House', 'Runway Minimal Luxury'], instruments: ['Four-on-floor Kick', 'Deep Bass', 'Filtered Synth', 'Whisper Vocal', 'Sharp Claps'], mood: ['Sleek', 'Confident', 'Mysterious'], bpm: [118, 124], template: 'Runway opening, Anticipation builds, Deep house pulse, Whispered vocals, Filtered synth wash, First model entrance, Sophisticated tension, fashion week energy' },
+  { name: 'Runway Peak', nameCN: '秀场高潮', description: 'Collection climax, statement pieces, finale energy', genre: ['Runway Techno', 'Runway Hyperpop'], instruments: ['Heavy Kick', 'Distorted Bass', 'Industrial Percussion', 'Synth Lead', 'Metallic Hits'], mood: ['Fierce', 'Edgy', 'Energetic'], bpm: [124, 130], template: 'Runway peak energy, Heavy four-on-floor, Distorted industrial bass, Metallic percussion hits, Glitchy synth stabs, Collection climax, Standing ovation moment, high fashion drama' },
+  { name: 'Runway Finale', nameCN: '秀场谢幕', description: 'Designer bow, all models walk together, celebration', genre: ['Runway Nu-Disco', 'Runway Vogue Ballroom'], instruments: ['Piano', 'Strings', 'Disco Bass', 'Brass', 'Choir Pad', 'Hand Claps'], mood: ['Glamorous', 'Triumphant', 'Joyful'], bpm: [120, 128], template: 'Runway finale, Designer bow, Triumphant disco-house, String flourish, Brass fanfare, Hand claps, All models walk, Celebration moment, glamorous resolution' },
+  { name: 'Avant-Garde Showcase', nameCN: '先锋展示', description: 'Experimental avant-garde collection on runway', genre: ['Noise Music', 'Industrial Noise', 'Deconstructed Club'], instruments: ['Distorted Synth', 'Metallic Percussion', 'Drone', 'Field Recording', 'Glitch'], mood: ['Edgy', 'Ominous', 'Haunting'], bpm: [60, 140], template: 'Avant-garde runway, Deconstructed beauty, Noise textures, Industrial percussion, Drone tension, Comme des Garçons energy, experimental fashion, challenging and bold' },
+  { name: 'Romantic Collection', nameCN: '浪漫系列', description: 'Soft, ethereal, romantic collection showcase', genre: ['Dream Pop', 'Ambient', 'Neoclassical'], instruments: ['Harp', 'Strings', 'Piano', 'Female Choir', 'Celesta'], mood: ['Dreamy', 'Romantic', 'Ethereal'], bpm: [50, 80], template: 'Romantic runway, Ethereal dream pop, Harp glissandi, String quartet, Female choir whisper, Celesta sparkle, Valentino elegance, floating fabrics, soft focus beauty' },
+  { name: 'Streetwear Drop', nameCN: '潮牌发布', description: 'Hype streetwear collection, urban energy, sneaker culture', genre: ['Trap', 'Phonk', 'Grime'], instruments: ['808 Bass', 'Heavy Drums', 'Vocal Samples', 'Distorted Synth', 'Hi-Hat Rolls'], mood: ['Fierce', 'Aggressive', 'Confident'], bpm: [130, 150], template: 'Streetwear drop, Hype energy, 808 sub-bass, Aggressive trap drums, Vocal sample chops, Sneaker culture, Supreme energy, Off-White attitude, urban runway' },
+  { name: 'Resort Collection', nameCN: '度假系列', description: 'Cruise/resort collection, tropical elegance, sunshine', genre: ['Bossa Nova', 'Afro-House', 'Nu-Disco'], instruments: ['Acoustic Guitar', 'Marimba', 'Light Percussion', 'Steel Drums', 'Flute'], mood: ['Warm', 'Peaceful', 'Joyful'], bpm: [100, 118], template: 'Resort runway, Tropical elegance, Bossa nova groove, Marimba melody, Steel drum accents, Ocean breeze, Jacquemus sunshine, Mediterranean glamour, effortless chic' },
+  { name: 'Menswear Sharp', nameCN: '男装精裁', description: 'Precision tailoring, sharp silhouettes, masculine elegance', genre: ['Runway Minimal Luxury', 'Jazz Noir', 'Synth Cinematic'], instruments: ['Piano (staccato)', 'Double Bass', 'Snare (crisp)', 'Synth Bass', 'Saxophone'], mood: ['Sophisticated', 'Confident', 'Sleek'], bpm: [90, 115], template: 'Menswear precision, Sharp tailoring, Staccato piano, Crisp snare, Jazz noir cool, Dior Men energy, masculine elegance, Savile Row attitude, refined power' },
+  { name: 'Couture Grand', nameCN: '高定大秀', description: 'Haute couture grand presentation, extreme craftsmanship', genre: ['Epic Orchestral', 'Opera', 'Sacred'], instruments: ['Orchestra', 'Organ', 'Choir', 'Harp', 'Strings'], mood: ['Majestic', 'Sacred', 'Glamorous'], bpm: [40, 80], template: 'Haute couture, Grand opera house, Full orchestra, Organ resonance, Choir ethereal, Harp glissandi, Chanel Grand Palais, extreme craftsmanship, once-in-a-lifetime spectacle' },
+  { name: 'After Party', nameCN: '秀后派对', description: 'Post-show celebration, DJ set, fashion crowd dancing', genre: ['Tech House', 'French House', 'Disco House'], instruments: ['Four-on-floor Kick', 'Funky Bass', 'Filtered Samples', 'Percussion', 'Vocal Loop'], mood: ['Energetic', 'Upbeat', 'Glamorous'], bpm: [124, 128], template: 'Fashion after-party, Tech house groove, Filtered disco sample, Funky bassline, Vocal loop, DJ energy, Bottega Veneta party, models dancing, champagne celebration' },
+
   // ── Royal / Court ──
   { name: 'King Entrance', nameCN: '王者登场', description: 'A sovereign enters the throne room', genre: ['Epic Orchestral', 'Heroic Score'], instruments: ['French Horn', 'Choir', 'Timpani', 'Strings'], mood: ['Majestic', 'Heroic'], bpm: [60, 90], template: 'Epic Orchestral, Heroic, Majestic, French Horn, Choir, Timpani drums, royal procession, cinematic soundtrack' },
   { name: 'Coronation', nameCN: '加冕', description: 'Crowning ceremony', genre: ['Epic Orchestral', 'Sacred'], instruments: ['Organ', 'Choir', 'Brass', 'Harp'], mood: ['Majestic', 'Sacred'], bpm: [50, 80], template: 'Sacred Orchestral, Majestic, Coronation anthem, Organ, Choir, Brass fanfare, cathedral reverb, cinematic ceremony' },

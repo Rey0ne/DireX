@@ -52,7 +52,7 @@ const GPT_MODEL = {
 
 export async function gpt5Chat(
   messages: Gpt5Message[],
-  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number; maxOutputTokens?: number; model?: string },
+  opts?: { effort?: 'low' | 'medium' | 'high' | 'xhigh'; stream?: boolean; timeoutMs?: number; maxOutputTokens?: number; model?: string; noTimeout?: boolean },
 ): Promise<string | null> {
   const kieKey = process.env.KIE_API_KEY;
   if (!kieKey) { console.log('[gpt5] No KIE_API_KEY'); return null; }
@@ -80,9 +80,17 @@ export async function gpt5Chat(
     const url = 'https://api.kie.ai/codex/v1/responses';
     const imgCount = messages.reduce((n, m) => n + m.content.filter(c => c.type === 'input_image').length, 0);
     console.log('[gpt5] Calling ' + model + ' msgs=' + messages.length + ' imgs=' + imgCount + ' effort=' + (opts?.effort || 'high'));
-    const timeoutMs = opts?.timeoutMs || 120000;
-    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), timeoutMs); fetchOpts.signal = ac.signal;
-    const resp = await fetch(url, fetchOpts).finally(() => clearTimeout(tm));
+    let cleanup: (() => void) | undefined;
+    if (opts?.noTimeout) {
+      console.log('[gpt5] noTimeout mode — waiting indefinitely for SSE stream');
+    } else {
+      const timeoutMs = opts?.timeoutMs || 120000;
+      const ac = new AbortController();
+      const tm = setTimeout(() => ac.abort(), timeoutMs);
+      fetchOpts.signal = ac.signal;
+      cleanup = () => clearTimeout(tm);
+    }
+    const resp = await fetch(url, fetchOpts).finally(() => cleanup?.());
     if (!resp.ok) {
       const errBody = await resp.text().catch(() => '');
       console.log('[gpt5] HTTP', resp.status, 'body:', errBody.slice(0, 300));

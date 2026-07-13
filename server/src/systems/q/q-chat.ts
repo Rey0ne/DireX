@@ -7,6 +7,7 @@ import { getDeviations } from './q-state.js';
 import { getOrchestrationStats } from './q-orchestrate.js';
 import { readJSON } from '../db/store.js';
 import { FASHION_STYLE_DB, FASHION_COORDINATION_DB } from '../agent/style-db.js';
+import type { LLMMessage, LLMTool, LLMToolCall, LLMToolResponse } from '../ai/deepseek.js';
 
 // ── Types ────────────────────────────────────────
 
@@ -46,8 +47,14 @@ interface CanvasNodeSummary {
   byType: Record<string, number>;
   totalNodes: number;
   totalEdges: number;
-  generatedAssets: number;       // nodes with resultAssetUrls
-  recentGenerations: string[];   // last 5 generation summaries
+  generatedAssets: number;
+  recentGenerations: string[];
+  /** Script/project text content from canvas nodes (titles + previews) */
+  canvasTextIndex: string;
+  /** Full shot node scripts (the main storyboard) */
+  shotScripts: string[];
+  /** Count of nodes that contain text */
+  textNodeCount: number;
 }
 
 function getCanvasSummary(): CanvasNodeSummary | null {
@@ -59,26 +66,52 @@ function getCanvasSummary(): CanvasNodeSummary | null {
     const byType: Record<string, number> = {};
     let generatedAssets = 0;
     const recentGenerations: string[] = [];
+    const textPreviews: string[] = [];
+    const shotScripts: string[] = [];
+    let textNodeCount = 0;
 
     for (const node of nodes) {
       const type = node.type || 'unknown';
       byType[type] = (byType[type] || 0) + 1;
 
+      // Collect text content from all node types
+      const title = node.title || '';
+      const prompt = node.meta?.gen?.prompt || '';
+      const content = node.meta?.content || '';
+      const fullText = prompt || content;
+
+      if (fullText.length > 20) {
+        textNodeCount++;
+        // Build a compact index: [type] title — first 100 chars
+        const preview = fullText.replace(/\n/g, ' ').slice(0, 100);
+        textPreviews.push(`[${type}] ${title || '(无标题)'} — ${preview}...`);
+
+        // Shot nodes contain the main script/storyboard — capture full text
+        if (type === 'shot' && fullText.length > 100) {
+          shotScripts.push(fullText.slice(0, 3000)); // cap at 3000 chars each
+        }
+      }
+
       // Check for generated assets
-      const meta = node.data?.meta || node.meta || {};
-      const gen = meta.gen || {};
+      const gen = node.meta?.gen || {};
       const assets = gen.resultAssetUrls || gen.resultAssetIds || [];
       if (assets.length > 0) {
         generatedAssets++;
         if (recentGenerations.length < 5) {
           const model = gen.model || 'Unknown';
-          const title = node.data?.title || node.title || type;
-          recentGenerations.push(`${type}「${title}」→ ${model} (${assets.length} assets)`);
+          recentGenerations.push(`${type}「${title || type}」→ ${model} (${assets.length} assets)`);
         }
       }
     }
 
-    return { byType, totalNodes: nodes.length, totalEdges: edges.length, generatedAssets, recentGenerations };
+    // Limit text index to avoid context overflow (max 30 entries, ~3KB)
+    const canvasTextIndex = textPreviews.slice(0, 30).join('\n');
+
+    return {
+      byType, totalNodes: nodes.length, totalEdges: edges.length,
+      generatedAssets, recentGenerations, canvasTextIndex,
+      shotScripts, textNodeCount,
+    };
   } catch {
     return null;
   }
@@ -91,7 +124,23 @@ function formatCanvasContext(canvas: CanvasNodeSummary): string {
   const genLines = canvas.recentGenerations.length > 0
     ? `\n最近生成：\n${canvas.recentGenerations.map(g => `  • ${g}`).join('\n')}`
     : '';
-  return `画布：${canvas.totalNodes}节点/${canvas.totalEdges}连线（${typeBreakdown}），其中${canvas.generatedAssets}个节点已有生成结果${genLines}`;
+
+  let result = `画布：${canvas.totalNodes}节点/${canvas.totalEdges}连线（${typeBreakdown}），其中${canvas.generatedAssets}个节点已有生成结果${genLines}`;
+
+  // Include shot scripts (the main storyboard/project text)
+  if (canvas.shotScripts.length > 0) {
+    result += '\n\n## 画布上的剧本/分镜内容';
+    for (let i = 0; i < canvas.shotScripts.length; i++) {
+      result += `\n\n### Shot ${i + 1}\n${canvas.shotScripts[i]}`;
+    }
+  }
+
+  // Include text index (titles + previews of other text nodes)
+  if (canvas.canvasTextIndex) {
+    result += '\n\n## 画布上其他节点的文本内容（标题+前100字预览）\n' + canvas.canvasTextIndex;
+  }
+
+  return result;
 }
 
 // ── Intent Detection ─────────────────────────────
@@ -388,6 +437,7 @@ function ruleBasedReply(intent: ChatIntent, message: string, projectSummary?: Re
 // ── Main Chat Handler ─────────────────────────────
 
 let LLM_CHAT: ((systemPrompt: string, userPrompt: string) => Promise<string | null>) | null = null;
+let LLM_CHAT_TOOLS: ((messages: LLMMessage[], tools: LLMTool[], maxTokens?: number) => Promise<LLMToolResponse | null>) | null = null;
 
 /**
  * Set the LLM chat function for AI-powered responses.
@@ -395,6 +445,264 @@ let LLM_CHAT: ((systemPrompt: string, userPrompt: string) => Promise<string | nu
  */
 export function setLLMChat(fn: (systemPrompt: string, userPrompt: string) => Promise<string | null>): void {
   (LLM_CHAT as any) = fn;
+}
+
+/**
+ * Set the LLM chat function with tool-calling support.
+ * When set, chat() will use this for memory tool operations.
+ */
+export function setLLMChatWithTools(
+  fn: (messages: LLMMessage[], tools: LLMTool[], maxTokens?: number) => Promise<LLMToolResponse | null>,
+): void {
+  (LLM_CHAT_TOOLS as any) = fn;
+}
+
+// ── Memory Tools (AgeMem-inspired: 6 tools mapped to qMemory) ──
+
+export const MEMORY_TOOLS: LLMTool[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_store',
+      description: '把重要信息存入长期记忆。当你学到用户偏好、项目关键信息、或修复经验时主动调用。',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: '要存储的内容，一句话总结' },
+          type: { type: 'string', enum: ['user_preference', 'project_info', 'fix_strategy', 'quality_issue', 'style_insight', 'workflow_learning'], description: '记忆类型' },
+          importance: { type: 'number', description: '重要性 0-1，默认 0.5', default: 0.5 },
+          tags: { type: 'array', items: { type: 'string' }, description: '标签，方便后续检索' },
+        },
+        required: ['content', 'type'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_recall',
+      description: '从记忆中搜索相关信息。在回答用户问题前，先检查是否有相关的历史记忆。',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: '搜索关键词' },
+          limit: { type: 'number', description: '返回条数上限，默认 5', default: 5 },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_update',
+      description: '更新已有记忆条目。当学到的信息修正了之前的记忆时使用。',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: '用于模糊匹配已有记忆的关键词' },
+          new_content: { type: 'string', description: '新的内容' },
+          importance: { type: 'number', description: '新的重要性评分 0-1' },
+        },
+        required: ['content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_forget',
+      description: '删除过时或不正确的记忆条目。',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: '用于模糊匹配要删除的记忆内容' },
+        },
+        required: ['content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_summarize',
+      description: '总结最近的记忆或对话上下文，提炼关键信息，减少上下文长度。当对话较长或需要压缩时使用。',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic: { type: 'string', description: '要总结的主题或时间段，如"刚才的讨论"、"今天的项目进展"' },
+        },
+        required: ['topic'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'q_memory_filter',
+      description: '检查并报告记忆中与当前话题无关或可能产生干扰的内容，便于清理。',
+      parameters: {
+        type: 'object',
+        properties: {
+          criterion: { type: 'string', description: '当前相关的话题关键词，用来判断哪些记忆相关' },
+        },
+        required: ['criterion'],
+      },
+    },
+  },
+];
+
+// ── Memory Tool Executor ──────────────────────────
+
+interface ToolCallResult {
+  tool_call_id: string;
+  role: 'tool';
+  content: string;
+}
+
+async function executeMemoryTool(toolCall: LLMToolCall, projectId?: string): Promise<ToolCallResult> {
+  const { name, arguments: argsStr } = toolCall.function;
+  let args: Record<string, unknown> = {};
+  try { args = JSON.parse(argsStr); } catch { /* use empty args */ }
+
+  const content = await executeMemoryToolByName(name, args, projectId);
+  return { tool_call_id: toolCall.id, role: 'tool', content };
+}
+
+export async function executeMemoryToolByName(
+  name: string,
+  args: Record<string, unknown>,
+  projectId?: string,
+): Promise<string> {
+  try {
+    switch (name) {
+      case 'q_memory_store': {
+        const content = String(args.content || '');
+        const type = (args.type as string) || 'user_preference';
+        const importance = Number(args.importance ?? 0.5);
+        const tags = Array.isArray(args.tags) ? args.tags.map(String) : [];
+        const detail: Record<string, unknown> = { source: 'q_chat_tool', importance };
+        if (projectId) detail.projectId = projectId;
+
+        const mapping: Record<string, string> = {
+          user_preference: 'user_action',
+          project_info: 'system_event',
+          fix_strategy: 'autofix_attempt',
+          quality_issue: 'deviation_found',
+          style_insight: 'user_action',
+          workflow_learning: 'system_event',
+        };
+        const episodicType = (mapping[type] || 'user_action') as import('./q-memory.js').EpisodicType;
+
+        const entry = qMemory.episodicAdd(episodicType, content, detail, tags, []);
+        return `✅ 已存储记忆 [${entry.id.slice(0, 8)}]: "${content}" (重要性: ${importance})`;
+      }
+
+      case 'q_memory_recall': {
+        const query = String(args.query || '');
+        const limit = Math.min(Number(args.limit ?? 5), 10);
+        const results = qMemory.recall(query, projectId ? { projectId } : {});
+        const top = results.slice(0, limit);
+        if (!top.length) return `未找到与"${query}"相关的记忆。`;
+        return top.map((r, i) =>
+          `[${i + 1}] [${r.layer}] ${typeof r.entry === 'object' && 'content' in r.entry ? r.entry.content : String(r.entry)} (相关度: ${r.score.toFixed(2)})`,
+        ).join('\n');
+      }
+
+      case 'q_memory_update': {
+        const searchContent = String(args.content || '');
+        const newContent = String(args.new_content || args.content || '');
+        const importance = Number(args.importance ?? -1);
+
+        // Search for matching episodic entry
+        const results = qMemory.recall(searchContent, projectId ? { projectId } : {});
+        const episodicResults = results.filter(r => r.layer === 'episodic');
+
+        if (!episodicResults.length) {
+          // No match found — store as new instead
+          const entry = qMemory.episodicAdd('user_action', newContent,
+            { source: 'q_chat_tool_update', projectId }, [], []);
+          return `⚠️ 未找到匹配的记忆，已作为新记忆存储 [${entry.id.slice(0, 8)}]: "${newContent}"`;
+        }
+
+        // Found match — add new version with higher confidence
+        const best = episodicResults[0].entry as import('./q-memory.js').QEpisodicEntry;
+        const entry = qMemory.episodicAdd('user_action', newContent,
+          { source: 'q_chat_tool_update', replacedId: best.id, projectId },
+          importance > 0 ? ['updated', `importance_${importance}`] : ['updated'],
+          [best.id],
+        );
+        return `✅ 已更新记忆: "${newContent}" (替换旧版本 [${best.id.slice(0, 8)}])`;
+      }
+
+      case 'q_memory_forget': {
+        const searchContent = String(args.content || '');
+        const results = qMemory.recall(searchContent, projectId ? { projectId } : {});
+        const episodicResults = results.filter(r => r.layer === 'episodic');
+
+        if (!episodicResults.length) {
+          return `未找到与"${searchContent}"匹配的记忆，无需删除。`;
+        }
+
+        // Delete matched entries
+        let deleted = 0;
+        for (const r of episodicResults.slice(0, 3)) {
+          const entry = r.entry as import('./q-memory.js').QEpisodicEntry;
+          try {
+            qMemory.forget(entry.id);
+            deleted++;
+          } catch { /* skip if can't delete */ }
+        }
+        return `✅ 已删除 ${deleted} 条匹配"${searchContent}"的记忆。`;
+      }
+
+      case 'q_memory_summarize': {
+        const topic = String(args.topic || '最近的对话');
+        const results = qMemory.recall(topic, projectId ? { projectId } : {});
+        const top = results.slice(0, 10);
+
+        if (!top.length) return `没有与"${topic}"相关的记忆需要总结。`;
+
+        const summary = top.map((r, i) => {
+          const content = typeof r.entry === 'object' && 'content' in r.entry
+            ? r.entry.content : String(r.entry);
+          return `${i + 1}. ${content}`;
+        }).join('\n');
+
+        return `## 记忆总结：「${topic}」\n\n${summary}\n\n（共 ${results.length} 条相关记忆，此处展示前 ${top.length} 条）`;
+      }
+
+      case 'q_memory_filter': {
+        const criterion = String(args.criterion || '');
+        const results = qMemory.recall('', projectId ? { projectId } : {});
+        const all = results.slice(0, 20);
+
+        const relevant: string[] = [];
+        const irrelevant: string[] = [];
+
+        for (const r of all) {
+          const content = typeof r.entry === 'object' && 'content' in r.entry
+            ? (r.entry as any).content || '' : String(r.entry);
+          const tags = typeof r.entry === 'object' && 'tags' in r.entry
+            ? (r.entry as any).tags?.join(' ') || '' : '';
+
+          const haystack = (content + ' ' + tags).toLowerCase();
+          if (haystack.includes(criterion.toLowerCase())) {
+            relevant.push(`✅ ${content}`);
+          } else if (content.length > 10) {
+            irrelevant.push(`🔇 ${content}`);
+          }
+        }
+
+        return `## 记忆过滤：「${criterion}」\n\n### 相关 (${relevant.length} 条)\n${relevant.join('\n') || '(无)'}\n\n### 不相关 (${irrelevant.length} 条)\n${irrelevant.join('\n') || '(无)'}`;
+      }
+
+      default:
+        return `未知工具: ${name}`;
+    }
+  } catch (err: any) {
+    return `工具执行失败: ${String(err).slice(0, 200)}`;
+  }
 }
 
 const Q_SYSTEM_PROMPT = `你是小Q，DireX AI 内容制作管线的认知助手。你的身份是一个漂浮在画布上的玻璃球精灵。
@@ -405,6 +713,22 @@ const Q_SYSTEM_PROMPT = `你是小Q，DireX AI 内容制作管线的认知助手
 - 提供创作建议和下一步行动
 - 5维风格决策（时代/地域/功能/情绪/身份 → 70/20/10 混搭法则）
 - 记忆用户偏好和修复经验
+- **主动管理记忆**：你可以调用记忆工具来存储、检索、更新、总结和过滤信息
+
+## 记忆工具使用原则 + 行为范例
+
+你有 6 个记忆工具。以下是从高质量对话中提取的标准行为模式，**请严格参照执行**：
+
+- 模式1「新项目/新信息」: 先 recall 再 store。用户带来新项目时先查有无相关记忆，确认没有后才 store 关键信息（角色、场景、风格偏好，importance 0.8-0.9）。
+- 模式2「修正偏好」: recall + update（不是重新 store!）。用户改变设定时先 recall 找旧记忆，用 update 替换，然后告诉用户变更了什么vs保留了什么。
+- 模式3「纠正错误」: recall → 基于事实纠正。用户说错了（"女主角是卖包子的吧？"、"故事在成都对吧？"），不要附和，先查记忆再用事实纠正。
+- 模式4「执行任务」: 先 recall 所有相关记忆 → 再综合回答。用户要求设计/分析时，必须先全面 recall，基于记忆中的信息给出方案，引用记忆中的每个关键点。
+- 模式5「确认状态」: recall → 展示最新版本。用户怕记混时查记忆展示当前最新状态，标注哪些已更新、哪些保持不变，不要凭感觉回答。
+- 模式6「清理过时」: forget + store 新。旧设定完全作废时先 forget 旧记忆再 store 新的，然后确认旧已删除+新已存储。
+
+辅助工具: q_memory_summarize 用于对话超过5轮时整理要点；q_memory_filter 用于用户消息混杂无关内容时分离相关与噪音。
+
+关键禁忌: 闲聊/问候/帮助询问不碰工具；不要未 recall 就直接 store；不要重复 store 相同信息；修正偏好用 update 不是 store 新+留旧的。
 
 ## 回答原则
 - 用中文回复，简洁友好，像朋友聊天
@@ -439,6 +763,7 @@ export async function chat(
 ): Promise<ChatResponse> {
   const intent = detectIntent(message);
   let projectSummary: ReturnType<typeof getProjectSummary> | undefined;
+  let memoriesRecalled = 0;
 
   // Get project state if projectId provided
   if (context.projectId) {
@@ -469,65 +794,156 @@ export async function chat(
   // ── Read canvas state (real-time, covers all content) ──
   const canvas = getCanvasSummary();
 
-  // ── Try LLM-powered response ──
-  if (LLM_CHAT) {
-    try {
-      // Inject style knowledge base for style/regenerate intents
-      const styleIntent = intent === 'style' || intent === 'regenerate_section';
-      const systemPrompt = styleIntent
-        ? Q_SYSTEM_PROMPT + `\n\n## 风格知识库（当用户询问服装/穿搭/风格时参考，给出具体品牌/面料/廓形/配色建议）\n\n${FASHION_STYLE_DB}\n\n${FASHION_COORDINATION_DB}`
-        : Q_SYSTEM_PROMPT;
-      let userPrompt = `用户说：「${message}」`;
-      if (projectSummary) {
-        const p = projectSummary;
-        userPrompt += `\n\n当前项目：「${p.project.name}」
+  // ── Build user prompt context ──
+  const buildUserPrompt = () => {
+    let userPrompt = `用户说：「${message}」`;
+    if (projectSummary) {
+      const p = projectSummary;
+      userPrompt += `\n\n当前项目：「${p.project.name}」
 进度：${p.project.progress.shotsGenerated}/${p.project.progress.totalShots} 镜头（${p.completionRate}%）
 开放偏差：${p.openDeviations.total}（${p.openDeviations.violations} 严重）
 Q记忆条目：${p.memory.episodic.total} 个`;
-      }
-      if (canvas) {
-        userPrompt += `\n\n${formatCanvasContext(canvas)}`;
-      }
-
-      if (context.recentMessages && context.recentMessages.length > 0) {
-        userPrompt += '\n\n最近对话：\n' + context.recentMessages
-          .slice(-6)
-          .map(m => `[${m.role}]: ${m.text}`)
-          .join('\n');
-      }
-
-      const llmReply = await LLM_CHAT(systemPrompt, userPrompt);
-      if (llmReply) {
-        // Parse action marker from LLM response
-        let replyText = llmReply;
-        let action: ChatAction | undefined;
-        const actionMatch = replyText.match(/<!--ACTION:\s*(\{[\s\S]*?\})\s*-->/);
-        if (actionMatch) {
-          try {
-            action = JSON.parse(actionMatch[1]) as ChatAction;
-            replyText = replyText.replace(/<!--ACTION:\s*\{[\s\S]*?\}\s*-->/, '').trim();
-          } catch { /* parse failure → no action */ }
-        }
-
-        return {
-          reply: replyText,
-          suggestions: generateFollowUps(intent, projectSummary),
-          action,
-          context: {
-            projectId: context.projectId,
-            memoriesRecalled: 0,
-            projectSummary,
-            usedLLM: true,
-          },
-        };
-      }
-    } catch {
-      // LLM failed — fall through to rule-based
     }
+    if (canvas) {
+      userPrompt += `\n\n${formatCanvasContext(canvas)}`;
+    }
+    if (context.recentMessages && context.recentMessages.length > 0) {
+      userPrompt += '\n\n最近对话：\n' + context.recentMessages
+        .slice(-6)
+        .map(m => `[${m.role}]: ${m.text}`)
+        .join('\n');
+    }
+    return userPrompt;
+  };
+
+  // ── Style knowledge base injection ──
+  const styleIntent = intent === 'style' || intent === 'regenerate_section';
+  const systemPrompt = styleIntent
+    ? Q_SYSTEM_PROMPT + `\n\n## 风格知识库（当用户询问服装/穿搭/风格时参考，给出具体品牌/面料/廓形/配色建议）\n\n${FASHION_STYLE_DB}\n\n${FASHION_COORDINATION_DB}`
+    : Q_SYSTEM_PROMPT;
+
+  // ── Fast path: simple intents use basic LLM_CHAT without tools ──
+  const fastIntents: ChatIntent[] = ['greeting', 'help'];
+  if (fastIntents.includes(intent) || !LLM_CHAT_TOOLS) {
+    if (LLM_CHAT) {
+      try {
+        const llmReply = await LLM_CHAT(systemPrompt, buildUserPrompt());
+        if (llmReply) {
+          const { replyText, action } = parseActionMarker(llmReply);
+          return {
+            reply: replyText,
+            suggestions: generateFollowUps(intent, projectSummary),
+            action,
+            context: { projectId: context.projectId, memoriesRecalled, projectSummary, usedLLM: true },
+          };
+        }
+      } catch { /* fall through */ }
+    }
+    return ruleBasedReply(intent, message, projectSummary, canvas);
+  }
+
+  // ── Tool-calling path: use LLM_CHAT_TOOLS with memory tools ──
+  try {
+    const messages: LLMMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: buildUserPrompt() },
+    ];
+
+    let llmResponse = await LLM_CHAT_TOOLS(messages, MEMORY_TOOLS, 800);
+    if (!llmResponse) {
+      // Fall back to basic LLM_CHAT
+      if (LLM_CHAT) {
+        const fallback = await LLM_CHAT(systemPrompt, buildUserPrompt());
+        if (fallback) {
+          const { replyText, action } = parseActionMarker(fallback);
+          return {
+            reply: replyText,
+            suggestions: generateFollowUps(intent, projectSummary),
+            action,
+            context: { projectId: context.projectId, memoriesRecalled, projectSummary, usedLLM: true },
+          };
+        }
+      }
+      return ruleBasedReply(intent, message, projectSummary, canvas);
+    }
+
+    // ── Tool-call loop (max 3 rounds) ──
+    let toolLoop = 0;
+    const MAX_TOOL_ROUNDS = 3;
+
+    while (llmResponse.toolCalls && llmResponse.toolCalls.length > 0 && toolLoop < MAX_TOOL_ROUNDS) {
+      toolLoop++;
+      console.log('[q-chat] Tool calls round ' + toolLoop + ': ' + llmResponse.toolCalls.map(t => t.function.name).join(', '));
+
+      // Add assistant message with tool_calls (DeepSeek OpenAI-compatible format)
+      messages.push({
+        role: 'assistant',
+        content: llmResponse.content || null,
+        tool_calls: llmResponse.toolCalls || undefined,
+      } as any);
+
+      // Execute each tool call
+      const toolResults: ToolCallResult[] = [];
+      for (const tc of llmResponse.toolCalls) {
+        const result = await executeMemoryTool(tc, context.projectId);
+        toolResults.push(result);
+      }
+
+      // Add tool results to messages
+      for (const tr of toolResults) {
+        messages.push(tr as any);
+      }
+
+      // Count memory operations
+      const memOps = llmResponse.toolCalls.filter(t =>
+        ['q_memory_recall', 'q_memory_store', 'q_memory_update', 'q_memory_summarize'].includes(t.function.name),
+      );
+      memoriesRecalled += memOps.length;
+
+      // Continue conversation
+      llmResponse = await LLM_CHAT_TOOLS(messages, MEMORY_TOOLS, 800);
+      if (!llmResponse) break;
+    }
+
+    // ── Final reply ──
+    const finalContent = llmResponse?.content;
+    if (finalContent) {
+      const { replyText, action } = parseActionMarker(finalContent);
+      return {
+        reply: replyText,
+        suggestions: generateFollowUps(intent, projectSummary),
+        action,
+        context: {
+          projectId: context.projectId,
+          memoriesRecalled,
+          projectSummary,
+          usedLLM: true,
+        },
+      };
+    }
+
+    // No content in final response — fall through
+  } catch (err: any) {
+    console.log('[q-chat] Tool-calling path failed:', String(err).slice(0, 100));
   }
 
   // ── Rule-based fallback ──
   return ruleBasedReply(intent, message, projectSummary, canvas);
+}
+
+// ── Action marker parser (shared) ──
+
+function parseActionMarker(text: string): { replyText: string; action?: ChatAction } {
+  let replyText = text;
+  let action: ChatAction | undefined;
+  const actionMatch = replyText.match(/<!--ACTION:\s*(\{[\s\S]*?\})\s*-->/);
+  if (actionMatch) {
+    try {
+      action = JSON.parse(actionMatch[1]) as ChatAction;
+      replyText = replyText.replace(/<!--ACTION:\s*\{[\s\S]*?\}\s*-->/, '').trim();
+    } catch { /* parse failure → no action */ }
+  }
+  return { replyText, action };
 }
 
 function generateFollowUps(intent: ChatIntent, projectSummary?: ReturnType<typeof getProjectSummary>): string[] {

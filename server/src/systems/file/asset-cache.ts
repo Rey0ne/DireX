@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const OUTPUT_DIR = path.join(process.cwd(), 'data', 'output');
+const OUTPUT_DIR = path.join(process.cwd(), 'server', 'data', 'output');
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // ── Helpers ──────────────────────────────────────
@@ -52,46 +52,57 @@ function randomId(len: number): string {
 
 // ── Public API ───────────────────────────────────
 
-/** Download a single external URL to local disk. Returns local /api/output/ path or null on failure. */
-export async function downloadAsset(url: string): Promise<string | null> {
+/** Download a single external URL to local disk. Returns local /api/output/ path or null on failure.
+ *  Retries up to 3 times with exponential backoff — these are paid results, data must land on disk. */
+export async function downloadAsset(url: string, retries = 3): Promise<string | null> {
   // Skip if already a local path
   if (url.startsWith('/api/')) return url;
 
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'DireX/1.0 (asset-cache)' },
-      signal: AbortSignal.timeout(60_000), // 60s timeout
-    });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'DireX/1.0 (asset-cache)' },
+        signal: AbortSignal.timeout(120_000), // 2 min timeout for large 2K/4K images
+      });
 
-    if (!response.ok) {
-      console.warn(`[asset-cache] Download failed: HTTP ${response.status} for ${url.slice(0, 80)}`);
-      return null;
-    }
+      if (!response.ok) {
+        console.warn(`[asset-cache] Download failed (attempt ${attempt + 1}/${retries + 1}): HTTP ${response.status} for ${url.slice(0, 80)}`);
+        if (attempt < retries) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue; }
+        return null;
+      }
 
-    const contentType = response.headers.get('content-type');
-    let ext = extFromUrl(url) || contentTypeToExt(contentType);
+      const contentType = response.headers.get('content-type');
+      let ext = extFromUrl(url) || contentTypeToExt(contentType);
 
-    // Fallback: try to sniff from buffer
-    if (!ext) {
+      // Fallback: try to sniff from buffer
+      if (!ext) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        ext = sniffExt(buffer);
+        const filename = `asset_${Date.now()}_${randomId(8)}${ext}`;
+        const dest = path.join(OUTPUT_DIR, filename);
+        fs.writeFileSync(dest, buffer);
+        console.log(`[asset-cache] Cached ${(buffer.length / 1024).toFixed(0)}KB → ${filename}${attempt > 0 ? ' (retry ' + attempt + ')' : ''}`);
+        return `/api/output/${filename}`;
+      }
+
       const buffer = Buffer.from(await response.arrayBuffer());
-      ext = sniffExt(buffer);
       const filename = `asset_${Date.now()}_${randomId(8)}${ext}`;
       const dest = path.join(OUTPUT_DIR, filename);
       fs.writeFileSync(dest, buffer);
-      console.log(`[asset-cache] Cached ${(buffer.length / 1024).toFixed(0)}KB → ${filename}`);
+      console.log(`[asset-cache] Cached ${(buffer.length / 1024).toFixed(0)}KB → ${filename}${attempt > 0 ? ' (retry ' + attempt + ')' : ''}`);
       return `/api/output/${filename}`;
+    } catch (err: any) {
+      const msg = err.message?.slice(0, 80) || String(err).slice(0, 80);
+      if (attempt < retries) {
+        console.warn(`[asset-cache] Retry ${attempt + 1}/${retries}: ${url.slice(0, 60)} — ${msg}`);
+        await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+      } else {
+        console.warn(`[asset-cache] FAILED after ${retries + 1} attempts: ${url.slice(0, 80)} — ${msg}`);
+        return null;
+      }
     }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const filename = `asset_${Date.now()}_${randomId(8)}${ext}`;
-    const dest = path.join(OUTPUT_DIR, filename);
-    fs.writeFileSync(dest, buffer);
-    console.log(`[asset-cache] Cached ${(buffer.length / 1024).toFixed(0)}KB → ${filename}`);
-    return `/api/output/${filename}`;
-  } catch (err: any) {
-    console.warn(`[asset-cache] Failed to download ${url.slice(0, 80)}: ${err.message?.slice(0, 80) || err}`);
-    return null;
   }
+  return null;
 }
 
 /** Download all asset URLs from a generation result, returning local paths. */

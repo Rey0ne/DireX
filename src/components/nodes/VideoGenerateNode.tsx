@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
+import { useCanvasStore } from '../../store/useCanvasStore';
 
 interface VideoGenMeta {
   prompt: string; model: string; duration: string; resolution: string;
@@ -89,8 +90,10 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   const [fullRefs, _setFullRefs] = useState<Record<string, string | null>>(gen.fullRefs || {
     'image-style': null, 'video-motion': null, 'audio-rhythm': null,
   });
-  // UI
+  // UI — use store status for async polling (video stays 'running' until poll completes)
+  const storeStatus = useCanvasStore(s => s.nodes.get(id)?.status);
   const [genRunning, setGenRunning] = useState(false);
+  const isBusy = genRunning || storeStatus === 'running';
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -216,8 +219,9 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
           </div>
 
           {/* ── Prompt textarea ── */}
-          <textarea value={prompt} onChange={e => { const v = e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart || 0); }}
+          <textarea className="no-wheel" value={prompt} onChange={e => { const v = e.target.value; setPrompt(v); detectMention(v, e.target.selectionStart || 0); }}
             onPointerDownCapture={e => e.stopPropagation()} onMouseDownCapture={e => e.stopPropagation()}
+            onWheel={e => e.stopPropagation()}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
             placeholder="" maxLength={2500} rows={expanded ? 12 : 3}
             style={{ width: '100%', background: '#fff', border: 'none', padding: expanded ? '16px 20px' : '10px 14px', fontSize: '8px', color: '#333', resize: 'none', outline: 'none', lineHeight: 1.5 }} />
@@ -317,11 +321,11 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Send */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '55px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingRight: '2px' }}>
-              <button onClick={handleGenerate} disabled={genRunning}
-                style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#FFF65D', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '9px', cursor: genRunning ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', opacity: genRunning ? 0.7 : 1, transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s' }}
-                onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
+              <button onClick={handleGenerate} disabled={isBusy}
+                style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#FFF65D', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '9px', cursor: isBusy ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', opacity: isBusy ? 0.7 : 1, transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s' }}
+                onMouseEnter={e => { if (!isBusy) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
-              >{genRunning ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#333" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}</button>
+              >{isBusy ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#333" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}</button>
             </div>
           </div>
 

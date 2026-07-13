@@ -477,6 +477,62 @@ export async function clearAllData():Promise<void>{
 }
 if(typeof window!=='undefined'){(window as any).__direxStorage={getUsage:getStorageUsage,clearAll:clearAllData};}
 
+// ── Server gen-data merge: pull richer meta.gen from server after IndexedDB load ──
+// Backend may have directly written analysis results to canvas-state.json while the
+// frontend was closed. This merges any server-only gen data into the local store.
+const GEN_FIELDS = ['scriptOverview', 'scriptScenes', 'scriptSceneArchitecture', 'scriptSunoPrompts', 'scriptSoundScenes', 'scriptCharacters'];
+function isEmpty(v: unknown): boolean {
+  if (v === undefined || v === null) return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === 'object') return Object.keys(v as object).length === 0;
+  return !v;
+}
+export async function mergeServerGenData(): Promise<number> {
+  try {
+    const resp = await fetch('/api/canvas/state', {
+      headers: { Authorization: 'Bearer tapnow-dev-key' },
+    });
+    if (!resp.ok) return 0;
+    const json = await resp.json();
+    if (!json.nodes?.length) return 0;
+
+    const store = useCanvasStore.getState();
+    let merged = 0;
+
+    for (const sn of json.nodes) {
+      const localNode = store.nodes.get(sn.id);
+      if (!localNode) continue;
+      const sGen: Record<string, unknown> | undefined = sn.meta?.gen;
+      if (!sGen) continue;
+      const lGen: Record<string, unknown> = (localNode.meta?.gen || {}) as Record<string, unknown>;
+
+      let hasNew = false;
+      const newGen: Record<string, unknown> = { ...lGen };
+      for (const field of GEN_FIELDS) {
+        const sv = sGen[field];
+        const lv = lGen[field];
+        if (sv === undefined || sv === null) continue;
+        if (!isEmpty(sv) && isEmpty(lv)) {
+          newGen[field] = sv;
+          hasNew = true;
+        }
+      }
+
+      if (hasNew) {
+        store.updateNode(sn.id, { meta: { ...localNode.meta, gen: newGen } });
+        merged++;
+        const ov = newGen.scriptOverview as Record<string, any> | undefined;
+        console.log(`[persist] Merged server gen → ${sn.id.slice(0, 12)}: ${ov?.shots?.length || 0} shots, ${ov?.characterProfiles ? Object.keys(ov.characterProfiles as object).length : 0} chars`);
+      }
+    }
+    if (merged > 0) console.log(`[persist] Server gen merged for ${merged} node(s)`);
+    return merged;
+  } catch (err) {
+    console.warn('[persist] Server gen merge failed:', err);
+    return 0;
+  }
+}
+
 // ─── Auto-save subscriber ────────────────────────
 export function startAutoSave() {
   // ── Crash heartbeat ──

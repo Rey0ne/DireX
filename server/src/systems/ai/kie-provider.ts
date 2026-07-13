@@ -7,6 +7,7 @@ import { execSync } from 'child_process';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { readJSON, writeJSON } from '../db/store.js';
 
 const BASE_URL = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
 
@@ -250,7 +251,6 @@ const TASK_STORE_FILE = 'data/task-store.json';
 
 function loadTaskStore(): void {
   try {
-    const { readJSON } = require('../db/store.js');
     const data = readJSON(TASK_STORE_FILE);
     if (data && data.tasks && Array.isArray(data.tasks)) {
       for (const t of data.tasks) {
@@ -265,7 +265,6 @@ function loadTaskStore(): void {
 
 function saveTaskStore(): void {
   try {
-    const { writeJSON } = require('../db/store.js');
     const tasks = Array.from(taskStore.values());
     writeJSON(TASK_STORE_FILE, { tasks, updatedAt: new Date().toISOString() });
   } catch (err: any) {
@@ -476,7 +475,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
   if (isVideo) {
     // Video models: Kling/Seedance natively analyze refs — pass directly
     inputParams.aspect_ratio = req.aspect || '16:9';
-    inputParams.resolution = resolution;
+    inputParams.resolution = resolution.toLowerCase(); // kie.ai expects lowercase: 1080p not 1080P
     if (req.referenceUrls?.length) {
       inputParams.reference_image_urls = req.referenceUrls;
     }
@@ -509,10 +508,14 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     }
   }
 
-  // ── Seedance-specific params ──
+  // ── Seedance-specific params (per official spec) ──
   if (isSeedance) {
-    if (req.duration) {
-      inputParams.duration = req.duration === 'auto' ? '-1' : String(req.duration).replace('s', '');
+    // duration: integer 4-15, default 5. 'auto' or invalid → omit (use default)
+    if (req.duration && req.duration !== 'auto') {
+      const dur = parseInt(String(req.duration).replace('s', ''), 10);
+      if (!isNaN(dur) && dur >= 4 && dur <= 15) {
+        inputParams.duration = dur;
+      }
     }
     if (req.firstFrameUrl) {
       inputParams.first_frame_url = req.firstFrameUrl;
@@ -520,9 +523,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     if (req.lastFrameUrl) {
       inputParams.last_frame_url = req.lastFrameUrl;
     }
-    if (req.fixedCamera !== undefined) {
-      inputParams.fixed_camera = req.fixedCamera;
-    }
+    // fixed_camera — removed: not in official Seedance-2 spec
     if (req.generateAudio !== undefined) {
       inputParams.generate_audio = req.generateAudio;
     }
@@ -628,6 +629,14 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     console.log('[kie] HTTP', response.status, 'Body:', JSON.stringify(data).slice(0, 500));
     (globalThis as any).__lastKieResp = { status: response.status, body: data, model: body.model };
 
+    // Kie.ai always returns HTTP 200 — errors are in data.code
+    if (data.code !== 200) {
+      const errMsg = data.msg || data.message || `code=${data.code}`;
+      console.error('[kie] API error:', errMsg, '| Full:', JSON.stringify(data).slice(0, 500));
+      if (req.clientTaskId) markTaskFailed(req.clientTaskId, `Kie.ai: ${errMsg}`);
+      return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Kie.ai: ${errMsg}` };
+    }
+
     // Kie.ai createTask returns: { code: 200, data: { taskId, recordId } }
     // Or: { taskId, recordId } directly, or { id } etc.
     const taskId = data.data?.taskId || data.data?.task_id || data.data?.id
@@ -636,9 +645,10 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       || (typeof data.data === 'string' ? data.data : '')
       || '';
     if (!taskId) {
+      const respDump = JSON.stringify(data).slice(0, 500);
       console.error('[kie] No taskId. Full response:', JSON.stringify(data).slice(0, 2000));
-      if (req.clientTaskId) markTaskFailed(req.clientTaskId, 'Kie.ai: No taskId');
-      return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: 'Kie.ai: No taskId' };
+      if (req.clientTaskId) markTaskFailed(req.clientTaskId, 'Kie.ai: No taskId — ' + respDump);
+      return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: 'Kie.ai: No taskId — resp: ' + respDump };
     }
 
     // ── Async video tasks: store mapping, return immediately, client polls /api/task/:id/poll ──
@@ -815,6 +825,13 @@ export async function kieSunoGenerate(req: GenerateRequest): Promise<GenerateRes
     const data = await response.json();
     console.log('[kie-suno] HTTP', response.status, 'Body:', JSON.stringify(data).slice(0, 500));
 
+    // Kie.ai always returns HTTP 200 — errors are in data.code
+    if (data.code !== 200) {
+      const errMsg = data.msg || data.message || `code=${data.code}`;
+      console.error('[kie-suno] API error:', errMsg, '| Full:', JSON.stringify(data).slice(0, 500));
+      return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Kie.ai Suno: ${errMsg}` };
+    }
+
     // Extract taskId from response
     const taskId = data?.data?.taskId
       || data?.data?.task_id
@@ -908,6 +925,13 @@ export async function kieElevenLabsGenerate(req: GenerateRequest): Promise<Gener
 
     const data = await response.json();
     console.log('[kie-elevenlabs] HTTP', response.status, 'Body:', JSON.stringify(data).slice(0, 500));
+
+    // Kie.ai always returns HTTP 200 — errors are in data.code
+    if (data.code !== 200) {
+      const errMsg = data.msg || data.message || `code=${data.code}`;
+      console.error('[kie-elevenlabs] API error:', errMsg, '| Full:', JSON.stringify(data).slice(0, 500));
+      return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Kie.ai ElevenLabs: ${errMsg}` };
+    }
 
     const taskId = data?.data?.taskId
       || data?.data?.task_id

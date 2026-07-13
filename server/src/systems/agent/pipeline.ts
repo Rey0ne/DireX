@@ -10,7 +10,8 @@ import {
 import { FASHION_STYLE_DB, INTERIOR_STYLE_DB, STYLE_DECISION_RULES, FASHION_COORDINATION_DB, decideStyle, type DimensionInput, type StyleDecision } from './style-db.js';
 import { planMusic, formatMusicPlanForPrompt } from './music-planner.js';
 import { searchWritersKB, WRITERS_KB_CATALOG, KB_RETRIEVAL_PROMPT_SCRIPT } from './writers-kb.js';
-import { searchVisualKB, VISUAL_KB_CATALOG, KB_RETRIEVAL_PROMPT_STORYBOARD } from './cinematography-kb.js';
+import { VISUAL_KB_CATALOG } from './cinematography-kb.js';
+import { INTERIOR_DESIGNERS_DB } from './spatial-kb.js';
 
 const MAX_PREV_OUTPUT_CHARS = 600; // tight summary of each previous agent output
 
@@ -27,7 +28,7 @@ const NEGATIVE_CLOTHING = `## ⚠️ 角色服装品质红线（必须在输出�
 - 过时老气：中年商务西装套装（银行/保险/房产中介式）、厚底松糕鞋、廉价运动鞋、过于保守的及膝A字裙配肉色丝袜
 
 ✅ 替换原则（必须执行）：
-涤纶→醋酸/铜氨丝/三醋酸 | 普通棉→丝光棉/长绒棉/有机棉/皮马棉 | 工装→机能剪裁/结构主义外套/工装风时装化处理 | 牛仔裤→垂感西裤/阔腿羊毛裤/修身皮裤/时装牛仔 | T恤→真丝衬衫/羊绒打底/雕塑感上衣/机能内搭 | 卫衣→精纺羊毛针织衫/开司米圆领衫 | PU革→植鞣革/小羊皮/麂皮 | 塑料纽扣→贝母扣/牛角扣/金属暗扣 | 运动鞋→德训鞋/切尔西靴/乐福鞋/厚底德比鞋
+涤纶→醋酸/铜氨丝/三醋酸 | 普通棉→丝光棉/长绒棉/有机棉/皮马棉 | 工装→机能剪裁/结构主义外套/工装风时装化处理 | 牛仔裤→垂感西裤/阔腿羊毛裤/修身皮裤/时装牛仔 | T恤→真丝衬衫/羊绒打底/雕塑感上衣/机能内搭 | 卫衣→精纺羊毛针织衫/开司米圆领衫 | PU革→植鞣革/小羊皮/麂皮 | 塑料纽扣→贝母扣/牛角扣/金属暗扣 | 廉价运动鞋/普通跑鞋/普通球鞋→老爹鞋/厚底运动鞋/复古跑鞋/时装球鞋/德训鞋/切尔西靴/乐福鞋/厚底德比鞋（优先选符合角色风格的鞋款，街头/潮流角色选老爹鞋或厚底运动鞋，精致/正式角色选皮鞋或靴类）
 
 当代都市剧角色默认 = 独立设计师品牌 / 轻奢级别审美。非都市剧按时代和世界观匹配对应级别的最优面料与工艺。`;
 
@@ -45,7 +46,7 @@ const NEGATIVE_INTERIOR = `## ⚠️ 场景空间品质红线
 ## ☀️ 光线参考 — 阿尔瓦·阿尔托工作室 (Alvar Aalto Studio)
 所有场景的光线处理必须参考阿尔瓦·阿尔托工作室的视觉特征：天窗+高侧窗引入间接自然光，白色墙面和浅木材质将光线漫反射至整个空间，通透明亮、温润均匀、无暗角。光不是"打"进来的，是"浸泡"在空间里的。
 
-✅ 替换：混凝土→微水泥/艺术涂料/天然石材 | 大白墙→白色漫反射面 | 深色材质→浅木/浅灰保持光线反弹 | 昏暗场景→阿尔托式通透明亮浸泡光`;
+✅ 替换：混凝土→微水泥/艺术涂料/天然石材 | 大白墙→白色漫反射面 | 深色材质→浅木/浅灰保持光线反弹 | 昏暗场景→阿尔托式通透明亮浸泡光
 
 【分时段】
 - 清晨/上午：天光从高窗涌入，白色墙面漫反射让室内明亮均匀，可见所有细节
@@ -110,6 +111,23 @@ function searchInteriorKB(query: string): string {
   return scored.slice(0, 4).map(s => s.text).join('\n\n---\n\n');
 }
 
+function searchSpatialKB(query: string): string {
+  const kws = query.toLowerCase().split(/[\s,，、]+/).filter(k => k.length > 1);
+  if (!kws.length) return '';
+
+  const scored: { text: string; score: number }[] = [];
+  // Split by table rows (## headings or | table rows)
+  const sections = INTERIOR_DESIGNERS_DB.split(/\n(?=#{2,3}\s|\| )/);
+  for (const sec of sections) {
+    const lower = sec.toLowerCase();
+    let score = 0;
+    for (const kw of kws) if (lower.includes(kw)) score += kw.length;
+    if (score > 0) scored.push({ text: sec.trim().slice(0, 800), score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 4).map(s => s.text).join('\n\n---\n\n');
+}
+
 // ─── KB 目录（给 GPT-5.4 看的"书架标签"）───
 const KB_CATALOG = `## 📚 风格知识库目录（选择你需要检索的内容）
 
@@ -141,8 +159,34 @@ Classic / Minimalist / Streetwear / High Street / Baggy / Wide-Leg / Bohemian / 
 ### 室内/建筑设计风格（38种）
 Traditional / Modern / Mid-Century Modern / Minimalist / Scandinavian / Japandi / Industrial / Bohemian / Farmhouse / Coastal / French Country / Art Deco / Mediterranean / Organic Modern / Neo-Traditional / Warm Post-Minimalism / 新中式 / 日式传统 / 侘寂Wabi-Sabi / 韩式 / Afrohemian / Color Drenching / Bauhaus / Space Age / Brutalism / Gothic / Cyberpunk / Memphis / Streamline Moderne / Googie / 隈研吾(木格柵·粒子化) / 藤本壮介(内外消融·平台叠加) / 石上纯也(极致轻盈·柱林) / 西泽立卫(地形空间·无墙) / 坂茂(纸管建筑·材料诚实) / 西扎(白色混凝土·诗意现代) / 莫内欧(砖的叙事·考古层叠) / Mario Bellini(家具=建筑地形·意大利现代)
 → 每种风格含：空间特征 / 关键材质 / 配色 / 灯光氛围
-→ 建筑光线大师参考：阿尔瓦·阿尔托工作室(天窗+高侧窗间接光/漫反射) / 路易斯·康(光与结构) / 安藤忠雄(极简光影) / 彼得·卒姆托(氛围光) / 北欧现代办公(全落地玻璃+暗藏灯带)
+→ 建筑光线大师参考：阿尔瓦·阿尔托工作室(天窗+高侧窗/漫反射) / SANAA金泽21世纪(极致透明·光溶解边界) / 伦佐·皮亚诺贝耶勒基金会(玻璃天花·百叶光控·天空碎片) / 卡洛·斯卡帕(天窗分级·水光折射·光如细节) / 路易斯·康(光与结构·神圣感) / 安藤忠雄(极简光影·狭缝光) / 彼得·卒姆托(氛围光·感官) / 路易斯·巴拉甘(色彩光线·厚墙深窗) / 大卫·奇普菲尔德(安静匀光·光井柱廊) / 隈研吾(木格柵滤光·粒子化光) / 石上纯也KAIT工房(305根细白钢柱·光穿透) / 妹岛和世劳力士学习中心(起伏地形·光漫游) / 文森特·范·杜伊森(光即建筑材料·玻璃幕墙漫射·温暖本质主义) / 雨果·托罗(暖色多层戏剧光·定制雕塑灯具·电影场景感) / 约里奥·库卡波罗(光改变情绪·模组化照明·功能主义诚实美学) / 北欧现代办公(全落地玻璃+暗藏灯带)
 → 另有：灯光设计速查(三层法则+灯具匹配+2026趋势)、材质速查(木材/石材/金属/织物)、空间配色心理学
+
+### 🏛️ 建筑大师+室内设计师（150+事务所，按国家索引）← NEW
+→ 室内设计师(按国家)：法国(21家) — Christian Liaigre / Jean-Louis Deniot / Gilles & Boissier / RDAI / Hugo Toro / India Mahdavi / Pierre Yovanovitch / Philippe Starck / Mathieu Lehanneur 等
+→ 室内设计师(按国家)：意大利 — Studiopepe / Piero Lissoni
+→ 室内设计师(按国家)：北欧/哥本哈根(8家) — Norm Architects / Space Copenhagen / Oliver Gustav Studio 等
+→ 室内设计师(按国家)：荷兰(7家) — Studio Modijefsky / Piet Hein Eek / Studio Piet Boon 等
+→ 室内设计师(按国家)：比利时 — Vincent Van Duysen / Nicolas Schuybroek
+→ 室内设计师(按国家)：美国(5家) — Kelly Wearstler / Peter Marino / Charles & Ray Eames 等
+→ 室内设计师(按国家)：英国(9家) — Ilse Crawford / Child Studio / Daytrip Studio / John Pawson 等
+→ 室内设计师(按国家)：澳洲 — March Studio
+→ 建筑大师(按国家)：日本(35位，含丹下健三/安藤忠雄/矶崎新/伊东丰雄/妹岛和世/隈研吾/藤本壮介/石上纯也 等) — 代际覆盖20世纪至今，含视觉签名+关键材质+空间特征
+→ 建筑大师(按国家)：法国(7位) — Le Corbusier / Jean Nouvel / Lacaton & Vassal / Renzo Piano 等
+→ 建筑大师(按国家)：瑞士(5位) — Herzog & de Meuron / Peter Zumthor / Valerio Olgiati / Christian Kerez
+→ 建筑大师(按国家)：德国(8位) — Gropius / Mies van der Rohe / Frei Otto / David Chipperfield / GMP 等
+→ 建筑大师(按国家)：英国(8位) — Norman Foster / Richard Rogers / Zaha Hadid / John Pawson / David Adjaye 等
+→ 建筑大师(按国家)：西班牙(5位) — Gaudí / Calatrava / RCR / Frank Gehry / Ricardo Bofill
+→ 建筑大师(按国家)：意大利(5位) — Renzo Piano / Aldo Rossi / Carlo Scarpa / Stefano Boeri / Fuksas
+→ 建筑大师(按国家)：丹麦(5位) — Utzon / Bjarke Ingels(BIG) / Jan Gehl / Olafur Eliasson / Poul Henningsen
+→ 建筑大师(按国家)：荷兰(4位) — Rem Koolhaas(OMA) / MVRDV / Wiel Arets / UNStudio
+→ 建筑大师(按国家)：葡萄牙(2位) — Álvaro Siza / Souto de Moura
+→ 建筑大师(按国家)：芬兰(2位) — Alvar Aalto / Juha Leiviskä
+→ 建筑大师(按国家)：奥地利(4位) — Adolf Loos / Otto Wagner / Coop Himmelb(l)au
+→ 建筑大师(按国家)：爱尔兰 — Grafton Architects(Yvonne Farrell & Shelley McNamara)
+→ 建筑大师(按国家)：比利时(4位) — Victor Horta / Vincent Van Duysen / Axel Vervoordt / Philippe Samyn
+→ 搜索方式：按国家名(日本/法国/北欧/丹麦/意大利...)、设计师名、风格关键词(极简/温暖/粗野/有机/侘寂...)检索
+→ 每个设计师/事务所含：视觉签名 / 核心材质 / 配色倾向 / 空间特征
 
 ### 音乐/配乐知识库
 → 音乐流派(Genre)图谱：Epic Orchestral / Dark Ambient / Synthwave / Lo-Fi / Jazz Noir / Chinese Folk / Nordic Folk / Industrial / Classical / Post-Rock / Hyperpop / Phonk / Amapiano 等200+流派
@@ -183,11 +227,13 @@ const KB_RETRIEVAL_PROMPT_SCENE = `你是一位顶级场景概念设计师和室
 
 你需要重点考虑的维度：
 - 时代背景（古代/近代/当代/未来？）→ 匹配对应时代建筑风格
-- 地域文化（哪个国家/城市？）→ 匹配地域建筑传统
+- 地域文化（哪个国家/城市？）→ 匹配地域建筑传统 → 可直接查该国建筑大师/室内设计师表
 - 场景类型（宫廷/办公/居住/街头/工业/自然？）→ 匹配场景功能风格
-- 角色身份（富人/平民/艺术家/权力者？）→ 空间反映身份
+- 角色身份（富人/平民/艺术家/权力者？）→ 空间反映身份 → 可查对应定位的设计师（如奢侈旗舰→Peter Marino, 极简住宅→John Pawson）
 - 灯光氛围（自然光/烛光/霓虹/荧光？）→ 匹配灯光设计
 - 材质语言（木/石/金属/混凝土/玻璃？）→ 匹配材质速查
+
+⚠️ 强烈建议：如果剧本地域明确（日本/法国/北欧/意大利...），优先查 🏛️ 建筑大师+室内设计师表，按国家检索该国最具代表性的建筑师/设计师——他们的视觉签名+材质+空间特征比抽象风格描述有用得多。
 
 输出格式（每行一个）：
 关键词：简短说明用途
@@ -250,44 +296,6 @@ Epic Orchestral史诗管弦战斗场景
 Chinese Folk民族器乐宫廷仪式
 Hans Zimmer式渐进层叠
 请先给出你对内容类型的判断（1-2句话），然后列出关键词。`;
-
-// ─── KB 检索引导 prompt（分镜视觉方向 — 摄影+导演+画家+摄影+色彩+灯光+构图）───
-const KB_RETRIEVAL_PROMPT_VISUAL_DIRECTION = `你是一位世界级分镜导演和视觉设计师。在分析剧本设计分镜之前，上面有多个知识库：
-- 服装/场景风格知识库 — 角色服装、面料、场景空间、室内设计、灯光设计
-- 编剧/叙事理论库 — 叙事结构、POV策略、语言节奏、对话风格
-- 摄影/视觉风格库 — 摄影师技法、导演视觉体系、画家风格参考、动画导演手法、摄影师构图、色彩理论、灯光设计、构图法则
-
-请先思考这个剧本的视觉基调、灯光风格、色彩方向、镜头语言，然后从所有知识库中选择你需要检索的 10-15 个方向。
-
-你需要重点考虑的维度：
-- 灯光风格（自然主义？表现主义？柔光浪漫？硬光戏剧？Rembrandt式？霓虹黑色？）→ 匹配摄影师技法
-- 色彩方向（低饱和严肃？单色专制？粉彩童话？霓虹科幻？互补冲突？）→ 匹配色彩理论+导演视觉
-- 构图策略（对称？负空间？纪念碑式？三分法？框中框？长镜头跟随？）→ 匹配导演视觉+画家风格
-- 镜头偏好（广角亲密？长焦窥视？标准观察？IMAX大画幅？）→ 匹配焦段叙事
-- 运镜风格（手持纪录片？Steadicam流动？静态上帝视角？缓慢推轨？）→ 匹配运镜语意
-- 绘画参考（Rembrandt明暗法？Vermeer窗光？Hopper都市孤独？Monet光分解？）→ 匹配画家技法
-- 服装方向（什么时代/地域的服装风格？廓形？面料？配色？）→ 匹配服装风格表
-- 场景空间（什么建筑风格？材质语言？灯光氛围？空间特征？）→ 匹配室内/建筑设计风格
-- 叙事结构（三幕？英雄之旅？章回体？复调？）→ 匹配编剧/叙事理论
-
-输出格式（每行一个）：
-关键词：简短说明用途
-
-例如对于一部赛博朋克都市悬疑剧：
-Deakins自然主义单光源+负补光 → 审讯室内戏灯光
-Bradford Young暗部曝光+阴影叙事 → 暗调悬疑氛围
-Blade Runner霓虹色彩污染+混合色温 → 街道夜景色彩
-Villeneuve纪念碑式构图+负空间 → 城市巨物镜头
-Fincher锁定机位+控制狂色调 → 悬疑推进节奏
-Wong Kar-wai步进印片+抽帧拖尾+霓虹调色板 → 情感记忆片段
-Libatique动态手持+俱乐部灯光 → 追逐打斗场景
-Rembrandt/Chiaroscuro戏剧光比+三角光斑 → 人物对峙镜头
-当代都市机能风面料与廓形 → 主角街头服装
-Cyberpunk霓虹都市室内外空间 → 街道/酒吧/地下场景
-石上纯也极致轻盈柱林开放空间 → 上层阶级居住空间
-灯光设计Low-Key硬光审讯感 → 审讯室+地下黑市
-
-请先给出你对剧本视觉基调的简要判断（1-2句话），然后列出你需要检索的关键词。`;
 
 // ─── Global Image Analysis Cache ─────────────────
 // Avoids re-fetching + re-analyzing the same image URL across all pipelines
@@ -404,6 +412,60 @@ export async function analyzeReferenceImages(urls: string[]): Promise<string[]> 
     results.push(result);
   }
   return results;
+}
+
+// ─── Direct GPT-5.6 Image → Prompt Reverse Engineering ───
+// Single GPT-5.6 call: sees image → outputs reconstructed generation prompt.
+// Replaces the old two-step approach (vision analysis → text → agent pipeline).
+// GPT-5.6 Sol multimodal natively supports input_image, so the model
+// directly "sees" the image rather than reading a text description of it.
+
+const REVERSE_PROMPT_SYSTEM = `你是图像提示词反推专家。看到一张 AI 生成图或摄影作品，还原其原始生成提示词。
+
+输出仅包含还原的中文提示词——自然语言画面描述，非关键词堆砌。必须覆盖：
+- 主体外观与姿态（年龄/人种/发型/服装/配饰/表情/动作）
+- 场景与环境细节（地点/时间/天气/氛围物质）
+- 光线与影调（光源方向/色温/软硬/对比度）
+- 色彩基调（主色调/辅助色/饱和度/色彩对比）
+- 构图与视角（景别/角度/焦段/画面层次）
+- 风格与质感（艺术风格/材质感/后期风格）
+
+禁止输出：画质技术词(超高清/8K/4K/HDR/杰作/大师级等)、开场白、解释、英文关键词。
+如果用户提供了额外上下文（如风格方向/角色名），融入上下文。直接输出提示词正文。`;
+
+export async function reversePromptFromImages(
+  imageUrls: string[],
+  userContext?: string,
+): Promise<string | null> {
+  if (!imageUrls || imageUrls.length === 0) return null;
+
+  // Download first image as base64 (GPT-5.6 multimodal needs data URL)
+  const img = await fetchImageAsBase64(imageUrls[0]);
+  if (!img) {
+    console.log('[reverse-prompt] Failed to fetch image: ' + imageUrls[0].slice(0, 60));
+    return null;
+  }
+
+  const dataUrl = `data:${img.mimeType};base64,${img.base64}`;
+  const userMsg = userContext
+    ? '根据这张图片和以下用户上下文，反推其生成提示词：\n' + userContext
+    : '根据这张图片，反推其生成提示词';
+
+  console.log('[reverse-prompt] Calling GPT-5.6 Sol for direct image→prompt...');
+  const result = await gpt5Chat([
+    { role: 'system', content: [{ type: 'input_text', text: REVERSE_PROMPT_SYSTEM }] },
+    { role: 'user', content: [
+      { type: 'input_text', text: userMsg },
+      { type: 'input_image', image_url: dataUrl },
+    ]},
+  ], { effort: 'medium', timeoutMs: 120000, maxOutputTokens: 2000 });
+
+  if (result) {
+    console.log('[reverse-prompt] Result ' + result.length + ' chars: ' + result.slice(0, 120));
+  } else {
+    console.log('[reverse-prompt] No result from GPT-5.6');
+  }
+  return result;
 }
 
 // ─── Character Profile Extraction (I2I) ─────────
@@ -685,18 +747,22 @@ const I2I_GPT5_SYSTEM = `你是 I2I 提示词编译专家。根据参考图的�
 
 参考图有两种类型：
 - 角色参考图(CHARACTER)：锁定人物身份 — 五官、发型、体型、肤色、种族、服装
-- 构图参考图(SCENE/COMPOSITION)：提取镜头角度、景别、姿态、光线、氛围
+- 构图参考图(SCENE/COMPOSITION)：提取场景空间、镜头角度、景别、姿态、光线、氛围
+
+⚠️ 核心原则：参考图是 Source of Truth。用户指令中可能包含文字描述，但文字可能与参考图不一致。当冲突时，以参考图为准。
 
 规则：
 1. 角色五官、发型、体型、肤色、种族 → 100% 从角色参考图提取，不在文本中描述
 2. 服装 → 从角色参考图提取，不在文本中描述
-3. 镜头角度、景别、姿态、构图 → 从构图参考图提取，写入 prompt
-4. 光影、色调、氛围 → 从构图参考图提取，写入 prompt
-5. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充
-6. 用 "Character identity, facial features, hair, body type, skin tone, and clothing — see reference images exactly as shown." 来引用角色
-7. 禁止添加参考图中不存在的道具、武器、配饰、胡须、眼镜
-8. 禁止美化：不要更漂亮、更年轻、更精致
-9. 输出为一段连贯的英文提示词，不要格式标记`;
+3. 场景空间结构、建筑风格、材质 → 从场景参考图提取，不在文本中描述
+4. 镜头角度、景别、姿态、构图 → 从构图参考图提取，写入 prompt
+5. 光影、色调、氛围 → 从构图参考图提取，写入 prompt
+6. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充
+7. 用 "Character identity, facial features, hair, body type, skin tone, and clothing — see reference images exactly as shown." 来引用角色
+8. 用 "Scene layout, architecture, materials, and props — see reference images exactly as shown." 来引用场景
+9. 禁止添加参考图中不存在的道具、武器、配饰、胡须、眼镜
+10. 禁止美化：不要更漂亮、更年轻、更精致
+11. 输出为一段连贯的英文提示词，不要格式标记`;
 
 // GPT-5.4 I2I prompt compiler — sends reference images DIRECTLY to GPT-5.4 for vision analysis + prompt compilation.
 // No separate Gemini Vision step needed; GPT-5.4 sees the actual images.
@@ -739,18 +805,24 @@ export async function compileI2IWithGPT5(
   userContent.push({ type: 'input_text', text: `
 用户指令: ${userInput}
 
+⚠️ 关键原则：参考图是角色身份和场景的唯一真相源（Source of Truth）。
+用户指令中可能包含角色/场景的文字描述，但这些文字描述可能与参考图不一致。
+当文字描述与参考图冲突时 → 以参考图为准，忽略冲突的文字描述。
+用户指令应该只用其构图/光影/镜头/动作/氛围/背景指示，而非用于覆盖参考图中的角色或场景。
+
 请按照以下规则编译英文生成提示词：
-1. 从角色参考图(@演员)中准确提取并描述：五官形状、眼睛颜色与形状、鼻梁高低与形状、嘴唇厚度、脸型、发型发色、肤色与底色、体型、年龄、服装款式与颜色面料。将这些特征明确写入prompt。
-2. 从构图参考图(@动作，机位)中准确提取并描述：镜头角度(仰拍/俯拍/平视)、景别(特写/中景/全景)、构图方式、主体站位、光线方向与质感。
-3. 光影、色调、氛围 → 从构图参考图提取并写入 prompt。
-4. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充。
-5. 禁止添加参考图中不存在的道具、配饰、武器、装饰物。
-6. 禁止美化：不要更漂亮、更年轻、更精致、更瘦、更白、更对称。
-7. 保持角色参考图中人物的原始五官、发型、服装不变 — 不要改变或替换。
-8. 输出为一段连贯的英文提示词，不要格式标记，不要用"Character identity..."占位符代替实际描述。` });
+1. 角色五官、发型、体型、肤色、种族、服装 → 不在文本中描述。用 "Character identity, facial features, hair, body type, skin tone, and clothing — see reference images exactly as shown." 来引用角色。
+2. 场景空间结构、建筑风格、材质、道具 → 优先从场景参考图提取。用户指令中的场景文字描述仅作补充参考，不与参考图冲突。
+3. 镜头角度(仰拍/俯拍/平视)、景别(特写/中景/全景)、构图方式、主体站位 → 从构图参考图提取，写入 prompt。
+4. 光影、色调、氛围 → 从构图参考图提取并写入 prompt。
+5. 背景/场景/环境 → 优先从构图参考图提取，配合用户指令补充。
+6. 禁止添加参考图中不存在的道具、配饰、武器、装饰物。
+7. 禁止美化：不要更漂亮、更年轻、更精致、更瘦、更白、更对称。
+8. 保持角色参考图中人物的原始五官、发型、服装不变 — 不要改变或替换。
+9. 输出为一段连贯的英文提示词，不要格式标记。` });
 
   const messages = [
-    { role: 'system' as const, content: [{ type: 'input_text' as const, text: '你是 I2I 提示词编译专家。根据参考图，为图像生成模型编写精准的英文生成提示词。你直接看到参考图，所以你能准确描述图中的角色特征和构图信息。' }] },
+    { role: 'system' as const, content: [{ type: 'input_text' as const, text: I2I_GPT5_SYSTEM }] },
     { role: 'user' as const, content: userContent },
   ];
 
@@ -893,21 +965,38 @@ import { CHARACTER_EXTRACTION, SCENE_EXTRACTION, SCRIPT_ANALYSIS, SCENE_ARCHITEC
 export interface ScriptAnalysisResult {
   shots: Array<{
     shotNumber: number;
+    shotFunction: string;       // 镜头功能 (钩子/揭示/蓄力/释放/留白/余味)
     scene: string;
-    shotType: string;
-    angle: string;
-    lens: string;
-    composition: string;
+    shotType: string;           // 景别
+    shotSide: string;           // 拍摄面 (正面/侧面/背面/过肩/纯环境/局部)
+    angle: string;              // 机位垂直 (平视/仰拍/俯拍/鸟瞰)
+    lens: string;               // 焦段
+    composition: string;        // 构图
+    depthLayers: string;        // 深度层次
+    // Character (empty when no character in shot)
+    characterPosition: string;  // 人物位置
+    characterFacing: string;    // 人物朝向
+    characterAction: string;    // 人物动作 (左手/右手/身体/头部)
+    characterExpression: string;// 人物表情
+    characterProps: string;     // 手持/接触物
+    // Space layers
     foreground: string;
     midground: string;
     background: string;
-    blocking: string;
-    action: string;
-    emotion: string;
-    cameraMovement: string;
-    focusPoint: string;
-    visualPrompt: string;    // assembled Chinese prompt for image generation
-    contentCN: string;       // alias — full assembled prompt
+    // Lighting
+    lightSources: string;       // 场景光源
+    keyLight: string;           // 主光
+    fillLight: string;          // 辅光
+    rimLight: string;           // 轮廓光
+    specialLight: string;       // 特殊光效
+    // Color & Material
+    color: string;
+    material: string;
+    atmosphere: string;
+    // Prompts
+    visualPrompt: string;       // full structured display template (all fields)
+    contentCN: string;          // alias for visualPrompt
+    genPrompt: string;          // clean image-gen prompt
   }>;
   characters: Record<string, string>;
   rawOutput: string;
@@ -1299,7 +1388,9 @@ export async function runSceneExtraction(scriptText: string, userFeedback?: stri
     const allResults: string[] = [];
     for (const q of queries.slice(0, 8)) {
       const r = searchInteriorKB(q);
-      if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+      if (r) allResults.push(`### 🔍 风格检索："${q}"\n${r}`);
+      const s = searchSpatialKB(q);
+      if (s) allResults.push(`### 🏛️ 设计师检索："${q}"\n${s}`);
       // Also search writers KB for scene mood / narrative context
       const w = searchWritersKB(q);
       if (w) allResults.push(`### 🔍 编剧检索："${q}"\n${w}`);
@@ -1396,7 +1487,9 @@ export async function runSceneArchitect(scriptText: string, userFeedback?: strin
     const allResults: string[] = [];
     for (const q of queries.slice(0, 8)) {
       const r = searchInteriorKB(q);
-      if (r) allResults.push(`### 🔍 检索："${q}"\n${r}`);
+      if (r) allResults.push(`### 🔍 风格检索："${q}"\n${r}`);
+      const s = searchSpatialKB(q);
+      if (s) allResults.push(`### 🏛️ 设计师检索："${q}"\n${s}`);
       // Also search writers KB for scene mood / narrative context
       const w = searchWritersKB(q);
       if (w) allResults.push(`### 🔍 编剧检索："${q}"\n${w}`);
@@ -1786,63 +1879,20 @@ export async function runScriptAnalysis(
   }
 
   // ═══════════════════════════════════════════
-  // ─── First-run: Two-round KB retrieval ───
+  // ─── Build context for storyboard generation ───
   // ═══════════════════════════════════════════
+  // NOTE: We no longer do blind KB keyword search before analysis.
+  // The SCRIPT_ANALYSIS system prompt now encodes deep cinematography/lighting
+  // expertise. GPT thinks first, then designs shots. KB catalog is available
+  // as reference within the prompt for specific factual needs.
 
-  // ── Round 1: Ask GPT-5.4 what KB sections it needs for visual direction ──
-  const round1Msg = KB_CATALOG + '\n\n' + KB_RETRIEVAL_PROMPT_VISUAL_DIRECTION + '\n\n剧本内容：\n' + scriptText;
-  console.log('[script-analysis] Round 1: asking GPT-5.4 what to retrieve (visual+fashion+scene+writers)...');
-
-  let keywords: string | null = null;
-  try {
-    keywords = await gpt5Chat(
-      [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: round1Msg }] }],
-      { effort: 'low', maxOutputTokens: 800, timeoutMs: 30000 },
-    );
-  } catch (err: any) { console.log('[script-analysis] Round 1 failed:', String(err).slice(0, 100)); }
-
-  // ── Agent: Search ALL KB engines for each keyword ──
-  let searchResults = '';
-  if (keywords && keywords.length > 20) {
-    console.log('[script-analysis] Round 1 response: ' + keywords.slice(0, 300).replace(/\n/g, ' | '));
-    // Parse keywords: each line starting with a Chinese/non-space char
-    const queries = keywords
-      .split('\n')
-      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
-      .filter(l => l.length > 3 && l.length < 120);
-
-    const allResults: string[] = [];
-    for (const q of queries.slice(0, 12)) {
-      const visual = searchVisualKB(q);
-      const fashion = searchFashionKB(q);
-      const interior = searchInteriorKB(q);
-      const writers = searchWritersKB(q);
-
-      if (visual) allResults.push(`### 🔍 视觉检索："${q}"\n${visual}`);
-      if (fashion) allResults.push(`### 🔍 服装检索："${q}"\n${fashion}`);
-      if (interior) allResults.push(`### 🔍 场景检索："${q}"\n${interior}`);
-      if (writers) allResults.push(`### 🔍 编剧检索："${q}"\n${writers}`);
-    }
-    searchResults = allResults.join('\n\n');
-    console.log('[script-analysis] KB search: ' + queries.length + ' queries → ' + allResults.length + ' result blocks, ' + searchResults.length + ' chars');
-  }
-
-  if (!searchResults) {
-    // Fallback: use style card approach
-    console.log('[script-analysis] KB retrieval returned empty, falling back to style card');
-    const dims = await extractScriptTriggers(scriptText);
-    const dec = decideStyle(dims || {});
-    searchResults = buildStyleCard(dims || {}, dec);
-  }
-
-  // ── Also extract script triggers for style card (always, even with search results) ──
+  // Extract script triggers for style card (lightweight, provides era/region/mood context)
   const dimensions = await extractScriptTriggers(scriptText);
   const decision = decideStyle(dimensions || {});
   const styleCard = buildStyleCard(dimensions || {}, decision);
 
-  // ── Round 2: Feed KB results + style card + script → design storyboard ──
-  const round2Msg = searchResults
-    + '\n\n' + styleCard
+  // ── Round 2: Feed style card + script → design storyboard ──
+  const round2Msg = styleCard
     + '\n\n' + NEGATIVE_CLOTHING
     + '\n' + NEGATIVE_INTERIOR
     + '\n\n' + SCRIPT_ANALYSIS.systemPrompt
@@ -1912,64 +1962,103 @@ export function parseShotBlocks(output: string): ScriptAnalysisResult['shots'] {
         const m = block.match(re);
         if (m) {
           const val = m[1].trim();
-          if (val.length > 0 && val.length < 200) return val;
+          if (val.length > 0) return val;
         }
       }
       return '';
     };
 
-    // Try both full and abbreviated field names
+    // Extract all fields from the enhanced four-role format
+    const shotFunction = extract('镜头功能') || '';
+    const scene = extract('场景') || '';
     const shotType = extract('景别') || 'MS';
-    const angle = extract('机位角度') || '平视';
-    const lens = extract('焦段') || extract('镜头焦段') || '50mm';
+    const shotSide = extract('拍摄面') || '';
+    const angle = extract('机位垂直') || extract('机位角度') || '平视';
+    const lens = extract('焦段') || extract('镜头焦段') || '24mm';
     const composition = extract('构图') || extract('构图方式') || '';
+    const depthLayers = extract('深度层次') || '';
+    // Character fields — may be "无人物" for empty shots
+    const characterPosition = extract('人物位置') || '';
+    const characterFacing = extract('人物朝向') || '';
+    const characterAction = extract('人物动作') || '';
+    const characterExpression = extract('人物表情') || '';
+    const characterProps = extract('手持') || extract('手持/接触物') || '';
+    // Space layers
     const foreground = extract('前景') || '';
     const midground = extract('中景') || extract('中景主体') || '';
     const background = extract('背景') || '';
-    const blocking = extract('调度') || extract('人物调度') || '';
-    const action = extract('动作') || extract('动作节点') || '';
-    const emotion = extract('情绪') || extract('情绪表达') || '';
-    const cameraMovement = extract('运镜') || extract('镜头运动') || '固定镜头';
-    const focusPoint = extract('画面重点') || '';
-    const scene = extract('场景') || '';
-    const visualKeywords = extract('提示词') || extract('视觉提示词') || '';
+    // Lighting
+    const lightSources = extract('场景光源') || '';
+    const keyLight = extract('主光') || '';
+    const fillLight = extract('辅光') || '';
+    const rimLight = extract('轮廓光') || '';
+    const specialLight = extract('特殊光效') || '';
+    // Color & material
+    const color = extract('色彩') || extract('色彩方案') || '';
+    const material = extract('材质重点') || extract('材质表现') || '';
+    const atmosphere = extract('画面氛围') || '';
+    const imagePrompt = extract('提示词') || extract('视觉提示词') || '';
 
-    // Assemble full Chinese prompt
+    // Assemble structured display template — ALL fields in order
     const parts: string[] = [];
     if (scene) parts.push(`场景：${scene}`);
+    if (shotFunction) parts.push(`镜头功能：${shotFunction}`);
     if (shotType) parts.push(`景别：${shotType}`);
-    if (angle) parts.push(`机位角度：${angle}`);
-    if (lens) parts.push(`镜头焦段：${lens}`);
-    if (composition) parts.push(`构图方式：${composition}`);
+    if (shotSide) parts.push(`拍摄面：${shotSide}`);
+    if (angle) parts.push(`机位：${angle}`);
+    if (lens) parts.push(`焦段：${lens}`);
+    if (composition) parts.push(`构图：${composition}`);
+    if (depthLayers) parts.push(`深度：${depthLayers}`);
+    if (characterPosition && characterPosition !== '无人物') parts.push(`人物位置：${characterPosition}`);
+    if (characterFacing && characterFacing !== '无人物') parts.push(`朝向：${characterFacing}`);
+    if (characterAction && characterAction !== '无人物') parts.push(`动作：${characterAction}`);
+    if (characterExpression && characterExpression !== '无人物') parts.push(`表情：${characterExpression}`);
+    if (characterProps && characterProps !== '无人物') parts.push(`手持：${characterProps}`);
     if (foreground) parts.push(`前景：${foreground}`);
-    if (midground) parts.push(`中景主体：${midground}`);
+    if (midground) parts.push(`中景：${midground}`);
     if (background) parts.push(`背景：${background}`);
-    if (blocking) parts.push(`人物调度：${blocking}`);
-    if (action) parts.push(`动作节点：${action}`);
-    if (emotion) parts.push(`情绪表达：${emotion}`);
-    if (cameraMovement) parts.push(`镜头运动：${cameraMovement}`);
-    if (focusPoint) parts.push(`画面重点：${focusPoint}`);
-    if (visualKeywords) parts.push(`视觉提示词：${visualKeywords}`);
-
-    const visualPrompt = parts.join('\n\n');
+    if (lightSources) parts.push(`光源：${lightSources}`);
+    if (keyLight) parts.push(`主光：${keyLight}`);
+    if (fillLight && fillLight !== '无') parts.push(`辅光：${fillLight}`);
+    if (rimLight && rimLight !== '无') parts.push(`轮廓光：${rimLight}`);
+    if (specialLight && specialLight !== '无') parts.push(`特效光：${specialLight}`);
+    if (color) parts.push(`色彩：${color}`);
+    if (material) parts.push(`材质：${material}`);
+    if (atmosphere) parts.push(`氛围：${atmosphere}`);
+    if (imagePrompt) parts.push(`画面描述：${imagePrompt}`);
+    const fullDisplay = parts.join('\n');
+    // Gen prompt = 提示词 (clean visual description for image model) | fallback to full display
+    const genPrompt = imagePrompt || fullDisplay;
 
     shots.push({
       shotNumber: i + 1,
+      shotFunction,
       scene,
       shotType,
+      shotSide,
       angle,
       lens,
       composition,
+      depthLayers,
+      characterPosition: characterPosition === '无人物' ? '' : characterPosition,
+      characterFacing: characterFacing === '无人物' ? '' : characterFacing,
+      characterAction: characterAction === '无人物' ? '' : characterAction,
+      characterExpression: characterExpression === '无人物' ? '' : characterExpression,
+      characterProps: characterProps === '无人物' ? '' : characterProps,
       foreground,
       midground,
       background,
-      blocking,
-      action,
-      emotion,
-      cameraMovement,
-      focusPoint,
-      visualPrompt,
-      contentCN: visualPrompt,
+      lightSources,
+      keyLight,
+      fillLight: fillLight === '无' ? '' : fillLight,
+      rimLight: rimLight === '无' ? '' : rimLight,
+      specialLight: specialLight === '无' ? '' : specialLight,
+      color,
+      material,
+      atmosphere,
+      visualPrompt: fullDisplay,
+      contentCN: fullDisplay,
+      genPrompt,
     });
   });
 
@@ -2000,14 +2089,15 @@ function parseFallbackTable(output: string): ScriptAnalysisResult['shots'] {
     if (!contentCell || contentCell.length < 5) continue;
     shots.push({
       shotNumber: shots.length + 1,
-      scene: contentCell, shotType: cells[1] || 'MS', angle: '平视',
-      lens: cells.length > 2 ? cells[2] : '50mm', composition: '',
-      foreground: '', midground: '', background: '', blocking: '',
-      action: '', emotion: cells[cells.length - 1] || '',
-      cameraMovement: cells.length > 3 ? cells[3] : '固定镜头',
-      focusPoint: '',
+      shotFunction: '', scene: contentCell, shotType: cells[1] || 'MS', shotSide: '', angle: '平视',
+      lens: cells.length > 2 ? cells[2] : '50mm', composition: '', depthLayers: '',
+      characterPosition: '', characterFacing: '', characterAction: '', characterExpression: '', characterProps: '',
+      foreground: '', midground: '', background: '',
+      lightSources: '', keyLight: '', fillLight: '', rimLight: '', specialLight: '',
+      color: '', material: '', atmosphere: '',
       visualPrompt: contentCell,
       contentCN: contentCell,
+      genPrompt: contentCell,
     });
   }
   return shots;
@@ -2126,34 +2216,45 @@ export async function runTextPipeline(
 
   console.log('[text-pipeline] Starting for: "' + context.userInput.slice(0, 60) + '..."');
 
-  // Pre-process: analyze reference images with Gemini Vision if available
+  // ── Direct GPT-5.6 image→prompt reverse-engineering (single-step) ──
+  // GPT-5.6 Sol natively sees the image — no intermediate text description needed.
+  // Falls back to old two-step pipeline ONLY if direct reverse-engineering fails.
   if (context.referenceUrls && context.referenceUrls.length > 0 && !context.referenceAnalysis) {
-    console.log('[text-pipeline] Analyzing ' + context.referenceUrls.length + ' reference image(s) with Vision...');
+    console.log('[text-pipeline] Direct GPT-5.6 image→prompt for ' + context.referenceUrls.length + ' image(s)...');
+    const reverseResult = await reversePromptFromImages(context.referenceUrls, context.userInput);
+
+    if (reverseResult) {
+      const dur = Date.now() - t0;
+      console.log('[text-pipeline] Direct reverse-engineering complete in ' + dur + 'ms');
+      const textResult = {
+        textOutput: reverseResult,
+        trace: [{ agentId: 'reverse-prompt', agentName: 'GPT-5.6 Direct', output: reverseResult, durationMs: dur }],
+        totalDurationMs: dur,
+      };
+      if (onComplete) {
+        try { await onComplete(textResult as unknown as Record<string, unknown>); } catch (err: any) { console.error('[text-pipeline] onComplete error:', err.message); }
+      }
+      return textResult;
+    }
+
+    // Fallback to old two-step vision analysis pipeline
+    console.log('[text-pipeline] Direct reverse-engineering failed, falling back to two-step Vision analysis...');
     const results = await analyzeReferenceImages(context.referenceUrls);
-    // Check if all vision analyses failed
     const allFailed = results.every(r => r.includes('[Unable to fetch image]') || r.includes('[Vision analysis failed]'));
     if (allFailed) {
       console.log("[text-pipeline] All vision analyses failed, falling back to text-only");
     } else {
       context.referenceAnalysis = results.filter(function(r) { return !r.includes("[Unable to fetch image]") && !r.includes("[Vision analysis failed]"); });
     }
-    console.log('[text-pipeline] Vision analysis complete');
+    console.log('[text-pipeline] Vision analysis fallback complete');
   }
 
-  // If there are reference URLs but no vision analysis and no prompts, can't analyze
-  const hasUsableRefs = (context.referenceAnalysis && context.referenceAnalysis.length > 0) ||
-                        (context.referencePrompts && context.referencePrompts.length > 0);
-  if (context.referenceUrls && context.referenceUrls.length > 0 && !hasUsableRefs) {
-    console.log("[text-pipeline] No vision or prompts, using user text input only");
-  }
-
-  // Determine if we have usable image data
+  // Determine if we have usable image data (from fallback)
   const hasImageData = !!(context.referenceAnalysis && context.referenceAnalysis.length > 0 &&
     !context.referenceAnalysis.every(r => r.includes('[Unable to fetch image]') || r.includes('[Vision analysis failed]')));
 
   try {
     console.log('[text-pipeline] Running Prompt Analyst | hasImageData:', hasImageData, 'refUrls:', context.referenceUrls?.length || 0);
-    // Inject a clear signal so the Agent doesn't have to guess
     const signalBlock = hasImageData
       ? '\n\n[系统] 参考图视觉分析数据已就绪，请执行图像反推。'
       : '\n\n[系统] 无参考图数据，请根据用户文本需求执行文本反推或提示词优化。';
@@ -2170,7 +2271,6 @@ export async function runTextPipeline(
       totalDurationMs: Date.now() - t0,
     };
 
-    // Q-system onComplete hook
     if (onComplete) {
       try { await onComplete(textResult as unknown as Record<string, unknown>); } catch (err: any) { console.error('[text-pipeline] onComplete error:', err.message); }
     }
@@ -2184,7 +2284,6 @@ export async function runTextPipeline(
       totalDurationMs: Date.now() - t0,
     };
 
-    // Q-system onComplete hook (also on error path)
     if (onComplete) {
       try { await onComplete(errorResult as unknown as Record<string, unknown>); } catch (err: any) { console.error('[text-pipeline] onComplete error:', err.message); }
     }
@@ -2282,20 +2381,21 @@ const UNIFIED_MUSIC = `===MUSIC===
 
 const UNIFIED_STORYBOARD = `===STORYBOARD===
 输出完整中文分镜表。全片统一1-2个导演风格。每镜用 === 分隔：
-场景：{中文详述}
+⚠️ 引用格式（必须遵守）：每个镜头中出现的角色必须写 @角色名，场景必须写 @场景名。这是生图链接参考图的唯一标识。
+场景：{中文详述 + @场景名}
 景别：{ELS/LS/WS/MS/MCU/CU/ECU}
 机位角度：{平视/仰拍/俯拍}
 焦段：{24/35/50/85mm}
 构图：{三分法/中心/对称/对角线/引导线}
 前景：{前景元素}
-中景：{主体内容与人物}
+中景：{主体内容与人物 + @角色名}
 背景：{环境元素}
-调度：{站位/朝向/运动}
+调度：{站位/朝向/运动 + @角色名}
 动作：{关键瞬间}
 情绪：{情绪与氛围}
 运镜：{固定/推/拉/摇/升降/手持}
 画面重点：{核心视觉}
-提示词：{中文整句，融合导演风格，禁英文}
+提示词：{中文整句，融合导演风格，包含@角色名和@场景名，禁英文}
 
 导演风格参考（全片选1-2个统一）：
 - 史诗/战争 → 诺兰冷灰史诗+黑泽明天气情绪
@@ -2348,14 +2448,29 @@ export async function runUnifiedPipeline(
 
   const msgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: dynamicPrompt + '\n\n===== 剧本 =====\n' + scriptText + styleHint }] }];
 
-  let raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 });
-  if (!raw) { await new Promise(r => setTimeout(r, 3000)); raw = await gpt5Chat(msgs, { effort: 'high', timeoutMs: 900000 }); }
+  // noTimeout: SSE 流不会被 AbortController 掐断，kie.ai 完成后自然返回结果
+  // 不再因客户端超时而丢弃 kie.ai 已生成的数据
+  let raw: string | null = null;
+  try {
+    raw = await gpt5Chat(msgs, { effort: 'high', noTimeout: true });
+  } catch (err: any) {
+    console.log('[unified] GPT call 1 failed:', err?.name || String(err).slice(0, 80));
+  }
   if (!raw) {
-    const emptyResult = { shots: null, characters: null, scenes: null, sceneArchitecture: null, props: null, music: null, trace: [], totalDurationMs: Date.now() - t0 };
-    if (onComplete) {
-      try { await onComplete(emptyResult as unknown as Record<string, unknown>); } catch (err: any) { console.error('[unified] onComplete error:', err.message); }
+    console.log('[unified] GPT call 1 returned null, retrying after 3s...');
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      raw = await gpt5Chat(msgs, { effort: 'high', noTimeout: true });
+    } catch (err: any) {
+      console.log('[unified] GPT call 2 failed:', err?.name || String(err).slice(0, 80));
     }
-    return emptyResult;
+  }
+  if (!raw) {
+    const err = new Error('Unified pipeline: GPT returned null after 2 attempts (API error or network failure)');
+    if (onComplete) {
+      try { await onComplete({ shots: null, characters: null, scenes: null, sceneArchitecture: null, props: null, music: null, trace: [], totalDurationMs: Date.now() - t0 } as unknown as Record<string, unknown>); } catch (e: any) { console.error('[unified] onComplete error:', e.message); }
+    }
+    throw err;
   }
 
   console.log('[unified] Output ' + raw.length + 'chars');
@@ -2397,34 +2512,75 @@ export async function runUnifiedPipeline(
       const ext = (re: RegExp) => { const m = t.match(re); return m ? (m[1]||'').trim() : ''; };
       const s: any = {
         shotNumber: i + 1,
+        shotFunction: ext(/镜头功能[：:]\s*(.+)/) || '',
         scene: ext(/场景[：:]\s*(.+)/) || ext(/Scene[：:]\s*(.+)/i) || '',
         shotType: ext(/景别[：:]\s*(.+)/) || '',
-        angle: ext(/机位角度[：:]\s*(.+)/) || ext(/角度[：:]\s*(.+)/) || '',
+        shotSide: ext(/拍摄面[：:]\s*(.+)/) || '',
+        angle: ext(/机位垂直[：:]\s*(.+)/) || ext(/机位角度[：:]\s*(.+)/) || ext(/角度[：:]\s*(.+)/) || '',
         lens: ext(/焦段[：:]\s*(.+)/) || '',
         composition: ext(/构图[：:]\s*(.+)/) || '',
+        depthLayers: ext(/深度层次[：:]\s*(.+)/) || '',
+        characterPosition: ext(/人物位置[：:]\s*(.+)/) || '',
+        characterFacing: ext(/人物朝向[：:]\s*(.+)/) || '',
+        characterAction: ext(/人物动作[：:]\s*(.+)/) || '',
+        characterExpression: ext(/人物表情[：:]\s*(.+)/) || '',
+        characterProps: ext(/手持[：:]\s*(.+)/) || ext(/手持\/接触物[：:]\s*(.+)/) || '',
         foreground: ext(/前景[：:]\s*(.+)/) || '',
         midground: ext(/中景[：:]\s*(.+)/) || '',
         background: ext(/背景[：:]\s*(.+)/) || '',
-        blocking: ext(/调度[：:]\s*(.+)/) || '',
-        action: ext(/动作[：:]\s*(.+)/) || '',
-        emotion: ext(/情绪[：:]\s*(.+)/) || '',
-        cameraMovement: ext(/运镜[：:]\s*(.+)/) || '',
-        focusPoint: ext(/画面重点[：:]\s*(.+)/) || '',
+        lightSources: ext(/场景光源[：:]\s*(.+)/) || '',
+        keyLight: ext(/主光[：:]\s*(.+)/) || '',
+        fillLight: ext(/辅光[：:]\s*(.+)/) || '',
+        rimLight: ext(/轮廓光[：:]\s*(.+)/) || '',
+        specialLight: ext(/特殊光效[：:]\s*(.+)/) || '',
+        color: ext(/色彩[：:]\s*(.+)/) || ext(/色彩方案[：:]\s*(.+)/) || '',
+        material: ext(/材质重点[：:]\s*(.+)/) || ext(/材质表现[：:]\s*(.+)/) || '',
+        atmosphere: ext(/画面氛围[：:]\s*(.+)/) || '',
         visualPrompt: ext(/提示词[：:]\s*(.+)/) || '',
       };
-      s.contentCN = s.visualPrompt || s.scene;
+      s.genPrompt = s.visualPrompt;
+      // Build full display
+      const dp: string[] = [];
+      if (s.scene) dp.push(`场景：${s.scene}`);
+      if (s.shotFunction) dp.push(`镜头功能：${s.shotFunction}`);
+      if (s.shotType) dp.push(`景别：${s.shotType}`);
+      if (s.shotSide) dp.push(`拍摄面：${s.shotSide}`);
+      if (s.angle) dp.push(`机位：${s.angle}`);
+      if (s.lens) dp.push(`焦段：${s.lens}`);
+      if (s.composition) dp.push(`构图：${s.composition}`);
+      if (s.depthLayers) dp.push(`深度：${s.depthLayers}`);
+      const cp = s.characterPosition; if (cp && cp !== '无人物') dp.push(`人物位置：${cp}`);
+      const cf = s.characterFacing; if (cf && cf !== '无人物') dp.push(`朝向：${cf}`);
+      const ca = s.characterAction; if (ca && ca !== '无人物') dp.push(`动作：${ca}`);
+      const ce = s.characterExpression; if (ce && ce !== '无人物') dp.push(`表情：${ce}`);
+      const cpr = s.characterProps; if (cpr && cpr !== '无人物') dp.push(`手持：${cpr}`);
+      if (s.foreground) dp.push(`前景：${s.foreground}`);
+      if (s.midground) dp.push(`中景：${s.midground}`);
+      if (s.background) dp.push(`背景：${s.background}`);
+      if (s.lightSources) dp.push(`光源：${s.lightSources}`);
+      if (s.keyLight) dp.push(`主光：${s.keyLight}`);
+      if (s.fillLight && s.fillLight !== '无') dp.push(`辅光：${s.fillLight}`);
+      if (s.rimLight && s.rimLight !== '无') dp.push(`轮廓光：${s.rimLight}`);
+      if (s.specialLight && s.specialLight !== '无') dp.push(`特效光：${s.specialLight}`);
+      if (s.color) dp.push(`色彩：${s.color}`);
+      if (s.material) dp.push(`材质：${s.material}`);
+      if (s.atmosphere) dp.push(`氛围：${s.atmosphere}`);
+      if (s.genPrompt) dp.push(`画面描述：${s.genPrompt}`);
+      s.visualPrompt = dp.join('\n');
+      s.contentCN = s.visualPrompt;
       shotList.push(s);
     });
     if (shotList.length > 0) shots = { shots: shotList, characters: {}, rawOutput: parsed.STORYBOARD, durationMs: 0 };
   }
 
+  const musicScenes = parseBlocks(parsed.MUSIC);
   const unifiedResult = {
     shots,
     characters: parseBlocks(parsed.CHARACTERS),
     scenes: parseBlocks(parsed.SCENES),
     sceneArchitecture: parseBlocks(parsed.SCENE_ARCHITECTURE),
     props: parseBlocks(parsed.PROPS),
-    music: { scenes: parseBlocks(parsed.MUSIC), sunoPrompts: {} },
+    music: { scenes: musicScenes, sunoPrompts: musicScenes },
     trace: [],
     totalDurationMs: Date.now() - t0,
   };

@@ -113,6 +113,13 @@ class QMemoryStore {
   private consolidating = false;
   private reflecting = false;
 
+  // LLM function for consolidation (set externally during server init)
+  private llmForConsolidation: ((systemPrompt: string, userPrompt: string) => Promise<string | null>) | null = null;
+
+  setConsolidationLLM(fn: (systemPrompt: string, userPrompt: string) => Promise<string | null>): void {
+    this.llmForConsolidation = fn;
+  }
+
   // ── Layer 0: Working Memory ────────────────
 
   workingAdd(content: string, context: Record<string, unknown> = {}): string {
@@ -203,7 +210,13 @@ class QMemoryStore {
 
     // Check if consolidation should trigger
     if (this.unconsolidatedEpisodic >= CONSOLIDATE_THRESHOLD && !this.consolidating) {
-      this.consolidate().catch(() => {/* fire-and-forget */});
+      const llmFn = this.llmForConsolidation
+        ? async (sp: string, up: string) => {
+            const result = await this.llmForConsolidation!(sp, up);
+            return result || '';
+          }
+        : undefined;
+      this.consolidate(llmFn).catch(() => {/* fire-and-forget */});
     }
 
     return entry;
@@ -305,6 +318,18 @@ class QMemoryStore {
     this.semantic.push(entry);
     this.unconsolidatedSemantic++;
     this._saveSemantic();
+
+    // Check if reflection should trigger
+    if (this.unconsolidatedSemantic >= REFLECT_THRESHOLD && !this.reflecting) {
+      const llmFn = this.llmForConsolidation
+        ? async (sp: string, up: string) => {
+            const result = await this.llmForConsolidation!(sp, up);
+            return result || '';
+          }
+        : undefined;
+      this.reflect(llmFn).catch(() => {/* fire-and-forget */});
+    }
+
     return entry;
   }
 

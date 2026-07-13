@@ -6,11 +6,19 @@ import { qMemory } from './q-memory.js';
 import { detectDeviations } from './q-detector.js';
 import { decideStyle, type DimensionInput } from '../agent/style-db.js';
 import { applyStyleDecision } from '../agent/style-resolver.js';
-import { chat, setLLMChat, type ChatResponse } from './q-chat.js';
-import { deepseekChat } from '../ai/deepseek.js';
+import { chat, setLLMChat, setLLMChatWithTools, type ChatResponse } from './q-chat.js';
+import { deepseekChat, deepseekChatWithTools } from '../ai/deepseek.js';
 
 // Wire up DeepSeek LLM for Q chat (non-blocking — falls back to rule-based if unavailable)
 setLLMChat(deepseekChat);
+setLLMChatWithTools(deepseekChatWithTools);
+
+// Wire up DeepSeek LLM for memory consolidation (episodic → semantic → reflective)
+// This enables XiaoQ to learn from daily work without explicit training
+qMemory.setConsolidationLLM(async (systemPrompt: string, userPrompt: string) => {
+  const result = await deepseekChat(systemPrompt, userPrompt, 600);
+  return result || '';
+});
 
 export const qRouter = Router();
 

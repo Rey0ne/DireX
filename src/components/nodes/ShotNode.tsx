@@ -8,7 +8,7 @@ import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
-import { getSharedApiKey, qDecide, type QDecideResponse } from '../../api/gateway';
+import { getSharedApiKey, qDecide, type QDecideResponse, analyzeText } from '../../api/gateway';
 
 
 interface ShotNodeData {
@@ -65,7 +65,24 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const [regenerateFeedback, setRegenerateFeedback] = useState('');
   const feedbackRef = useRef(regenerateFeedback);  // always current — handleRegenerateSection reads from this
   const [regenerateRunning, setRegenerateRunning] = useState(false);
+  const [optimizeRunning, setOptimizeRunning] = useState(false);
+  const [reverseRunning, setReverseRunning] = useState(false);
   const [visualStyle, setVisualStyle] = useState('');
+  const [showAiWriter, setShowAiWriter] = useState(false);
+  const [aiBrief, setAiBrief] = useState('');
+  const [aiWriting, setAiWriting] = useState(false);
+  const [aiFormat, setAiFormat] = useState('TVC广告');
+  const [showFormatMenu, setShowFormatMenu] = useState(false);
+  // Map display names (no time) → backend format keys (with time)
+  const FORMAT_MAP: Record<string, string> = {
+    'TVC广告': 'TVC广告(90秒)',
+    '品牌概念片': '品牌概念片(90秒)',
+    '短片': '短片(3-5分钟)',
+    '短剧': '短剧(1-3分钟/集)',
+    '电影': '电影(90-120分钟)',
+    '预告片': '预告片(30-60秒)',
+    'MV': 'MV(3-5分钟)',
+  };
   const g = gen as Record<string, any>;
   const getOverview = () => g.scriptOverview || null;
   const getScenes = () => g.scriptScenes || null;
@@ -94,12 +111,17 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   }, [prompt]);
   // 组件卸载时立即保存
   useEffect(() => () => { if (promptRef.current) patch('prompt', promptRef.current); }, []);
-  // ShotNode：剧本 → 脚本分析（GPT-5.4）。T2I 生图走下游 ImageGenerateNode
+  // ShotNode 双模式（互斥）：
+  // 有连接参考图 → 反推提示词（GPT-5.6 直接看图→提示词，写入 textarea）
+  // 无参考图 → 剧本分析（GPT-5.6 角色/场景/分镜/音乐）
   const handleGenerate = () => {
     if (genRunningRef.current || !prompt.trim()) return;
-    // Q brain runs as a sidecar for insight only — never blocks user action
     handleQSidecar();
-    handleScriptAnalysis();
+    if (data.refUrls && data.refUrls.length > 0) {
+      handleReversePrompt();
+    } else {
+      handleScriptAnalysis();
+    }
   };
 
   // ── Q Brain sidecar — fire-and-forget insight, doesn't gate execution ──
@@ -122,10 +144,85 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     }).catch(() => {});
   };
 
+  // ── Image → Prompt reverse-engineering via GPT-5.6 ──
+  // Result writes directly into the textarea — no extra UI, no buttons.
+  const handleReversePrompt = async () => {
+    const refs = data.refUrls;
+    if (!refs || refs.length === 0) return;
+    setReverseRunning(true);
+    try {
+      const result = await analyzeText({
+        rawText: prompt.trim() || '分析这张图并反推提示词',
+        providerId: 'text',
+        referenceUrls: refs,
+      });
+      const reversed = result.compiled?.cn || result.compiled?.en || '';
+      if (reversed) {
+        setPrompt(reversed);
+        promptRef.current = reversed;
+        patch('prompt', reversed);
+      }
+    } catch (err) {
+      console.error('[ShotNode] Reverse prompt failed:', err);
+    } finally { setReverseRunning(false); }
+  };
+
   const pollResult = async (taskId: string): Promise<any> => {
     const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
     const resp = await fetch(`${apiBase}/api/agent/script/result/${taskId}`);
     return resp.json();
+  };
+
+  // ── Server fallback: backend may have directly written results to canvas-state.json ──
+  // When polling times out but the pipeline actually completed, data is already on the server.
+  const checkServerFallback = async (): Promise<any | null> => {
+    try {
+      const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+      const resp = await fetch(`${apiBase}/api/canvas/state`, {
+        headers: { Authorization: `Bearer ${getSharedApiKey()}` },
+      });
+      if (!resp.ok) return null;
+      const json = await resp.json();
+      const serverNode = json.nodes?.find((n: any) => n.id === id);
+      if (!serverNode?.meta?.gen) return null;
+      const sgo = serverNode.meta.gen;
+
+      // Check what the server has that our local store doesn't
+      const localGo = g;
+      const hasOverview = sgo.scriptOverview?.shots?.length > 0;
+      const hasChars = sgo.scriptCharacters && Object.keys(sgo.scriptCharacters).length > 0;
+      const hasScenes = sgo.scriptScenes && Object.keys(sgo.scriptScenes).length > 0;
+      const hasMusic = sgo.scriptSunoPrompts && Object.keys(sgo.scriptSunoPrompts).length > 0;
+
+      const isNewOverview = hasOverview && !localGo.scriptOverview?.shots?.length;
+      const isNewChars = hasChars && !localGo.scriptCharacters;
+      const isNewScenes = hasScenes && !localGo.scriptScenes;
+      const isNewMusic = hasMusic && !localGo.scriptSunoPrompts;
+
+      if (!isNewOverview && !isNewChars && !isNewScenes && !isNewMusic) return null;
+
+      console.log('[fallback] Server has direct-written data — applying:', {
+        overview: isNewOverview ? `${sgo.scriptOverview.shots.length} shots` : false,
+        chars: isNewChars ? `${Object.keys(sgo.scriptCharacters).length} profiles` : false,
+        scenes: isNewScenes, music: isNewMusic,
+      });
+
+      return {
+        success: true,
+        section: 'overview',
+        shots: sgo.scriptOverview?.shots || [],
+        characterProfiles: sgo.scriptOverview?.characterProfiles || {},
+        rawOutput: sgo.scriptOverview?.rawOutput || '',
+        durationMs: sgo.scriptOverview?.durationMs || 0,
+        scenes: sgo.scriptScenes || {},
+        sceneArchitecture: sgo.scriptSceneArchitecture || {},
+        sunoPrompts: sgo.scriptSunoPrompts || {},
+        soundScenes: sgo.scriptSoundScenes || {},
+      };
+    } catch (err) {
+      console.warn('[fallback] Server check failed:', err);
+      return null;
+    }
   };
 
   // ── Section-aware result patcher (per CLAUDE-contract.md Script Task rules) ──
@@ -168,6 +265,33 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
         if (json.sunoPrompts && Object.keys(json.sunoPrompts).length) patch('scriptSunoPrompts', json.sunoPrompts);
         if (json.soundScenes && Object.keys(json.soundScenes).length) patch('scriptSoundScenes', json.soundScenes);
         break;
+      case 'supplement': {
+        // Characters + scenes + music only — preserve existing shots
+        if (json.characterProfiles && Object.keys(json.characterProfiles).length) {
+          patch('scriptCharacters', json.characterProfiles);
+          // Also merge into overview for createCharNodes to find
+          const ov = getOverview() || {} as Record<string, any>;
+          patch('scriptOverview', { ...ov, characterProfiles: { ...(ov.characterProfiles || {}), ...json.characterProfiles } });
+        }
+        if (json.scenes && Object.keys(json.scenes).length) patch('scriptScenes', json.scenes);
+        if (json.sunoPrompts && Object.keys(json.sunoPrompts).length) patch('scriptSunoPrompts', json.sunoPrompts);
+        if (json.soundScenes && Object.keys(json.soundScenes).length) patch('scriptSoundScenes', json.soundScenes);
+        break;
+      }
+
+      case 'optimize': {
+        // Merge optimized genPrompts into existing shots
+        const ov = getOverview() || {} as Record<string, any>;
+        const existingShots: any[] = ov.shots || [];
+        const optimizedShots: any[] = json.shots || [];
+        const mergedShots = existingShots.map((s: any) => {
+          const opt = optimizedShots.find((o: any) => o.shotNumber === s.shotNumber);
+          if (opt?.genPrompt) return { ...s, genPrompt: opt.genPrompt };
+          return s;
+        });
+        patch('scriptOverview', { ...ov, shots: mergedShots });
+        break;
+      }
     }
   };
 
@@ -180,7 +304,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const submitResp = await fetch(`${apiBase}/api/agent/script/overview`, {
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${getSharedApiKey()}`},
-        body:JSON.stringify({scriptText:prompt,visualStyle}),
+        body:JSON.stringify({scriptText:prompt,visualStyle,nodeId:id}),
       });
       const submitJson = await submitResp.json();
       console.log('[analysis] Submit response:', submitResp.status, submitJson);
@@ -227,7 +351,17 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           console.warn(`[analysis] Poll ${i + 1} failed:`, pollErr, '— retrying...');
         }
       }
-      console.error('[analysis] Timeout after 50 polls (~25 min)');
+      // ── Timeout — check server fallback first (backend may have written directly) ──
+      console.warn('[analysis] Polling timed out — checking server fallback...');
+      const fallback = await checkServerFallback();
+      if (fallback) {
+        console.log('[analysis] Recovered from server fallback after polling timeout');
+        applySectionResult(fallback, setPhase);
+        patch('scriptTaskId', null);
+        genRunningRef.current = false; setGenRunning(false);
+        return;
+      }
+      console.error('[analysis] Timeout after 50 polls (~25 min) — no server data');
       setAnalysisError('分析超时（超过25分钟），请重试');
       patch('scriptTaskId', null);
     } catch (err) { console.error('[analysis] Error:', err); setAnalysisError('提交失败：' + String(err).slice(0, 80)); }
@@ -284,8 +418,19 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           }
         } catch {}
       }
-      // Timeout — clear stale taskId so user can re-trigger
-      if (!cancelled) { patch('scriptTaskId', null); setAnalysisError('分析超时，请重试'); genRunningRef.current = false; setGenRunning(false); }
+      // Timeout — check server fallback before clearing taskId
+      if (!cancelled) {
+        console.warn('[analysis] Resume poll timed out — checking server fallback...');
+        const fallback = await checkServerFallback();
+        if (fallback) {
+          console.log('[analysis] Recovered from server fallback after resume poll timeout');
+          applySectionResult(fallback, setPhase);
+          patch('scriptTaskId', null);
+          genRunningRef.current = false; setGenRunning(false);
+          return;
+        }
+        patch('scriptTaskId', null); setAnalysisError('分析超时，请重试'); genRunningRef.current = false; setGenRunning(false);
+      }
     };
     resumePoll();
     return () => { cancelled = true; };
@@ -387,7 +532,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const { taskId } = submitJson;
       if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
 
-      const MAX_POLLS = 20;
+      const MAX_POLLS = 40; // 40 × 15s = 10 min (matches backend timeout)
       const POLL_INTERVAL = 15_000;
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
@@ -414,7 +559,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           console.warn('[music] Poll failed:', pollErr, '— retrying...');
         }
       }
-      console.error('[music] Timeout after 20 polls (~5 min)');
+      console.warn('[music] Polling timed out — checking server fallback...');
+      const musicFallback = await checkServerFallback();
+      if (musicFallback?.sunoPrompts && Object.keys(musicFallback.sunoPrompts).length) {
+        console.log('[music] Recovered from server fallback after polling timeout');
+        applySectionResult({ success: true, section: 'music', sunoPrompts: musicFallback.sunoPrompts, soundScenes: musicFallback.soundScenes || {} });
+        return;
+      }
+      console.error('[music] Timeout after 20 polls (~5 min) — no server data');
       setAnalysisError('音乐生成超时，请重试');
     } catch (err) { console.error('[music] Error:', err); setAnalysisError('提交失败：' + String(err).slice(0, 80)); }
     finally { setSoundRunning(false); }
@@ -427,6 +579,43 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const _clickSpace = () => { const d=getSpatialDesigns(); if(d&&Object.keys(d).length){createSpaceNodes()}else{handleSceneArchitect()} };
   const _clickProp = () => { const d=getProps(); if(d&&Object.keys(d).length){createPropNodes()}else{handlePropDesigner()} };
   const clickSuno = () => { const d=getSunoPrompts(); if(d&&Object.keys(d).length){createSunoNodes()}else{handleSoundComposer()} };
+
+  // ── AI 写剧本 ──
+  const handleAiWrite = async () => {
+    if (aiWriting) return;
+    const hasExistingScript = prompt.trim().length >= 20;
+    if (!hasExistingScript && !aiBrief.trim()) return;
+    setAiWriting(true);
+    try {
+      const body: any = { format: FORMAT_MAP[aiFormat] || aiFormat };
+      if (hasExistingScript) {
+        // Supplement mode: add character/scene profiles to existing script
+        body.existingScript = prompt.trim();
+        if (aiBrief.trim()) body.brief = aiBrief.trim(); // additional context
+      } else {
+        body.brief = aiBrief.trim();
+      }
+      const resp = await fetch('/api/agent/script/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await resp.json();
+      if (json.success && json.script) {
+        setPrompt(json.script);
+        setExpanded(true);    // 展开节点让用户看到完整内容
+        patch('prompt', json.script); // 立即持久化
+        setShowAiWriter(false);
+        setAiBrief('');
+      } else {
+        setAnalysisError(json.error || '剧本生成失败');
+      }
+    } catch (err: any) {
+      setAnalysisError('AI写剧本失败: ' + String(err));
+    } finally {
+      setAiWriting(false);
+    }
+  };
 
   // ── Section Regeneration ──
   const handleRegenerateSection = async (section: string) => {
@@ -480,7 +669,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
 
       // Poll for result
-      const MAX_POLLS = 20;
+      const MAX_POLLS = 40; // 40 × 15s = 10 min (matches backend timeout)
       const POLL_INTERVAL = 15_000;
       for (let i = 0; i < MAX_POLLS; i++) {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
@@ -507,13 +696,70 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           console.warn('[regenerate] Poll failed:', pollErr, '— retrying...');
         }
       }
-      console.error('[regenerate] Timeout after 20 polls (~5 min)');
+      console.warn('[regenerate] Polling timed out — checking server fallback...');
+      const regenFallback = await checkServerFallback();
+      if (regenFallback) {
+        console.log('[regenerate] Recovered from server fallback after polling timeout');
+        applySectionResult(regenFallback);
+        return;
+      }
+      console.error('[regenerate] Timeout after 20 polls (~5 min) — no server data');
       setAnalysisError('重新生成超时，请重试');
     } catch (err) {
       console.error('[regenerate] Error:', err);
       setAnalysisError('提交失败：' + String(err).slice(0, 80));
     } finally {
       setRegenerateRunning(false);
+    }
+  };
+
+  // ── Supplement: extract characters + scenes + music from script text (no shots regeneration) ──
+  const handleOptimizePrompts = async () => {
+    if (optimizeRunning) return;
+    if (!prompt.trim()) return;
+    setOptimizeRunning(true);
+    setAnalysisError(null);
+    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    try {
+      const submitResp = await fetch(`${apiBase}/api/agent/script/supplement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getSharedApiKey()}` },
+        body: JSON.stringify({
+          scriptText: prompt,
+          visualStyle,
+          nodeId: id,
+        }),
+      });
+      const submitJson = await submitResp.json();
+      const { taskId } = submitJson;
+      if (!taskId) throw new Error('No taskId — server: ' + JSON.stringify(submitJson).slice(0, 120));
+
+      const MAX_POLLS = 20; // 20 × 15s = 5 min
+      const POLL_INTERVAL = 15_000;
+      for (let i = 0; i < MAX_POLLS; i++) {
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        try {
+          const json = await pollResult(taskId);
+          if (json.status === 'done' || json.status === 'completed') {
+            if (json.success) {
+              applySectionResult(json);
+            } else {
+              setAnalysisError(json.error || '补充提取失败');
+            }
+            return;
+          }
+          if (json.status === 'failed') { setAnalysisError(json.error || '优化失败'); return; }
+          if (json.status === 'lost') { setAnalysisError('补充任务丢失，请重试'); return; }
+        } catch (pollErr) {
+          console.warn('[optimize] Poll failed:', pollErr, '— retrying...');
+        }
+      }
+      setAnalysisError('补充超时，请重试');
+    } catch (err) {
+      console.error('[optimize] Error:', err);
+      setAnalysisError('提交失败：' + String(err).slice(0, 80));
+    } finally {
+      setOptimizeRunning(false);
     }
   };
 
@@ -583,12 +829,163 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const eid='e_'+ts+'_su_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
+  // Match shot to standardized character/scene profiles by text overlap
+  const matchProfiles = (shotText: string, profiles: Record<string, string> | undefined, minRatio = 0.5): string[] => {
+    if (!profiles || !shotText) return [];
+    const scored: {key: string; hits: number; ratio: number}[] = [];
+    for (const key of Object.keys(profiles)) {
+      let hitCount = 0;
+      const totalWindows = key.length - 1;
+      for (let i = 0; i < totalWindows; i++) {
+        if (shotText.includes(key.slice(i, i + 2))) hitCount++;
+      }
+      const ratio = totalWindows > 0 ? hitCount / totalWindows : 0;
+      const has3CharMatch = key.length >= 3 && Array.from({length: key.length - 2}, (_, i) => key.slice(i, i + 3)).some(w => shotText.includes(w));
+      if (hitCount >= 3 || ratio >= minRatio || has3CharMatch) {
+        scored.push({key, hits: hitCount, ratio});
+      }
+    }
+    // Sort by hits descending, best match first
+    scored.sort((a, b) => b.hits - a.hits);
+    return scored.map(s => s.key);
+  };
+
+  // Assemble full structured prompt from shot metadata fields
+  // characterProfiles & scenes: standardized KB text — reused instead of shot's independently generated prose
+  const formatShotPrompt = (sh: any, characterProfiles?: Record<string, string>, scenes?: Record<string, string>): string => {
+    const lines: string[] = [];
+    const fn = sh.shotFunction || sh.shot_function || '';
+    if (fn) lines.push(`【${fn}】`);
+    const metaParts: string[] = [];
+    if (sh.shotType) metaParts.push(`景别：${sh.shotType}`);
+    if (sh.lens) metaParts.push(`焦段：${sh.lens}`);
+    if (sh.angle) metaParts.push(`机位：${sh.angle}`);
+    if (sh.shotSide) metaParts.push(`拍摄面：${sh.shotSide}`);
+    if (metaParts.length) lines.push(metaParts.join(' | '));
+    if (sh.composition) lines.push(`构图：${sh.composition}`);
+    if (sh.depthLayers) lines.push(`深度层：${sh.depthLayers}`);
+    // Character info block — position/action from shot, identity from standardized profile
+    const charFields = [sh.characterPosition, sh.characterFacing, sh.characterAction, sh.characterExpression, sh.characterProps].filter(Boolean);
+    if (charFields.length) {
+      lines.push(`人物：${charFields.join('；')}`);
+    }
+    if (sh.keyLight || sh.lighting) lines.push(`主光：${sh.keyLight || sh.lighting}`);
+    if (sh.fillLight) lines.push(`辅光：${sh.fillLight}`);
+    if (sh.rimLight) lines.push(`轮廓光：${sh.rimLight}`);
+    if (sh.specialLight) lines.push(`特殊光效：${sh.specialLight}`);
+    if (sh.color) lines.push(`色彩：${sh.color}`);
+    if (sh.material) lines.push(`材质：${sh.material}`);
+    if (sh.atmosphere) lines.push(`氛围：${sh.atmosphere}`);
+
+    // Match standardized profiles by text overlap with shot fields
+    const allCharText = [sh.characterPosition, sh.characterAction, sh.characterFacing, sh.characterExpression].filter(Boolean).join(' ');
+    const shotSceneText = sh.scene || '';
+    const matchedChars = matchProfiles(allCharText, characterProfiles, 0.5);
+    const allScenes = matchProfiles(shotSceneText, scenes, 0.6);
+    // Only take the single best-matching scene — one shot = one location
+    const matchedScenes = allScenes.length > 0 ? [allScenes[0]] : [];
+
+    // Include the shot's visual prose as cinematography reference (not as identity source)
+    const visual = sh.visualPrompt || sh.contentCN || sh.genPrompt || '';
+
+    // Build reference section with standardized profiles
+    const hasRefs = matchedChars.length > 0 || matchedScenes.length > 0;
+    if (hasRefs || visual) {
+      lines.push('────────────────────────────');
+    }
+
+    // Standardized character profiles — reused from analysis, NOT independently generated
+    for (const name of matchedChars) {
+      lines.push(`## 角色设定：@${name}`);
+      const profile = characterProfiles![name];
+      // Compact: basic info (~100 chars) + clothing/face summary (~500 chars)
+      const basicMatch = profile.match(/###\s*基本信息\n([\s\S]*?)(?=\n###|$)/);
+      const faceMatch = profile.match(/###\s*面部与发型\n([\s\S]*?)(?=\n###|$)/);
+      const clothMatch = profile.match(/###\s*服装\n([\s\S]*?)(?=\n###|$)/);
+      let compact = '';
+      if (basicMatch) compact += basicMatch[1].trim().slice(0, 150) + '\n';
+      if (faceMatch) compact += '面部：' + faceMatch[1].trim().split('\n').slice(0, 2).join('；').slice(0, 200) + '\n';
+      if (clothMatch) compact += '服装：' + clothMatch[1].trim().split('\n').slice(0, 2).join('；').slice(0, 200);
+      lines.push(compact.trim() || profile.slice(0, 300));
+    }
+
+    // Standardized scene descriptions — reused from analysis
+    for (const name of matchedScenes) {
+      lines.push(`## 场景设定：@${name}`);
+      const desc = scenes![name];
+      // Compact: basic info + space structure summary
+      const basicMatch = desc.match(/###\s*基本信息\n([\s\S]*?)(?=\n###|$)/);
+      const spaceMatch = desc.match(/###\s*空间结构\n([\s\S]*?)(?=\n###|$)/);
+      let compact = '';
+      if (basicMatch) compact += basicMatch[1].trim().slice(0, 150) + '\n';
+      if (spaceMatch) compact += '空间：' + spaceMatch[1].trim().split('\n').slice(0, 2).join('；').slice(0, 200);
+      lines.push(compact.trim() || desc.slice(0, 300));
+    }
+
+    // Shot's visual prose — only as fallback when no standardized profiles matched.
+    // Otherwise redundant (and often conflicting) with the standardized text above.
+    if (visual && !hasRefs) {
+      lines.push(visual);
+    }
+
+    // @mention directive for I2I reference linking
+    const allMentions = [...matchedChars, ...matchedScenes];
+    if (allMentions.length > 0) {
+      lines.push('────────────────────────────');
+      lines.push('参考图：' + allMentions.map(m => '@' + m).join(' '));
+      lines.push('严格遵循角色设定与场景设定。人物外貌、服装、场景结构以上方标准化设定为准，参考图作为身份锁定源。');
+    }
+
+    return lines.join('\n');
+  };
+
   const createShotNodes = () => {
     const ov=getOverview();const ss=ov?.shots||[];if(!ss.length)return;
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
+    // Standardized profiles — reused as identity source for all shots
+    const charProfiles = (ov?.characterProfiles || getCharacters() || {}) as Record<string, string>;
+    const sceneDescs = (ov?.scenes || getScenes() || {}) as Record<string, string>;
+    // ── Sync existing shot nodes: update gen.prompt from meta.shot data ──
+    const existingChildren = new Map<string, string>(); // shotKey → nodeId
+    nextEdges.forEach((e: any) => {
+      if (e.from?.nodeId === id) {
+        const child = next.get(e.to?.nodeId);
+        if (child && child.type === 'image.generate' && (child.meta as any)?.shot) {
+          const sh = (child.meta as any).shot;
+          const key = (sh.shotNumber || sh.shotType) ? `${sh.shotType || ''}#${sh.shotNumber || ''}` : child.title;
+          existingChildren.set(key, child.id);
+        }
+      }
+    });
+    let syncedCount = 0;
+    ss.forEach((sh: any) => {
+      const key = `${sh.shotType || ''}#${sh.shotNumber || ''}`;
+      const existingId = existingChildren.get(key);
+      if (existingId) {
+        const prompt = formatShotPrompt(sh, charProfiles, sceneDescs);
+        if (prompt) {
+          const existing = next.get(existingId);
+          if (existing) {
+            const meta = { ...(existing.meta || {}), gen: { ...((existing.meta as any)?.gen || {}), prompt } };
+            next.set(existingId, { ...existing, meta });
+            syncedCount++;
+          }
+        }
+      }
+    });
+    if (syncedCount > 0) console.log('[ShotNode] Synced prompts for', syncedCount, 'existing shot nodes');
+    // ── Create new shot nodes (skip if already exists) ──
+    const existingKeys = new Set(existingChildren.keys());
+    const newShots = ss.filter((sh: any) => !existingKeys.has(`${sh.shotType || ''}#${sh.shotNumber || ''}`));
+    if (!newShots.length && syncedCount > 0) {
+      useCanvasStore.setState({ nodes: next, edges: nextEdges });
+      canvasStore.triggerSync();
+      console.log('[ShotNode] All', syncedCount, 'shot nodes already exist — prompts synced, no new nodes created');
+      return;
+    }
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
-    const ts=Date.now();const grid=getGrid(ss.length,5,bx,by,380,200,40,80);
-    ss.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:grid[si].x,y:grid[si].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:(sh.visualPrompt||sh.contentCN||''),model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotType:sh.shotType,cameraMovement:sh.cameraMovement,angle:sh.angle,lens:sh.lens,composition:sh.composition,emotion:sh.emotion}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    const ts=Date.now();const grid=getGrid(newShots.length,5,bx,by,380,200,40,80);
+    newShots.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;const prompt = formatShotPrompt(sh, charProfiles, sceneDescs) || (sh.genPrompt || sh.visualPrompt || sh.contentCN || '');next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:grid[si].x,y:grid[si].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotFunction:sh.shotFunction||'',shotType:sh.shotType,shotSide:sh.shotSide||'',angle:sh.angle,lens:sh.lens,composition:sh.composition,depthLayers:sh.depthLayers||'',characterPosition:sh.characterPosition||'',characterFacing:sh.characterFacing||'',characterAction:sh.characterAction||'',characterExpression:sh.characterExpression||'',characterProps:sh.characterProps||'',foreground:sh.foreground||'',midground:sh.midground||'',background:sh.background||'',lightSources:sh.lightSources||'',keyLight:sh.keyLight||'',fillLight:sh.fillLight||'',rimLight:sh.rimLight||'',specialLight:sh.specialLight||'',lighting:sh.keyLight||sh.lightSources||'',color:sh.color,material:sh.material,atmosphere:sh.atmosphere}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_'+si;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -678,21 +1075,38 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           position: 'relative',
           transition: `all var(--tap-dur-fast) var(--tap-ease)`,
         }}>
-          {/* Hint text — top left */}
-          <span style={{ fontSize: 9, color: 'var(--tap-text-4)', lineHeight: 1 }}>点击按键自动生成节点</span>
+          {/* Hint / Results summary */}
+          {(() => {
+            const ov = getOverview();
+            const hasData = ov?.shots?.length > 0;
+            if (hasData) {
+              const shotCount = ov!.shots!.length;
+              const charCount = getCharacters() ? Object.keys(getCharacters()!).length : 0;
+              const sceneCount = getScenes() ? Object.keys(getScenes()!).length : 0;
+              const shotTypes = [...new Set(ov!.shots!.map((s: any) => s.shotType).filter(Boolean))].join(' ');
+              return (
+                <div style={{ fontSize: 9, color: 'var(--tap-text-4)', lineHeight: 1.4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ color: 'var(--tap-text-2)', fontWeight: 600 }}>分析完成</span>
+                  <span>{shotCount}镜分镜 · {charCount}名角色 · {sceneCount}个场景</span>
+                  {shotTypes && <span style={{ color: 'var(--tap-text-3)' }}>{shotTypes}</span>}
+                </div>
+              );
+            }
+            return <span style={{ fontSize: 9, color: 'var(--tap-text-4)', lineHeight: 1 }}>点击按键自动生成节点</span>;
+          })()}
 
           {/* Loading / Status */}
-          {(genRunning || sceneRunning || charRunning || soundRunning || regenerateRunning) && (
+          {(genRunning || sceneRunning || charRunning || soundRunning || regenerateRunning || optimizeRunning || reverseRunning) && (
             <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'4px 0' }}>
               <div style={{ width:14,height:14,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.1)',borderTopColor:'var(--tap-accent)',animation:'tap-spin 0.8s linear infinite' }} />
               <span style={{ fontSize:10,color:'var(--tap-text-4)' }}>
-                {regenerateRunning ? '重新生成中…' : soundRunning ? '音乐设计中…' : sceneRunning ? '提取场景中…' : charRunning ? '提取角色中…' : 'Agent 分析中…'}
+                {optimizeRunning ? '优化提示词中…' : reverseRunning ? '反推提示词中…' : regenerateRunning ? '重新生成中…' : soundRunning ? '音乐设计中…' : sceneRunning ? '提取场景中…' : charRunning ? '提取角色中…' : 'Agent 分析中…'}
               </span>
             </div>
           )}
 
           {/* Error banner — shown when analysis fails (lost/failed/timeout) */}
-          {analysisError && !genRunning && (
+          {analysisError && !genRunning && !optimizeRunning && (
             <div style={{
               display:'flex',alignItems:'center',justifyContent:'space-between',gap:6,
               padding:'6px 8px',borderRadius:6,
@@ -706,8 +1120,8 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
             </div>
           )}
 
-          {/* 4 category buttons — text always visible, button bg/border reveal on hover */}
-          {analysisDoneRef.current && (
+          {/* 4 category buttons — always visible when there's text or data */}
+          {(analysisDoneRef.current || getOverview()?.shots?.length > 0 || prompt.trim()) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
                 { label: '场景', section: 'scenes', count: getScenes() ? Object.keys(getScenes()!).length : 0, unit: '场', preview: getScenes() ? Object.keys(getScenes()!).join('、') : '', onClick: clickScene },
@@ -789,6 +1203,37 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               ))}
             </div>
           )}
+          {/* ── Optimize button — shows when there's text, calls supplement endpoint ── */}
+          {prompt.trim() && (
+            <div
+              onClick={handleOptimizePrompts}
+              title="将角色外观和场景环境注入每条分镜提示词"
+              style={{
+                marginTop: 4, padding: '6px 10px', cursor: optimizeRunning ? 'default' : 'pointer',
+                borderRadius: 6, background: 'transparent', border: '1px dashed rgba(16,255,209,0.3)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                opacity: optimizeRunning ? 0.5 : 1,
+                transition: 'background 0.25s ease, border-color 0.25s ease',
+              }}
+              onMouseEnter={e => {
+                if (!optimizeRunning) {
+                  e.currentTarget.style.background = 'rgba(16,255,209,0.08)';
+                  e.currentTarget.style.borderColor = '#10FFD1';
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(16,255,209,0.3)';
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#10FFD1' }}>
+                {optimizeRunning ? '⏳ 提取中…' : '🎯 提取角色+场景+音乐'}
+              </span>
+              <span style={{ fontSize: 10, color: 'rgba(16,255,209,0.6)' }}>
+                {getOverview()?.shots?.length || 0}镜已有 → 补充角色+场景
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -819,6 +1264,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               placeholder="请填入风格，如真人/动漫"
               style={{ width:'100%',background:'#fff',border:'none',borderBottom:'1px solid rgba(0,0,0,0.10)',color:'#333',fontSize:11,padding:'8px 14px',outline:'none' }}
               onPointerDownCapture={e=>e.stopPropagation()} onMouseDownCapture={e=>e.stopPropagation()} />
+            {/* moved to bottom bar */}
             <div style={{ padding: '4px 12px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
               <RefStrip nodeId={id} refUrls={data.refUrls} />
               <div style={{ flex: 1 }} />
@@ -853,11 +1299,24 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 overflowWrap: 'break-word', wordBreak: 'break-word',
               }}
             />
-            {/* Bottom bar — send capsule at right:12px, bottom:8px (measured from ImageGenerateNode) */}
+{/* ── AI Writer removed from inside the card — lives below as separate sub-unit ── */}
+            {/* Bottom bar — AI 写剧本 toggle + send capsule */}
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px',
-              padding: '4px 12px 8px 8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
+              padding: '4px 12px 8px',
             }}>
+              {/* AI 写剧本 toggle */}
+              <span onClick={() => { setShowAiWriter(!showAiWriter); setAiBrief(''); }}
+                style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: showAiWriter ? 'var(--tap-accent)' : '#666',
+                  background: showAiWriter ? 'rgba(0,207,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  padding: '3px 10px', borderRadius: 10,
+                  cursor: 'pointer', userSelect: 'none',
+                  border: showAiWriter ? '1px solid rgba(0,207,255,0.20)' : '1px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >{aiWriting ? '⏳ 写作中...' : showAiWriter ? '✕ 收起' : 'AI 写剧本'}</span>
               {/* Send — glass pill */}
               <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'55px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
                 <button onClick={handleGenerate} disabled={genRunning}
@@ -898,6 +1357,84 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                 document.body
               )}
           </div>
+          {/* ── AI Writer sub-unit — separate panel below main card ── */}
+          {showAiWriter && (
+            <div style={{
+              background: '#fff',
+              borderRadius: 'var(--tap-r-xl)',
+              pointerEvents: 'auto',
+              marginTop: '8px',
+              boxShadow: 'inset 0 0 0 1px rgba(0,207,255,0.06), inset 0 0 10px rgba(0,207,255,0.03), 0 0 0 3px rgba(0,207,255,0.04), 0 0 0 8px rgba(0,207,255,0.02), 0 2px 12px rgba(0,0,0,0.03)',
+              animation: 'tap-fade-in 80ms var(--tap-ease)',
+            }}>
+              {/* Brief textarea — borderless, no background */}
+              <textarea className="no-wheel" value={aiBrief} onChange={e => setAiBrief(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAiWrite(); } }}
+                placeholder={'1、输入想法生成剧本，2、补充内容请直接点击发送'}
+                rows={3}
+                style={{ width: '100%', background: 'transparent', border: 'none', borderRadius: 0, color: '#333', fontSize: 10, padding: '8px 14px', outline: 'none', resize: 'vertical', minHeight: '52px', lineHeight: 1.5, overflowWrap: 'break-word', wordBreak: 'break-word', boxSizing: 'border-box' }}
+                onPointerDownCapture={e => e.stopPropagation()}
+                onMouseDownCapture={e => e.stopPropagation()} />
+              {/* Bottom bar — "/" format + send */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '4px 12px 8px' }}>
+                {/* Slash command — format selector */}
+                <div style={{ position: 'relative' }}>
+                  <span onClick={() => setShowFormatMenu(!showFormatMenu)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 20, height: 20, borderRadius: 6,
+                      fontSize: 12, fontWeight: 600,
+                      color: showFormatMenu ? 'var(--tap-accent)' : '#999',
+                      background: showFormatMenu ? 'rgba(0,207,255,0.10)' : 'transparent',
+                      cursor: 'pointer', userSelect: 'none',
+                      border: showFormatMenu ? '1px solid rgba(0,207,255,0.25)' : '1px solid transparent',
+                      transition: 'all 0.12s',
+                    }}
+                  >/</span>
+                  {showFormatMenu && (
+                    <>
+                      <div style={{ position:'fixed', inset:0, zIndex:99998 }} onClick={() => setShowFormatMenu(false)} />
+                      <div style={{
+                        position: 'absolute', bottom: '100%', left: 0,
+                        marginBottom: 4, zIndex: 99999,
+                        background: '#fff', border: '1px solid var(--tap-border)',
+                        borderRadius: 8, boxShadow: 'var(--tap-shadow-lg)',
+                        padding: 4, minWidth: 110,
+                      }}>
+                        {['TVC广告','品牌概念片','短片','短剧','电影','预告片','MV'].map(fmt => (
+                          <div key={fmt} onClick={() => { setAiFormat(fmt); setShowFormatMenu(false); }}
+                            style={{
+                              fontSize: 10, padding: '5px 10px', borderRadius: 4,
+                              cursor: 'pointer',
+                              background: aiFormat === fmt ? 'rgba(0,207,255,0.08)' : 'transparent',
+                              color: aiFormat === fmt ? 'var(--tap-accent)' : '#666',
+                              fontWeight: aiFormat === fmt ? 600 : 400,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,207,255,0.08)'}
+                            onMouseLeave={e => e.currentTarget.style.background = aiFormat === fmt ? 'rgba(0,207,255,0.08)' : 'transparent'}
+                          >/{fmt}</div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {/* Send button */}
+                <button onClick={handleAiWrite} disabled={aiWriting || (!prompt.trim() && !aiBrief.trim())}
+                  style={{
+                    width: '22px', height: '22px', borderRadius: '50%',
+                    background: (prompt.trim() || aiBrief.trim()) ? 'var(--tap-accent)' : '#ddd',
+                    color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: (prompt.trim() || aiBrief.trim()) ? 'pointer' : 'default',
+                    flexShrink: 0, fontWeight: 800, fontSize: '11px',
+                    boxShadow: (prompt.trim() || aiBrief.trim()) ? '0 1.5px 4px rgba(0,207,255,0.25)' : 'none',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={e => { if ((prompt.trim() || aiBrief.trim()) && !aiWriting) { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,207,255,0.35)'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = (prompt.trim() || aiBrief.trim()) ? '0 1.5px 4px rgba(0,207,255,0.25)' : 'none'; }}
+                >{aiWriting ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#fff" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -68,13 +68,11 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-12 02:25 |
+| 最后更新 | 2026-07-13 16:40 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `ec84685` — 后端: 单独板块异步再生+默认禁止歌词 — regenerate/characters/scenes/music 4端点全部taskId异步化，复用scriptTasks轮询。SOUND_COMPOSER默认instrumental，禁用Rap流派名裸写防止Suno生成歌词 |
-| 上一提交 | `102a360` — 前端: ShotNode异步轮询+section选择性patch+lost/failed处理+兼容同步/异步响应 |
-| D盘备份 | `D:/direx-backup-20260712-0224` |
-| 已完成板块 | ①~⑯ 同前 ⑰ 后端: 4端点异步化(regenerate/characters/scenes/music)+轮询section字段+SOUND_COMPOSER默认instrumental |
-| 下一个板块 | 前端 ShotNode 需改用新的异步端点（已写进 CLAUDE-contract.md 合约） |
+| 最新提交 | `ec84685` — 后端: 单独板块异步再生+默认禁止歌词 |
+| 当前板块 | ⑱ 后端: 新增 `/api/agent/script/optimize-prompts` 分镜优化端点（✅ 已部署）+ 删除 profiles.ts 英文生图提示词段 |
+| 下一个板块 | 前端: ShotNode 加「🎯 优化提示词」按钮（已委托，参见 CLAUDE-frontend.md 末尾） |
 
 ---
 
@@ -383,6 +381,116 @@ ls server/data/canvas-state.json.bak 2>/dev/null && echo "BAK exists" || echo "N
 # - 拖拽节点 → F5 刷新 → 位置不变
 # - taskkill 杀进程 → 重启 → 数据完整（测试心跳恢复）
 ```
+
+---
+
+## 前端待办 — 分镜数据滞留问题（2026-07-13，后端工程师委托）
+
+> ⚠️ **这是从后端工程师交棒给前端工程师的工作。后端已完成，前端需要对接。**
+
+### 发生了什么
+
+用户提交剧本分析 → 后端 GPT-5.4 生成 21 镜完整分镜数据 → **数据已到达，但前端 ShotNode 抓不到结果。**
+
+### 后端已完成的改动（`server/src/index.ts`，已部署运行中）
+
+**`POST /api/agent/script/overview`** 现在接收新字段 `nodeId`：
+
+```json
+{ "scriptText": "...", "visualStyle": "...", "nodeId": "node-xxx" }
+```
+
+分析完成后，后端**直接写入画布节点的 `meta.gen`**，绕开前端轮询依赖：
+
+```js
+// 管道完成后自动执行（index.ts 第 896-915 行）
+node.meta.gen.scriptOverview = { shots: [...], characterProfiles: {...}, rawOutput: "...", durationMs: ... };
+node.meta.gen.scriptScenes = {...};
+node.meta.gen.scriptSceneArchitecture = {...};
+node.meta.gen.scriptSunoPrompts = {...};
+node.meta.gen.scriptSoundScenes = {...};
+node.meta.gen.scriptCharacters = {...};
+writeJSON(CANVAS_FILE, canvasState); // 即时落盘
+```
+
+**轮询端点仍正常工作** (`GET /api/agent/script/result/:taskId`) — 21 shots + 10 角色全部返回。
+
+### 前端需要改的地方
+
+#### 1. ShotNode.tsx — 传 nodeId（已改 ✅）
+
+```diff
+- body:JSON.stringify({scriptText:prompt,visualStyle}),
++ body:JSON.stringify({scriptText:prompt,visualStyle,nodeId:id}),
+```
+
+#### 2. ShotNode.tsx — 使用 scriptOverview 数据展示结果（❌ 未做）
+
+**当前**：ShotNode 始终显示"点击按键自动生成节点"提示文字，`phase` state 设了但从未用于条件渲染。
+
+**需要**：当 `getOverview()?.shots?.length > 0` 时，展示分析结果摘要：
+- X 镜分镜（`ECU#1 WS#2 CU#3 ...`）
+- X 名角色
+- X 个场景
+- 点"分镜"按钮 → 创建 21 个 ImageGenerateNode
+
+`createShotNodes()` 当前已能从 `getOverview()?.shots` 读取并创建节点，问题是用户看不到数据已到达——需要视觉反馈。
+
+#### 3. ImageGenerateNode.tsx — 分镜节点初始提示词（❌ 未做）
+
+**当前**：`createShotNodes()` 创建 ImageGenerateNode 时设置 `meta.gen.prompt` = `s.genPrompt || s.visualPrompt || s.contentCN`。
+
+**问题**：21 个 `meta.shot` 字段（shotFunction/shotType/lens/angle/composition/depthLayers/lighting/color/atmosphere）存储在节点上但**从未在前端 UI 展示**。
+
+**需要**：把 `meta.shot` 的分镜元数据格式化为可读文本，默认填入 ImageGenerateNode 的 textarea（`meta.gen.prompt`）作为初始内容。用户打开节点底部面板就能看到完整的镜头参数 + 画面描述。
+
+**示例格式**（21 个节点的 `canvas-state.json` 已预填此格式，但 IndexedDB 旧数据会覆盖）：
+```
+【钩子】
+景别：ECU | 焦段：85mm | 机位：高角度俯拍 | 拍摄面：局部特写
+构图：对角线
+深度：前景虚化的键盘边缘→...
+主光：显示器柔光，6500K...
+色彩：炭黑与冰灰为主...
+氛围：被工具拖住的静止感...
+────────────────────────────
+凌晨的近未来创作工作室，画面紧贴一只骨节清晰的亚洲男性右手...
+```
+
+**实现**：在 `createShotNodes()` 里组装这个格式，写入 `meta.gen.prompt`。
+
+#### 4. ImageGenerateNode.tsx — 显示分镜元数据（❌ 未做）
+
+**当前**：ImageGenerateNode 有 `data.shot`（来自 `n.meta.shot`）但 TypeScript 接口没声明它，也没渲染它。
+
+**需要**：在 ImageGenerateNode 的标题栏或节点 body 顶部，显示 `shot.shotType`（如 "ECU"）+ `shot.shotFunction`（如 "钩子"）。小字、不占地方，但用户扫一眼就知道每个节点对应哪个镜头。
+
+**改动点**：
+1. `ImageGenNodeData` 接口加 `shot?: Record<string, any>`
+2. 节点顶部（标题行）在 `data.shot` 存在时渲染镜头标识
+
+### 验证步骤
+
+1. 清 IndexedDB：`F12 → Application → IndexedDB → direx-canvas → Delete database`
+2. 刷新页面
+3. 选中任意 ShotNode → 应看到分镜/角色/场景数量
+4. 点"分镜"按钮 → 21 个 ImageGenerateNode 出现在画布上
+5. 选中任意分镜节点 → 底部 textarea 显示结构化镜头参数 + 画面描述
+
+### 当前数据状态
+
+- `canvas-state.json` 中 4 个 ShotNode 已有 `meta.gen.scriptOverview`（21/26/34/27 shots）
+- 21 个 ImageGenerateNode（ECU #1 到 WS #21）已有 `meta.shot` 分镜元数据
+- 后端运行中 (`localhost:3001`)，API 正常
+
+### 改动范围
+
+| 文件 | 改动 |
+|------|------|
+| `src/components/nodes/ShotNode.tsx` | phase 条件渲染 + 结果摘要 UI |
+| `src/components/nodes/ImageGenerateNode.tsx` | 接口加 `shot` 字段 + 标题栏镜头标识 + `createShotNodes` 内 prompt 格式组装 |
+
+**不改的文件**：`server/src/` — 后端已完成；
 
 ---
 
