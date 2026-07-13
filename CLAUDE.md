@@ -68,11 +68,11 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-13 16:40 |
+| 最后更新 | 2026-07-13 23:00 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `ec84685` — 后端: 单独板块异步再生+默认禁止歌词 |
-| 当前板块 | ⑱ 后端: 新增 `/api/agent/script/optimize-prompts` 分镜优化端点（✅ 已部署）+ 删除 profiles.ts 英文生图提示词段 |
-| 下一个板块 | 前端: ShotNode 加「🎯 优化提示词」按钮（已委托，参见 CLAUDE-frontend.md 末尾） |
+| 最新提交 | `3696676` — GPT-5.6 直接看图反推提示词 + 多项后端修复 |
+| 当前板块 | 后端: `reversePromptFromImages()` — GPT-5.6 一步看图→提示词，runTextPipeline 优先直反推 |
+| 下一个板块 | 待定 |
 
 ---
 
