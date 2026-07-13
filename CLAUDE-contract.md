@@ -11,6 +11,8 @@
 
 | 状态 | 谁 | 在做什么 | 涉及 API/文件 | 开始时间 |
 |------|-----|---------|-------------|---------|
+| 🟡 进行中 | 后端 | GPT-5.6 直接看图反推提示词 — `reversePromptFromImages()` 已部署，`/api/agent/text` 现在一步到位 | server/src/systems/agent/pipeline.ts | 2026-07-13 |
+| ⏳ 等待前端 | 后端→前端 | **ShotNode 反推空节点修复** — `handleGenerate` 的 `!prompt.trim()` 拦住了空节点反推（详见交接信号） | ShotNode.tsx | 2026-07-13 |
 | ✅ 已完成 | 后端 | 分镜结果直写画布节点 + `[推断]` 标记修复 + 前端 4 项待办移交 | server/src/index.ts, profiles.ts | 2026-07-13 |
 | ✅ 已完成 | 前端 | ShotNode 分镜提示词组装（formatShotPrompt 24字段→结构化prompt）+ 结果摘要 UI + ImageGenerateNode 镜头标识 | ShotNode.tsx, ImageGenerateNode.tsx | 2026-07-13 |
 | ⬜ 待做 | 前端 | 后续迭代 — Markdown 渲染、SSE 通知流 | QChatPanel, SSE | — |
@@ -25,6 +27,7 @@
 
 | 时间 | 从 | 到 | 消息 |
 |------|-----|-----|------|
+| 2026-07-13 23:00 | 后端 | 前端 | 🔧 **ShotNode 反推空节点修复** — `handleGenerate()` 第118行 `if (genRunningRef.current \|\| !prompt.trim()) return;` 导致空 textarea 连图片后点生成无效。反推只需要图片、文本可选。需改为：`if (genRunningRef.current) return;` 然后把 `if (data.refUrls?.length > 0)` 分支放在 `!prompt.trim()` 检查之前——有图就走反推（不管 textarea 空不空），没图才要求有文本走剧本分析。 |
 | 2026-07-13 | 前端 | 后端 | ✅ **分镜提示词组装完成** — `formatShotPrompt(sh)` 把 `meta.shot` 24字段（shotFunction/shotType/lens/angle/composition/depthLayers/character*/lighting/color/material/atmosphere + visualPrompt）组装为结构化英文prompt。前端不再丢数据。**需后端确认**：`regenerate` storyboard 和 `overview` 端点返回的每个 shot 都包含全部 24 字段，无截断。 |
 | 2026-07-12 | 后端 | 前端 | ✅ **移除所有硬编码提示词截断** — T2I翻译不再限制maxOutputTokens、不再截断MAX_PROMPT_LEN；音乐元数据/规划器不再截断剧本。全量内容完整送达LLM和生图模型。 |
 | 2026-07-11 | 后端 | 前端 | ⚠️ **scriptTasks 持久化了！** `GET /api/agent/script/result/:taskId` 新增 `status: 'lost'` 响应（服务器重启导致任务丢失时返回）。前端需处理此状态，显示"任务丢失"而非无限转圈。详情见下方 Script Task 定义。 |
