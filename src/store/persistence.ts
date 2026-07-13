@@ -450,11 +450,14 @@ export async function loadFromDB() {
       });
     }
 
-    // ── Auto-heal: if IndexedDB is bloated (>5MB), nuke it and fall back to server ──
+    // ── Auto-heal: if IndexedDB is bloated (>5MB), skip it and load from server ──
+    // Do NOT clearAllData() — that nukes other projects. Just use server as source of truth.
     const stateSize = JSON.stringify({ nodes: [...nodeMap.values()], edges: [...edgeMap.values()] }).length;
     if (stateSize > 5_000_000) {
-      console.warn(`[persist] IndexedDB state ${(stateSize/1e6).toFixed(1)}MB — auto-clearing, falling back to server`);
-      await clearAllData();
+      console.warn(`[persist] IndexedDB state ${(stateSize/1e6).toFixed(1)}MB — skipping, loading from server`);
+      // Clean up only this canvas's bloated data from IndexedDB (keep other projects intact)
+      const cid = getCanvasId();
+      try { await db.nodes.where({ canvasId: cid }).delete(); await db.edges.where({ canvasId: cid }).delete(); } catch {}
       return false; // triggers loadFromServer
     }
 
@@ -482,6 +485,53 @@ export async function getStorageUsage(): Promise<{usedMB:number;quotaMB:number;p
 }
 export async function clearAllData():Promise<void>{
   try{await db.projects.clear();await db.canvases.clear();await db.nodes.clear();await db.edges.clear();await db.assets.clear();await db.jobs.clear();console.log('[persist] All data cleared');}catch(e){console.error('[persist] Clear failed:',e);}
+}
+
+// ── Project recovery: restore known projects from server backups ──
+// IndexedDB auto-clear wipes ALL tables including db.projects. This restores
+// projects whose canvas data was backed up as separate JSON files on the server.
+const KNOWN_PROJECT_BACKUPS: Record<string, string> = {
+  'queen-surli': '/api/output/_queen-restore.json',
+  'sync-payload': '/api/output/_sync-restore.json',
+};
+
+export async function restoreMissingProjects(): Promise<number> {
+  let restored = 0;
+  for (const [pid, url] of Object.entries(KNOWN_PROJECT_BACKUPS)) {
+    try {
+      const exists = await db.projects.get(pid);
+      if (exists) { console.log('[persist] Project', pid, 'already exists, skipping'); continue; }
+      const resp = await fetch(url);
+      if (!resp.ok) { console.warn('[persist] Cannot fetch backup for', pid, ':', resp.status); continue; }
+      const data = await resp.json();
+      if (!data.nodes?.length) { console.warn('[persist] Empty backup for', pid); continue; }
+
+      const cid = pid + '-canvas';
+      await db.transaction('rw', [db.projects, db.canvases, db.nodes, db.edges], async () => {
+        await db.projects.put({ id: pid, name: '苏尔里女王', description: '', updatedAt: new Date().toISOString() });
+        await db.canvases.put({ id: cid, projectId: pid, name: '主画布', viewport: { x: 0, y: 0, zoom: 1 }, updatedAt: new Date().toISOString() });
+        for (const n of data.nodes) {
+          await db.nodes.put({
+            id: n.id, canvasId: cid, type: n.type || 'image.generate', title: n.title || '',
+            pos: n.pos || { x: 0, y: 0 }, size: n.size || { width: 320, height: 200 },
+            ports: n.ports || [], status: n.status || 'idle',
+            meta: n.meta || {}, createdAt: n.createdAt || new Date().toISOString(), updatedAt: n.updatedAt || new Date().toISOString(),
+          });
+        }
+        for (const e of data.edges || []) {
+          await db.edges.put({
+            id: e.id, canvasId: cid, from: e.from || { nodeId: '', handle: 'out' }, to: e.to || { nodeId: '', handle: 'in' },
+            dataType: e.dataType || 'any', style: e.style || {}, meta: e.meta || {}, updatedAt: new Date().toISOString(),
+          });
+        }
+      });
+      restored++;
+      console.log('[persist] ✅ Restored project', pid, ':', data.nodes.length, 'nodes,', (data.edges || []).length, 'edges');
+    } catch (err) {
+      console.error('[persist] Failed to restore project', pid, ':', err);
+    }
+  }
+  return restored;
 }
 if(typeof window!=='undefined'){(window as any).__direxStorage={getUsage:getStorageUsage,clearAll:clearAllData};}
 
