@@ -1,9 +1,12 @@
 /* === Server Config === */
-/* .env + persisted keys + agent profile */
+/* .env + agent profile. API keys live in .env, NOT in agent-config.json */
 import 'dotenv/config';
 import { readJSON, writeJSON } from './systems/db/store.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const CONFIG_PATH = 'data/agent-config.json';
+const ENV_PATH = path.join(process.cwd(), '.env');
 
 // ─── Key labels ────────────────────────────────
 export const KEY_LABELS: Record<string, string> = {
@@ -104,26 +107,68 @@ export function updateProfile(patch: Record<string, unknown>): any {
   return updated;
 }
 
-// ─── Persisted Keys ────────────────────────────
+// ─── Persisted Keys (.env file, NOT agent-config.json) ──
+let envCache: string | null = null;
+function readEnvFile(): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    const raw = fs.readFileSync(ENV_PATH, 'utf-8');
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const k = trimmed.slice(0, eq).trim();
+      const v = trimmed.slice(eq + 1).trim();
+      if (k) out[k] = v;
+    }
+  } catch {}
+  return out;
+}
+function writeEnvFile(vars: Record<string, string>): void {
+  try {
+    const existing = readEnvFile();
+    const merged = { ...existing, ...vars };
+    const lines: string[] = [];
+    for (const [k, v] of Object.entries(merged)) {
+      lines.push(`${k}=${v}`);
+    }
+    fs.writeFileSync(ENV_PATH, lines.join('\n') + '\n', 'utf-8');
+    envCache = null;
+  } catch (e) { console.error('[config] Failed to write .env:', e); }
+}
+
 export function loadKeys(): void {
-  const profile = getProfile();
-  const keys = profile._keys || {};
-  for (const [k, v] of Object.entries(keys)) {
-    if (v && !process.env[k]) process.env[k] = v as string;
-  }
-  if (Object.keys(keys).length > 0) console.log(`[config] Loaded ${Object.keys(keys).length} persisted keys`);
+  // 1. .env is primary (loaded by dotenv/config already)
+  // 2. Migrate legacy keys from agent-config.json if present
+  try {
+    const profile = getProfile();
+    const legacyKeys = profile._keys || {};
+    if (Object.keys(legacyKeys).length > 0) {
+      console.log('[config] Migrating legacy keys from agent-config.json → .env');
+      writeEnvFile(legacyKeys as Record<string, string>);
+      // Set in current process too
+      for (const [k, v] of Object.entries(legacyKeys)) {
+        if (v && !process.env[k]) process.env[k] = v as string;
+      }
+      // Remove keys from JSON after migration
+      updateProfile({ _keys: {} });
+      console.log('[config] Keys migrated — agent-config.json cleaned');
+    }
+  } catch (e) { console.warn('[config] Key migration skipped:', e); }
+  // Log loaded key status
+  const configured = Object.keys(KEY_LABELS).filter(k => process.env[k]);
+  if (configured.length > 0) console.log(`[config] Loaded ${configured.length} keys: ${configured.join(', ')}`);
 }
 
 export function persistKey(envVar: string, value: string): void {
-  const profile = getProfile();
-  if (!profile._keys) profile._keys = {};
-  profile._keys[envVar] = value;
-  updateProfile({ _keys: profile._keys });
+  process.env[envVar] = value;
+  writeEnvFile({ [envVar]: value });
 }
 
 export function clearPersistedKey(envVar: string): void {
-  const profile = getProfile();
-  if (profile._keys) { delete profile._keys[envVar]; updateProfile({ _keys: profile._keys }); }
+  delete process.env[envVar];
+  writeEnvFile({ [envVar]: '' });
 }
 
 // ─── Hidden Keys ───────────────────────────────

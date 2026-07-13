@@ -11,14 +11,5 @@
   "updatedAt": "2026-06-24T11:08:02.615Z",
   "hiddenKeys": [
     "BANANA_API_KEY"
-  ],
-  "_keys": {
-    "NANO_BANANA_PRO_API_KEY": "sk-fake-test-key",
-    "KIE_BASE_URL": "https://api.kie.ai/api/v1",
-    "KIE_API_KEY": "70a9240cf66fadf82a08e3afa5a2b3fb",
-    "HTTP_PROXY": "http://127.0.0.1:7897",
-    "DEEPSEEK_API_KEY": "sk-432b823bc3954dbab53e15a08adcb90c",
-    "GEMINI_API_KEY": "03dcc0e38bd7f9754516ab1349abf83f",
-    "TRIPO_API_KEY": "tsk_98Oz4mcFjJwTTOh9YdknCZR2P8GQvyqqFOu57RSZLYx"
-  }
+  ]
 }
