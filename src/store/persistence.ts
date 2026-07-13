@@ -450,6 +450,14 @@ export async function loadFromDB() {
       });
     }
 
+    // ── Auto-heal: if IndexedDB is bloated (>5MB), nuke it and fall back to server ──
+    const stateSize = JSON.stringify({ nodes: [...nodeMap.values()], edges: [...edgeMap.values()] }).length;
+    if (stateSize > 5_000_000) {
+      console.warn(`[persist] IndexedDB state ${(stateSize/1e6).toFixed(1)}MB — auto-clearing, falling back to server`);
+      await clearAllData();
+      return false; // triggers loadFromServer
+    }
+
     // Set viewport
     useCanvasStore.setState({
       nodes: nodeMap,
