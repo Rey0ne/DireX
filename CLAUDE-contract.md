@@ -11,10 +11,9 @@
 
 | 状态 | 谁 | 在做什么 | 涉及 API/文件 | 开始时间 |
 |------|-----|---------|-------------|---------|
-| 🟡 进行中 | 后端 | GPT-5.6 直接看图反推提示词 — `reversePromptFromImages()` 已部署，`/api/agent/text` 现在一步到位 | server/src/systems/agent/pipeline.ts | 2026-07-13 |
-| ⏳ 等待前端 | 后端→前端 | **ShotNode 反推空节点修复** — `handleGenerate` 的 `!prompt.trim()` 拦住了空节点反推（详见交接信号） | ShotNode.tsx | 2026-07-13 |
-| ✅ 已完成 | 后端 | 分镜结果直写画布节点 + `[推断]` 标记修复 + 前端 4 项待办移交 | server/src/index.ts, profiles.ts | 2026-07-13 |
-| ✅ 已完成 | 前端 | ShotNode 分镜提示词组装（formatShotPrompt 24字段→结构化prompt）+ 结果摘要 UI + ImageGenerateNode 镜头标识 | ShotNode.tsx, ImageGenerateNode.tsx | 2026-07-13 |
+| ✅ 已完成 | 后端 | GPT-5.6 直接看图反推提示词 — `reversePromptFromImages()` 已部署 + IndexedDB 膨胀自动清理 | pipeline.ts, persistence.ts | 2026-07-14 |
+| ⏳ 等待前端 | 后端→前端 | **ShotNode 反推空节点修复** + **IndexedDB 自动清理已落地**（详见交接信号 #1、#2） | ShotNode.tsx, persistence.ts | 2026-07-14 |
+| ✅ 已完成 | 前端 | ShotNode 分镜提示词组装 + 结果摘要 UI + ImageGenerateNode 镜头标识 | ShotNode.tsx, ImageGenerateNode.tsx | 2026-07-13 |
 | ⬜ 待做 | 前端 | 后续迭代 — Markdown 渲染、SSE 通知流 | QChatPanel, SSE | — |
 
 **状态符号**：🟡 进行中 | ✅ 已完成 | ⏳ 等待对方 | ❌ 阻塞 | ⬜ 空闲
@@ -27,12 +26,10 @@
 
 | 时间 | 从 | 到 | 消息 |
 |------|-----|-----|------|
-| 2026-07-13 23:00 | 后端 | 前端 | 🔧 **ShotNode 反推空节点修复** — `handleGenerate()` 第118行 `if (genRunningRef.current \|\| !prompt.trim()) return;` 导致空 textarea 连图片后点生成无效。反推只需要图片、文本可选。需改为：`if (genRunningRef.current) return;` 然后把 `if (data.refUrls?.length > 0)` 分支放在 `!prompt.trim()` 检查之前——有图就走反推（不管 textarea 空不空），没图才要求有文本走剧本分析。 |
-| 2026-07-13 | 前端 | 后端 | ✅ **分镜提示词组装完成** — `formatShotPrompt(sh)` 把 `meta.shot` 24字段（shotFunction/shotType/lens/angle/composition/depthLayers/character*/lighting/color/material/atmosphere + visualPrompt）组装为结构化英文prompt。前端不再丢数据。**需后端确认**：`regenerate` storyboard 和 `overview` 端点返回的每个 shot 都包含全部 24 字段，无截断。 |
-| 2026-07-12 | 后端 | 前端 | ✅ **移除所有硬编码提示词截断** — T2I翻译不再限制maxOutputTokens、不再截断MAX_PROMPT_LEN；音乐元数据/规划器不再截断剧本。全量内容完整送达LLM和生图模型。 |
-| 2026-07-11 | 后端 | 前端 | ⚠️ **scriptTasks 持久化了！** `GET /api/agent/script/result/:taskId` 新增 `status: 'lost'` 响应（服务器重启导致任务丢失时返回）。前端需处理此状态，显示"任务丢失"而非无限转圈。详情见下方 Script Task 定义。 |
-| 2026-07-10 | 后端 | 前端 | ⚠️ **生成结果现在存在本地了！** `imageUrl`/`videoUrl`/`audioUrl` 返回 `/api/output/asset_*.{ext}` 格式而非外部 CDN URL。`<img src={data.imageUrl}>` 直接能用，不需要改前端代码。切网络不会再丢图片。 |
-| 2026-07-09 | 后端 | 前端 | ⚠️ **小Q 聊天已接通！** QChatPanel 可以接 `/api/q/chat` 了。详情见下方 Chat API 定义。 |
+| 2026-07-14 | 后端 | 前端 | 🔧 **#1 ShotNode 反推空节点修复**（详见下方「待办 #1」） |
+| 2026-07-14 | 后端 | 前端 | ✅ **#2 IndexedDB 膨胀自动清理已落地**（详见下方「待办 #2」） |
+| 2026-07-14 | 后端 | 前端 | 📋 **#3 GPT-5.6 反推提示词 API 完整说明**（详见下方「反推 API」） |
+| 2026-07-13 | 前端 | 后端 | ✅ **分镜提示词组装完成** — `formatShotPrompt(sh)` 已实现 |
 
 ---
 
@@ -547,6 +544,107 @@ package.json ← 共享（加了依赖告知对方）
 
 ---
 
+## 🔧 前端待办（2026-07-14 后端交接）
+
+### 待办 #1：ShotNode 反推空节点修复
+
+**文件**：`src/components/nodes/ShotNode.tsx`
+
+**问题**：`handleGenerate()` 第 118 行 `if (genRunningRef.current || !prompt.trim()) return;` 导致用户连了图片但 textarea 为空时点生成无效。
+
+**修复**：
+
+```diff
+  const handleGenerate = () => {
+-   if (genRunningRef.current || !prompt.trim()) return;
++   if (genRunningRef.current) return;
+    handleQSidecar();
+    if (data.refUrls && data.refUrls.length > 0) {
+      handleReversePrompt();   // 反推模式：有图就行，文本可选
+-   } else {
++   } else if (prompt.trim()) {
+      handleScriptAnalysis();  // 剧本模式：必须有文本
+    }
+  };
+```
+
+**逻辑**：
+- 有连接图 → 走反推（不管 textarea 空不空）
+- 没图 + 有文本 → 走剧本分析
+- 没图 + 没文本 → 什么都不做
+
+### 待办 #2：IndexedDB 膨胀自动清理（✅ 已落地）
+
+**文件**：`src/store/persistence.ts`
+
+**已做改动**：
+1. `loadFromDB` 加载节点时对 `meta` 跑 `sanitizeMeta`（去掉 >500KB 的字段）
+2. 单节点 meta 跳过阈值从 1MB 降到 500KB
+3. 加载后总 state >5MB → 自动清空 IndexedDB → 从服务端重新加载
+
+**前端工程师不需要做任何事**。下次刷新页面会自动生效。
+
+---
+
+## 📋 反推提示词 API（GPT-5.6 Direct Image → Prompt）
+
+### 后端架构
+
+```
+用户连接图片 → ShotNode 点击生成
+  → analyzeText({ rawText, referenceUrls })
+  → POST /api/agent/text
+  → runTextPipeline({ userInput, referenceUrls })
+  → reversePromptFromImages(urls)     ← 新增：GPT-5.6 直接看图
+  → GPT-5.6 Sol 收到 input_image     ← 模型看到图片本身
+  → 输出中文提示词                      ← 一步到位
+  → 前端 setPrompt(result)            ← 写入 textarea
+```
+
+### 关键函数（pipeline.ts）
+
+| 函数 | 说明 |
+|------|------|
+| `reversePromptFromImages(urls, userContext?)` | 下载第一张图 → base64 → GPT-5.6 multimodal → 返回提示词 |
+| `runTextPipeline(context)` | 有 refUrls 时优先走直接反推，失败回退旧两步流水线 |
+
+### API 端点（不变）
+
+```
+POST /api/agent/text
+Body: { rawText, providerId, referenceUrls, referencePrompts? }
+Response: { compiled: { en, cn, negative, debug }, result: { success, ... } }
+```
+
+`compiled.cn` 就是 GPT-5.6 反推出的中文提示词，前端直接 `setPrompt(reversed)` 写入 textarea。
+
+### 前端调用方式（已实现）
+
+```typescript
+// ShotNode.tsx — handleReversePrompt()
+const result = await analyzeText({
+  rawText: prompt.trim() || '分析这张图并反推提示词',
+  providerId: 'text',
+  referenceUrls: data.refUrls,
+});
+const reversed = result.compiled?.cn || '';
+if (reversed) {
+  setPrompt(reversed);
+  promptRef.current = reversed;
+  patch('prompt', reversed);
+}
+```
+
+### 双模式互斥（已实现）
+
+```
+handleGenerate:
+  ├─ data.refUrls 有图 → handleReversePrompt()  // GPT-5.6 反推
+  └─ 无图 + 有文本   → handleScriptAnalysis()  // 剧本分析
+```
+
+---
+
 ## 🤖 Claude 窗口操作指南
 
 每个窗口的 Claude 都通过 Read/Write 工具操作此文件：
@@ -568,5 +666,5 @@ package.json ← 共享（加了依赖告知对方）
 
 ---
 
-> 📅 最后更新：2026-07-11
+> 📅 最后更新：2026-07-14
 > 👥 维护者：后端 + 前端 Claude（通过本文件的 Read/Write 协作）
