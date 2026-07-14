@@ -367,6 +367,12 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeTy
     return null;
   }
   try {
+    // Resolve relative URLs (e.g. /api/output/uploads/hash.png) to absolute.
+    // Node.js fetch() requires an absolute URL; local paths would throw.
+    if (url.startsWith('/')) {
+      const port = process.env.PORT || '3001';
+      url = `http://localhost:${port}${url}`;
+    }
     console.log('[vision] Fetching image: ' + url.slice(0, 80));
     const proxy = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
     const opts: any = {

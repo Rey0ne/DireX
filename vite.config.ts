@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => ({
 		allowedHosts: true,
 		hmr: {
 			protocol: 'ws',
-			timeout: 120000, // 2min heartbeat — prevents idle disconnect
+			timeout: 120000,
+			heartbeat: 15_000, // 2min heartbeat — prevents idle disconnect
 		},
 		proxy: {
 			'/api': {
