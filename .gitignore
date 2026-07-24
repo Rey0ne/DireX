@@ -24,4 +24,6 @@ server/data/q-memory-*.json
 server/data/backups/
 server/data/output/
 server/data/projects/
-server/data/restore-*.js
+server/data/restore-*.js.cheat-hooks/.env-debug
+.cheat-hooks/harness-events.jsonl
+.cheat-hooks/.current-session

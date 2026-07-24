@@ -32,6 +32,28 @@
 
 ---
 
+## 第 0.5 步：检查 harness 健康度（AHE 可观测性）
+
+> **AHE = Agentic Harness Engineering** — harness 自我进化系统。详见 `.claude/skills/harness-evolve.md`
+
+```
+打开 .claude/harness/index.md
+```
+这个文件告诉你：
+- 哪些 harness 组件有 ⚠️ 或 ❌ 标记（已知问题/缺失）
+- 最近的 manifest 有没有 `Status: applied` 但尚未 retro 的变更
+- 如果有待验证的 manifest → 实际确认效果后填写 Retro 部分
+
+**改任何 harness 文件前**（CLAUDE*.md, memory/*.md, .claude/settings.json, .claude/skills/*.md, .cheat-hooks/*.sh）：
+1. 读 `.claude/harness/index.md` — 了解组件依赖关系
+2. 创建变更 manifest 到 `.claude/harness/manifests/YYYY-MM-DD-<slug>.md`
+3. 使用 `_TEMPLATE.md` 模板 — 必须填写：证据、根因、预测修复、预测回归
+
+**Harness 轨迹日志** 自动写入 `.cheat-hooks/harness-events.jsonl`（append-only, JSONL）。
+诊断 harness 问题时，先 grep 这个文件找故障模式。
+
+---
+
 ## 强制步骤（每一步都必须执行）
 
 ### 第 1 步：恢复断点
@@ -68,11 +90,12 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-13 23:00 |
+| 最后更新 | 2026-07-23 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `3696676` — GPT-5.6 直接看图反推提示词 + 多项后端修复 |
-| 当前板块 | 后端: `reversePromptFromImages()` — GPT-5.6 一步看图→提示词，runTextPipeline 优先直反推 |
-| 下一个板块 | 待定 |
+| 最新提交 | `b6ff498` — fix: 反推提示词相对URL解析 + 代理WebSocket超时修复 |
+| 当前板块 | Cognition-Field 四层验证完成 (`D:\cognition-field`) + 理论突破 ("理+解") |
+| 下一个板块 | Cognition-Field: 移除反模式模块 / 最小状态单元实验 / Phase 1 V通道精度 |
+| ⚠️ 注意 | DireX 和 Cognition-Field 是两个独立项目，不混改 |
 
 ---
 
@@ -271,6 +294,7 @@ ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
 - **不要擅自修改未经用户确认的代码**
 - **不要在 direx-backup 等备份目录操作 — 只通过 direx-project 工作**
 - **不要删除任何现有代码 — 修复是「加防护」，不是「删逻辑」**
+- **修改 harness 文件前必须写变更 manifest（`.claude/harness/manifests/`）— 证据→根因→预测→验证**
 
 ---
 
@@ -280,19 +304,26 @@ ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
 
 | 文件 | 说明 |
 |------|------|
-| `server/data/canvas-state.json` | 画布节点和边的唯一服务端状态 |
+| `server/server/data/projects/<project-id>/state.json` | 画布节点和边的服务端状态（多项目存储） |
+| `server/server/data/projects/<project-id>/backups/` | 自动备份（最近 20 个时间戳快照） |
 | `server/data/task-logs.json` | 任务执行历史 |
-| `server/data/canvas-state-queen-surli.json` | 从 git 恢复的苏尔里女王项目（63节点） |
+| `server/data/script-tasks.json` | 异步任务持久化 |
+
+> ⚠️ 画布已从旧路径 `server/data/canvas-state.json` 迁移到多项目存储。
+> 检查节点数请用 API 而非直接读文件：
+> ```bash
+> curl http://localhost:3001/api/canvas/state | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log('Nodes:',j.nodes?.length,'Edges:',j.edges?.length)})"
+> ```
 
 **规则**：
-- 提交前确认 `canvas-state.json` 节点数没有比上次减少
-- 如果减少了 → 检查 `server/data/backups/` 和 `canvas-state.json.bak`
+- 提交前确认节点数没有比上次减少
+- 如果减少了 → 检查 `server/server/data/projects/<id>/backups/` 和 `server/data/backups/`
 - 不要手动编辑这些文件 — 它们由 `/api/canvas/sync` 自动管理
 
 ## 已知 Claude 自己会犯的错误（每会话自查）
 
 1. **跳过汇报直接动手** → 违反第 4 步。每次都该先说「我读到了 X，确认是否正确」
-2. **没查 git log canvas-state.json** → 第一时间就该看运行时数据是否被 git 覆盖
+2. **没查运行时数据状态** → 第一时间就该通过 `curl localhost:3001/api/canvas/state` 确认数据是否被 git 覆盖
 3. **上下文压缩后重查已知道的信息** → 依赖 session-handoff.md 写清楚，而不是靠记忆
 4. **擅自修改未授权的代码** → 用户说「先汇报别改」时必须只读不改
 5. **忘记 direx-project 是符号链接** → 它就是 direx-backup，同目录，不需要「同步」
@@ -370,9 +401,8 @@ curl http://localhost:3001/api/health      # 期望 {"status":"ok",...}
 curl http://localhost:3001/api/canvas/state  # 节点数不应比上次少
 curl -X POST http://localhost:3001/api/kie   # Suno callback 路径
 
-# 4. 运行时数据完整性
-node -e "const d=require('./server/data/canvas-state.json');console.log('Nodes:',d.nodes.length,'Edges:',d.edges.length)"
-ls server/data/canvas-state.json.bak 2>/dev/null && echo "BAK exists" || echo "NO BAK"
+# 4. 运行时数据完整性（画布已迁移到多项目存储，通过 API 检查）
+curl http://localhost:3001/api/canvas/state | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log('Nodes:',j.nodes?.length,'Edges:',j.edges?.length)})"
 
 # 5. 浏览器手动验证（不可自动化）
 # - 创建节点 → F5 刷新 → 节点还在，位置不变
