@@ -1,47 +1,69 @@
-# Session Handoff — 2026-07-13 (后端: GPT-5.6 直接看图反推提示词)
+# Session Handoff — 2026-07-25 (空转实验完成)
 
-## 上次会话
-- **分支**: `fix/infinite-canvas-refactor`
-- **板块**: 后端 — GPT-5.6 直接看图反推提示词
+## 当前项目
 
-## 当前状态
-- **编译**: `npx tsc --noEmit` — 零错误 ✅
-- **后端**: `http://localhost:3001/api/health` — ok ✅
-- **最新提交**: `3696676` — GPT-5.6 直接看图反推提示词 + 多项后端修复
+**⚠️ 工作焦点: Cognition-Field (`D:\cognition-field`)。** DireX 休眠中。
 
-## 本次提交内容 (`3696676`)
+DireX 状态：
+- 分支: `fix/infinite-canvas-refactor`
+- 最新提交: `e63b626` — FIRST RESPONSE RULE
+- 编译零错误，后端正常
 
-### 核心：GPT-5.6 直接看图反推提示词
-- `pipeline.ts`: 新增 `reversePromptFromImages()` — GPT-5.6 直接看图→提示词，一步到位
-- `pipeline.ts`: `runTextPipeline` 优先走直接反推，失败回退旧两步流水线
+---
 
-### 后端修复
-- `kie-provider.ts`: 修复 `data.code` 错误检查（kie.ai 永远 HTTP 200），Seedance-2 参数对齐官方 spec
-- `index.ts`: `proxyAsset` 改为流式传输，修复下载速度慢
-- `gemini.ts`: GPT_MODEL PRIMARY 升级为 `gpt-5-6-sol`
+## Cognition-Field 当前状态（2026-07-25）
 
-### 数据库/管道增强
-- `profiles.ts`: CHARACTER_EXTRACTION 人种默认多样化
-- `music-kb.ts`: 音乐知识库大规模补充（+153行）
-- `q-chat.ts`/`q-memory.ts`/`q-api.ts`: Q记忆系统增强
-- `deepseek.ts`: 改进
+### 空转实验 — 完成
 
-### 前端（同一提交，由后端托管）
-- `ShotNode.tsx`: `handleGenerate` 互斥分流 — 有参考图→反推，无图→剧本分析
-- `ShotNode.tsx`: 反推结果直接写 textarea，零按钮
-- `App.tsx`/`persistence.ts`: 轮询超时服务端回退 + 启动数据合并
+**脚本**: `verify_empty_run.py` (373行, 3 variants × 3 durations × 3 seeds)
+**结果文件**: `results_empty_run_full.json`
+**耗时**: 31.8分钟
 
-### 已删除
-- `server/src/routes/blender.ts` — 废弃路由
+**3 个变体**:
+- **Variant A** (纯空转): 无预热, 空转 N ticks → 注入任务 — field 完全惰性, 0自发节点
+- **Variant B** (任务迁移): Task A 预热 → 空转 → Task B — 4x加速, 但纯度降
+- **Variant C** (自我维持): Task A 预热 → 空转 → 同一 Task A — 4x加速, 但纯度仍降
 
-## 数据状况
-- `canvas-state.json`: 提交时18节点/13边（可能非完整项目）
-- `canvas-state-queen-surli.json`: 63节点项目备份（未跟踪）
+**核心发现** (详见 `memory/cognition-field-empty-run-results.md`):
+1. 纯空转 = 完全惰性 — 无 agent 写入时无自发结构
+2. CrystalNode 极度持久 — 16→15 nodes/1h (94% 存活率)
+3. 已有节点 = 瞬时脚手架 — t1=0 vs t1=4 (冷启动)
+4. **化石效应** — 同一任务重注入纯度从 0.373→0.271
+
+**理论定性**: 持久吸引子介质 + 化石效应 (Persistent Attractor Medium with Fossilization)
+- 不是简单"共享内存" — 有瞬时脚手架能力
+- 但缺少**节点自适应/更新机制** — 节点是固定记忆印记
+
+### 四层验证 — 全部完成
+
+| 层 | 脚本 | 结果 |
+|----|------|------|
+| L1 实现验证 | `verify_occupancy.py` | 5/5 PASS |
+| L2 消融实验 | `verify_ablation.py` | Occupancy+Crystal=VALUABLE, Inhibition/Cross-Boost=HARMFUL |
+| L3 竞争理论 | `verify_l3_alt_hypothesis.py` | Field 赢 11/18 (61%) vs Central Queue |
+| L4 不可能实验 | `verify_l4_impossible.py` | 重叠率 5-14× 降低, 4 seeds 一致 |
+| **L5 空转实验** | `verify_empty_run.py` | **节点94%持久 + 4x脚手架 + 化石效应** |
+
+### 下一步方向
+- [ ] 实现节点自适应/更新机制 — 让已有吸引子能根据新写入调整 pattern
+- [ ] 移除 Inhibition + Cross-Boost（L2 证明是反模式）
+- [ ] Phase 1: V 通道精度加权（让 Predictor 参与 drive）
+- [ ] 最小状态单元实验 — 设计可证伪的子问题
+
+### 待推送
+- [ ] Cognition-Field: 空转实验脚本 + README 更新 → push to GitHub
+- [ ] README 已更新出租车队 + 空转实验结果
+
+### 关键文件（cognition-field）
+- `verify_empty_run.py` — 空转实验脚本（3 变体, CLI: --quick/--full）
+- `results_empty_run_full.json` — 完整实验结果
+- `README.md` — 已更新出租车队 + 空转实验结果
+- `taxi_fleet/` — 出租车队仿真（LightweightField, 4 方法对比）
+
+---
 
 ## 核心禁止事项（跨会话不变）
-- 不改端口号（3001/5173/8888）
-- 不改认证密钥
-- D盘只做备份同步
-- 改代码前查坏耦合
+- 不改 DireX 端口号（3001/5173/8888）
+- 不改 DireX 认证密钥
+- 不在 direx-backup 目录操作 cognition-field
 - 不跳过汇报直接写代码
-- 不混做两个独立板块
