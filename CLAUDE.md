@@ -32,7 +32,9 @@
 
 ---
 
-## 第 0.5 步：检查 harness 健康度（AHE 可观测性）
+## 强制步骤（每一步都必须执行。跳过任何一步 → 你会误解人类的需求。）
+
+### 第 0.5 步：检查 harness 健康度（AHE 可观测性）
 
 > **AHE = Agentic Harness Engineering** — harness 自我进化系统。详见 `.claude/skills/harness-evolve.md`
 
@@ -51,10 +53,6 @@
 
 **Harness 轨迹日志** 自动写入 `.cheat-hooks/harness-events.jsonl`（append-only, JSONL）。
 诊断 harness 问题时，先 grep 这个文件找故障模式。
-
----
-
-## 强制步骤（每一步都必须执行）
 
 ### 第 1 步：恢复断点
 ```
@@ -82,6 +80,7 @@ git log --oneline -3
 
 ### 第 4 步：向人类汇报
 告诉用户你读到了什么状态，确认是否正确，然后再动手。
+**汇报内容必须包含**：分支、最新提交、当前板块、harness 健康度（`.claude/harness/index.md` 中的 ⚠️/❌ 数量和待验证 manifest）。
 **不要跳过汇报直接写代码。**
 
 ---
