@@ -1,6 +1,6 @@
 # DireX Harness Component Index
 
-> **Auto-generated**: 2026-07-24 | **Branch**: `fix/infinite-canvas-refactor` | **Commit**: `b6ff498`
+> **Auto-generated**: 2026-07-25 | **Branch**: `fix/infinite-canvas-refactor` | **Commit**: `6dc6775`
 > **Purpose**: Single source of truth for all harness components — their roles, dependencies, and modification history.
 > **Regenerate**: `git log --oneline -- <path>` for any component's history.
 
@@ -11,7 +11,7 @@
 | Status | Count |
 |--------|-------|
 | ✅ Healthy | 25 |
-| ⚠️ Stale/Partial | 3 |
+| ⚠️ Stale/Partial | 1 |
 | ❌ Missing (referenced but absent) | 0 |
 | 🆕 New (this session) | 6 |
 
@@ -63,9 +63,9 @@ Custom Claude Code skills — invoked by name or automatically matched.
 
 | File | Description | Triggers | Health |
 |------|-------------|----------|--------|
-| [direx-dev-rules.md](../.claude/skills/direx-dev-rules.md) | Project dev rules: safety, UI specs, camera kit KB | Manual invocation | ⚠️ State references `direx-isolated` workspace (stale) |
+| [direx-dev-rules.md](../.claude/skills/direx-dev-rules.md) | Project dev rules: safety, UI specs, camera kit KB | Manual invocation | ✅ |
 | [us-micro-drama-export.md](../.claude/skills/us-micro-drama-export.md) | US short drama export acquisition — 100pt scoring system | Manual invocation | ✅ |
-| [career-wingman/SKILL.md](../.claude/skills/career-wingman/SKILL.md) | AI career assistant — resume, job search, negotiation | Manual invocation | ⚠️ Not git-tracked (`??`) |
+| [career-wingman/SKILL.md](../.claude/skills/career-wingman/SKILL.md) | AI career assistant — resume, job search, negotiation | Manual invocation | ✅ |
 
 ---
 
@@ -75,7 +75,7 @@ Custom Claude Code skills — invoked by name or automatically matched.
 |------|------|--------|
 | [.claude/settings.json](../.claude/settings.json) | Hooks, permissions (181 allow rules), auto-compact window | ✅ |
 | [.claude/settings.local.json](../.claude/settings.local.json) | Local overrides (50 additional permissions) | ✅ |
-| [.claude/scheduled_tasks.json](../.claude/scheduled_tasks.json) | Cron: Cognition-Field learner every 30 min | ✅ |
+| [.claude/scheduled_tasks.json](../.claude/scheduled_tasks.json) | Cron tasks (currently empty) | ✅ |
 
 ---
 
@@ -105,7 +105,7 @@ SessionEnd → log-event.sh session_end → appends session end + cleans .curren
 
 | File | Purpose | Health |
 |------|---------|--------|
-| [session-handoff.md](../memory/session-handoff.md) | Cross-session breakpoint recovery — read first (CLAUDE.md Step 1) | ⚠️ Content is about Cognition-Field, not DireX |
+| [session-handoff.md](../memory/session-handoff.md) | Cross-session breakpoint recovery — read first (CLAUDE.md Step 1) | ✅ |
 | [canvas-nodes-invisible-debug.md](../memory/canvas-nodes-invisible-debug.md) | Debug diagnosis: nodes invisible but minimap shows 109 nodes | ✅ |
 
 ---
@@ -143,18 +143,6 @@ Auto-loaded by Claude Code as persistent memory. 24 files total.
 |------|---------|--------|
 | [video-pipeline-state.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/video-pipeline-state.md) | V2V+I2V async polling + Prompt Compiler architecture | ✅ |
 | [script-analysis-pipeline.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/script-analysis-pipeline.md) | Script analysis pipeline documentation | ✅ |
-
-### Cognition-Field (separate project, tracked here)
-
-| File | Purpose | Health |
-|------|---------|--------|
-| [cognition-field-theory-20260722.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/cognition-field-theory-20260722.md) | Prompt relocation, 理+解, Field/Working Cell separation | ✅ |
-| [cognition-field-knowledge-assets.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/cognition-field-knowledge-assets.md) | 6 principles + 3 emergences + 6 components | ✅ |
-| [cognition-field-viz-port.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/cognition-field-viz-port.md) | Fixed visualization port: localhost:5174 | ✅ |
-| [cognition-field-roadmap.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/cognition-field-roadmap.md) | Development roadmap | ✅ |
-| [cognition-field-naming.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/cognition-field-naming.md) | Naming conventions | ✅ |
-| [field-is-self-cells-are-appendages.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/field-is-self-cells-are-appendages.md) | Theory: Field = self, cells = appendages | ✅ |
-| [agent-memory-balance-interval.md](file://C:/Users/ROG/.claude/projects/c--Users-ROG-direx-backup-20260613-0205/memory/agent-memory-balance-interval.md) | R=0.20/P=0.08/radius=3.0 break-even calibration | ✅ |
 
 ### Content
 

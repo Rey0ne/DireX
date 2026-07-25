@@ -38,6 +38,31 @@
 
 ## 强制步骤（每一步都必须执行。跳过任何一步 → 你会误解人类的需求。）
 
+### 第 0.3 步：压缩检测 + 记忆校验
+
+> **长会话被压缩后，关键数据可能从上下文中消失。Memory 文件不受压缩影响——它们是从磁盘加载的。**
+
+**如何判断被压缩了？** 如果上下文以 "This session is being continued from a previous conversation..." 或包含 `<summary>` 标签开头，说明这是压缩后的恢复。
+
+**压缩后必须做的事：**
+
+1. 读 `.claude/compression-log.md` → 看这是第几次压缩
+2. 读 `memory/session-handoff.md` → 确认当前任务和进度
+3. **比对 memory 文件 vs 压缩摘要**：memory 中的关键事实（精确数字、反面证据、实验参数）在摘要中是否还存在？
+4. **如果关键数据丢失** → 先报告用户什么丢了，然后从 memory 文件或代码中重新验证，再继续
+5. 在 `.claude/compression-log.md` 追加一条压缩记录：
+   - 摘要中保留了哪些关键事实
+   - 哪些事实丢失/模糊了
+   - 采取了什么恢复措施
+
+**快速比对清单（每次压缩后扫一遍）：**
+
+| 检查项 | 方法 |
+|--------|------|
+| 当前分支和任务是否匹配 memory/session-handoff.md | `git branch --show-current` |
+| 关键实验数字是否还在上下文里 | grep 摘要 vs memory/*.md |
+| 禁止事项是否完整 | 检查 CLAUDE.md 底部「核心禁止事项」是否在摘要中 |
+
 ### 第 0.5 步：检查 harness 健康度（AHE 可观测性）
 
 > **AHE = Agentic Harness Engineering** — harness 自我进化系统。详见 `.claude/skills/harness-evolve.md`
@@ -93,12 +118,12 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-23 |
+| 最后更新 | 2026-07-25 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `b6ff498` — fix: 反推提示词相对URL解析 + 代理WebSocket超时修复 |
-| 当前板块 | Cognition-Field 四层验证完成 (`D:\cognition-field`) + 理论突破 ("理+解") |
-| 下一个板块 | Cognition-Field: 移除反模式模块 / 最小状态单元实验 / Phase 1 V通道精度 |
-| ⚠️ 注意 | DireX 和 Cognition-Field 是两个独立项目，不混改 |
+| 最新提交 | `6dc6775` — docs: session-handoff 更新至 2026-07-25 |
+| 当前板块 | Harness 健康修复 — CF/DireX 项目分离 |
+| 下一个板块 | 前端待办：ShotNode 分镜结果展示 / ImageGenerateNode 分镜元数据 |
+| 本次压缩 | 0 次 |
 
 ---
 
