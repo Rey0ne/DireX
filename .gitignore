@@ -24,6 +24,20 @@ server/data/q-memory-*.json
 server/data/backups/
 server/data/output/
 server/data/projects/
-server/data/restore-*.js.cheat-hooks/.env-debug
+server/data/bvh/
+server/data/models/
+server/data/q-training/
+server/data/restore-*.js
+server/server/
+data/
+# Temp/debug files
+_bonediag.js
+_dragdiag.js
+_diff_scene3d.txt
+_fix_clone.js
+_revert_single_group.js
+_treediag.js
+.cheat-hooks/.env-debug
 .cheat-hooks/harness-events.jsonl
 .cheat-hooks/.current-session
+.cheat-cache/

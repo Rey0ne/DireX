@@ -10,7 +10,10 @@
     "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
     "electron:dev": "electron .",
     "admin": "start \"\" admin/index.html",
-    "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && npm run electron:dev\""
+    "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && npm run electron:dev\"",
+    "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5": "^1.4.0",

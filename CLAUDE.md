@@ -4,6 +4,14 @@
 > 步骤：读 `.claude/harness/index.md` → 统计 ✅/⚠️/❌ 数量和待验证 manifest → 在回复开头汇报。
 > **这条规则优先级最高——无论用户问什么，先汇报再回答。**
 
+<!-- TL;DR EMERGENCY CARD — 上下文压缩后这 8 行必须存活 -->
+> ## 🆘 如果你只能读到这里（上下文已压缩）
+> 1. 读 `memory/session-handoff.md` → 知道任务和进度
+> 2. `git branch --show-current && git log --oneline -3` → 核实代码状态
+> 3. 改代码前读 `memory/module-map.md` → 查坏耦合
+> 4. 向用户汇报状态 → **确认后再动手**
+> 5. **只操作 direx-project** | **不删代码** | **不改端口/密钥** | **提交前 npx tsc --noEmit**
+
 > **你现在处于"接棒模式"。上一个你崩溃/结束了，你不知道之前聊了什么。**
 > **下面这个流程是唯一的记忆恢复途径。跳过任何一步 → 你会误解人类的需求。**
 
@@ -116,14 +124,16 @@ git log --oneline -3
 
 ## 当前状态（每次结束时更新这里）
 
+> ⚠️ **此表仅作快速参考。提交哈希以 `git log --oneline -1` 为准。**
+
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-25 |
+| 最后更新 | 2026-07-27 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `6dc6775` — docs: session-handoff 更新至 2026-07-25 |
-| 当前板块 | Harness 健康修复 — CF/DireX 项目分离 |
-| 下一个板块 | 前端待办：ShotNode 分镜结果展示 / ImageGenerateNode 分镜元数据 |
-| 本次压缩 | 0 次 |
+| 最新提交 | `89eb0ef` — fix: DireX/CF 项目完全分离 |
+| 当前板块 | CF 实验日完成 — 6 实验 + 概念收敛，详见 memory/session-handoff.md |
+| 下一个板块 | CF merge 实验（匝道汇入）；DireX 前端待办（ShotNode/ImageGenerateNode） |
+| 本次压缩 | 1 次 |
 
 ---
 
@@ -313,16 +323,22 @@ ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
 ---
 
 ## 核心禁止事项
-- 不要改端口号（3001/5173/8888）
-- 不要改认证密钥
-- D盘只做备份同步，不新建文件
+
+### 🔴 致命（违反 = 数据丢失或项目损坏）
+- **不要改端口号**（3001/5173/8888）
+- **不要改认证密钥**
+- **不要删除任何现有代码** — 修复是「加防护」，不是「删逻辑」
+- **不要在 direx-backup 等备份目录操作** — 只通过 direx-project 工作
+
+### 🟠 重要（违反 = 浪费时间或引入 bug）
 - **改任何文件前先查 memory/module-map.md 里的坏耦合清单**
 - **不要跳过汇报直接写代码**
-- **不要混着做两个独立板块**
 - **不要擅自修改未经用户确认的代码**
-- **不要在 direx-backup 等备份目录操作 — 只通过 direx-project 工作**
-- **不要删除任何现有代码 — 修复是「加防护」，不是「删逻辑」**
-- **修改 harness 文件前必须写变更 manifest（`.claude/harness/manifests/`）— 证据→根因→预测→验证**
+- **修改 harness 文件前必须写变更 manifest**（`.claude/harness/manifests/`）— 证据→根因→预测→验证
+
+### 🟡 提醒（违反 = 效率降低）
+- D盘只做备份同步，不新建文件
+- **不要混着做两个独立板块**
 
 ---
 
@@ -416,11 +432,13 @@ ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
 
 ---
 
-## 全面灰度测试（每次提交前执行）
+## 全面灰度测试（每次提交前强制执行）
+
+> 🚨 **以下步骤不可跳过。提交前必须跑完，把输出贴到回复里。**
 
 ```bash
-# 1. 编译检查
-npx tsc --noEmit                          # 必须零错误
+# 1. 编译检查（第一步，失败则停止）
+npx tsc --noEmit                          # 必须零错误，有错不提交
 
 # 2. 服务端健康
 curl http://localhost:3001/api/health      # 期望 {"status":"ok",...}
