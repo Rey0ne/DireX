@@ -3,7 +3,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { bvhToGlb } from './bvhToGlb';
 
-const KIMODO_URL = '/api/kimodo';
+import { BACKEND_URL } from '../api/config';
+
+const KIMODO_URL = `${BACKEND_URL}/api/kimodo`;
 
 interface KimodoMotionPanelProps {
   onBvhGenerated?: (bvhBase64: string, bvhUrl: string, prompt: string, posedJoints: number[][][], jointNames: string[]) => void;

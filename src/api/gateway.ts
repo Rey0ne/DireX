@@ -5,12 +5,7 @@
 import type { GenerateRequest, GenerateResult, AgentGenerateRequest, AgentGenerateResult } from '../../shared/api-types.js';
 export type { GenerateRequest, GenerateResult };
 export { mapModelNameToProviderId } from '../../shared/api-types.js';
-
-// All GPT Image2 variants map to the same provider ID — mode+resolution handled separately
-
-
-// Backend URL — relative during dev (via Vite proxy), absolute in production
-const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+import { BACKEND_URL } from './config';
 
 // ─── Model provider metadata (for UI display only) ─────
 export interface ModelProvider {

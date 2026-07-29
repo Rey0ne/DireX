@@ -29,12 +29,19 @@
 
 **如何启动多角色并行工作：**
 
+在新终端中逐条输入以下口令启动对应角色：
+
+```
+# 窗口 1 — 后端工程师
+你是 DireX 后端工程师，读取 CLAUDE-backend.md 确认你的角色
+
+# 窗口 2 — 前端工程师  
+你是 DireX 前端工程师，读取 CLAUDE-frontend.md 确认你的角色
+```
+
 ```
 窗口 1 — 后端                      窗口 2 — 前端
 ─────────────────                  ─────────────────
-"你是 DireX 后端工程师，             "你是 DireX 前端工程师，
- 读取 CLAUDE-backend.md"             读取 CLAUDE-frontend.md"
-
 ✅ 改 server/src/                  ✅ 改 src/
 ❌ 禁碰 src/                       ❌ 禁碰 server/src/
 ```
@@ -128,11 +135,11 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-27 |
+| 最后更新 | 2026-07-30 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `89eb0ef` — fix: DireX/CF 项目完全分离 |
-| 当前板块 | CF 实验日完成 — 6 实验 + 概念收敛，详见 memory/session-handoff.md |
-| 下一个板块 | CF merge 实验（匝道汇入）；DireX 前端待办（ShotNode/ImageGenerateNode） |
+| 最新提交 | _pending_ — Kimodo API 分离 + v2 翻译 + 防退化补充 |
+| 当前板块 | Kimodo v2 翻译管线完成；CLAUDE.md 防退化机制补充 |
+| 下一个板块 | Python v2 启动；CF merge 实验；DireX 前端待办（ShotNode/ImageGenerateNode） |
 | 本次压缩 | 1 次 |
 
 ---
@@ -364,6 +371,30 @@ ShotNode.tsx / AudioGenerateNode.tsx / VideoGenerateNode.tsx / index.css
 - 如果减少了 → 检查 `server/server/data/projects/<id>/backups/` 和 `server/data/backups/`
 - 不要手动编辑这些文件 — 它们由 `/api/canvas/sync` 自动管理
 
+### 数据恢复路径（如果数据丢了）
+
+按优先级依次尝试：
+
+1. **git 历史恢复**：`git show <commit-hash>:server/data/canvas-state.json`（查找最近提交中该文件还存在的版本）
+2. **服务端备份**：检查 `server/server/data/projects/<id>/backups/` 下的时间戳快照（自动保留最近 20 个）
+3. **浏览器本地数据**：F12 → Application → IndexedDB → `tapnow-canvas` → 可能还有浏览器缓存的节点数据
+4. **旧路径兼容**：旧版画布数据可能在 `server/data/canvas-state.json`（已迁移到多项目存储，但旧数据可能仍在该路径）
+
+> ⚠️ 不要手动编辑这些 JSON 文件——结构错误会导致画布白屏。优先通过 API 操作。
+
+## 群体智能防退化
+
+> **核心理念**：每个 Claude 会话的生命周期有限（崩溃/压缩/超时）。项目通过结构化文档实现「接棒」——下一个 Claude 读文档就能继续，不需要人类复述。
+
+| 机制 | 文件 | 作用 |
+|------|------|------|
+| 断点恢复 | `memory/session-handoff.md` | 记录当前任务、进度、禁止事项，新会话第一读 |
+| 角色隔离 | `CLAUDE-backend.md` / `CLAUDE-frontend.md` | 前后端分窗口并行，互不污染 |
+| 合约同步 | `CLAUDE-contract.md` | 前后端共享接口定义，改 API 先改合约 |
+| 模块地图 | `memory/module-map.md` | 坏耦合清单，改代码前查影响范围 |
+| 防退化文档 | 桌面 `Claude code 防退化机制.docx` | 本文档的理论基础和设计原则 |
+| 压缩恢复 | 第 0.3 步压缩检测流程 | 长会话压缩后自动校验关键数据完整性 |
+
 ## 已知 Claude 自己会犯的错误（每会话自查）
 
 1. **跳过汇报直接动手** → 违反第 4 步。每次都该先说「我读到了 X，确认是否正确」
@@ -547,7 +578,7 @@ writeJSON(CANVAS_FILE, canvasState); // 即时落盘
 
 ### 验证步骤
 
-1. 清 IndexedDB：`F12 → Application → IndexedDB → direx-canvas → Delete database`
+1. 清 IndexedDB：`F12 → Application → IndexedDB → tapnow-canvas → Delete database`
 2. 刷新页面
 3. 选中任意 ShotNode → 应看到分镜/角色/场景数量
 4. 点"分镜"按钮 → 21 个 ImageGenerateNode 出现在画布上
