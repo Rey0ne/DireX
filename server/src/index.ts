@@ -18,6 +18,7 @@ import { KEY_LABELS, getProfile, updateProfile, loadKeys, persistKey, getHiddenK
 import { authMiddleware } from './middleware/auth.js';
 import authRouter from './routes/auth.js';
 import kimodoRouter from './routes/kimodo.js';
+import kimodoV2Router from './routes/kimodo-v2.js';
 import canvasRouter from './routes/canvas.js';
 import agentRouter from './routes/agent.js';
 import outputRouter from './routes/output.js';
@@ -152,6 +153,7 @@ app.post('/api/upload', async (req, res) => {
 // ─── Public routers (no auth) ────────────────────
 app.use('/api/auth', authRouter);
 app.use('/api/kimodo', kimodoRouter);
+app.use('/api/kimodo-v2', kimodoV2Router);
 
 // ─── Auth wall (everything below requires auth) ──
 app.use(authMiddleware);
