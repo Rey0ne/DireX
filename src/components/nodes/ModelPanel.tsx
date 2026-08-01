@@ -22,7 +22,7 @@ export function ModelPanel({ objects, selectedId, onSelect, onImport, onDeleteSe
         <div style={{ display:'flex', gap:6 }}>
           <span onClick={()=>fileRef.current?.click()} style={{ cursor:'pointer', color:'#5EEAD4', fontSize:16, fontWeight:700 }}>+</span>
           <span onClick={onDeleteSelected} style={{ cursor:'pointer', color:'rgba(255,80,80,0.6)', fontSize:16, fontWeight:700 }}>−</span>
-          <input ref={fileRef} type="file" accept=".glb,.fbx" style={{ display:'none' }}
+          <input ref={fileRef} type="file" accept=".glb,.fbx,.ply" style={{ display:'none' }}
             onChange={e=>{ const f=e.target.files?.[0]; if(f){ onImport(f); e.target.value=''; } }} />
         </div>
       </div>

@@ -6,6 +6,7 @@ import type { GenerateRequest, GenerateResult, AgentGenerateRequest, AgentGenera
 export type { GenerateRequest, GenerateResult };
 export { mapModelNameToProviderId } from '../../shared/api-types.js';
 import { BACKEND_URL } from './config';
+import { useAuthStore } from '../store/useAuthStore';
 
 // ─── Model provider metadata (for UI display only) ─────
 export interface ModelProvider {
@@ -18,38 +19,26 @@ export interface ModelProvider {
 }
 
 export const MODEL_PROVIDERS: ModelProvider[] = [
-  {
-    id: 'nano-banana',
-    name: 'Nano Banana',
-    type: 'image',
-    capabilities: ['generate', 'inpaint', 'multi-angle'],
-    maxResolution: '4K',
-    badges: ['推荐'],
-  },
-  {
-    id: 'gpt-image2',
-    name: 'GPT Image2',
-    type: 'image',
-    capabilities: ['text-to-image', 'image-to-image', '1K', '2K', '4K'],
-    maxResolution: '4K',
-    badges: ['热门'],
-  },
-  {
-    id: 'kling-video',
-    name: 'Kling 2.1',
-    type: 'video',
-    capabilities: ['text2video', 'image2video'],
-    maxResolution: '1080P',
-    badges: [],
-  },
-  {
-    id: 'seedance-2',
-    name: 'Seedance 2.0',
-    type: 'video',
-    capabilities: ['text2video', 'image2video'],
-    maxResolution: '4K',
-    badges: ['热门'],
-  },
+  // === Image Models ===
+  { id: 'nano-banana-pro',          name: 'Nano Banana Pro',    type: 'image', capabilities: ['t2i','i2i','inpaint'],              maxResolution: '4K', badges: ['推荐'] },
+  { id: 'google/nano-banana',       name: 'Nano Banana 2',      type: 'image', capabilities: ['t2i','i2i','inpaint','multi-angle'], maxResolution: '4K', badges: ['热门'] },
+  { id: 'gpt-image2',               name: 'GPT Image 2',        type: 'image', capabilities: ['t2i','i2i','1K','2K','4K'],          maxResolution: '4K', badges: ['热门'] },
+  { id: 'seedream/5-pro-text-to-image', name: 'Seedream 5 Pro', type: 'image', capabilities: ['t2i','i2i'],                        maxResolution: '2K', badges: ['热门'] },
+  { id: 'grok-imagine/text-to-image', name: 'Grok Imagine',     type: 'image', capabilities: ['t2i','i2i'],                        maxResolution: '2K', badges: [] },
+  { id: 'flux-2/pro-text-to-image', name: 'Flux 2 Pro',         type: 'image', capabilities: ['t2i','i2i'],                        maxResolution: '4K', badges: [] },
+  { id: 'flux-2/flex-text-to-image',name: 'Flux 2 Flex',        type: 'image', capabilities: ['t2i'],                              maxResolution: '1K', badges: [] },
+  { id: 'wan/2-7-image-pro',        name: 'Wan 2.7 Image Pro',  type: 'image', capabilities: ['t2i','i2i'],                        maxResolution: '2K', badges: [] },
+  { id: 'google/imagen4-fast',      name: 'Imagen 4',           type: 'image', capabilities: ['t2i'],                              maxResolution: '4K', badges: [] },
+  // Utility image tools
+  { id: 'recraft/remove-background',name: 'Recraft 抠图',       type: 'image', capabilities: ['remove-bg'],                        maxResolution: '4K', badges: [] },
+  { id: 'recraft/crisp-upscale',    name: 'Recraft 放大',       type: 'image', capabilities: ['upscale'],                          maxResolution: '4K', badges: [] },
+  { id: 'topaz/image-upscale',      name: 'Topaz 放大',         type: 'image', capabilities: ['upscale'],                          maxResolution: '4K', badges: [] },
+
+  // === Video Models ===
+  { id: 'kling-video',              name: 'Kling 3.0',          type: 'video', capabilities: ['t2v','i2v','motion'],              maxResolution: '1080P', badges: ['推荐'] },
+  { id: 'kling-3-omni/text-to-video', name: 'Kling 3.0 Omni',   type: 'video', capabilities: ['t2v','i2v','omni','audio','edit'],  maxResolution: '1080P', badges: ['热门'] },
+  { id: 'seedance-2',               name: 'Seedance 2.0',       type: 'video', capabilities: ['t2v','i2v','first-last','multi-ref','audio'], maxResolution: '1080P', badges: ['热门'] },
+  { id: 'wan/2-7-text-to-video',    name: 'Wan 2.7 Video',      type: 'video', capabilities: ['t2v','i2v','r2v','edit'],          maxResolution: '1080P', badges: [] },
 ];
 
 // ─── Generate (via backend proxy) ──────────────────────
@@ -72,7 +61,12 @@ export async function generateImage(req: GenerateRequest): Promise<GenerateResul
       return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status} ${text}` };
     }
 
-    return await response.json() as GenerateResult;
+    const result = await response.json() as GenerateResult;
+    // Auto-deduct credits on success
+    if (result.success && result.cost > 0) {
+      useAuthStore.getState().spendCredits(result.cost, 'spend_image', `${req.providerId} ${req.resolution || ''}`);
+    }
+    return result;
   } catch (err) {
     return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) };
   }
@@ -99,7 +93,11 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
       };
     }
 
-    return await response.json() as AgentGenerateResult;
+    const agentResult = await response.json() as AgentGenerateResult;
+    if (agentResult.result?.success && agentResult.result.cost > 0) {
+      useAuthStore.getState().spendCredits(agentResult.result.cost, 'spend_image', `${req.providerId} ${req.resolution || ''} (agent)`);
+    }
+    return agentResult;
   } catch (err) {
     return {
       compiled: { en: '', cn: '', negative: '', debug: [] },

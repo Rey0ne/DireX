@@ -2,12 +2,13 @@
 /* Kling 3.0: T2V / I2V / Motion Control (char_orientation, keep_sound)             */
 /* Seedance 2.0: T2V / I2V / First+Last / Multi-Ref (fixed_cam, audio, web_search)  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { getVideoCreditCost } from '../../store/pricing';
 
 interface VideoGenMeta {
   prompt: string; model: string; duration: string; resolution: string;
@@ -16,6 +17,7 @@ interface VideoGenMeta {
   firstFrameUrl?: string; lastFrameUrl?: string;
   multiFrames?: string[];
   fullRefs?: Record<string, string | null>;  // {'image-style'|'video-motion'|'audio-rhythm'}
+  refVideoDuration?: number;      // total duration of reference videos in seconds (for Seedance V2V token pricing)
   // Kling-specific
   characterOrientation?: 'image' | 'video';
   keepOriginalSound?: boolean;
@@ -31,14 +33,20 @@ interface VideoGenNodeData {
   gen: VideoGenMeta;
   isConnecting?: boolean; isConnectTarget?: boolean;
   multiSelect?: boolean; isPickMode?: boolean; isPickTarget?: boolean;
-  hasConnections?: boolean; refUrls?: string[]; styleImageUrl?: string | null;
+  hasConnections?: boolean; refUrls?: string[]; videoRefUrls?: string[]; styleImageUrl?: string | null;
   onChange?: (patch: Partial<VideoGenMeta>) => void;
   onGenerate?: () => void; onOpenTool?: (toolName: string) => void;
 }
 
 const MODELS = [
+  // ── Available on Kie ──
   { name: 'Kling 3.0', badges: ['推荐'], maxDur: '15s', provider: 'kling-video' },
+  { name: 'Kling 3.0 Omni', badges: ['热门'], maxDur: '15s', provider: 'kling-omni' },
   { name: 'Seedance 2.0', badges: ['热门'], maxDur: '15s', provider: 'seedance-2' },
+  { name: 'Wan 2.7 Video', badges: [], maxDur: '10s', provider: 'wan-2.7-video' },
+  // ── 已发布但 Kie 未上架 ──
+  { name: 'Seedance 2.5', badges: [], maxDur: '30s', provider: 'seedance-2.5', upcoming: true },
+  { name: 'Hailuo 3.0', badges: [], maxDur: '15s', provider: 'hailuo-3', upcoming: true },
 ];
 
 // ── Per-model generation modes (matches official API capabilities) ──
@@ -53,6 +61,11 @@ const SEEDANCE_MODES = [
   { id: 'i2v-fl', label: '首尾帧', desc: '首帧+尾帧控制转场', icon: '⇢' },
   { id: 'multi-ref', label: '多模态参考', desc: '图+视频+音频自由组合', icon: '⊞' },
 ];
+// Generic fallback for all other video models
+const GENERIC_VIDEO_MODES = [
+  { id: 't2v', label: '文生视频', desc: '纯文本提示词生成视频', icon: 'T' },
+  { id: 'i2v', label: '图生视频', desc: '上传一张首帧图片', icon: '🖼' },
+];
 
 // ── Unified aspect ratios ──
 const ALL_ASPECTS = ['1:1','2:3','3:2','3:4','4:3','16:9','9:16','21:9'];
@@ -65,19 +78,29 @@ const ASPECT_RECTS: Record<string, { w: number; h: number }> = {
 // ── Per-model durations ──
 const KLING_DURATIONS = ['3s','4s','5s','6s','7s','8s','9s','10s','11s','12s','13s','14s','15s'];
 const SEEDANCE_DURATIONS = ['4s','5s','6s','7s','8s','9s','10s','11s','12s','13s','14s','15s'];
+const GENERIC_VIDEO_DURATIONS = ['5s', '10s'];
 
 // ── Per-model resolutions ──
 const KLING_RESOLUTIONS = ['720P', '1080P'];
 const SEEDANCE_RESOLUTIONS = ['480P', '720P', '1080P'];
+const GENERIC_VIDEO_RESOLUTIONS = ['720P', '1080P'];
 
 
 export function VideoGenerateNode({ id, data, selected }: { id: string; data: VideoGenNodeData; selected?: boolean }) {
   const gen = data.gen || {};
   const panelRef = useRef<HTMLDivElement>(null);
-  const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(data.refUrls, data.styleImageUrl);
+  // Merge image + video refs for RefStrip display and @mention
+  const allRefs = [...(data.refUrls || []), ...(data.videoRefUrls || [])];
+  const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention(allRefs, data.styleImageUrl);
 
   const [prompt, setPrompt] = useState(gen.prompt || '');
-  const [curModel, setCurModel] = useState((gen.model && gen.model !== 'GPT Image2') ? gen.model : 'Seedance 2.0');
+  const [curModel, setCurModel] = useState(() => {
+    const m = gen.model;
+    // Default to video model if current model isn't a valid video model
+    if (!m || m === 'GPT Image2' || m === 'GPT Image 2' || !MODELS.some(mod => mod.name === m && !mod.upcoming)) return 'Seedance 2.0';
+    return m;
+  });
+  const isUpcoming = MODELS.find(m => m.name === curModel)?.upcoming === true;
   const [genMode, setGenMode] = useState(gen.genMode || (curModel === 'Kling 3.0' ? 'multi-ref' : 'i2v'));
   const [curDuration, setCurDuration] = useState(gen.duration || '5s');
   const [curAspect, setCurAspect] = useState(gen.aspect || '16:9');
@@ -101,13 +124,83 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
   const patch = useCallback((k: string, v: unknown) => { data.onChange?.({ [k]: v }); }, [data]);
 
+  // Local reactive copy of refVideoDuration (updated by effect, used immediately for credit display)
+  const [refVideoDur, setRefVideoDur] = useState<number | undefined>(gen.refVideoDuration);
+
+  // ── Extract video durations from reference URLs ──
+  // Collect all video URLs from refs, then probe duration via browser Video element.
+  // This is needed for Seedance 2.0 V2V token-based pricing: cost ∝ (input_duration + output_duration)
+  useEffect(() => {
+    const videoUrls: string[] = [];
+    // From edge-connected image refs (may include video URLs)
+    if (data.refUrls) {
+      for (const u of data.refUrls) {
+        if (u.startsWith('data:video/') || u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov')) {
+          videoUrls.push(u);
+        }
+      }
+    }
+    // From edge-connected video refs (collected separately by App.tsx)
+    if (data.videoRefUrls) {
+      for (const u of data.videoRefUrls) {
+        if (!videoUrls.includes(u)) videoUrls.push(u);
+      }
+    }
+    // From fullRefs video-motion slot
+    const motionRef = fullRefs['video-motion'];
+    if (motionRef && !videoUrls.includes(motionRef)) videoUrls.push(motionRef);
+
+    if (videoUrls.length === 0) {
+      // No videos — clear stored duration
+      setRefVideoDur(undefined);
+      if (gen.refVideoDuration !== undefined) patch('refVideoDuration', undefined);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      let totalDuration = 0;
+      for (const url of videoUrls) {
+        try {
+          const dur = await new Promise<number>((resolve, reject) => {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            v.muted = true;
+            const timeout = setTimeout(() => { v.remove(); reject(new Error('timeout')); }, 5000);
+            v.onloadedmetadata = () => {
+              clearTimeout(timeout);
+              const d = v.duration;
+              v.remove();
+              if (isFinite(d) && d > 0) resolve(d);
+              else reject(new Error('invalid duration'));
+            };
+            v.onerror = () => { clearTimeout(timeout); v.remove(); reject(new Error('load error')); };
+            v.src = url;
+          });
+          totalDuration += dur;
+        } catch {
+          // Skip videos that fail to load — can't contribute to duration
+        }
+      }
+      if (!cancelled && totalDuration > 0) {
+        const rounded = Math.round(totalDuration * 10) / 10;
+        setRefVideoDur(rounded);
+        patch('refVideoDuration', rounded);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [data.refUrls, data.videoRefUrls, fullRefs['video-motion']]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Derived values per model ──
-  const isKling = curModel === 'Kling 3.0';
+  const isKling = curModel.startsWith('Kling');
+  const isSeedance = curModel.startsWith('Seedance');
+  // Credit cost preview (1080P tier, per-second × duration)
+  const videoCredits = isUpcoming ? 0 : getVideoCreditCost(curModel, parseInt(curDuration) || 5, genMode, curRes, refVideoDur);
   const [count, setCount] = useState(1);
   const [soundOn, setSoundOn] = useState(gen.keepOriginalSound ?? true);
-  const durations = isKling ? KLING_DURATIONS : SEEDANCE_DURATIONS;
-  const resolutions = isKling ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS;
-  const modes = isKling ? KLING_MODES : SEEDANCE_MODES;
+  const durations = isKling ? KLING_DURATIONS : isSeedance ? SEEDANCE_DURATIONS : GENERIC_VIDEO_DURATIONS;
+  const resolutions = isKling ? KLING_RESOLUTIONS : isSeedance ? SEEDANCE_RESOLUTIONS : GENERIC_VIDEO_RESOLUTIONS;
+  const modes = isKling ? KLING_MODES : isSeedance ? SEEDANCE_MODES : GENERIC_VIDEO_MODES;
   // Sync genMode when switching models
   const switchModel = useCallback((m: string) => {
     setCurModel(m);
@@ -115,14 +208,15 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
     const defaultMode = 'multi-ref';
     setGenMode(defaultMode);
     patch('genMode', defaultMode);
-    if (!((m === 'Kling 3.0') ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS).includes(curRes)) {
+    const validRes = m.startsWith('Kling') ? KLING_RESOLUTIONS : SEEDANCE_RESOLUTIONS;
+    if (!validRes.includes(curRes)) {
       setCurRes('1080P');
       patch('resolution', '1080P');
     }
   }, [curRes, patch]);
 
   const handleGenerate = () => {
-    if (genRunning) return;
+    if (genRunning || isUpcoming) return;
     setGenRunning(true);
     const map: Record<string, unknown> = {
       prompt, model: curModel, genMode, duration: curDuration,
@@ -130,12 +224,13 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
       firstFrameUrl: firstFrame, lastFrameUrl: lastFrame,
       multiFrames, fullRefs,
     };
-    // Kling-specific
+    // Model-specific defaults
     if (isKling) {
       map.characterOrientation = 'video';
-    } else {
+      map.keepOriginalSound = soundOn;
+    } else if (isSeedance) {
       map.fixedCamera = false;
-      map.generateAudio = true;
+      map.generateAudio = soundOn;
       map.webSearch = false;
     }
     Object.keys(map).forEach(k => patch(k, map[k]));
@@ -184,7 +279,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
         <div style={{ width: 'var(--tap-node-width)', borderRadius: 'var(--tap-node-radius)', overflow: 'hidden', border: selected ? '2px solid rgba(255,255,255,0.28)' : '1px solid var(--tap-border)', background: 'var(--tap-panel)', animation: selected ? 'direx-light-rim 5s ease-in-out infinite' : undefined, willChange: selected ? 'box-shadow' : undefined, boxShadow: selected ? 'var(--tap-shadow-md)' : 'var(--tap-shadow-sm)', transition: 'all var(--tap-dur-fast) var(--tap-ease)' }}>
           <div style={{ width: '100%', height: '220px', background: 'linear-gradient(135deg, rgba(180,180,185,0.05), rgba(180,180,185,0.01))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
             {data.videoUrl ? (
-              <video src={data.videoUrl?.startsWith('http')?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):data.videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Main video load failed:', data.videoUrl?.slice(0, 60))} />
+              <video src={(typeof data.videoUrl==='string'&&data.videoUrl.startsWith('http'))?'/api/proxy-video?url='+encodeURIComponent(data.videoUrl):String(data.videoUrl||'')} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => console.warn('[VideoGen] Main video load failed:', data.videoUrl?.slice(0, 60))} />
             ) : (
               <div style={{ textAlign: 'center', opacity: 0.25 }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><polygon points="5,3 19,12 5,21" /></svg>
@@ -202,7 +297,7 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
 
           {/* ── Ref thumbnails row ── */}
           <div style={{ padding: '6px 8px 0', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-            <RefStrip nodeId={id} refUrls={data.refUrls} />
+            <RefStrip nodeId={id} refUrls={allRefs} />
             {Object.entries(fullRefs).filter(([,v]) => v).map(([k, v]) => (
               <div key={k} title={k} style={{ width: 28, height: 28, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
                 {k === 'video-motion'
@@ -231,12 +326,15 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             {/* Model picker */}
             <div style={{ position: 'relative' }}><DropBtn v={curModel} picker="model" />
               {open === 'model' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>{MODELS.map(m => (
-                <div key={m.name} onClick={() => { switchModel(m.name); setOpen(null); }}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'rgba(0,207,255,0.10)' : 'transparent' }}
-                  onMouseEnter={e => { if (curModel !== m.name) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
-                  onMouseLeave={e => { if (curModel !== m.name) e.currentTarget.style.background = 'transparent'; }}>
+                <div key={m.name} onClick={() => { if (!m.upcoming) { switchModel(m.name); setOpen(null); } }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '32px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: m.upcoming ? 'default' : 'pointer', color: 'var(--tap-text-1)', background: curModel === m.name ? 'rgba(0,207,255,0.10)' : 'transparent', opacity: m.upcoming ? 0.6 : 1 }}
+                  onMouseEnter={e => { if (curModel !== m.name && !m.upcoming) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
+                  onMouseLeave={e => { if (curModel !== m.name && !m.upcoming) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: '11px' }}>{m.name}</span>
-                  <span style={{ display: 'flex', gap: '2px' }}>{m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}</span>
+                  <span style={{ display: 'flex', gap: '2px' }}>
+                    {m.upcoming && <span key="upc" style={{ fontSize: '8px', color: '#B8860B', background: 'rgba(184,134,11,0.12)', padding: '1px 3px', borderRadius: '2px' }}>即将上市</span>}
+                    {m.badges.map(b => <span key={b} style={{ fontSize: '8px', color: 'var(--tap-accent)', background: 'rgba(74,158,255,0.12)', padding: '1px 3px', borderRadius: '2px' }}>{b}</span>)}
+                  </span>
                 </div>))}</PD>}
             </div>
 
@@ -320,10 +418,14 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             </div>
             <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Send */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '55px', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingRight: '2px' }}>
-              <button onClick={handleGenerate} disabled={isBusy}
-                style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#FFF65D', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '9px', cursor: isBusy ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', opacity: isBusy ? 0.7 : 1, transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s' }}
-                onMouseEnter={e => { if (!isBusy) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingLeft: '10px', paddingRight: '4px', gap: '6px' }}>
+              {isUpcoming
+                ? <span style={{ fontSize: '9px', color: '#B8860B', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>即将上市</span>
+                : <span style={{ fontSize: '9px', color: '#1B1B1B', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>{videoCredits}cr</span>
+              }
+              <button onClick={handleGenerate} disabled={isUpcoming || isBusy}
+                style={{ width: '16px', height: '16px', borderRadius: '50%', background: isUpcoming ? '#E0E0E0' : '#FFF65D', color: isUpcoming ? '#999' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '9px', cursor: isUpcoming ? 'not-allowed' : isBusy ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', opacity: isBusy ? 0.7 : 1, transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s' }}
+                onMouseEnter={e => { if (!isBusy && !isUpcoming) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)'; }}
               >{isBusy ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#333" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}</button>
             </div>

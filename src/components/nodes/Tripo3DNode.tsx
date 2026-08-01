@@ -5,6 +5,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { BACKEND_URL } from '../../api/config';
 import { TripoModelPreview } from '../TripoModelPreview';
 
 // ─── Types ───────────────────────────────────────
@@ -286,7 +287,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     if (!src) { setError('需要先生成3D模型'); return; }
     setRigStatus('checking'); setError('');
     try {
-      const resp = await fetch('/api/tripo/rig-check', {
+      const resp = await fetch(`${BACKEND_URL}/api/tripo/rig-check`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: src }),
       });
@@ -314,7 +315,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     if (rigStatus !== 'checked' || !riggable) return;
     setRigStatus('rigging'); setError('');
     try {
-      const resp = await fetch('/api/tripo/rig', {
+      const resp = await fetch(`${BACKEND_URL}/api/tripo/rig`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: taskId, model: rigModelVer, rig_type: rigType, spec: rigSpec, out_format: 'glb' }),
       });
@@ -343,7 +344,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     if ((rigStatus !== 'rigged' && rigStatus !== 'done') || !rigTaskId) return;
     setRigStatus('animating'); setError('');
     try {
-      const resp = await fetch('/api/tripo/retarget', {
+      const resp = await fetch(`${BACKEND_URL}/api/tripo/retarget`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: rigTaskId, animation: selectedAnim, out_format: 'glb', bake_animation: true, export_with_geometry: true, animate_in_place: true }),
       });
@@ -427,7 +428,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     setStatus('generating'); setProgress(0); setError(''); setSavedPath(''); setSavedName('');
 
     try {
-      const isMultiview = effectiveImages.length >= 4;
+      const isMultiview = effectiveImages.length === 4;
       const body: Record<string, unknown> = {
         mode: isMultiview ? 'multiview-to-model' : mode,
         model: modelVer, texture, pbr, texture_quality: texQuality,
@@ -435,13 +436,13 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
       };
       if (effectivePrompt) body.prompt = effectivePrompt;
       if (isMultiview) {
-        body.inputs = effectiveImages.map(img => img.url);
+        body.inputs = effectiveImages.slice(0, 4).map(img => img.url);
       } else if (effectiveInput) {
         body.input = effectiveInput;
       }
       if (compress) body.compress = 'geometry';
 
-      const resp = await fetch('/api/tripo/generate', {
+      const resp = await fetch(`${BACKEND_URL}/api/tripo/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -482,7 +483,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     try {
       // Step 1: Save to server with chosen format + texture resolution
       const name = effectivePrompt?.slice(0, 30).replace(/[^a-zA-Z0-9一-鿿_-]/g, '_') || 'tripo_model';
-      const saveResp = await fetch('/api/tripo/save-model', {
+      const saveResp = await fetch(`${BACKEND_URL}/api/tripo/save-model`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model_url: modelUrl, name, format, texResolution }),
       });
@@ -512,7 +513,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
     if (!modelUrl) return;
     try {
       const name = effectivePrompt?.slice(0, 30).replace(/[^a-zA-Z0-9一-鿿_-]/g, '_') || 'tripo_model';
-      const resp = await fetch('/api/tripo/save-model', {
+      const resp = await fetch(`${BACKEND_URL}/api/tripo/save-model`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model_url: modelUrl, name, format, texResolution }),
       });
@@ -526,7 +527,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   const handleImageUpload = useCallback(async (file: File) => {
     const fd = new FormData(); fd.append('model', file);
     try {
-      const resp = await fetch('/api/models/upload', { method: 'POST', body: fd });
+      const resp = await fetch(`${BACKEND_URL}/api/models/upload`, { method: 'POST', body: fd });
       const json = await resp.json();
       if (json.success) { setInputImage(json.path); setMode('image-to-model'); }
     } catch { setError('上传失败'); }

@@ -6,8 +6,10 @@ import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, memo 
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { BACKEND_URL } from '../../api/config';
 import { Panel } from '../shared';
 import type { ImageGenMeta, CropRect } from '../../types/graph';
+import { getImageCost } from '../../store/pricing';
 
 interface ImageGenNodeData {
   imageUrl?: string;
@@ -60,23 +62,38 @@ function _ratioBoxSize(w: number, h: number) {
 }
 
 const MODEL_OPTIONS = [
-  { name: 'Nano Banana', badges: ['推荐'], maxRes: '4K', features: ['inpaint', 'multi-angle'] },
-  { name: 'GPT Image2', badges: ['热门'], maxRes: '4K', features: ['t2i', 'i2i'] },
+  // ── Available on Kie ──
+  { name: 'Nano Banana Pro', badges: ['推荐'], resolutions: ['2K', '4K'], features: ['t2i', 'i2i', 'inpaint'] },
+  { name: 'Nano Banana 2', badges: ['热门'], resolutions: ['1K', '2K', '4K'], features: ['t2i', 'i2i', 'inpaint', 'multi-angle'] },
+  { name: 'GPT Image 2', badges: ['热门'], resolutions: ['1K', '2K', '4K'], features: ['t2i', 'i2i'] },
+  { name: 'Seedream 5 Pro', badges: ['热门'], resolutions: ['1K', '2K'], features: ['t2i', 'i2i'] },
+  { name: 'Grok Imagine', badges: [], resolutions: ['1K'], features: ['t2i', 'i2i'] },
+  { name: 'Flux 2 Pro', badges: [], resolutions: ['1K', '2K'], features: ['t2i', 'i2i'] },
+  { name: 'Flux 2 Flex', badges: [], resolutions: ['1K', '2K'], features: ['t2i'] },
+  { name: 'Wan 2.7 Image Pro', badges: [], resolutions: ['2K'], features: ['t2i', 'i2i'] },
+  { name: 'Imagen 4', badges: [], resolutions: ['4K'], features: ['t2i'] },
+  // ── 已发布但 Kie 未上架 ──
+  { name: 'Qwen Image 3', badges: [], resolutions: ['1K', '2K'], features: ['t2i', 'edit'], upcoming: true },
+  { name: 'Ideogram 4.0', badges: [], resolutions: ['1K', '2K'], features: ['t2i', 'i2i'], upcoming: true },
 ];
 
-const RESOLUTION_OPTIONS = [
+// ── Dynamic resolution options per model ──
+const ALL_RESOLUTIONS = [
   { label: '1K', desc: '1024×1024' },
   { label: '2K', desc: '1792×1024' },
   { label: '4K', desc: '2048×2048' },
 ];
 
-// ── Credit cost calculator (updates as user changes model / resolution / count) ──
-function getImageCost(model: string, resolution: string, imgCount: number): number {
-  let base = 10;
-  if (resolution === '2K') base = 15;
-  else if (resolution === '4K') base = 20;
-  if (model === 'Nano Banana') base = Math.round(base * 0.8);
-  return base * imgCount;
+function getResolutionsForModel(modelName: string) {
+  const model = MODEL_OPTIONS.find(m => m.name === modelName);
+  if (model?.resolutions) {
+    return ALL_RESOLUTIONS.filter(r => model.resolutions!.includes(r.label));
+  }
+  // Fallback: use maxRes (for backward compatibility)
+  const maxRes = model?.maxRes || '4K';
+  const resOrder = ['1K', '2K', '4K'];
+  const maxIdx = resOrder.indexOf(maxRes);
+  return ALL_RESOLUTIONS.filter((_, i) => i <= maxIdx);
 }
 
 
@@ -179,7 +196,8 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const [showRatioPicker, setShowRatioPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [hoveredToolbarIdx, setHoveredToolbarIdx] = useState<number | null>(null);
-  const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image2');
+  const [currentModel, setCurrentModel] = useState(gen.model || 'GPT Image 2');
+  const isUpcoming = MODEL_OPTIONS.find(m => m.name === currentModel)?.upcoming === true;
   const atQueryRef = useRef('');  // tracks @query text for correct replacement in Chinese
   const atPosRef = useRef(-1);    // tracks @ position in prompt (avoids lastIndexOf races with multi-@)
   const [currentAspect, setCurrentAspect] = useState(gen.aspect || '16:9');
@@ -191,7 +209,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
   const countRef = useRef<HTMLSpanElement>(null);
   const [_countRect, setCountRect] = useState<DOMRect | null>(null);
   // Camera kit picker — images: public/camera-kit/cam-<name>.jpg & lens-<name>.jpg
-  const KIT = '/camera-kit/';
+  const KIT = import.meta.env.BASE_URL + 'camera-kit/';
   const CAMERAS = [
     { name:'Sony Venice',          sensor:'Full-Frame 6K', mount:'PL',         year:'2018', img:`${KIT}cam-sony-venice.png` },
     { name:'Arri Alexa 35',        sensor:'S35 4.6K',      mount:'LPL',        year:'2022', img:`${KIT}cam-arri-alexa35.png` },
@@ -574,7 +592,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
       console.log('[crop] Cropped: ' + cropW + 'x' + cropH + ', ' + (dataUrl.length / 1024).toFixed(0) + 'KB');
 
       try {
-        const resp = await fetch('/api/upload', {
+        const resp = await fetch(`${BACKEND_URL}/api/upload`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer tapnow-dev-key' },
           body: JSON.stringify({ dataUrl }),
@@ -1376,12 +1394,15 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
             }}>
               <ImgDropBtn label={currentModel} open={showModelPicker} setOpen={(v) => { setShowModelPicker(v); setShowRatioPicker(false); }} anchorRef={modelChipRef} onRect={setModelChipRect}>
                 {MODEL_OPTIONS.map(m => (
-                  <div key={m.name} onClick={() => { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); }}
-                    style={{ display:'flex',justifyContent:'space-between',alignItems:'center',height:'32px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:'pointer',color:'var(--tap-text-1)',background:currentModel===m.name?'rgba(0,207,255,0.10)':'transparent',fontSize:'11px' }}
-                    onMouseEnter={e=>{if(currentModel!==m.name)e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
-                    onMouseLeave={e=>{if(currentModel!==m.name)e.currentTarget.style.background='transparent'}}>
+                  <div key={m.name} onClick={() => { if (!m.upcoming) { setCurrentModel(m.name); patch('model', m.name); setShowModelPicker(false); } }}
+                    style={{ display:'flex',justifyContent:'space-between',alignItems:'center',height:'32px',padding:'0 10px',borderRadius:'var(--tap-r-md)',cursor:m.upcoming?'default':'pointer',color:'var(--tap-text-1)',background:currentModel===m.name?'rgba(0,207,255,0.10)':'transparent',fontSize:'11px',opacity:m.upcoming?0.6:1 }}
+                    onMouseEnter={e=>{if(currentModel!==m.name && !m.upcoming)e.currentTarget.style.background='rgba(0,207,255,0.10)'}}
+                    onMouseLeave={e=>{if(currentModel!==m.name && !m.upcoming)e.currentTarget.style.background='transparent'}}>
                     <span>{m.name}</span>
-                    <span style={{display:'flex',gap:'2px'}}>{m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}</span>
+                    <span style={{display:'flex',gap:'2px'}}>
+                      {m.upcoming && <span style={{fontSize:'8px',color:'#B8860B',background:'rgba(184,134,11,0.12)',padding:'1px 3px',borderRadius:'2px'}}>即将上市</span>}
+                      {m.badges.map(b=><span key={b} style={{fontSize:'8px',color:'var(--tap-accent)',background:'rgba(74,158,255,0.12)',padding:'1px 3px',borderRadius:'2px'}}>{b}</span>)}
+                    </span>
                   </div>))}
               </ImgDropBtn>
               <span style={{ width:'1px',height:'14px',background:'rgba(0,0,0,0.10)',flexShrink:0 }} />
@@ -1407,7 +1428,7 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
                   <div style={{height:'1px',background:'var(--tap-divider)',margin:'0 10px'}}/>
                   <div style={{fontSize:'9px',color:'var(--tap-text-4)',padding:'3px 10px 1px'}}>分辨率</div>
                   <div style={{display:'flex',gap:'2px',padding:'0 6px 3px'}}>
-                    {RESOLUTION_OPTIONS.map(r=>(
+                    {getResolutionsForModel(currentModel).map(r=>(
                       <span key={r.label} onClick={()=>{setCurrentResolution(r.label);patch('resolution',r.label)}}
                         style={{flex:1,padding:'3px 5px',borderRadius:'3px',fontSize:'10px',cursor:'pointer',textAlign:'center',background:currentResolution===r.label?'rgba(0,207,255,0.10)':'transparent',color:currentResolution===r.label?'var(--tap-text-1)':'var(--tap-text-3)'}}>{r.label}</span>
                     ))}
@@ -1513,10 +1534,13 @@ function ImageGenerateNodeInner({ id, data, selected }: { id: string; data: Imag
 
               {/* Send — glass pill with cost preview */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingLeft:'10px',paddingRight:'4px',gap:'6px'}}>
-                <span style={{fontSize:'9px',color:'#1B1B1B',fontWeight:500,whiteSpace:'nowrap',fontFamily:'Inter, sans-serif'}}>{getImageCost(currentModel, currentResolution, imgCount)}</span>
-                <button onClick={handleGenerate} disabled={genRunning}
-                  style={{width:'16px',height:'16px',borderRadius:'50%',background:'#FFF65D',color:'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',opacity:genRunning?0.7:1,transition:'transform 0.15s,box-shadow 0.15s,opacity 0.15s'}}
-                  onMouseEnter={e=>{if(!genRunning){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}
+                {isUpcoming
+                  ? <span style={{fontSize:'9px',color:'#B8860B',fontWeight:500,whiteSpace:'nowrap',fontFamily:'Inter, sans-serif'}}>即将上市</span>
+                  : <span style={{fontSize:'9px',color:'#1B1B1B',fontWeight:500,whiteSpace:'nowrap',fontFamily:'Inter, sans-serif'}}>{getImageCost(currentModel, currentResolution, imgCount)}</span>
+                }
+                <button onClick={handleGenerate} disabled={genRunning || isUpcoming}
+                  style={{width:'16px',height:'16px',borderRadius:'50%',background:isUpcoming?'#E0E0E0':'#FFF65D',color:isUpcoming?'#999':'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'9px',cursor:isUpcoming?'not-allowed':genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',opacity:genRunning?0.7:1,transition:'transform 0.15s,box-shadow 0.15s,opacity 0.15s'}}
+                  onMouseEnter={e=>{if(!genRunning && !isUpcoming){e.currentTarget.style.transform='scale(1.06)';e.currentTarget.style.boxShadow='0 2px 6px rgba(0,0,0,0.22)'}}}
                   onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)'}}>
                   {genRunning ? <svg width="12" height="12" viewBox="0 0 256 256" style={{display:'block'}}><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64Z" fill="none" stroke="#333" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/></svg> : '↑'}
                 </button>

@@ -37,6 +37,10 @@ _diff_scene3d.txt
 _fix_clone.js
 _revert_single_group.js
 _treediag.js
+# Large models — keep on disk, not in git
+public/models/IMAXX*
+public/models/sit.*
+public/models/stand*
 .cheat-hooks/.env-debug
 .cheat-hooks/harness-events.jsonl
 .cheat-hooks/.current-session

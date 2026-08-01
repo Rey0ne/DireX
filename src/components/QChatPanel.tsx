@@ -1,5 +1,6 @@
 /* === QChatPanel — Interactive Q Assistant Chat === */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { BACKEND_URL } from '../api/config';
 
 interface Message {
   role: 'user' | 'q' | 'system';
@@ -81,7 +82,7 @@ export function QChatPanel({ anchorPos }: QChatPanelProps) {
         .slice(-10)
         .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', text: m.text }));
 
-      const resp = await fetch('/api/q/chat', {
+      const resp = await fetch(`${BACKEND_URL}/api/q/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

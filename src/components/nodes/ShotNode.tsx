@@ -2,13 +2,15 @@
 /* Agent decides output type (storyboard / image-prompt / etc.) based on user input */
 // @ts-nocheck — ~4 TS6133 dead code (unused local const from rapid prototyping). Safe to suppress; remove individually during refactor.
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { RefStrip } from '../shared/RefStrip';
 import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { getSharedApiKey, qDecide, type QDecideResponse, analyzeText } from '../../api/gateway';
+import { BACKEND_URL } from '../../api/config';
+import { estimateTextCost, formatTextCost } from '../../store/pricing';
 
 
 interface ShotNodeData {
@@ -84,6 +86,16 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     'MV': 'MV(3-5分钟)',
   };
   const g = gen as Record<string, any>;
+
+  // ── Real-time text cost estimate ──
+  // Pipeline: 2 calls — ① DeepSeek template advisor (negligible) + ② GPT-5.6-Sol unified analysis.
+  // Output ratio: ~100% (model generates 6 sections: characters/scenes/storyboard/props/music/spaces).
+  const textCost = useMemo(() => {
+    if (!prompt.trim()) return null;
+    // GPT-5.6-Sol: input=280cr/M, output=1680cr/M on Kie.
+    // Output ratio 100% (unified pipeline generates as much content as it receives).
+    return estimateTextCost('gpt-5.6-sol', prompt, undefined, 1.0);
+  }, [prompt]);
   const getOverview = () => g.scriptOverview || null;
   const getScenes = () => g.scriptScenes || null;
   const getCharacters = () => g.scriptCharacters || getOverview()?.characterProfiles || null;
@@ -171,7 +183,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   };
 
   const pollResult = async (taskId: string): Promise<any> => {
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     const resp = await fetch(`${apiBase}/api/agent/script/result/${taskId}`);
     return resp.json();
   };
@@ -180,7 +192,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   // When polling times out but the pipeline actually completed, data is already on the server.
   const checkServerFallback = async (): Promise<any | null> => {
     try {
-      const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+      const apiBase = BACKEND_URL;
       const resp = await fetch(`${apiBase}/api/canvas/state`, {
         headers: { Authorization: `Bearer ${getSharedApiKey()}` },
       });
@@ -301,7 +313,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handleScriptAnalysis = async () => {
     if (!prompt.trim()) return;
     genRunningRef.current = true; setGenRunning(true);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       // 1. 提交 overview 任务
       const submitResp = await fetch(`${apiBase}/api/agent/script/overview`, {
@@ -385,7 +397,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     console.log('[analysis] Resuming poll for taskId:', taskId);
     genRunningRef.current = true; setGenRunning(true); setAnalysisError(null);
     let cancelled = false;
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     const resumePoll = async () => {
       const MAX_POLLS = 50;
       const POLL_INTERVAL = 30_000;
@@ -442,7 +454,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handleSceneExtraction = async () => {
     if (!prompt.trim() || sceneRunning) return;
     setSceneRunning(true);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const resp = await fetch(`${apiBase}/api/agent/script/scenes`, {
         method: 'POST',
@@ -460,7 +472,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handleCharacterExtraction = async () => {
     if (!prompt.trim() || charRunning) return;
     setCharRunning(true);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const resp = await fetch(`${apiBase}/api/agent/script/characters`, {
         method: 'POST',
@@ -478,7 +490,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handleSceneArchitect = async () => {
     if (!prompt.trim() || spaceRunning) return;
     setSpaceRunning(true);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const resp = await fetch(`${apiBase}/api/agent/script/scene-architect`, {
         method: 'POST',
@@ -496,7 +508,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handlePropDesigner = async () => {
     if (!prompt.trim() || propRunning) return;
     setPropRunning(true);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const resp = await fetch(`${apiBase}/api/agent/script/props`, {
         method: 'POST',
@@ -514,7 +526,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
   const handleSoundComposer = async () => {
     if (!prompt.trim() || soundRunning) return;
     setSoundRunning(true); setAnalysisError(null);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const submitResp = await fetch(`${apiBase}/api/agent/script/music`, {
         method: 'POST',
@@ -598,7 +610,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       } else {
         body.brief = aiBrief.trim();
       }
-      const resp = await fetch('/api/agent/script/write', {
+      const resp = await fetch(`${BACKEND_URL}/api/agent/script/write`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -633,7 +645,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     setRegeneratingSection(null);
     setRegenerateFeedback('');
     setAnalysisError(null);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const existingResults: Record<string, any> = {};
       const ov = getOverview();
@@ -722,7 +734,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     if (!prompt.trim()) return;
     setOptimizeRunning(true);
     setAnalysisError(null);
-    const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+    const apiBase = BACKEND_URL;
     try {
       const submitResp = await fetch(`${apiBase}/api/agent/script/supplement`, {
         method: 'POST',
@@ -1320,8 +1332,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
                   transition: 'all 0.15s',
                 }}
               >{aiWriting ? '⏳ 写作中...' : showAiWriter ? '✕ 收起' : 'AI 写剧本'}</span>
-              {/* Send — glass pill */}
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',width:'55px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,paddingRight:'2px' }}>
+              {/* Send — glass pill with cost estimate */}
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,padding:'0 2px 0 8px' }}>
+                {textCost && (
+                  <span style={{ fontSize:'8px',color:'var(--tap-text-4)',whiteSpace:'nowrap',lineHeight:1 }}
+                    title={`2 calls: DeepSeek template + GPT-5.6-Sol unified\n${textCost.inputTokens} in + ~${textCost.estimatedOutputTokens} out tokens`}
+                  >{textCost.direxCredits}</span>
+                )}
                 <button onClick={handleGenerate} disabled={genRunning}
                   style={{ width:'16px',height:'16px',borderRadius:'50%',background:'#FFF65D',color:'#333',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'9px',cursor:genRunning?'wait':'pointer',border:'none',boxShadow:'0 1.5px 4px rgba(0,0,0,0.2),0 1px 1.5px rgba(0,0,0,0.12)',opacity:genRunning?0.7:1,transition:'transform 0.15s,box-shadow 0.15s,opacity 0.15s' }}
                   onMouseEnter={e => { if (!genRunning) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.22)'; } }}

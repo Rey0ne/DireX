@@ -409,36 +409,66 @@ export function ProjectSelector({ onSelectProject, onCreateNew, onLogout }: Proj
 
 // ─── Helpers ──────────────────────────────────────
 async function loadProjects(): Promise<ProjectCard[]> {
+  // 1. Try IndexedDB first
   try {
     const allProjects = await db.projects.orderBy('updatedAt').reverse().toArray();
-    const cards: ProjectCard[] = [];
-    for (const project of allProjects) {
-      const canvases = await db.canvases.where({ projectId: project.id }).toArray();
-      let nodeCount = 0;
-      let thumbnail: string | undefined;
-      for (const c of canvases) {
-        const nodes = await db.nodes.where({ canvasId: c.id }).toArray();
-        nodeCount += nodes.length;
-        if (!thumbnail) {
-          for (const n of nodes) {
-            try {
-              const imgUrl = (n.meta as any)?.gen?.imageUrl;
-              if (typeof imgUrl === 'string' && imgUrl.length > 0) { thumbnail = imgUrl; break; }
-            } catch { /* skip */ }
+    if (allProjects.length > 0) {
+      const cards: ProjectCard[] = [];
+      for (const project of allProjects) {
+        const canvases = await db.canvases.where({ projectId: project.id }).toArray();
+        let nodeCount = 0;
+        let thumbnail: string | undefined;
+        for (const c of canvases) {
+          const nodes = await db.nodes.where({ canvasId: c.id }).toArray();
+          nodeCount += nodes.length;
+          if (!thumbnail) {
+            for (const n of nodes) {
+              try {
+                const imgUrl = (n.meta as any)?.gen?.imageUrl;
+                if (typeof imgUrl === 'string' && imgUrl.length > 0) { thumbnail = imgUrl; break; }
+              } catch { /* skip */ }
+            }
           }
         }
+        if (!thumbnail) {
+          try {
+            const assets = await db.assets.where({ projectId: project.id }).toArray();
+            const a = assets.find(x => x.type === 'image' && typeof x.uri === 'string' && x.uri.length > 0);
+            if (a) thumbnail = a.uri;
+          } catch { /* skip */ }
+        }
+        cards.push({ project, nodeCount, thumbnail });
       }
-      if (!thumbnail) {
-        try {
-          const assets = await db.assets.where({ projectId: project.id }).toArray();
-          const a = assets.find(x => x.type === 'image' && typeof x.uri === 'string' && x.uri.length > 0);
-          if (a) thumbnail = a.uri;
-        } catch { /* skip */ }
-      }
-      cards.push({ project, nodeCount, thumbnail });
+      return cards;
     }
+  } catch { /* fall through to server */ }
+
+  // 2. Fallback: fetch from server API (IndexedDB was cleared or corrupted)
+  try {
+    const resp = await fetch('/api/canvas/projects');
+    const json = await resp.json();
+    const serverProjects: any[] = json.projects || [];
+    if (serverProjects.length === 0) return [];
+    const cards: ProjectCard[] = [];
+    for (const p of serverProjects) {
+      cards.push({
+        project: {
+          id: p.id,
+          name: p.name || p.id,
+          description: '',
+          updatedAt: p.updatedAt || new Date().toISOString(),
+        },
+        nodeCount: p.nodeCount || 0,
+        thumbnail: undefined,
+      });
+    }
+    // Report: loaded from server (IndexedDB was empty)
+    import('../utils/diagnostics').then(m => m.diag.projectsLoaded('server', cards.length));
     return cards;
-  } catch { return []; }
+  } catch (e) {
+    import('../utils/diagnostics').then(m => m.diag.loadFailed('project_list_server', String(e).slice(0, 100)));
+    return [];
+  }
 }
 
 function formatDate(iso: string): string {

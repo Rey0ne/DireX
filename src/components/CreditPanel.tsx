@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import type { UserProfile } from '../../shared/api-types.js';
+import { BACKEND_URL } from '../api/config';
 
 interface CreditPanelProps {
   onClose: () => void;
@@ -106,7 +107,7 @@ function getPlanDiscount(plan: string): { rate: number; label: string } | null {
   return null;
 }
 
-const BACKEND = import.meta.env.VITE_API_URL || '';
+const BACKEND = BACKEND_URL;
 
 async function callApi(path: string, body: any) {
   const token = useAuthStore.getState().token;

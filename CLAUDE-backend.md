@@ -59,9 +59,13 @@ memory/                  ← 记忆文件（按需读写）
 ## 运行时数据（可读，极其谨慎写）
 
 ```
-server/data/canvas-state.json  ← 用户画布数据（自动管理，禁止手动编辑）
-server/data/task-logs.json     ← 任务日志（自动管理，禁止手动编辑）
+server/server/data/projects/<project-id>/state.json  ← 用户画布数据（多项目存储，禁止手动编辑）
+server/data/task-logs.json                            ← 任务日志（自动管理，禁止手动编辑）
+server/data/script-tasks.json                         ← 异步任务持久化
 ```
+
+> ⚠️ 画布状态已迁移到多项目存储。旧路径 `server/data/canvas-state.json` 已废弃。
+> 检查节点数请使用 API：`curl http://localhost:3001/api/canvas/state`
 
 ---
 
@@ -97,9 +101,8 @@ npx tsc --noEmit                         # 必须零错误
 # 4. 服务器健康
 curl http://localhost:3001/api/health     # 期望 {"status":"ok",...}
 
-# 5. 运行时数据
-curl http://localhost:3001/api/canvas/state
-node -e "const d=require('./server/data/canvas-state.json');console.log('Nodes:',d.nodes.length,'Edges:',d.edges.length)"
+# 5. 运行时数据（画布已迁移到多项目存储，通过 API 检查）
+curl http://localhost:3001/api/canvas/state | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);console.log('Nodes:',j.nodes?.length,'Edges:',j.edges?.length)})"
 
 # 6. 感知前端
 cat CLAUDE-contract.md | head -40         # 看前端在不在忙、有没有交接信号
@@ -124,8 +127,7 @@ cat CLAUDE-contract.md | head -40         # 看前端在不在忙、有没有交
 ```bash
 npx tsc --noEmit                          # 编译零错误
 curl http://localhost:3001/api/health      # {"status":"ok",...}
-curl http://localhost:3001/api/canvas/state  # 节点数不应减少
-node -e "const d=require('./server/data/canvas-state.json');console.log('Nodes:',d.nodes.length)"
+curl http://localhost:3001/api/canvas/state  # 节点数不应减少（画布已迁移到多项目存储，仅通过 API 检查）
 ```
 
 ---

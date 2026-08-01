@@ -38,7 +38,9 @@ interface GenerationLog {
 }
 
 // ─── API helpers ──────────────────────────────
-const API = '';
+import { BACKEND_URL } from '../api/config';
+
+const API = BACKEND_URL;
 const SHARED_KEY = 'tapnow-dev-key';
 
 async function apiGet<T>(path: string): Promise<T> {

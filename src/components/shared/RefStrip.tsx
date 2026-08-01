@@ -9,6 +9,13 @@ interface RefStripProps {
   styleImageUrl?: string | null;
 }
 
+function isVideoUrl(url: string): boolean {
+  return url.startsWith('data:video/')
+    || url.includes('/api/proxy-video')
+    || /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url)
+    || /\/video(s)?\//i.test(url);
+}
+
 export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
   return (
     <div style={{
@@ -16,10 +23,10 @@ export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
       paddingBottom: '4px', minHeight: 30, alignItems: 'center',
     }}>
       {refUrls && refUrls.map((uri, i) => {
-        const isVid = uri.startsWith('data:video/') || uri.endsWith('.mp4') || uri.endsWith('.webm');
+        const isVid = isVideoUrl(uri);
         return (<div key={i} style={{ position: 'relative', flexShrink: 0 }}>
           {isVid
-            ? <video src={uri} muted preload="metadata" style={{width:28,height:28,borderRadius:4,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)',pointerEvents:'none'}}/>
+            ? <video src={uri} muted preload="metadata" style={{width:28,height:28,borderRadius:4,objectFit:'cover',border:'1px solid rgba(0,207,255,0.2)',pointerEvents:'none'}}/>
             : <img src={uri} alt="" style={{width:28,height:28,borderRadius:4,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)'}}/>}
           <span onClick={e => {
             e.stopPropagation(); e.preventDefault();
@@ -28,7 +35,12 @@ export function RefStrip({ nodeId, refUrls, styleImageUrl }: RefStripProps) {
             store.edges.forEach(edge => {
               if (edge.to.nodeId === nodeId) {
                 const src = store.nodes.get(edge.from.nodeId);
-                if (src && (src.meta?.gen as any)?.imageUrl === uri) toRemove.push(edge.id);
+                if (!src) return;
+                const gen = src.meta?.gen as any;
+                // Check both imageUrl and videoUrl — video refs use videoUrl
+                if (gen?.imageUrl === uri || gen?.videoUrl === uri) {
+                  toRemove.push(edge.id);
+                }
               }
             });
             toRemove.forEach(eid => store.removeEdge(eid));

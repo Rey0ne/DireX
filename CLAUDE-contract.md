@@ -84,6 +84,8 @@
 | POST `/api/agent/script/characters` | 🆕 new | 2026-07-12 | 后端 |
 | POST `/api/agent/script/scenes` | 🆕 new | 2026-07-12 | 后端 |
 | POST `/api/agent/script/music` | 🆕 new | 2026-07-12 | 后端 |
+| POST `/api/output/upload` | 🆕 new | 2026-07-14 | 后端 |
+| POST `/api/canvas/sync` | 🟡 changing | 2026-07-14 | 后端 |
 
 **状态符号**：🟢 stable（稳定可用）| 🟡 changing（正在改）| 🔴 breaking（破坏性变更中）| 🆕 new（新增，前端尚未接入）| ⚫ deprecated（已废弃）
 
@@ -93,7 +95,8 @@
 
 | 日期 | 谁 | 做了什么 | 影响前端？ |
 |------|-----|---------|-----------|
-| 2026-07-12 | 后端 | **Character Sheet 生图提示词** — CHARACTER_EXTRACTION 输出末尾新增 `角色参考图生图提示词 (Character Sheet Image Prompt)` 英文字段，明确三视图60%+表情特写40%版式。 | **是** — 前端 `createCharNodes` 不要用全文(几千字)，提取 `角色参考图生图提示词` 段作为生图 prompt（~300字符英文精准版式指令） |
+| 2026-07-14 | 后端 | ✅ **状态与资源分离** — `POST /api/canvas/sync` 自动提取 data URL → assetId 引用；新增 `POST /api/output/upload`；schemaVersion 系统 + 迁移脚本；CLAUDE-contract.md 5 条数据铁律 | **是** — 前端 `stripDataUrls` 阈值降至 1KB，sync 后 state.json 不再含 base64 |
+| 2026-07-12 | 后端 | **Character Sheet 生图提示词** — CHARACTER_EXTRACTION 输出末尾新增 `角色参考图生图提示词 (Character Sheet Image Prompt)` 英文字段 | **是** — 前端 `createCharNodes` 不要用全文，提取专用字段 |
 | 2026-07-11 | 后端 | **管线上总超时（15分钟）** — `POST /api/agent/script/overview` 异步 Pipeline 加 `Promise.race` 总超时。 | **否** — 前端已有 `status: 'done'` + `success: false` 处理逻辑 |
 | 2026-07-11 | 后端 | **scriptTasks 落盘持久化** — 任务从内存 Map 改为 JSON 文件存储。 | **是** — 前端需处理 `status: 'lost'` |
 | 2026-07-10 | 后端 | **断网恢复 + 本地资产缓存** — 生成结果下载到 `data/output/`, `/api/output/*` 静态服务, taskStore 落盘+启动恢复, clientTaskId 持久化+重连轮询 | **否** — `<img src>` 直接能用， `/api/output/` 路径格式对前端透明 |
@@ -520,6 +523,78 @@ interface Viewport {
   zoom: number;
 }
 ```
+
+---
+
+---
+## 🔒 数据铁律（Data Enforcement Rules）
+
+> **以下规则在代码审查和 PR 合并时强制检查。违反任何一条 = 拒绝合并。**
+
+### 1. ❌ state.json 禁止 `data:` URI
+
+任何 `data:image/...;base64,...` 格式的字符串不得出现在 `server/data/projects/*/state.json` 中。
+
+**正确做法**：生成结果先写入 `server/data/output/<projectId>/` → state.json 存 `{assetId, url}` 引用。
+
+**执行**：
+- 前端 `persistence.ts` `stripDataUrls()` 在同步前自动剥离 >1KB 的 data URL
+- 后端 `POST /api/canvas/sync` `extractAssetRefs()` 自动提取 data URL → 磁盘文件 → assetId 引用
+- CI/校验脚本可扫描 state.json 检测残留
+
+### 2. ❌ 单个节点 meta 序列化 >100KB
+
+任何节点的 `meta` 字段序列化后不得超过 100KB。
+
+**原因**：单节点膨胀会导致 IndexedDB 写入失败（浏览器限制）、同步变慢、state.json 膨胀。
+
+**执行**：
+- 后端 `POST /api/canvas/sync` `checkNodeSizes()` 记录超标节点
+- 前端 `persistence.ts` `sanitizeMeta()` 字段级 500KB 硬上限 + 加载时跳过超标节点
+- 生成管线：大结果（角色提取全文、分镜表）通过 API 端点返回，不嵌入 state.json
+
+### 3. ✅ 生成结果必须先落地文件 → 返回 assetId + URL
+
+所有生图/生视频/生音频的输出必须先保存到 `server/data/output/<projectId>/`，然后在 state.json 中仅存储 `{assetId, url}`。
+
+**正确格式**：
+```json
+{ "assetId": "uuid-xxx", "url": "/api/output/default/uuid-xxx.png" }
+```
+
+**错误格式**：
+```json
+"data:image/png;base64,iVBORw0KGgo..."
+```
+
+**执行**：`POST /api/output/upload` 端点接受 data URL → 存盘 → 返回 `{assetId, url}`。
+
+### 4. ✅ IndexedDB 所有 object store 主键含 projectId
+
+`db.nodes`、`db.edges`、`db.assets`、`db.jobs` 的索引必须包含 `projectId`，确保按项目隔离查询和删除。
+
+**当前状态**：v2 schema 已实现（`db.ts` Dexie schema + auto-migration）。
+
+**禁止操作**：
+- `db.nodes.clear()` — 全量清空所有项目（应使用 `db.nodes.where({projectId: pid}).delete()`）
+- `db.nodes.where({canvasId})` — 缺少 projectId 过滤（多项目时误匹配）
+
+### 5. ✅ 删除项目时只删自己的数据
+
+删除项目必须精确按 `projectId` 删除，不能影响其他项目。
+
+**执行**：
+```typescript
+// ✅ 正确
+await db.nodes.where({ projectId: pid }).delete();
+await db.edges.where({ projectId: pid }).delete();
+
+// ❌ 错误 — 全量删除
+await db.nodes.clear();
+await db.edges.clear();
+```
+
+**`clearAllData()` 已加 `console.warn` 警告**，调用前需二次确认。
 
 ---
 

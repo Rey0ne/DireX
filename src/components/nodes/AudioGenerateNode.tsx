@@ -36,7 +36,6 @@ interface AudioGenNodeData {
 
 const MODEL_OPTIONS = [
   { name: 'Suno v4', badges: ['音乐'], maxDur: '4min' },
-  { name: 'ElevenLabs Dialogue v3', badges: ['语音'], maxDur: '—' },
 ];
 
 const DURATION_OPTIONS = ['10s', '30s', '60s', '90s', '2min'];
@@ -151,7 +150,11 @@ export function AudioGenerateNode({ id, data, selected }: { id: string; data: Au
   const { showMention, setShowMention, mentionList, detectMention, insertMention } = useMention((data as any).refUrls, data.styleImageUrl);
   const [hovered, setHovered] = useState(false);
   const [prompt, setPrompt] = useState(gen.prompt || '');
-  const [currentModel, setCurrentModel] = useState(gen.model || 'Suno v4');
+  const [currentModel, setCurrentModel] = useState(() => {
+    const m = gen.model;
+    if (!m || m === 'GPT Image2' || m === 'GPT Image 2' || m.includes('Image') || m.includes('Seedream') || m.includes('Kling') || m.includes('Flux') || m.includes('Wan')) return 'Suno v4';
+    return m;
+  });
   const [currentDuration, setCurrentDuration] = useState(gen.duration || '60s');
   const [instrumental, setInstrumental] = useState(gen.instrumental !== false);
   const [lyrics, setLyrics] = useState(gen.lyrics || '');

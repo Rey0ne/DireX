@@ -26,6 +26,7 @@ export interface GenerateRequest {
   genMode?: string;  // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
   firstFrameUrl?: string;
   lastFrameUrl?: string;
+  refVideoDuration?: number;  // total duration of reference videos in seconds (for Seedance V2V token pricing)
   // Audio (Suno)
   instrumental?: boolean; // true=纯音乐, false=人声
   lyrics?: string;        // 歌词文本（人声模式下作为 prompt 发送）
@@ -67,19 +68,37 @@ export type ProviderId = typeof PROVIDER_IDS[number];
 /** Map UI display model names → provider IDs */
 export function mapModelNameToProviderId(modelName: string): string {
   const map: Record<string, string> = {
-    // Image
-    'Nano Banana': 'nano-banana',
-    'GPT Image2': 'gpt-image2',
-    'GPT Image2 I2I': 'gpt-image2',
-    // Video
-    'Kling 2.1': 'kling-video',
-    'Kling 3.0': 'kling-video',
-    'Seedance 2.0': 'seedance-2',
+    // Image — Nano Banana family
+    'Nano Banana':        'google/nano-banana',
+    'Nano Banana 2':      'google/nano-banana',
+    'Nano Banana Pro':    'nano-banana-pro',
+    // Image — GPT family
+    'GPT Image2':         'gpt-image-2-text-to-image',
+    'GPT Image2 I2I':     'gpt-image-2-image-to-image',
+    'GPT Image 2':        'gpt-image-2-text-to-image',
+    // Image — Seedream family
+    'Seedream 5 Pro':     'seedream/5-pro-text-to-image',
+    // Image — Other
+    'Grok Imagine':       'grok-imagine/text-to-image',
+    'Flux 2 Pro':         'flux-2/pro-text-to-image',
+    'Flux 2 Flex':        'flux-2/flex-text-to-image',
+    'Wan 2.7 Image Pro':  'wan/2-7-image-pro',
+    'Imagen 4':           'google/imagen4-fast',
+    // Image — Utility
+    'Recraft 抠图':        'recraft/remove-background',
+    'Recraft 放大':        'recraft/crisp-upscale',
+    'Topaz 放大':          'topaz/image-upscale',
+    // Video — Kling family
+    'Kling 3.0':          'kling-3.0/video',
+    'Kling 3.0 Omni':     'kling-3-omni/text-to-video',
+    // Video — Seedance family
+    'Seedance 2.0':       'bytedance/seedance-2',
+    // Video — Wan family
+    'Wan 2.7 Video':      'wan/2-7-text-to-video',
     // Audio
-    'Suno v4': 'suno-v4',
-    'Udio': 'udio',
-    'Stable Audio': 'stable-audio',
-    'ElevenLabs Dialogue v3': 'elevenlabs-text-to-dialogue-v3',
+    'Suno v4':            'suno-v4',
+    'Udio':               'udio',
+    'Stable Audio':       'stable-audio',
   };
   return map[modelName] || modelName.toLowerCase().replace(/\s+/g, '-');
 }
@@ -136,6 +155,7 @@ export interface AgentGenerateRequest {
   genMode?: string;  // 't2v'|'i2v'|'motion'|'i2v-fl'|'multi-ref'
   firstFrameUrl?: string;
   lastFrameUrl?: string;
+  refVideoDuration?: number;  // total duration of reference videos in seconds (for Seedance V2V token pricing)
   referencePrompts?: string[];
   // Camera kit
   camera?: string;

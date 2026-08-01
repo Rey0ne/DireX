@@ -155,6 +155,16 @@ app.use('/api/auth', authRouter);
 app.use('/api/kimodo', kimodoRouter);
 app.use('/api/kimodo-v2', kimodoV2Router);
 
+// ─── Diagnostics: receive frontend data-loading failure reports ──
+// Public (no auth) — only receives structured failure events, no PII
+app.post('/api/diag/report', (req: Request, res: Response) => {
+  const { category, severity, message, detail, ts } = req.body || {};
+  const emoji = severity === 'error' ? '🔴' : '🟡';
+  const detailStr = detail ? ` | ${String(detail).slice(0, 200)}` : '';
+  console.log(`[diag] ${emoji} [${category || 'unknown'}] ${message || '(no message)'}${detailStr}`);
+  res.json({ ok: true });
+});
+
 // ─── Auth wall (everything below requires auth) ──
 app.use(authMiddleware);
 

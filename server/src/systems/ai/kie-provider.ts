@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { readJSON, writeJSON } from '../db/store.js';
+import { getDirexCost, getAudioKiePrice } from './kie-pricing.js';
 
 const BASE_URL = process.env.KIE_BASE_URL || 'https://api.kie.ai/api/v1';
 
@@ -131,18 +132,53 @@ export async function uploadDataUrl(dataUrl: string): Promise<string | null> {
 }
 
 // ─── Provider → Kie.ai model name ──────────────
+// New frontend passes Kie model IDs directly (e.g., "kling-3.0/video", "seedream/5-pro-text-to-image").
+// Legacy provider IDs still mapped for backward compat with old canvas state.
 function getKieModel(req: GenerateRequest): string {
   const mode = req.mode || 'text-to-image';
   switch (req.providerId) {
-    case 'nano-banana': return 'nano-banana-pro';  // 请在 Playground 选 Nano Banana 确认模型名
-    case 'gpt-image2':
+    case 'nano-banana': return 'nano-banana-pro';  // Legacy
+    case 'gpt-image2':  // Legacy
       return mode === 'image-to-image'
         ? 'gpt-image-2-image-to-image'
         : 'gpt-image-2-text-to-image';
-    case 'kling-video': return 'kling-3.0/video';
-    case 'seedance-2':  return 'bytedance/seedance-2';
-    default: return req.providerId;
+    case 'kling-video': return 'kling-3.0/video';  // Legacy
+    case 'seedance-2':  return 'bytedance/seedance-2';  // Legacy
+    default: return req.providerId;  // New path: providerId IS the Kie model ID
   }
+}
+
+// ─── Model-type detection (operates on Kie model ID string) ───
+function isKlingModel(model: string): boolean {
+  return model.includes('kling');
+}
+function isSeedanceModel(model: string): boolean {
+  return model.includes('seedance') || model.includes('bytedance/seedance');
+}
+function isVideoModel(model: string, mode: string): boolean {
+  if (mode?.includes('video')) return true;
+  // Image models (including those from video providers) — check FIRST
+  if (model.includes('image') && !model.includes('video')) return false;
+  if (model.includes('/video') || model.includes('text-to-video') || model.includes('image-to-video')) return true;
+  // Other video providers
+  const videoProviders = ['kling', 'seedance', 'wan/', 'hailuo', 'runway', 'veo', 'omnihuman', 'vidu', 'pixverse', 'luma', 'happyhorse'];
+  return videoProviders.some(p => model.includes(p));
+}
+function isNanoBananaModel(model: string): boolean {
+  return model.includes('nano-banana');
+}
+function isSeedreamImageModel(model: string): boolean {
+  return model.includes('seedream/');
+}
+function isGpt15Model(model: string): boolean {
+  return model.includes('gpt-image/1.5');
+}
+function isGpt2Model(model: string): boolean {
+  return model.includes('gpt-image-2') || model === 'gpt-image2';
+}
+
+function isHailuoModel(model: string): boolean {
+  return model.includes('hailuo');
 }
 
 function getApiKey(): string | undefined {
@@ -150,7 +186,17 @@ function getApiKey(): string | undefined {
 }
 
 // ─── Polling helper ────────────────────────────
-async function pollTask(taskId: string, apiKey: string, startTime: number): Promise<GenerateResult> {
+async function pollTask(
+  taskId: string,
+  apiKey: string,
+  startTime: number,
+  model: string,
+  mode: string,
+  resolution: string,
+  duration?: number,
+  genMode?: string,
+  refVideoDuration?: number,
+): Promise<GenerateResult> {
   const pollUrl = `${BASE_URL}/jobs/recordInfo?taskId=${taskId}`;
   const maxAttempts = 75; // 75 checks over ~10 min
   const intervalMs = 8000; // 8 seconds between checks
@@ -197,11 +243,12 @@ async function pollTask(taskId: string, apiKey: string, startTime: number): Prom
         if (urls.length === 0 && typeof resultData === 'string' && resultData.startsWith('http')) {
           urls = [resultData];
         }
-        console.log(`[kie] ${taskId} done: ${urls.length} assets, state=${state}`);
+        const pricing = getDirexCost(model, mode, resolution, duration, genMode, refVideoDuration);
+        console.log(`[kie] ${taskId} done: ${urls.length} assets, state=${state}, cost=${pricing.direxCredits} DireX credits (Kie ${pricing.kieCredits}cr × 1.6)`);
         return {
           success: urls.length > 0,
           assetUrls: urls,
-          cost: (record.creditsConsumed || 18) / 100,
+          cost: pricing.direxCredits,
           durationMs: Date.now() - startTime,
           seed: 0,
         };
@@ -440,7 +487,7 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     '1K': '1024x1024', '2K': '1792x1024', '4K': '2048x2048', '1080P': '1920x1080',
   };
 
-  const isNanoBanana = req.providerId === 'nano-banana';
+  const isNanoBanana = isNanoBananaModel(model);
   const isI2I = mode === 'image-to-image';
 
   // Upload video data URLs to hosting (same as images)
@@ -463,9 +510,9 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       }
     }
   }
-  const isKling = req.providerId === 'kling-video';
-  const isSeedance = req.providerId === 'seedance-2';
-  const isVideo = isKling || isSeedance;
+  const isKling = isKlingModel(model);
+  const isSeedance = isSeedanceModel(model);
+  const isVideo = isVideoModel(model, mode);
 
   // Build input params
   const inputParams: Record<string, unknown> = {
@@ -508,6 +555,22 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     }
   }
 
+  // ── Generic video duration (for Wan, Hailuo, Veo, OmniHuman, etc.) ──
+  if (isVideo && !isKling && !isSeedance) {
+    if (req.duration) {
+      const ds = String(req.duration).replace('s', '');
+      inputParams.duration = ds; // must be string
+    }
+    // Always set a default duration for video models that require it
+    if (!inputParams.duration) {
+      inputParams.duration = '5';
+    }
+    // Hailuo requires 6s minimum
+    if (isHailuoModel(model) && parseInt(String(inputParams.duration), 10) < 6) {
+      inputParams.duration = '6';
+    }
+  }
+
   // ── Seedance-specific params (per official spec) ──
   if (isSeedance) {
     // duration: integer 4-15, default 5. 'auto' or invalid → omit (use default)
@@ -530,6 +593,17 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
     if (req.webSearch !== undefined) {
       inputParams.web_search = req.webSearch;
     }
+  }
+
+  // ── Quality parameter injection ──
+  // Seedream / GPT Image 1.5: use 'high' (pricing set for high quality tier)
+  if (isSeedreamImageModel(model) || isGpt15Model(model)) {
+    inputParams.quality = 'high';
+  }
+  // GPT Image 2: use 'medium' — Kie pricing page (16cr @4K) matches OpenAI medium tier ($0.101)
+  // Defaulting without quality costs ~83cr @4K (high tier), 5× the listed price
+  if (isGpt2Model(model)) {
+    inputParams.quality = 'medium';
   }
 
   const body: Record<string, unknown> = { model, input: inputParams };
@@ -661,7 +735,10 @@ export async function kieGenerate(req: GenerateRequest): Promise<GenerateResult>
       };
     }
 
-    return pollTask(taskId, apiKey, startTime);
+    const durationNum = req.duration ? parseInt(String(req.duration).replace('s', ''), 10) || undefined : undefined;
+    // Use req.providerId for pricing lookup (not getKieModel transformed name)
+    // because kie-pricing.ts maps prices by providerId, not Kie internal model names
+    return pollTask(taskId, apiKey, startTime, req.providerId, mode, resolution, durationNum, req.genMode, req.refVideoDuration);
 
   } catch (err) {
     console.log(`[kie] Unreachable, falling back to stub:`, String(err).slice(0, 60));
@@ -737,11 +814,12 @@ async function pollSunoTask(taskId: string, apiKey: string, startTime: number): 
           urls = Array.isArray(record.resultUrls) ? record.resultUrls : [record.resultUrls];
         }
 
-        console.log(`[kie-suno] ${taskId} done: ${urls.length} audio URLs, state=${state}`);
+        const sunoPricing = getAudioKiePrice();
+        console.log(`[kie-suno] ${taskId} done: ${urls.length} audio URLs, state=${state}, cost=${sunoPricing.direxCredits} DireX credits`);
         return {
           success: urls.length > 0,
           assetUrls: urls,
-          cost: (record.creditsConsumed || 10) / 100,
+          cost: sunoPricing.direxCredits,
           durationMs: Date.now() - startTime,
           seed: 0,
         };

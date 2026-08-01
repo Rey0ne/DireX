@@ -10,9 +10,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 
-const OUTPUT_DIR = path.join(process.cwd(), 'server', 'data', 'output');
+const __rootdir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
+const OUTPUT_DIR = path.join(__rootdir, 'server', 'data', 'output');
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // ── Helpers ──────────────────────────────────────

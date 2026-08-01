@@ -1,9 +1,16 @@
 /* === CinematicLighting — 电影灯光系统 R3F 组件 === */
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import type { CinematicLightingState } from '../../data/lightingPresets';
+
+// Error boundary for Environment HDR — CDN fetch failure must not crash Canvas
+class EnvGuard extends React.Component<{ children: React.ReactNode }> {
+  state = { err: false };
+  static getDerivedStateFromError() { return { err: true }; }
+  render() { return this.state.err ? null : this.props.children; }
+}
 
 interface Props {
   state: CinematicLightingState;
@@ -113,12 +120,14 @@ export function CinematicLighting({ state }: Props) {
 
       {/* ═══ HDRI Environment (PMREMGenerator) ═══ */}
       {environment.preset !== 'none' && (
+        <EnvGuard>
         <Environment
           preset={environment.preset as any}
           environmentIntensity={environment.intensity}
           blur={environment.blur as number}
           background={false}
         />
+        </EnvGuard>
       )}
     </>
   );

@@ -23,6 +23,7 @@ import type { CanvasNode, NodeType } from './types/graph';
 import type { UserProfile } from '../shared/api-types.js';
 import { loadFromDB, loadFromServer, startAutoSave, saveNow, loadEmergencyFromLocalStorage, markInitialized, mergeServerGenData, restoreMissingProjects } from './store/persistence';
 import { generateWithAgent, analyzeText, mapModelNameToProviderId, hasExtractionIntent, visualExtract, pollVideoTask } from './api/gateway';
+import { BACKEND_URL } from './api/config';
 import { CreateMenu, ConnectCreateMenu, DoubleClickMenu } from './components/CreateMenu';
 import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
@@ -78,7 +79,7 @@ const defaultShotMeta = {
 };
 
 const defaultGenMeta = {
-  prompt: '', negativePrompt: '', model: 'GPT Image2',
+  prompt: '', negativePrompt: '', model: 'GPT Image 2',
   aspect: '16:9', resolution: '2K', quality: 'high',
   resultAssetIds: [],
 };
@@ -504,13 +505,19 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
     syncTickRef.current = currentTick;
     // Pre-compute refUrls map (O(N+E) instead of O(N*E))
     const refUrlsMap = new Map<string, string[]>();
-    nodeList.forEach(n => refUrlsMap.set(n.id, []));
+    const videoRefUrlsMap = new Map<string, string[]>();
+    nodeList.forEach(n => { refUrlsMap.set(n.id, []); videoRefUrlsMap.set(n.id, []); });
     edgeList.forEach(e => {
       const src = nodeList.find(sn => sn.id === e.from.nodeId);
       const u = (src?.meta?.gen as any)?.imageUrl;
+      const v = (src?.meta?.gen as any)?.videoUrl;
       if (u) {
         const arr = refUrlsMap.get(e.to.nodeId);
         if (arr && !arr.includes(u)) arr.push(u);
+      }
+      if (v) {
+        const arr = videoRefUrlsMap.get(e.to.nodeId);
+        if (arr && !arr.includes(v)) arr.push(v);
       }
     });
 
@@ -537,6 +544,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
           isPickTarget: n.id === pendingConn,
           hasConnections: edgeList.some(e => e.from.nodeId === n.id || e.to.nodeId === n.id),
           refUrls: refUrlsMap.get(n.id)?.slice(0, 20) || [],
+          videoRefUrls: videoRefUrlsMap.get(n.id)?.slice(0, 20) || [],
           gridExpanded: expandedGridNodeId === n.id,
           onGridExpand: () => setExpandedGridNodeId(n.id),
           onGridCollapse: () => setExpandedGridNodeId(null),
@@ -615,6 +623,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
               genMode: meta.genMode as string | undefined,
               firstFrameUrl: meta.firstFrameUrl as string | undefined,
               lastFrameUrl: meta.lastFrameUrl as string | undefined,
+              refVideoDuration: meta.refVideoDuration as number | undefined,
               characterOrientation: meta.characterOrientation as 'image' | 'video' | undefined,
               keepOriginalSound: meta.keepOriginalSound as boolean | undefined,
               fixedCamera: meta.fixedCamera as boolean | undefined,
@@ -793,7 +802,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
             // Upload cropped data URL → public URL (prevents IndexedDB bloat)
             let cropUrl = croppedDataUrl;
             try {
-              const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+              const apiBase = BACKEND_URL;
               const resp = await fetch(`${apiBase}/api/upload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -871,6 +880,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
           videoUrl: (sn.meta?.gen as Record<string, unknown>)?.videoUrl as string || undefined,
           hasConnections: edgeList.some(e => e.from.nodeId === sn.id || e.to.nodeId === sn.id),
           refUrls: refUrlsMap.get(sn.id)?.slice(0, 20) || [],
+          videoRefUrls: videoRefUrlsMap.get(sn.id)?.slice(0, 20) || [],
           isConnecting,
           isPickMode: useCanvasStore.getState().pendingConnection !== null,
           isPickTarget: sn.id === useCanvasStore.getState().pendingConnection,
@@ -1162,7 +1172,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
           // Upload data URL → public URL first (prevents IndexedDB bloat from base64)
           const uploadDataUrl = async (dUrl: string): Promise<string> => {
             try {
-              const apiBase = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+              const apiBase = BACKEND_URL;
               const resp = await fetch(`${apiBase}/api/upload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

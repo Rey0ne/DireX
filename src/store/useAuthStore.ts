@@ -1,8 +1,7 @@
 /* === Auth Store — User login state === */
 import { create } from 'zustand';
 import type { UserProfile } from '../../shared/api-types.js';
-
-const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+import { BACKEND_URL } from '../api/config';
 const STORAGE_KEY = 'direx_auth';
 
 interface AuthState {
@@ -15,6 +14,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   refreshCredits: () => Promise<void>;
+  spendCredits: (amount: number, type: string, description: string) => Promise<boolean>;
   getToken: () => string | null;
   isLoggedIn: () => boolean;
 }
@@ -98,6 +98,31 @@ export const useAuthStore = create<AuthState>((set, get) => {
           set({ user: { ...get().user!, credits: json.credits, plan: json.plan } });
         }
       } catch {}
+    },
+
+    spendCredits: async (amount, type, description) => {
+      const { token } = get();
+      if (!token || amount <= 0) return false;
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/auth/credits/spend`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ amount, type, description }),
+        });
+        const json = await resp.json();
+        if (json.success) {
+          set({ user: { ...get().user!, credits: json.credits } });
+          return true;
+        }
+        if (json.error) console.warn('[credits] spend failed:', json.error);
+        return false;
+      } catch (err) {
+        console.warn('[credits] spend error:', err);
+        return false;
+      }
     },
 
     getToken: () => get().token,

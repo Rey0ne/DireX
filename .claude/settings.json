@@ -179,5 +179,72 @@
       "Bash(curl -s -o /dev/null -w \"画布: HTTP %{http_code}\\\\n\" http://localhost:3001)",
       "Bash(curl -s -o /dev/null -w \"UE5: HTTP %{http_code}\\\\n\" http://localhost:3001/ue5)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.cheat-hooks/prediction-immutability.sh",
+            "timeout": 3,
+            "async": false
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.cheat-hooks/session-start.sh",
+            "timeout": 5,
+            "async": false
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.cheat-hooks/log-event.sh tool_use",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.cheat-hooks/log-event.sh user_prompt",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.cheat-hooks/log-event.sh session_end",
+            "timeout": 5,
+            "async": true
+          }
+        ]
+      }
+    ]
   }
 }
