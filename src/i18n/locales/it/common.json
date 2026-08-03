@@ -1,0 +1,18 @@
+{
+  "login": {
+    "title": "DireX",
+    "subtitle": "Pipeline di produzione contenuti AI",
+    "tabLogin": "Accedi",
+    "tabRegister": "Registrati",
+    "placeholderName": "Nome utente (opzionale)",
+    "placeholderEmail": "Email",
+    "placeholderPassword": "Password (min. 6 caratteri)",
+    "rememberPassword": "Ricordami",
+    "btnLogin": "Accedi",
+    "btnRegister": "Registrati (+200 crediti)",
+    "btnProcessing": "Elaborazione…",
+    "orDivider": "oppure",
+    "btnSkip": "Salta ed entra",
+    "termsFooter": "Registrandoti accetti i Termini di servizio e l'Informativa sulla privacy"
+  }
+}

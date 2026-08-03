@@ -1,0 +1,18 @@
+{
+  "login": {
+    "title": "DireX",
+    "subtitle": "KI-Content-Produktionspipeline",
+    "tabLogin": "Anmelden",
+    "tabRegister": "Registrieren",
+    "placeholderName": "Benutzername (optional)",
+    "placeholderEmail": "E-Mail",
+    "placeholderPassword": "Passwort (mind. 6 Zeichen)",
+    "rememberPassword": "Angemeldet bleiben",
+    "btnLogin": "Anmelden",
+    "btnRegister": "Registrieren (+200 Punkte)",
+    "btnProcessing": "Wird verarbeitet…",
+    "orDivider": "oder",
+    "btnSkip": "Überspringen",
+    "termsFooter": "Mit der Registrierung stimmen Sie den Nutzungsbedingungen und der Datenschutzerklärung zu"
+  }
+}

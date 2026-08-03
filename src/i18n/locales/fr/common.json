@@ -1,0 +1,18 @@
+{
+  "login": {
+    "title": "DireX",
+    "subtitle": "Pipeline de production de contenu IA",
+    "tabLogin": "Connexion",
+    "tabRegister": "Inscription",
+    "placeholderName": "Nom d'utilisateur (optionnel)",
+    "placeholderEmail": "E-mail",
+    "placeholderPassword": "Mot de passe (min. 6 caractères)",
+    "rememberPassword": "Se souvenir de moi",
+    "btnLogin": "Connexion",
+    "btnRegister": "Inscription (+200 crédits)",
+    "btnProcessing": "Traitement…",
+    "orDivider": "ou",
+    "btnSkip": "Passer",
+    "termsFooter": "En vous inscrivant, vous acceptez les conditions d'utilisation et la politique de confidentialité"
+  }
+}

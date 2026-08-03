@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { setLanguage, SUPPORTED_LANGS } from './index';
+import { setLanguage, SUPPORTED_LANGS, type SupportedLang } from './index';
 
 export function LangSwitcher() {
   const { i18n } = useTranslation();
@@ -20,7 +20,7 @@ export function LangSwitcher() {
   }, [open]);
 
   const select = useCallback((code: string) => {
-    setLanguage(code as 'zh-CN' | 'en');
+    setLanguage(code as SupportedLang);
     setOpen(false);
   }, []);
 

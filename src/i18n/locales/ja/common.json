@@ -1,0 +1,18 @@
+{
+  "login": {
+    "title": "DireX",
+    "subtitle": "AIコンテンツ制作パイプライン",
+    "tabLogin": "ログイン",
+    "tabRegister": "登録",
+    "placeholderName": "ユーザー名（任意）",
+    "placeholderEmail": "メールアドレス",
+    "placeholderPassword": "パスワード（6文字以上）",
+    "rememberPassword": "パスワードを保存",
+    "btnLogin": "ログイン",
+    "btnRegister": "登録（200ポイント進呈）",
+    "btnProcessing": "処理中…",
+    "orDivider": "または",
+    "btnSkip": "スキップして入る",
+    "termsFooter": "登録により利用規約とプライバシーポリシーに同意したことになります"
+  }
+}
