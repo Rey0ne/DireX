@@ -135,12 +135,12 @@ git log --oneline -3
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-07-30 |
+| 最后更新 | 2026-08-04 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | _pending_ — Kimodo API 分离 + v2 翻译 + 防退化补充 |
-| 当前板块 | Kimodo v2 翻译管线完成；CLAUDE.md 防退化机制补充 |
-| 下一个板块 | Python v2 启动；CF merge 实验；DireX 前端待办（ShotNode/ImageGenerateNode） |
-| 本次压缩 | 1 次 |
+| 最新提交 | `b85d0a8` — 邮箱/短信验证 + i18n 翻译补全 + KB 反引号修复 |
+| 当前板块 | ✅ 注册验证系统完成；vision.js 识图脚本可用（Kimi 余额不足待充值） |
+| 下一个板块 | KB 扩充文件待提交；PLY/3DGS 待提交；ShotNode/ImageGenerateNode 前端待办 |
+| 本次压缩 | 10 次 |
 
 ---
 
