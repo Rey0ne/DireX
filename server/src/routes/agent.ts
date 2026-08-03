@@ -2,6 +2,7 @@
 
 import { Router, Request, Response } from 'express';
 import { v4 as uuid } from 'uuid';
+import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -9,6 +10,7 @@ import path from 'node:path';
 import { runAgentPipeline, runTextPipeline, runUnifiedPipeline, compileI2IWithGPT5, parseShotBlocks, runCharacterExtraction, runSceneExtraction, runSceneArchitect, runPropDesigner, runSoundComposer, runScriptAnalysis, type ScriptAnalysisResult } from '../systems/agent/pipeline.js';
 import { compilePrompt } from '../systems/agent/compiler.js';
 import { buildCamBlock } from '../systems/agent/camera-kit-mappings.js';
+import { buildPhotorealismNegative } from '../systems/agent/photorealism-kb.js';
 import { compileVideoPrompt } from '../systems/agent/video-analyzer.js';
 import { parseVisualIntent, type ExtractMode } from '../systems/agent/visual-parser.js';
 
@@ -23,8 +25,9 @@ import { addLog, getLogs } from '../systems/task/manager.js';
 import { handleDownload } from '../systems/file/download.js';
 import { cacheGenerationResult } from '../systems/file/asset-cache.js';
 
-// Config
+// Config & user
 import { getProfile } from '../config.js';
+import { updateCredits } from '../systems/db/user-store.js';
 
 // Q brain hooks
 import { trackCanvasSync, captureScriptAnalysis } from '../systems/q/q-observer.js';
@@ -81,6 +84,21 @@ export const scriptTasks = loadScriptTasks();
 
 // ─── Kie Suno callback store ─────────────────────
 export const sunoCallbacks = new Map<string, any>();
+
+// ─── Auth helper (extract userId from X-User-Token or Authorization header) ──
+const JWT_SECRET = process.env.JWT_SECRET || 'direx-jwt-secret-dev';
+function extractUserId(req: Request): string | null {
+  try {
+    // Prefer X-User-Token (user JWT), fall back to Authorization (may be shared API key)
+    const tokenHeader = req.headers['x-user-token'] as string || req.headers.authorization;
+    if (!tokenHeader || !tokenHeader.startsWith('Bearer ')) return null;
+    const token = tokenHeader.slice(7);
+    // Skip non-JWT tokens (shared API keys don't have 3 dot-separated parts)
+    if (token.split('.').length !== 3) return null;
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    return payload?.userId || null;
+  } catch { return null; }
+}
 
 // ═══════════════════════════════════════════════════
 //  Agent / Generation Endpoints
@@ -296,7 +314,7 @@ router.post('/agent/generate', async (req: Request, res: Response) => {
 
     const clientTaskId = uuid();
     initVideoTask(clientTaskId, body.providerId, (body as any).nodeId);
-    const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo';
+    const i2iNegPrompt = buildPhotorealismNegative();
     const result: GenerateResult = await withKieLimit(`video:${body.providerId}`, () => handler({
       providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
       negativePrompt: i2iNegPrompt,
@@ -376,9 +394,10 @@ router.post('/agent/generate', async (req: Request, res: Response) => {
 
   console.log('[agent] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
   const t0 = Date.now();
+  const photorealismNeg = buildPhotorealismNegative();
   const i2iNegPrompt = body.mode === 'image-to-image'
-    ? 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details'
-    : 'blurry, low quality, distorted, deformed, watermark, text, logo';
+    ? photorealismNeg + ', extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details'
+    : photorealismNeg;
   const result: GenerateResult = await withKieLimit(`generate:${body.providerId}`, () => handler({
     providerId: body.providerId, mode: body.mode, prompt: compiledPrompt,
     negativePrompt: i2iNegPrompt,
@@ -403,48 +422,48 @@ router.post('/agent/generate', async (req: Request, res: Response) => {
     status: result.success ? 'succeeded' : 'failed',
     assetUrls: result.assetUrls, cost: result.cost, durationMs: result.durationMs, error: result.error,
   });
-  try {
-    const shotNumber = (body as any).shot?.shotNumber || (body as any).shotNumber || 0;
-    if (shotNumber) {
-      detectDeviations({
-        projectId: 'default',
-        shotNumber,
-        assetUrls: result.assetUrls || [],
-        compiledPrompt: compiledPrompt,
-        nodeId: (body as any).nodeId,
-      }).then((detectionResult) => {
-        if (detectionResult && detectionResult.violations > 0) {
-          onPipelineComplete('default', shotNumber, {
-            total: detectionResult.deviationsFound,
-            violations: detectionResult.violations,
-          }).catch(() => {});
+
+  // Deduct credits for authenticated users (server-side, authoritative)
+  if (result.success && result.cost > 0) {
+    const uid = extractUserId(req);
+    if (uid) {
+      try {
+        const updated = updateCredits(uid, -result.cost);
+        if (updated) {
+          console.log(`[credits] Server-side: deducted ${result.cost} DireX from user ${uid} (new balance: ${updated.credits})`);
         }
-      }).catch(() => {});
+      } catch (e) { console.warn('[credits] Server-side deduction failed:', e); }
     }
-  } catch {}
-  if (result.success && result.assetUrls.length > 0) {
-    try {
-      const { localUrls } = await cacheGenerationResult(result.assetUrls);
-      result.assetUrls = localUrls;
-    } catch {}
   }
-  const debugInfo = agentTrace.map(function(t: any){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
-  debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
-  debugInfo.push({field:'providerId-received', contribution: body.providerId});
-  const kieReq = (globalThis as any).__lastKieReq;
-  const kieResp = (globalThis as any).__lastKieResp;
-  if (kieReq) debugInfo.push({field:'kie-req', contribution: JSON.stringify({model:kieReq.model,refs:kieReq.refs_count}).slice(0,300)});
-  if (kieResp) debugInfo.push({field:'kie-resp', contribution: JSON.stringify(kieResp).slice(0,1000)});
-  const rawVision = (globalThis as any).__lastI2IVision;
-  if (rawVision) {
-    debugInfo.push({field:'rawVision-charProfiles', contribution: JSON.stringify(rawVision.charProfiles).slice(0, 2000)});
-    debugInfo.push({field:'rawVision-sceneAnalyses', contribution: JSON.stringify(rawVision.sceneAnalyses).slice(0, 2000)});
+
+  try {
+    if (result.success && result.assetUrls.length > 0) {
+      try {
+        const { localUrls } = await cacheGenerationResult(result.assetUrls);
+        result.assetUrls = localUrls;
+      } catch {}
+    }
+    const debugInfo = agentTrace.map(function(t: any){ return {field:t.agentName||t.agentId,contribution:t.output?t.output.slice(0,60):''}; });
+    debugInfo.push({field:'compiledPrompt', contribution: 'len=' + compiledPrompt.length + ' empty=' + (!compiledPrompt || compiledPrompt.trim().length === 0) + ' mode=' + (body.mode || 'none') + ' hasRefs=' + (((body as any).referenceUrls?.length) || 0) + ' text=' + compiledPrompt.slice(0, 500) });
+    debugInfo.push({field:'providerId-received', contribution: body.providerId});
+    const kieReq = (globalThis as any).__lastKieReq;
+    const kieResp = (globalThis as any).__lastKieResp;
+    if (kieReq) debugInfo.push({field:'kie-req', contribution: JSON.stringify({model:kieReq.model,refs:kieReq.refs_count}).slice(0,300)});
+    if (kieResp) debugInfo.push({field:'kie-resp', contribution: JSON.stringify(kieResp).slice(0,1000)});
+    const rawVision = (globalThis as any).__lastI2IVision;
+    if (rawVision) {
+      debugInfo.push({field:'rawVision-charProfiles', contribution: JSON.stringify(rawVision.charProfiles).slice(0, 2000)});
+      debugInfo.push({field:'rawVision-sceneAnalyses', contribution: JSON.stringify(rawVision.sceneAnalyses).slice(0, 2000)});
+    }
+    lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, method: body.mode === 'image-to-image' ? 'i2i-direct' : (config.promptEnhancement ? 't2i-pipeline' : 'raw'), time: new Date().toISOString() };
+    console.log('[agent] ===== COMPILED PROMPT =====');
+    console.log(compiledPrompt);
+    console.log('[agent] ===== END COMPILED PROMPT =====');
+    res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo }, result, agentTrace });
+  } catch (err) {
+    console.error('[agent] Error building debug response:', err);
+    res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: [] }, result, agentTrace });
   }
-  lastCompiled = { en: compiledPrompt, cn: userPrompt, mode: body.mode, refs: (body as any).referenceUrls?.length || 0, method: body.mode === 'image-to-image' ? 'i2i-direct' : (config.promptEnhancement ? 't2i-pipeline' : 'raw'), time: new Date().toISOString() };
-  console.log('[agent] ===== COMPILED PROMPT =====');
-  console.log(compiledPrompt);
-  console.log('[agent] ===== END COMPILED PROMPT =====');
-  res.json({ compiled: { en: compiledPrompt, cn: userPrompt, negative: 'blurry, low quality', debug: debugInfo }, result, agentTrace });
 });
 
 // ─── Task Polling ────────────────────────────────
@@ -1119,7 +1138,7 @@ router.post('/agent/visual-extract', async (req: Request, res: Response) => {
   console.log('[visual-extract] Generate: ' + body.providerId + ' prompt=' + compiledPrompt.slice(0, 100) + ' (len=' + compiledPrompt.length + ')');
   const t0 = Date.now();
 
-  const i2iNegPrompt = 'blurry, low quality, distorted, deformed, watermark, text, logo, extra limbs, extra fingers, fused body, extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details';
+  const i2iNegPrompt = buildPhotorealismNegative() + ', extra props, weapon, object not in prompt, hallucinated item, extra person, clutter, fabricated details';
 
   const result: GenerateResult = await withKieLimit(`visual-extract:${body.providerId}`, () => handler({
     providerId: body.providerId,

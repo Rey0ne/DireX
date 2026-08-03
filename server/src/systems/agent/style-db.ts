@@ -35,6 +35,31 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 | French Chic | 不费力优雅、看似随意实则精心 | 棉府绸/美利奴羊毛/丝缎/小羊皮 | 海军蓝/白/驼色/灰/正红(极少面积) | 条纹船领衫、直筒九分裤、风衣、芭蕾鞋、丝巾 |
 | Italian Sprezzatura | 刻意的不经意、高定级别的松弛感 | 超细羊毛/羊绒/丝绸/软结构亚麻 | 烟草棕/灰蓝/奶油白/酒红 | 无结构西装、软领衬衫(不系第一颗扣)、高腰西裤、乐福鞋(不穿袜) |
 
+## 历史/传统风格速查 (Historical & Traditional Style Reference)
+> 当代风格以上。以下为各文明的历史传统服装风格，用于生成非当代时代的角色。
+> 由 `lookupEraCostume(era)` 自动匹配，作为 FASHION_STYLE_DB 的补充注入 prompt。
+
+| 风格 | 廓形 | 关键面料 | 配色+纹样 | 标志单品+时代 |
+|------|------|---------|----------|-------------|
+| 汉服·先秦 | 上衣下裳+深衣、交领右衽、曲裾绕襟、大带束腰 | 麻/葛/丝(锦/罗/绮)、皮革(武) | 赤/黑/白/青/黄(五正色)、云雷纹/饕餮纹/龙凤纹/回纹 | 深衣、曲裾袍、组玉佩、带钩 — 商周~汉 |
+| 汉服·盛唐 | 齐胸襦裙(女/腋下系带曳地)、圆领袍(男/幞头革带乌皮靴)、大袖衫、披帛 | 丝绸(锦/绫/罗/纱/缂丝)、麻 | 石榴红/翠绿/明黄/紫/天水碧、团窠纹/联珠纹/宝相花/卷草/狩猎纹 | 齐胸襦裙、圆领袍、金步摇、花钿妆 — 唐 618-907 |
+| 汉服·雅宋 | 褙子(女/直领对襟至膝)、窄袖短衣+长裙、圆领大袖袍(男)、直裰 | 丝绸/罗(宋罗极精)、棉(初推广)、缂丝 | 天水碧/月白/藕荷/淡青/烟灰/象牙白、缠枝牡丹/满地锦/落花流水纹 | 褙子、宋裤、长翅幞头、鱼袋 — 宋 960-1279 |
+| 汉服·大明 | 袄裙(女/短袄+马面裙)、圆领袍(男/补子)、披风、比甲 | 丝绸(云锦/宋锦/缂丝)、棉布(松江)、纱/罗 | 绯红/鸦青/明黄/月白/翠蓝、补子纹(仙鹤/锦鸡/孔雀)、缠枝莲/折枝花 | 马面裙、补服、凤冠、乌纱帽、金属纽扣 — 明 1368-1644 |
+| 汉服·清旗装 | 旗装(女/宽大直筒长袍大襟右衽)、长袍+马褂(男)、坎肩、氅衣 | 丝绸(云锦/漳绒)、棉、羽缎/呢绒(进口) | 石青/明黄/杏黄/红/香色/月白、海水江崖/八宝/暗八仙/团花/蝴蝶如意 | 旗装、马褂、花盆底鞋、朝珠、盘扣 — 清 1644-1912 |
+| 旗袍·民国 | 改良旗袍(高领/紧身/侧开衩短袖或3/4袖)、文明新装(倒大袖+黑长裙) | 丝绸/棉/呢绒/蕾丝/乔其纱/丝绒 | 月白/粉/淡蓝/淡绿/藕荷+深色滚边(黑/藏蓝)、Art Deco几何/折枝花 | 旗袍、珍珠项链、高跟鞋、手包、盘扣 — 1912-1949 |
+| 和服·平安 | 十二单(女/多层衣体系)、束带(男/朝服)、狩衣(男/日常)、袿(女/外出) | 丝绸(绫/罗/锦)、麻(庶民) | 袭色目(表里配色体系): 紅梅/桜/藤/萌黄/山吹/紅葉/松/雪、有職文様 | 十二单、束带、桧扇、釵子 — 平安 794-1185 |
+| 和服·江户 | 振袖(女未婚/长袖及地)、留袖(女已婚/黑底+下摆纹样)、小袖(日常着物)、裃(男武士礼服) | 丝绸/棉(江户普及)、縮緬(crepe)、友禅染、絞り(shibori) | 茶/鼠/蓝(靛蓝aizome)、友禅花卉、家纹、青海波/市松/麻の葉 | 振袖、留袖、太鼓帯、草履、足袋、根付 — 江户 1603-1868 |
+| 韩服·朝鲜 | 赤古里+裙(女/短上衣仅及胸+高腰大裙、彩色袖口+领口)、团领+纱帽(男官员)、道袍(男士大夫) | 丝绸(两班)、苎麻/棉(平民)、麻 | 素白(朝鲜审美核心)、玉色/淡粉/淡蓝/淡黄/青、十长生纹/花鸟/寿福字 | 赤古里+裙、道袍、黑笠、norigae三件坠饰、binyeo发簪 — 朝鲜 1392-1897 |
+| 印度·古典 | 纱丽(女/5-9m裹身无缝)、Dhoti(男裹裤)、Kurta(男女长袍)+Churidar(紧身裤)、Lehenga(女婚礼大裙) | 丝绸(瓦拉纳西/Kanjeevaram)、棉(Khadi手织)、金线锦(zari) | 藏红花黄/翡翠绿/靛蓝/深红/金、paisley/莲花/孔雀/曼陀罗/mirror镜面绣 | 纱丽、Dhoti、Kurta、Kundan珠宝、Maang Tikka额饰、Bindi — 全时代 |
+| 印度·莫卧儿 | Sherwani(男长礼服+Churidar)、Anarkali(女长裙套装)、Jama(系带长袍)、Odhni(女头纱) | 丝绸/天鹅绒/金线锦(brocade)、细羊毛(pashmina) | 深红/象牙白/绿/金/深紫、paisley/花卉蔓藤/arabesque几何/建筑拱门 | Sherwani、Anarkali、Jodhpuri裤、Jutti绣花鞋、Sarpech头巾饰 — 1526-1857 |
+| 中东/伊斯兰 | Abaya(女/黑袍)、Kaftan(宽袍)、Thobe(男白长袍)、Keffiyeh(男头巾+Igal黑绳圈)、Hijab/Niqab(女头/面纱) | 棉/丝绸/羊毛/亚麻、金线绣、Damascus brocade | 黑/白/深蓝/深红/金、几何arabesque/蔓藤纹/书法纹/星月/八芒星 | Abaya、Kaftan、Thobe、Keffiyeh+Igal、Babouche拖鞋、Misbaha念珠 — 全时代 |
+| 欧洲·中世纪 | Cotte(及踝束腰袍)、Surcote(外罩无袖/毛皮边)、Hose(分体紧身裤男)+Braies(宽松裤)、Houppelande(后期大袍) | 羊毛(主导)、亚麻(内衣)、毛皮(贵族)、丝绸(极稀) | 天然羊毛色/棕/灰/暗红/暗蓝(靛蓝Woad)/暗绿、简单几何镶边 | Cotte、Surcote、锁子甲、大胸针(Brooch)、尖长鞋(Poulaine) — 5-15世纪 |
+| 欧洲·文艺复兴 | Doublet(男紧身夹克peascod belly)+Trunk hose(南瓜裤)+Ruff拉夫领、Farthingale(女裙撑锥形)+Stays紧身胸衣 | 天鹅绒/锦缎/丝绸/金线锦/蕾丝/亚麻 | 深红crimson/黑jet/紫Tyrian/金cloth of gold/白ruff、石榴花/卷草arabesque | Ruff拉夫领、Doublet+Trunk hose、Farthingale裙撑、珍珠覆盖、高底鞋 — 15-17世纪 |
+| 欧洲·维多利亚 | 束腰Corset(女沙漏)+Crinoline笼式裙撑(1856)+Bustle臀垫(1870s→80s)、Frock coat(男日间)+Tailcoat(男晚装)+Top hat | 丝绸/塔夫绸/天鹅绒/蕾丝/羊毛呢绒 | 黑(男正装)/深绿/酒红/深紫/奶油白(女日装)、花卉印花/条纹/格纹 | Corset、Crinoline裙撑、Bustle、Top hat、Tailcoat燕尾服、手套 — 1837-1901 |
+| 欧洲·爱德华 | S-bend Corset(S形束腰/鸽胸)、Gibson Girl高领蕾丝衬衫+A字长裙、Tea gown下午茶袍、Sack suit(男/现代西装雏形)+Homburg帽 | 蕾丝/细棉布/丝绸/薄纱/羊毛精纺 | 白(蕾丝)/粉彩/象牙白/淡紫(女)、炭灰/深蓝/棕(男)、Art Nouveau曲线 | Gibson Girl衬衫裙、S-bend Corset、Sack suit、Homburg、长手套 — 1900-1914 |
+| 非洲·传统 | Agbada(男/宽大刺绣长袍)、Dashiki(男女/套头衫+刺绣领口)、Boubou(西非宽袍)、Wrapper(女裹裙+Gele大头巾) | 棉、Kente丝绸(加纳)、Mudcloth泥染布(马里)、Adire靛蓝扎染(尼日利亚) | 赤陶/靛蓝/芥末黄/深棕/砖红/白、Kente几何条纹、Mudcloth抽象符号、Cowrie贝壳 | Agbada、Dashiki、Kente、Gele大头巾、Cowrie贝壳项链、珊瑚珠 — 全时代+地区 |
+| 拉美·传统 | Huipil(女/无袖刺绣罩衫)+Corte(裹裙)、Poncho(男女斗篷)、Guayabera(男刺绣衬衫)、Charro suit(墨西哥牛仔礼服) | 棉/羊毛/龙舌兰纤维、手工刺绣、皮革 | 白/红/蓝/黄/绿/黑(鲜艳原色)、几何阶梯纹/花卉刺绣/动物图腾(鹰/美洲豹) | Huipil、Poncho、Guayabera、Sombrero宽檐帽、Rebozo披肩、Huarache皮凉鞋 — 全时代 |
+
 ## 设计师风格速查 (Designer Signature Keywords)
 - Chanel: 斜纹软呢套装、珍珠、山茶花、黑白米色、粗花呢
 - Saint Laurent: Le Smoking吸烟装、黑色、锋利剪裁、透明衬衫
@@ -684,6 +709,44 @@ function matchDimension(input: string, map: Record<string, DimEntry>): { key: st
 // ── Public decision API ──────────────────────────
 
 /**
+ * Fast keyword search across FASHION_STYLE_DB for specific style references.
+ * Returns matching style entries with silhouette/fabric/color/signature-item data.
+ */
+export function searchStyleKB(query: string): string {
+  const tokens = query.toLowerCase().split(/[\s,，、/\-—|]+/).filter(t => t.length >= 2);
+  if (!tokens.length) return '';
+
+  const allDBs = [FASHION_STYLE_DB, INTERIOR_STYLE_DB, FASHION_COORDINATION_DB];
+  let results = '';
+
+  for (const db of allDBs) {
+    const rows = db.split('\n');
+    let inTable = false;
+    let header = '';
+    for (const line of rows) {
+      if (line.startsWith('|')) {
+        const haystack = line.toLowerCase();
+        let score = 0;
+        for (const t of tokens) {
+          if (haystack.includes(t)) score += t.length >= 4 ? 3 : 2;
+        }
+        if (score > 0) {
+          if (!inTable) { results += `\n${header}\n`; inTable = true; }
+          results += line + '\n';
+        }
+      } else {
+        inTable = false;
+        if (line.startsWith('##') || line.startsWith('###')) {
+          header = line;
+        }
+      }
+    }
+  }
+
+  return results.trim() || '';
+}
+
+/**
  * 5-dimension style decision engine.
  * Takes natural language inputs for each dimension, matches against
  * structured knowledge base, returns StyleDecision with 70/20/10 mix.
@@ -716,9 +779,14 @@ export function decideStyle(dimensions: DimensionInput): StyleDecision {
   const interiorStyles = [...interiorSet];
 
   // 70/20/10 rule: primary from strongest match, secondary from 2nd, accent from mood
-  const primary = fashionStyles[0] || 'Contemporary';
-  const secondary = fashionStyles[1] || (era?.entry.fashion[0] || 'Minimalist');
-  const accent = mood?.entry.fashion[0] || identity?.entry.fashion[0] || 'Streetwear';
+  // For pre-modern eras, use the era's own fashion reference, NOT 'Contemporary'
+  const isHistorical = dimensions.era && !/当代|近未来|远未来|现代早期/.test(dimensions.era);
+  const primary = fashionStyles[0] || (era?.entry.fashion[0] || (isHistorical ? dimensions.era : 'Contemporary'));
+  const secondary = fashionStyles[1] || (era?.entry.fashion[1] || era?.entry.fashion[0] || (isHistorical ? dimensions.era + '衍生' : 'Minimalist'));
+  const accent = mood?.entry.fashion[0] || identity?.entry.fashion[0] || (isHistorical ? dimensions.era + '细节' : 'Streetwear');
+  const colorFallback = isHistorical ? (dimensions.era + '时代天然染料配色（矿物/植物染料，避免现代合成色）') : '当代默认配色';
+  const lightingFallback = isHistorical ? (dimensions.era + '时代自然光源（日光/烛光/油灯/火炬，无电力照明）') : '层次化现代灯光';
+  const materialFallback = isHistorical ? (dimensions.era + '时代手工天然材料（无合成面料/塑料/现代合金）') : '当代默认材质';
 
   // Confidence based on how many dimensions matched
   const totalDims = [dimensions.era, dimensions.region, dimensions.function, dimensions.mood, dimensions.identity].filter(Boolean).length;
@@ -731,9 +799,9 @@ export function decideStyle(dimensions: DimensionInput): StyleDecision {
     accent,
     fashionStyles,
     interiorStyles,
-    colorDirection: colors.join('; ') || '当代默认配色',
-    lightingDirection: lightings.join('; ') || '层次化现代灯光',
-    materialDirection: materials.join('; ') || '当代默认材质',
+    colorDirection: colors.join('; ') || colorFallback,
+    lightingDirection: lightings.join('; ') || lightingFallback,
+    materialDirection: materials.join('; ') || materialFallback,
     confidence: Math.round(confidence * 100) / 100,
   };
 }

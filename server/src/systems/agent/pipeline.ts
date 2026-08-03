@@ -12,6 +12,8 @@ import { planMusic, formatMusicPlanForPrompt } from './music-planner.js';
 import { searchWritersKB, WRITERS_KB_CATALOG, KB_RETRIEVAL_PROMPT_SCRIPT } from './writers-kb.js';
 import { VISUAL_KB_CATALOG } from './cinematography-kb.js';
 import { INTERIOR_DESIGNERS_DB } from './spatial-kb.js';
+import { getHistoricalKBForEra, buildEraAnachronismGuard } from './history-kb.js';
+import { buildPhotorealismPrefix } from './photorealism-kb.js';
 
 const MAX_PREV_OUTPUT_CHARS = 600; // tight summary of each previous agent output
 
@@ -195,8 +197,19 @@ Traditional / Modern / Mid-Century Modern / Minimalist / Scandinavian / Japandi 
 → 情绪词(Color)映射：Heroic / Melancholic / Tense / Romantic / Serene / Mysterious / Energetic / Glamorous / Confident / Edgy / Sleek / Sophisticated
 → 配器(Instrument)推荐：Strings / Brass / Woodwinds / Percussion / Synth / Ethnic Instruments / Electronic Textures
 → 民族风格(Ethnic)：Chinese Folk / Japanese Gagaku / Indian Classical / Middle Eastern / Celtic / Nordic / African
-→ 电影作曲家风格参考库：Hans Zimmer / John Williams / Ennio Morricone / 久石让 / 坂本龙一 / Max Richter / Ólafur Arnalds 等(SSS/SS/S/A 四级)
+→ 电影作曲家风格参考库(95+位)：Hans Zimmer / John Williams / Ennio Morricone / 久石让 / 坂本龙一 / Max Richter / Ólafur Arnalds / Alexandre Desplat 等(SSS/SS/S/A 四级)
+→ Hip-Hop/Rap制作人(20位)：J Dilla / Madlib / The Alchemist / DJ Premier / Pete Rock / RZA / Dr. Dre / Metro Boomin / Flying Lotus 等
+→ K-Pop/C-Pop/J-Pop制作人(20位)：Teddy Park / Pdogg / 3RACHA / JJ Lin / Jay Chou / Cornelius / Yoko Kanno 等
+→ 中国传统/戏曲作曲家(15位)：冼星海 / 贺绿汀 / 阿炳 / 谭盾 / 赵季平 / 陈其钢 / 黄霑 / 顾嘉辉 / 胡伟立 / 金复载 等
+→ 中国独立/摇滚/电子(10位)：万能青年旅店 / 新裤子 / 痛仰 / 重塑雕像的权利 / 惘闻 等
+→ 游戏配乐作曲家(16+位)：植松伸夫 / 近藤浩治 / 下村陽子 / 岡部啓一 / 祖堅正慶 / Mick Gordon / Austin Wintory 等
+→ 当代实验/先锋作曲家(16+位)：Aphex Twin / William Basinski / Tim Hecker / Ryoji Ikeda / Arca / SOPHIE / Oneohtrix Point Never 等
 → 叙事场景→音乐映射：影视(Battle→Epic / Chase→Tension / Romance→Lush / Horror→Dissonance) + TVC(Product Reveal→Cinematic Build / Brand Anthem→Emotional / Sports→Phonk/Trap / Tech→Futuristic Minimal / Luxury→Sophisticated) + Runway(Opening→Deep House / Peak→Techno / Finale→Nu-Disco / Avant-Garde→Noise)
+→ 中国传统戏曲音乐：京剧(皮黄腔)/昆曲(水磨调)/秦腔(梆子腔)/越剧/黄梅戏/豫剧/川剧/评剧/粤剧 — 各剧种声腔系统+乐器+美学特征+适用场景 + 武场(战斗)/文场(叙事)/过场(过渡)情绪配乐表
+→ 古风·国风电子：古风(五声音阶+民乐采样+电子节拍) / 中国风电音(Chinese Trap/Future Bass/House) / 新民族(Neo-Folk·蒙古呼麦/藏族诵经/苗彝飞歌) — 配器速查(弹拨/拉弦/吹奏/打击/电子)
+→ 短视频音乐模式：Hook-First(15s前奏→8s高潮) / Genre Switch(曲风突变) / Vocal Chop(人声切片) / Speed Shift(变速) / Bass Drop(低音轰炸) / Emotional Swell(情绪爬升) + 手机外放混音建议
+→ 中国风情绪扩展：侠义(宫商调式·铜管齐奏) / 禅意(尺八·留白) / 妖冶(琵琶滑音·女声吟唱) / 乡愁(二胡·箫·慢板)
+→ 中国风叙事场景扩展：武侠打斗(Pipa扫弦+战鼓) / 仙侠御剑(古筝滑音+电子pad) / 市井烟火(三弦+吆喝采样) / 宫廷仪式(编钟+大鼓) / 赛博武侠(古筝glitch+808) / 乡村田园(竹笛+鸟鸣) — 每个场景含完整Suno模板
 
 ${WRITERS_KB_CATALOG}
 
@@ -257,12 +270,15 @@ const KB_RETRIEVAL_PROMPT_MUSIC = `你是一位世界级音乐总监，精通全
 ⚠️ 重要：大部分项目不是影视剧。请根据实际内容选择匹配的音乐方向，不要默认使用电影配乐。
 
 关键维度：
-- 内容类型：TVC(15s/30s/60s) / 秀场Runway / 品牌大片 / 影视剧 / 其他 → 决定音乐框架
-- 情绪基调：奢华/自信/前卫/强势/诱惑/冷酷/中性/松弛/能量/梦幻/宁静/神秘？
+- 内容类型：TVC(15s/30s/60s) / 秀场Runway / 品牌大片 / 影视剧 / 短视频(抖音/TikTok/Reels) / 其他 → 决定音乐框架
+- 情绪基调：奢华/自信/前卫/强势/诱惑/冷酷/中性/松弛/能量/梦幻/宁静/神秘/侠义/禅意/妖冶/乡愁？
 - 秀场方向：Runway Deep House / Runway Techno / Runway Hyperpop / Vogue Ballroom / Runway Nu-Disco / Luxury Minimal？
 - TVC方向：Commercial Clean / 产品揭幕 / 生活方式 / 品牌调性 → voice-over友好？
-- 节奏：秀场120-128 BPM / TVC 100-120 BPM / 品牌大片90-120 BPM / 影视60-155 BPM
-- 配器：电子/合成器/真实乐器/实验噪音/混合？
+- 短视频方向：Hook-First(15s前奏→8s高潮) / Genre Switch(曲风突变) / Vocal Chop(人声切片) / Speed Shift(变速) / Bass Drop / Emotional Swell？
+- 中国风方向：中国传统戏曲(京剧/昆曲/秦腔/越剧...) / 古风(五声音阶+民乐) / 中国风电音(Chinese Trap/Future Bass/House) / 新民族(蒙古/藏族/苗彝)？
+- 中国风情绪：侠义(英雄) / 禅意(冥想) / 妖冶(魅惑) / 乡愁(思乡)？
+- 节奏：秀场120-128 BPM / TVC 100-120 BPM / 品牌大片90-120 BPM / 影视60-155 BPM / 短视频100-150 BPM(快节奏)或60-90 BPM(情感向)
+- 配器：电子/合成器/真实乐器/实验噪音/混合/中国民乐(古筝/二胡/笛子/琵琶/京剧打击乐)？
 - 先锋程度：商业/先锋/解构/噪音/极简？
 
 输出格式（每行一个）：
@@ -295,6 +311,28 @@ Balenciaga式暗黑极简or Maison Margiela式解构优雅
 Epic Orchestral史诗管弦战斗场景
 Chinese Folk民族器乐宫廷仪式
 Hans Zimmer式渐进层叠
+
+例如对于一个古装仙侠短剧：
+古风Gu Feng五声音阶+民乐采样侠义氛围
+中国风电音Chinese Trap 808+二胡hook仙魔对抗
+戏曲武场打击乐战斗场景
+仙侠御剑古筝滑音+电子pad漂浮感
+BPM 90-130仙侠动作节奏
+
+例如对于一个抖音/TikTok短视频(30秒)：
+短视频Hook-First模式前3秒抓耳
+Genre Switch曲风突变钢琴转Trap制造反差
+Bass Drop低音轰炸产品冲击力
+Emotional Swell情绪爬升品牌结尾
+手机外放友好混音+15/30秒双版本
+
+例如对于一部京剧/戏曲题材微电影：
+京剧皮黄腔西皮二黄京胡板鼓仪式感
+戏曲武场打击乐战斗追逐冲突
+戏曲文场弦管叙事独白回忆
+昆曲水磨调曲笛缠绵文人雅集爱情
+传统戏曲+现代电影配乐跨界融合
+
 请先给出你对内容类型的判断（1-2句话），然后列出关键词。`;
 
 // ─── Global Image Analysis Cache ─────────────────
@@ -1257,7 +1295,11 @@ export async function runCharacterExtraction(scriptText: string, visualStyle?: s
   if (userFeedback) {
     const styleHint = visualStyle ? `\n用户指定风格：${visualStyle}。请在角色外观设计中体现此风格。` : '';
     const basePrompt = await injectFeedback(CHARACTER_EXTRACTION.systemPrompt, userFeedback, existingContent, 'characters', scriptText);
-    const userMessage = basePrompt + `\n\n${styleHint}\n\n${NEGATIVE_CLOTHING}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个角色输出完整设计方案。`;
+    // Regen path also needs era-aware historical KB
+    const dims = await extractScriptTriggers(scriptText);
+    const historyKBR = getHistoricalKBForEra(dims?.era || '', dims?.region || '');
+    const anachronismR = buildEraAnachronismGuard(dims?.era || '');
+    const userMessage = (historyKBR ? historyKBR + '\n\n' : '') + (anachronismR ? anachronismR + '\n\n' : '') + basePrompt + `\n\n${styleHint}\n\n${NEGATIVE_CLOTHING}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个角色输出完整设计方案。`;
     const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
     let rawOutput: string | null = null;
     try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[char-extract] Failed:', String(err).slice(0, 100)); return {}; }
@@ -1304,16 +1346,29 @@ export async function runCharacterExtraction(scriptText: string, visualStyle?: s
     console.log('[char-extract] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
   }
 
+  // ── Era detection: always run (lightweight, ~300 tokens) ──
+  const dimensions = await extractScriptTriggers(scriptText);
+  const decision = decideStyle(dimensions || {});
+
   if (!searchResults) {
     // Fallback: use style card approach
     console.log('[char-extract] KB retrieval returned empty, falling back to style card');
-    const dimensions = await extractScriptTriggers(scriptText);
-    const decision = decideStyle(dimensions || {});
     searchResults = buildStyleCard(dimensions || {}, decision);
+  }
+
+  // ── Historical KB injection: era-aware reference data ──
+  const era = dimensions?.era || '';
+  const region = dimensions?.region || '';
+  const historyKB = getHistoricalKBForEra(era, region);
+  const anachronismGuard = buildEraAnachronismGuard(era);
+  if (historyKB) {
+    console.log('[char-extract] Injecting historical KB for era=' + era + ' region=' + region + ' (' + historyKB.length + ' chars)');
   }
 
   // ── Round 2: Feed KB results + script → design characters ──
   const round2Msg = searchResults
+    + (historyKB ? '\n\n' + historyKB : '')
+    + (anachronismGuard ? '\n\n' + anachronismGuard : '')
     + '\n\n' + NEGATIVE_CLOTHING
     + '\n\n' + CHARACTER_EXTRACTION.systemPrompt
     + '\n\n## 剧本内容\n' + scriptText
@@ -1357,7 +1412,11 @@ export async function runSceneExtraction(scriptText: string, userFeedback?: stri
   // ─── Regeneration path: use existing injectFeedback with constraint compilation ───
   if (userFeedback) {
     const basePrompt = await injectFeedback(SCENE_EXTRACTION.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
-    const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
+    // Scene regen also needs era-aware historical architecture KB
+    const dims = await extractScriptTriggers(scriptText);
+    const historyKBR = getHistoricalKBForEra(dims?.era || '', dims?.region || '');
+    const anachronismR = buildEraAnachronismGuard(dims?.era || '');
+    const userMessage = (historyKBR ? historyKBR + '\n\n' : '') + (anachronismR ? anachronismR + '\n\n' : '') + basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请严格按格式为每个场景输出完整设计方案。`;
     const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
     let rawOutput: string | null = null;
     try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[scene-extract] Failed:', String(err).slice(0, 100)); return {}; }
@@ -1405,16 +1464,26 @@ export async function runSceneExtraction(scriptText: string, userFeedback?: stri
     console.log('[scene-extract] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
   }
 
+  // ── Era detection: always run (lightweight) for scene extraction too ──
+  const dimensions = await extractScriptTriggers(scriptText);
+  const decision = decideStyle(dimensions || {});
+
   if (!searchResults) {
     // Fallback: use style card approach
     console.log('[scene-extract] KB retrieval returned empty, falling back to style card');
-    const dimensions = await extractScriptTriggers(scriptText);
-    const decision = decideStyle(dimensions || {});
     searchResults = buildStyleCard(dimensions || {}, decision);
   }
 
+  // ── Historical architecture KB injection ──
+  const era = dimensions?.era || '';
+  const region = dimensions?.region || '';
+  const historyKB = getHistoricalKBForEra(era, region);
+  const anachronismGuard = buildEraAnachronismGuard(era);
+
   // ── Round 2: Feed KB results + script → design scenes ──
   const round2Msg = searchResults
+    + (historyKB ? '\n\n' + historyKB : '')
+    + (anachronismGuard ? '\n\n' + anachronismGuard : '')
     + '\n\n' + NEGATIVE_INTERIOR
     + '\n\n' + SCENE_EXTRACTION.systemPrompt
     + '\n\n## 剧本内容\n' + scriptText
@@ -1456,7 +1525,10 @@ export async function runSceneArchitect(scriptText: string, userFeedback?: strin
   // ─── Regeneration path ───
   if (userFeedback) {
     const basePrompt = await injectFeedback(SCENE_ARCHITECT.systemPrompt, userFeedback, existingContent, 'scenes', scriptText);
-    const userMessage = basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
+    const dims = await extractScriptTriggers(scriptText);
+    const historyKBR = getHistoricalKBForEra(dims?.era || '', dims?.region || '');
+    const anachronismR = buildEraAnachronismGuard(dims?.era || '');
+    const userMessage = (historyKBR ? historyKBR + '\n\n' : '') + (anachronismR ? anachronismR + '\n\n' : '') + basePrompt + `\n\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}\n\n请为每个场景输出完整的空间设计方案（建筑风格/空间结构/材质语言/光照氛围/色彩体系/叙事功能）。`;
     const gptMsgs = [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] }];
     let rawOutput: string | null = null;
     try { rawOutput = await gpt5Chat(gptMsgs, { effort: 'medium', timeoutMs: 600000 }); } catch (err: any) { console.log('[scene-architect] Failed:', String(err).slice(0, 100)); return {}; }
@@ -1504,15 +1576,24 @@ export async function runSceneArchitect(scriptText: string, userFeedback?: strin
     console.log('[scene-architect] KB search: ' + queries.length + ' queries → ' + allResults.length + ' results, ' + searchResults.length + ' chars');
   }
 
+  // ── Era detection: always run for scene architect ──
+  const dimsArch = await extractScriptTriggers(scriptText);
+  const decisionArch = decideStyle(dimsArch || {});
+  const eraArch = dimsArch?.era || '';
+  const regionArch = dimsArch?.region || '';
+
   if (!searchResults) {
     console.log('[scene-architect] KB retrieval returned empty, falling back to style card');
-    const dimensions = await extractScriptTriggers(scriptText);
-    const decision = decideStyle(dimensions || {});
-    searchResults = buildStyleCard(dimensions || {}, decision);
+    searchResults = buildStyleCard(dimsArch || {}, decisionArch);
   }
+
+  const historyKBArch = getHistoricalKBForEra(eraArch, regionArch);
+  const anachronismArch = buildEraAnachronismGuard(eraArch);
 
   // ── Round 2: Feed KB results + script → design spatial architecture ──
   const round2Msg = searchResults
+    + (historyKBArch ? '\n\n' + historyKBArch : '')
+    + (anachronismArch ? '\n\n' + anachronismArch : '')
     + '\n\n' + NEGATIVE_INTERIOR
     + '\n\n' + SCENE_ARCHITECT.systemPrompt
     + '\n\n## 剧本内容\n' + scriptText
@@ -1551,7 +1632,12 @@ export async function runPropDesigner(scriptText: string): Promise<Record<string
   const t0 = Date.now();
   console.log('[prop-designer] Starting, script length=' + scriptText.length);
 
-  const userMessage = PROP_DESIGNER.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请识别所有关键道具，为每个道具输出完整设计方案（材质/结构/时代背景/使用痕迹/象征意义/角色关联性）。`;
+  // Era-aware historical weapons/props injection
+  const dims = await extractScriptTriggers(scriptText);
+  const historyKB = getHistoricalKBForEra(dims?.era || '', dims?.region || '');
+  const anachronismGuard = buildEraAnachronismGuard(dims?.era || '');
+
+  const userMessage = (historyKB ? historyKB + '\n\n' : '') + (anachronismGuard ? anachronismGuard + '\n\n' : '') + PROP_DESIGNER.systemPrompt + `\n\n剧本内容：\n${scriptText}\n\n请识别所有关键道具，为每个道具输出完整设计方案（材质/结构/时代背景/使用痕迹/象征意义/角色关联性）。`;
 
   const gptMsgs = [
     { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
@@ -1846,7 +1932,11 @@ export async function runScriptAnalysis(
   // ─── Regeneration path: use existing injectFeedback with constraint compilation ───
   if (userFeedback) {
     const basePrompt = await injectFeedback(SCRIPT_ANALYSIS.systemPrompt, userFeedback, existingContent, 'storyboard', scriptText);
-    const userMessage = basePrompt + `\n\n${NEGATIVE_CLOTHING}\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
+    // Regen path also needs era-aware historical KB
+    const dims = await extractScriptTriggers(scriptText);
+    const historyKBR = getHistoricalKBForEra(dims?.era || '', dims?.region || '');
+    const anachronismR = buildEraAnachronismGuard(dims?.era || '');
+    const userMessage = (historyKBR ? historyKBR + '\n\n' : '') + (anachronismR ? anachronismR + '\n\n' : '') + basePrompt + `\n\n${NEGATIVE_CLOTHING}\n${NEGATIVE_INTERIOR}\n\n剧本内容：\n${scriptText}${styleHint}${charBlock}\n\n请严格按输出格式输出分镜表。注意：角色已提供，只需输出分镜表，不要输出角色清单。`;
 
     const gptMsgs = [
       { role: 'user' as const, content: [{ type: 'input_text' as const, text: userMessage }] },
@@ -1897,8 +1987,16 @@ export async function runScriptAnalysis(
   const decision = decideStyle(dimensions || {});
   const styleCard = buildStyleCard(dimensions || {}, decision);
 
+  // ── Historical KB injection: era-aware reference data ──
+  const era = dimensions?.era || '';
+  const region = dimensions?.region || '';
+  const historyKB = getHistoricalKBForEra(era, region);
+  const anachronismGuard = buildEraAnachronismGuard(era);
+
   // ── Round 2: Feed style card + script → design storyboard ──
   const round2Msg = styleCard
+    + (historyKB ? '\n\n' + historyKB : '')
+    + (anachronismGuard ? '\n\n' + anachronismGuard : '')
     + '\n\n' + NEGATIVE_CLOTHING
     + '\n' + NEGATIVE_INTERIOR
     + '\n\n' + SCRIPT_ANALYSIS.systemPrompt
@@ -2034,7 +2132,10 @@ export function parseShotBlocks(output: string): ScriptAnalysisResult['shots'] {
     if (imagePrompt) parts.push(`画面描述：${imagePrompt}`);
     const fullDisplay = parts.join('\n');
     // Gen prompt = 提示词 (clean visual description for image model) | fallback to full display
-    const genPrompt = imagePrompt || fullDisplay;
+    // Enhance with photorealism anchor based on shot type
+    const rawPrompt = imagePrompt || fullDisplay;
+    const photoPrefix = buildPhotorealismPrefix(shotType);
+    const genPrompt = photoPrefix + ' ' + rawPrompt;
 
     shots.push({
       shotNumber: i + 1,

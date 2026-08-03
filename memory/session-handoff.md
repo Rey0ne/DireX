@@ -1,7 +1,7 @@
 # Session Handoff — DireX
 
-> **最后更新**: 2026-08-01 (20:10) | **分支**: `fix/infinite-canvas-refactor` | **最新提交**: `225e9a9`
-> **压缩次数**: 3 | **最后校验**: 2026-08-01
+> **最后更新**: 2026-08-03 | **分支**: `fix/infinite-canvas-refactor` | **最新提交**: `e7e1df9`
+> **压缩次数**: 7 | **最后校验**: 2026-08-03
 
 ---
 
@@ -9,11 +9,11 @@
 
 | 项目 | 值 |
 |------|-----|
-| 最后更新 | 2026-08-01 20:10 |
+| 最后更新 | 2026-08-03 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `225e9a9` — mount Kimodo v2 at /api/kimodo-v2 |
-| 当前板块 | 🔴 **全线模型 API 验证完成 — 25 模型中 23 个已通过验证，2 个待 Kie 账号开通** |
-| 下一个板块 | **充值 Kie 账号 → 浏览器验证**；Kling 2.5T/2.1 需联系 Kie 开通对应 pricing operation |
+| 最新提交 | `e7e1df9` — Seedance/Kling V2V mode-aware pricing + video ref display fix |
+| 当前板块 | ✅ **8 KB 全线扩充完成** — 9/9 全部完成，零编译错误 |
+| 下一个板块 | 浏览器验证 → 提交 |
 
 ---
 
@@ -88,7 +88,7 @@
 
 ### ⚠️ 需要人工操作
 
-1. **充值 Kie 账号** — 当前余额为 0，23 个已验证模型全部返回 "Credits insufficient"
+1. ~~充值 Kie 账号~~ — 余额不为 0，23 个已验证模型可直接测试
 2. **Kling 2.5 Turbo / 2.1** — 联系 Kie 开通 pricing operation `Market_kling_v2-5-turbo-text-to-video-pro_720p_*` 和 `Market_kling_v2-1-master-text-to-video_720p_*`
 
 ### 浏览器验证步骤（充值后）
@@ -193,6 +193,76 @@ CF 不取代任何一层。它解决的是：跨主体、跨时间、跨基础�
 
 ---
 
+## Prompt 管线重构完成 (2026-08-03，未提交)
+
+### 问题背景
+
+用户三项投诉：
+1. **时代错位** — 3000 年前角色穿现代服饰（style-db.ts 100% 当代时尚，无历史数据）
+2. **无真实感** — 生图 AI 感/涂抹感严重，无电影灯光/镜头/皮肤质感
+3. **模板僵化** — PROMPT_ARCHITECT 刚性 25 字段模板（每条必填，不管是否相关）
+
+### 已完成的修复
+
+#### A. 历史文明知识库 (`server/src/systems/agent/history-kb.ts` — 新文件)
+- 中国历代（商→清）服饰数据库：廓形/面料/色彩/纹样/配饰/鞋履/闭合方式
+- 世界文明：埃及/两河/米诺斯/希腊/罗马/拜占庭/中世纪欧洲/文艺复兴
+- 亚洲文明：平安日本/江户日本/朝鲜王朝
+- 历史武器：中国各朝代/日本/欧洲/希腊罗马
+- 历史建筑：中国各朝代/埃及/希腊/罗马/拜占庭/哥特/文艺复兴
+- **时代错位守卫** (`ERA_ANACHRONISM_GUARD`): 按时代分组的禁止/允许清单（闭合方式/面料/鞋履/电子产品）
+
+#### B. 真实感增强层 (`server/src/systems/agent/photorealism-kb.ts` — 新文件)
+- **Layer 1**: 负面提示词 — 塑料皮肤/CGI/动漫/涂抹感/解剖错误 + 英文 API 级负词
+- **Layer 2**: 真实感锚点 — ARRI Alexa 65/Hasselblad X2D 摄影级基准
+- **Layer 3**: 电影灯光 — 9 种灯光模式/灯光质量/色温 K 值/光比参考/自然光参考
+- **Layer 4**: 镜头模拟 — 14mm-300mm 焦段情感含义/镜片特性/胶片传感器
+- **Layer 5**: 材质表面 — 皮肤 SSS/面料 10 种/环境材质细节
+- **Layer 6**: 氛围深度 — 大气透视/体积光/景深/散景/运动模糊/天气效果
+- **Layer 7**: 构图指南 — 三分法/引导线/框中框 + 真实性优先于完美构图
+
+#### C. 时代检测注入管线 (`pipeline.ts` — 6 个 Agent，12 个注入点)
+- `runCharacterExtraction` — first-run + regen → 注入 historyKB + anachronismGuard
+- `runScriptAnalysis` — first-run + regen → 同上
+- `runSceneExtraction` — first-run + regen → 同上
+- `runSceneArchitect` — first-run + regen → 同上
+- `runPropDesigner` — first-run → 同上
+- `parseShotBlocks` → genPrompt 前置 `buildPhotorealismPrefix(shotType)`
+
+#### D. 风格决策引擎修复 (`style-db.ts`)
+- `decideStyle()` fallback 逻辑：非当代时代 → 用时代名代替 'Contemporary'/'Minimalist'/'Streetwear'
+- 色彩/灯光/材质均使用时代感知 fallback（如 "唐代天然染料配色"、"日光/烛光/油灯"）
+
+#### E. Photorealism 负面词接入 API (`routes/agent.ts` — **本次关键修复**)
+- **发现**: agent.ts 三处硬编码了极简负词 (`'blurry, low quality, distorted...'`)，`buildPhotorealismNegative()` 从未被调用
+- **修复**: 三处（视频路径/图像路径/visual-extract 路径）全部改用 `buildPhotorealismNegative()`
+- I2I 模式额外追加防幻觉关键词（extra props/weapon/hallucinated item 等）
+
+### 编译状态
+- ✅ `npx tsc --noEmit` — **零错误**
+
+### 修改文件清单
+
+| 文件 | 状态 | 改动 |
+|------|------|------|
+| `server/src/systems/agent/history-kb.ts` | 新文件 | 中国历代+世界文明服饰/武器/建筑 KB |
+| `server/src/systems/agent/photorealism-kb.ts` | 新文件 | 8 层真实感增强系统 |
+| `server/src/systems/agent/pipeline.ts` | 已修改 | 12 个注入点 + genPrompt 前缀 |
+| `server/src/systems/agent/style-db.ts` | 已修改 | 时代感知 fallback 逻辑 |
+| `server/src/routes/agent.ts` | 已修改 | 3 处负词接入 buildPhotorealismNegative() |
+
+### 未改动
+- `PROMPT_ARCHITECT` — 4-agent 管线不在主流程中（仅 `runAgentPipeline` 侧面路径），SCRIPT_ANALYSIS 已是方法论驱动
+- `profiles.ts` SCRIPT_ANALYSIS — 输出格式已包含完整电影摄影字段，不需要改
+
+### 验证步骤
+1. 充值 Kie 账号后 → 浏览器打开 5173
+2. 创建 ShotNode → 提交带时代背景的剧本（如"商周"）→ 检查角色服饰是否时代正确
+3. 生图 → 检查是否消除塑料/AI/CGI 感
+4. 对比生图效果 — 检查皮肤质感/光影/材质是否提升
+
+---
+
 ## 关键文件位置
 
 | 文件 | 用途 |
@@ -203,3 +273,87 @@ CF 不取代任何一层。它解决的是：跨主体、跨时间、跨基础�
 | `CLAUDE-contract.md` | API 合约 |
 | `memory/module-map.md` | 模块依赖 + 坏耦合清单 |
 | `memory/canvas-nodes-invisible-debug.md` | 节点不可见 debug 记录 |
+
+---
+
+## PLY/3DGS 综合方案 (2026-08-02，未提交)
+
+### 完成的功能
+
+#### 1. PLY 类型自动检测 (`plyCompression.ts`)
+- `detectPlyType()` — 检查 `geometry.index`（mesh）、3DGS 属性（`f_dc_*`, `opacity`, `scale_*`, `rot_*`），否则为 pointcloud
+- `extractGaussianSplatData()` — 提取 3DGS 数据（scale exp、opacity sigmoid、SH DC→RGB）
+- 压缩三档：≤100K 跳过 / 100K-500K(30%) / 500K-2M(60%) / >2M(90%)
+- `SIMPLIFY_MAX_VERTS = 200K` — QSlim 跳过阈值，防浏览器冻结
+
+#### 2. 3DGS 渲染器 (`GaussianSplatRenderer.tsx` — 新文件)
+- 自定义 vertex/fragment shader：四元数→旋转矩阵→3D协方差→Jacobian投影→2D协方差→conic逆矩阵
+- SH DC → RGB 颜色，sigmoid opacity 激活
+- `GaussianSplatModel` 组件：加载 PLY → 提取 3DGS → 自动下采样至 300K → Points+ShaderMaterial
+- CustomBlending (One/OneMinusSrcAlpha) 近似 OIT
+
+#### 3. 点云渲染修复 (`Scene3DNode.tsx` PLYModel)
+- 圆形点精灵纹理（`getRoundSpriteTex()` Canvas 2D）
+- 自适应点尺寸：`maxDim / sqrt(vertexCount) * 0.6`
+- 使用 `detectPlyType()` → mesh/pointcloud/3dgs 三分支
+- 3DGS 自动委托给 `GaussianSplatModel`
+
+#### 4. 地面/天空 PLY 替换 (`Scene3DNode.tsx`)
+- **数据模型**: `node.meta.scene3d.groundPlySrc` / `skyPlySrc`（blob URL）
+- **导入分流**: PLY 拖入/点击+号 → 弹出 3 选 1 对话框（地面/天空/模型）
+- **GroundPlyModel**: PLY 放置 y=-0.05，40x40 缩放上限，receiveShadow
+- **SkyPlyDome**: PLY 放置 y=25，renderOrder=-1，depthWrite=false，50x50 缩放上限
+- **SceneContent**: 条件渲染 — ground/sky PLY 替换 CheckerGround/ProcSky/CloudLayer
+- **环境 UI 面板**: 侧边栏显示地面/天空状态 + 清除按钮
+- **持久化**: groundPlySrc/skyPlySrc 随 canvas-state.json 保存/恢复
+
+### 修改文件 (4 文件，均未提交)
+
+| 文件 | 改动 |
+|------|------|
+| `src/utils/plyCompression.ts` | +`detectPlyType()`, +`extractGaussianSplatData()`, +`PlyType` |
+| `src/components/nodes/GaussianSplatRenderer.tsx` | **新文件** — 3DGS ShaderMaterial + `GaussianSplatModel` |
+| `src/components/nodes/Scene3DNode.tsx` | PLYModel 重写 + GroundPlyModel/SkyPlyDome + SceneContent 条件渲染 + importFile PLY 分流 + 环境面板 + 持久化 |
+| `memory/session-handoff.md` | 本次更新 |
+
+### PLY 编译状态
+- ✅ `npx tsc --noEmit` — **零错误**
+
+---
+
+## 8 KB 全线扩充进度 (2026-08-03，未提交)
+
+### 动机
+用户要求"所有8个知识库都要扩充"+"光现代的流派都不止"→ 大幅扩充各 KB 条目数，增加非西方/非当代覆盖。
+
+### 完成进度
+
+| # | 知识库 | 状态 | 扩充内容 | 条目变化 |
+|---|--------|------|---------|---------|
+| 1 | cinematography-kb.ts | ✅ 完成 | 全球摄影55+导演40+美术22+画家25+摄影师17+动画10(双重扩充) | 41→182 |
+| 2 | spatial-kb.ts | ✅ 完成 | 中国/韩国/印度/拉美建筑师+室内设计师+景观园林7种 | +60+ |
+| 3 | writers-kb.ts | ✅ 完成 | 中国现代9+日本5+韩国3+俄国欧洲10+拉美3+非洲3+中东2+英美8+中国古典7+编剧6+导演叙事3 | 27→86 |
+| 4 | style-db.ts | ✅ 完成 | 18历史/传统风格（汉服先秦→清/旗袍/和服/韩服/印度/中东/欧洲中世纪→爱德华/非洲/拉美） | 30→48 |
+| 5 | kb-search.ts | ✅ 完成 | UNIFIED_KB_CATALOG 全面更新所有 KB 计数 | — |
+| 6 | history-kb.ts | ✅ 完成 | +28文明: 东南亚6+前哥伦布美洲3+非洲8+伊斯兰5+斯拉夫东欧3+太平洋3 | 597→1028行 |
+| 7 | composer-kb.ts | ✅ 完成 | Hip-Hop20+K-Pop/C-Pop/J-Pop20+中国戏曲15+中国独立10+游戏配乐8+实验前卫8+去重4 | 200→277 |
+| 8 | music-kb.ts | ✅ 完成 | 中国戏曲9剧种+古风·国风电子+抖音短视频6模式+补充4情绪+补充6叙事场景 | 1046→1196行 |
+| 9 | photorealism-kb.ts | ✅ 完成 | 人种皮肤7型+年龄6段+恐怖谷10触发器 | 355→402行 |
+
+### 最终编译状态
+- ✅ `npx tsc --noEmit` — **零错误**（全部 10 文件）
+- **总行数**: 10,791 行（10 文件合计）
+
+### 待提交文件（全部 10 文件，均未提交）
+```
+server/src/systems/agent/cinematography-kb.ts   (355行, 182条目)
+server/src/systems/agent/spatial-kb.ts           (444行)
+server/src/systems/agent/writers-kb.ts           (209行, 86条目)
+server/src/systems/agent/style-db.ts             (807行, 48风格)
+server/src/systems/agent/kb-search.ts            (458行)
+server/src/systems/agent/photorealism-kb.ts      (402行)
+server/src/systems/agent/music-kb.ts             (1196行)
+server/src/systems/agent/composer-kb.ts          (3191行, 277条目)
+server/src/systems/agent/history-kb.ts           (1028行, +28文明)
+server/src/systems/agent/pipeline.ts             (2701行, KB_CATALOG更新)
+```

@@ -610,6 +610,12 @@ export const EMOTIONS: EmotionEntry[] = [
   { name: 'Sophisticated', nameCN: '成熟精致', category: 'ethereal', intensity: 0.4, instruments: ['Piano', 'Jazz Guitar', 'Double Bass', 'Brush Drums', 'Vibraphone'], tempo: [70, 100] },
   { name: 'Nostalgic', nameCN: '怀旧', category: 'ethereal', intensity: 0.5, instruments: ['Vintage Synth', 'Tape Piano', 'Vinyl Crackle', 'Lo-Fi Drums', 'Reverb Guitar'], tempo: [60, 90] },
   { name: 'Energetic', nameCN: '高能动感', category: 'action', intensity: 0.9, instruments: ['Distorted Bass', 'Fast Drums', 'Synth Lead', 'Brass', 'Electric Guitar'], tempo: [130, 160] },
+
+  // ── 中国风情绪 (Chinese-style Emotions) ──
+  { name: 'Chivalrous', nameCN: '侠义', category: 'epic', intensity: 0.8, instruments: ['Guqin', 'Erhu', 'Pipa', 'Dizi', 'Chinese Drum', 'Brass', 'Strings'], tempo: [70, 120] },
+  { name: 'Zen', nameCN: '禅意', category: 'ethereal', intensity: 0.2, instruments: ['Shakuhachi', 'Singing Bowl', 'Guqin', 'Xiao', 'Pad', 'Water Drop FX'], tempo: [20, 50] },
+  { name: 'Seductive-Demonic', nameCN: '妖冶', category: 'mystery', intensity: 0.7, instruments: ['Pipa (glissando)', 'Female Chant', 'Erhu', 'Frame Drum', 'Dissonant Synth', 'Middle Eastern Scale'], tempo: [50, 90] },
+  { name: 'Homesick', nameCN: '乡愁', category: 'romantic', intensity: 0.5, instruments: ['Erhu', 'Xiao', 'Piano', 'Cello', 'Acoustic Guitar', 'Pad'], tempo: [40, 70] },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -828,6 +834,14 @@ export const NARRATIVE_SCENES: NarrativeScene[] = [
   { name: 'Ancient Ritual', nameCN: '古老仪式', description: 'A mystical ancient ritual', genre: ['Nordic Ritual', 'Dark Ambient'], instruments: ['Frame Drum', 'Chant', 'Tagelharpa', 'Bullroarer'], mood: ['Sacred', 'Ominous'], bpm: [30, 60], template: 'Ancient Ritual, Nordic, Frame Drum heartbeat, Male Chant, Female Chant, Tagelharpa drone, Bullroarer, mystical ceremony, dark' },
   { name: 'Temple Meditation', nameCN: '寺庙禅修', description: 'Meditation in a temple', genre: ['Meditative', 'Shakuhachi'], instruments: ['Shakuhachi', 'Singing Bowl', 'Koto', 'Pad'], mood: ['Peaceful', 'Spiritual'], bpm: [20, 40], template: 'Zen Meditation, Temple, Shakuhachi breath, Singing bowl resonance, Koto, Ambient pad, inner peace, mindfulness' },
   { name: 'Shamanic Journey', nameCN: '萨满之旅', description: 'Shaman enters the spirit world', genre: ['African Ritual', 'Nordic Ritual'], instruments: ['Djembe', 'Frame Drum', 'Rattle', 'Chant', 'Bullroarer'], mood: ['Mysterious', 'Spiritual'], bpm: [60, 120], template: 'Shamanic Ritual, Spirit journey, Djembe trance, Frame drum, Rattle, Chant, Bullroarer, entering the unseen, tribal' },
+
+  // ── 中国风叙事场景 (Chinese-style Narrative Scenes) ──
+  { name: 'Wuxia Combat', nameCN: '武侠打斗', description: 'Martial artists duel with fluid, acrobatic choreography', genre: ['Wuxia Score', 'Action', 'Chinese Music'], instruments: ['Pipa (tremolo)', 'Chinese Drum', 'Erhu', 'Dizi (staccato)', 'Gong', 'Suona'], mood: ['Tense', 'Heroic', 'Chivalrous'], bpm: [90, 140], template: 'Chinese Wuxia combat, Pipa tremolo sweep, Chinese Drum battle rhythm, Dizi staccato flight, Erhu intensity, Gong impact, Hu Weili style martial arts, cinematic kung fu' },
+  { name: 'Xianxia Flying', nameCN: '仙侠御剑', description: 'Cultivator soaring through clouds on a flying sword', genre: ['Chinese Fantasy', 'Xianxia', 'Guofeng'], instruments: ['Guzheng (glissando)', 'Electronic Pad', 'Female Chant', 'Dizi', 'Harp', 'Celesta'], mood: ['Ethereal', 'Spiritual', 'Zen'], bpm: [40, 70], template: 'Chinese Xianxia flying sword, Guzheng glissando sweep, Electronic pad atmosphere, Female ethereal chant, Dizi floating melody, Celesta sparkle clouds, Sword and Fairy energy, weightless soaring' },
+  { name: 'Street Market Life', nameCN: '市井烟火', description: 'Busy street market with vendors, crowds, and everyday warmth', genre: ['Chinese Folk', 'Acoustic', 'World Music'], instruments: ['Sanxian', 'Banhu', 'Erhu', 'Dizi', 'Ambient Crowd FX', 'Cooking Sounds'], mood: ['Warm', 'Playful', 'Nostalgic'], bpm: [80, 110], template: 'Chinese street market life, Sanxian plucked melody, Banhu rustic tone, Ambient crowd chatter, Cooking sizzle FX, Warm and lively, Everyday poetry in chaos, Wong Kar-wai Chungking Express energy' },
+  { name: 'Imperial Court Ritual', nameCN: '宫廷仪式', description: 'Grand imperial ceremony — coronation, sacrifice, court assembly', genre: ['Chinese Court Music', 'Epic Orchestral', 'Sacred'], instruments: ['Bianzhong', 'Bianqing', 'Chinese Drum', 'Sheng', 'Guqin', 'Choir', 'Gong'], mood: ['Majestic', 'Sacred', 'Ancient'], bpm: [30, 60], template: 'Imperial Chinese court ritual, Bianzhong bronze bell resonance, Bianqing stone chime, Massive Chinese Drum procession, Sheng chord drone, Gong ceremonial impact, Tang Dynasty majesty, solemn and awe-inspiring' },
+  { name: 'Cyber Wuxia', nameCN: '赛博武侠', description: 'Neon-lit dystopian city where ancient martial codes meet cybernetic future', genre: ['Cyberpunk', 'Chinese-style EDM', 'Synth Cinematic'], instruments: ['Guzheng (glitched)', '808 Bass', 'Erhu (distorted)', 'Synth Arp', 'Industrial Percussion', 'Dizi (pitched)'], mood: ['Edgy', 'Mysterious', 'Haunting'], bpm: [80, 130], template: 'Cyber Wuxia dystopia, Glitched Guzheng sample, 808 sub-bass rumble, Distorted Erhu wail, Industrial metallic percussion, Neon-lit ancient rooftops, Ghost in the Shell meets Crouching Tiger, tradition corrupted by technology' },
+  { name: 'Rural Pastoral', nameCN: '乡村田园', description: 'Peaceful countryside — rice paddies, water buffalo, bamboo groves', genre: ['Chinese Folk', 'Ambient', 'Neoclassical'], instruments: ['Dizi', 'String Pad', 'Bird Song FX', 'Water Stream FX', 'Guzheng', 'Xiao', 'Piano'], mood: ['Peaceful', 'Serene', 'Homesick'], bpm: [30, 60], template: 'Chinese rural pastoral, Dizi distant melody, String pad horizon, Birdsong morning, Water stream gentle, Guzheng flowing arpeggio, Xiao lonely call, Tan Dun Crouching Tiger energy, timeless countryside, free rhythm' },
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -1044,3 +1058,139 @@ export function generateKBSummary(): string {
     `叙事场景模板: ${NARRATIVE_SCENES.length}种`,
   ].join(' — ');
 }
+
+// ═══════════════════════════════════════════════════════
+// 中国传统戏曲音乐 (Chinese Traditional Opera)
+// ═══════════════════════════════════════════════════════
+
+export const CHINESE_OPERA_KB = `## 中国传统戏曲音乐
+
+### 戏曲种类表
+
+| 剧种 | 声腔系统 | 年代 | 乐器 | 美学特征 | 适用场景 |
+|------|---------|------|------|---------|---------|
+| 京剧 | 皮黄腔 (西皮+二黄) | 清中期至今 | 京胡/月琴/三弦/板鼓/锣/钹 | 程式化/写意/脸谱/"三五步走遍天下" | 叙事高潮/冲突/仪式 |
+| 昆曲 | 昆山腔 (水磨调) | 明至今 | 曲笛/笙/琵琶/三弦/板鼓 | "无声不歌无动不舞"/文人雅集/细腻缠绵 | 爱情/雅集/文人场景 |
+| 秦腔 | 梆子腔 | 明至今 | 板胡/二胡/笛子/梆子/锣鼓 | 高亢激越/"吼秦腔"/粗犷悲壮 | 战场/悲壮/西北场景 |
+| 越剧 | 尺调腔/弦下调 | 20世纪初至今 | 越胡/琵琶/扬琴/笛/板鼓 | 婉约/抒情/全女班传统/"中国歌剧" | 爱情/闺怨/江南场景 |
+| 黄梅戏 | 黄梅调 | 清至今 | 高胡/二胡/笛/琵琶/锣鼓 | 清新质朴/田园/生活化/"天仙配" | 田园/爱情/乡村喜剧 |
+| 豫剧 | 梆子腔(豫东/豫西) | 清至今 | 板胡/二胡/笙/唢呐/梆子 | 豪放/激越/气势磅礴/"谁说女子不如男" | 英雄/战争/中原场景 |
+| 川剧 | 高腔/胡琴/弹戏/灯戏/昆腔 | 明清至今 | 盖板子/二胡/唢呐/锣鼓(帮腔) | 变脸/吐火/帮腔/喜剧精神/滚灯 | 喜剧/变脸/四川场景 |
+| 评剧 | 落子腔 | 20世纪初至今 | 板胡/二胡/琵琶/笛子 | 俚俗/生活化/"一口叙说千古事" | 市井/平民生活/北方场景 |
+| 粤剧 | 梆子+二黄+粤讴 | 清至今 | 高胡/二弦/扬琴/色士风/小提琴 | 文武兼备/华丽服饰/"南国红豆" | 宫廷/武侠/岭南场景 |
+
+### 戏曲情绪配乐表
+
+- 武场 (Battle): 打击乐密集 — 板鼓+大锣+铙钹 — 快速节奏型 — 适合: 战斗/追逐
+- 文场 (Civil): 弦管为主 — 京胡/笛子 — 抒情/叙事 — 适合: 对话/独白/回忆
+- 过场 (Transition): 小锣/梆子 — 短小过渡 — 适合: 场景切换/时间流逝
+
+### 戏曲配器情感映射
+
+- 京胡: 高亢/尖锐/戏剧性 — 适合紧张/冲突/悲愤
+- 板鼓: 节奏控制/"戏曲指挥" — 掌控全剧速度
+- 大锣: 震撼/仪式感 — 适合登场/高潮/战斗开场
+- 铙钹: 激烈/冲突 — 适合武打/战斗
+- 小锣: 轻快/诙谐 — 适合喜剧/过场
+- 曲笛: 悠扬/缠绵 — 适合昆曲爱情场景
+- 板胡: 激昂/悲壮 — 适合秦腔/豫剧战场`;`;
+
+// ═══════════════════════════════════════════════════════
+// 古风·国风电子 (Guofeng / Chinese-style Electronic)
+// ═══════════════════════════════════════════════════════
+
+export const GUOFENG_ELECTRONIC_KB = `## 古风·国风电子
+
+### 古风 (Gu Feng — Ancient Wind)
+
+五声音阶(宫商角徵羽)+电子节拍+民乐采样(古筝/笛/琵琶/二胡)。
+流行于B站/抖音，是当代中国青年文化的重要组成部分。
+代表人物: 银临/音频怪物/河图/小曲儿/双笙/HITA
+
+- 典型配器: 古筝(主旋律)+琵琶(节奏)+笛子(间奏)+二胡(副歌)+电子鼓组+合成器pad
+- 典型结构: 前奏(民乐散板)→主歌(电子节拍进入)→副歌(民乐+电子全开)→间奏(民乐solo)→尾声(渐弱)
+- 适用: 仙侠/武侠/古装短剧/国风MV/汉服走秀
+
+### 中国风电音 (Chinese-style EDM)
+
+东方旋律+西方舞曲架构。Trap/Dubstep/House 节奏+民乐hook。
+代表人物: Howie Lee / Jason Hou / Dirty Class / 3ASiC / Radiax
+
+- Chinese Trap: 808鼓组+二胡采样+京剧唱腔采样 — 暗黑+力量感
+- Chinese Future Bass: 古筝lead+明亮和弦+future bass drop — 清新+梦幻
+- Chinese House: 笛子loop+4/4 kick+渐进铺陈 — 适合秀场/时尚内容
+- 适用: 时装秀/未来东方/赛博武侠/科技产品发布
+
+### 新民族 (Neo-Folk)
+
+原生态采样+电子氛围+世界音乐。彝族/蒙古/藏族/苗族原声+合成器。
+代表人物: 山人乐队/杭盖/谭维维/HAYA乐团/二手玫瑰
+
+- 蒙古元素: 呼麦+马头琴+电子节拍 — 辽阔/草原史诗
+- 藏族元素: 诵经+法号+电子pad — 神圣/高原/仪式
+- 苗族/彝族: 飞歌+芦笙+电子beat — 山野/活力/民族电子
+- 适用: 民族题材/自然纪录片/文旅宣传/民族品牌
+
+### 古风配器速查
+
+- 弹拨: 古筝(流水感)/琵琶(颗粒感/扫弦)/古琴(散板/留白)/扬琴(清脆/快速)
+- 拉弦: 二胡(如泣如诉)/京胡(高亢)/板胡(激昂)/高胡(明亮)
+- 吹奏: 笛子(欢快/嘹亮)/箫(幽深/寂寞)/唢呐(热烈/悲壮)/笙(和声/仪式)
+- 打击: 中国大鼓(震撼)/锣(仪式)/钹(冲突)/梆子(节奏)/木鱼(禅意)
+- 电子: 808(sub bass)/合成器pad(氛围)/Arp(律动)/Glitch(赛博)`;`;
+
+// ═══════════════════════════════════════════════════════
+// 短视频音乐模式 (Short-Form Video Music Patterns)
+// ═══════════════════════════════════════════════════════
+
+export const SHORT_VIDEO_PATTERNS_KB = `## 短视频音乐模式 (Short-Form Video Music Patterns)
+
+### Hook-First (15秒前奏→8秒高潮)
+
+前15秒建立氛围→第16秒hook(高潮)→第24秒结束。典型: 副歌截取/loop循环。
+- 结构: [0-15s 氛围铺垫] → [16-24s Hook高潮] → [结束]
+- 适用: 抖音/Reels/Shorts 标准格式
+- 制作要点: Hook必须在1.5秒内抓耳，旋律简单易记，低频突出(手机外放友好)
+
+### Genre Switch (曲风突变)
+
+A段抒情→B段突然Trap/Dubstep/808 — 反差制造记忆点。
+- 典型: 钢琴抒情前20秒 → 突然808 Drop → 视觉反差配合
+- 适用: 转场/反差/态度表达
+- 制作要点: 过渡处用riser/filter sweep衔接，避免生硬
+
+### Vocal Chop (人声切片)
+
+采样人声→切片→重新编排节奏→作为hook。
+- 来源: 经典台词/网络热梗/对话片段
+- 处理: 切片+pitch shift+节奏量化+效果器(reverb/delay/bit crush)
+- 适用: 潮流/态度/网感内容
+
+### Speed Shift (变速)
+
+原速→1.5x/2x加速→突然减速→反差。
+- 典型: 正常→Nightcore加速→突然减至0.5x→恢复正常
+- 适用: 教程/对比/时间流逝/情绪转换
+- 制作要点: 保持音高or变速变调二选一
+
+### Bass Drop (低音轰炸)
+
+极简前奏→突然808 bass+失真 — 适合转场/高潮/视觉冲击。
+- 结构: [极简铺垫(8s)] → [Bass Drop(4-8s)] → [能量持续(8s)]
+- 制作要点: Drop前2秒做无声/极简留白增强冲击力
+- 适用: 产品展示/视觉冲击/态度表达
+
+### Emotional Swell (情绪爬升)
+
+钢琴/弦乐单音→渐强→高潮→突然静默→标题卡。
+- 结构: [单音起(2-4s)] → [爬升(6-8s)] → [高潮(4s)] → [静默(2s)] → [落版]
+- 适用: 品牌大片/情感叙事/故事结尾
+- 制作要点: 静默段的时长要刚好够观众读标题
+
+### 短视频配乐黄金法则
+
+- 前3秒决定留存 — Hook必须在3秒内出现
+- 手机外放友好 — 混音时用手机检查低频和高频
+- 循环无缝 — 15秒/30秒版本做完美循环
+- 多版本输出 — 同一首做15s/30s/60s三个版本
+- 视觉同步 — BPM与剪辑节奏对应：120BPM=0.5秒/拍，适合快剪`;`;
