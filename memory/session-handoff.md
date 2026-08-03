@@ -1,7 +1,7 @@
 # Session Handoff — DireX
 
-> **最后更新**: 2026-08-03 | **分支**: `fix/infinite-canvas-refactor` | **最新提交**: `e7e1df9`
-> **压缩次数**: 7 | **最后校验**: 2026-08-03
+> **最后更新**: 2026-08-03 | **分支**: `fix/infinite-canvas-refactor` | **最新提交**: `eec7323` (视频 Skill 框架)
+> **压缩次数**: 9 | **最后校验**: 2026-08-03
 
 ---
 
@@ -11,9 +11,9 @@
 |------|-----|
 | 最后更新 | 2026-08-03 |
 | 分支 | `fix/infinite-canvas-refactor` |
-| 最新提交 | `e7e1df9` — Seedance/Kling V2V mode-aware pricing + video ref display fix |
-| 当前板块 | ✅ **8 KB 全线扩充完成** — 9/9 全部完成，零编译错误 |
-| 下一个板块 | 浏览器验证 → 提交 |
+| 最新提交 | `eec7323` — 视频 Skill 框架 v1.0 |
+| 当前板块 | ✅ **Skill 社区设计五件套完成** — 研究报告 + 格式标准 + 视频框架 + 多语言 + 社区原型 |
+| 下一个板块 | 全部 5 份设计文档提交到 git → 开始实现 MVP |
 
 ---
 
