@@ -10,6 +10,14 @@
     "placeholderPhoneNumber": "Enter phone number",
     "placeholderPassword": "Password (min. 6 chars)",
     "placeholderNewPassword": "Set password (min. 6 chars)",
+    "placeholderConfirmPassword": "Confirm password",
+    "verifying": "Verifying…",
+    "sendVerifyCode": "Send Code",
+    "verifyCodeSent": "Sent",
+    "verifyCodePlaceholder": "Enter verification code",
+    "verifyCodeCountdown": "s to resend",
+    "turnstileLoading": "Security check…",
+    "turnstileRequired": "Please complete security check",
     "rememberPassword": "Remember me",
     "btnLogin": "Sign In",
     "btnRegister": "Sign Up (+200 credits)",
@@ -53,7 +61,11 @@
     "errCompanyCode": "Company code required",
     "errCompanyEmail": "Company account requires email",
     "errRegisterFailed": "Registration failed",
+    "errPasswordMismatch": "Passwords do not match",
     "errDeleteConfirm": "Type DELETE to confirm",
-    "errDeleteFailed": "Account deletion failed"
+    "errDeleteFailed": "Account deletion failed",
+    "errVerifyCodeRequired": "Verification code required",
+    "errVerifyCodeInvalid": "Invalid or expired code",
+    "errTurnstileFailed": "Security check failed"
   }
 }

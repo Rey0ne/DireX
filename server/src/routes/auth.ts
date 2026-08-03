@@ -1,17 +1,114 @@
-/* === Auth Routes — Register / Login / Me / Credits === */
+/* === Auth Routes — Register / Login / Me / Credits / Verify === */
 import { Router, Request, Response } from 'express';
 import { createUser, getUserByAccount, verifyPassword, getProfile, updateCredits, updatePlanAndCredits, deleteUser } from '../systems/db/user-store.js';
 import { addTransaction, getRecentTransactions } from '../systems/db/credit-store.js';
 import { signToken, requireUser } from '../middleware/auth.js';
+import { setCode, verifyCode } from '../systems/verify/engine.js';
+import { sendVerifyEmail, isEmailConfigured } from '../systems/verify/email-sender.js';
+import { sendVerifySms, isSmsConfigured } from '../systems/verify/sms-sender.js';
+import { verifyTurnstile } from '../systems/verify/turnstile.js';
 import type { RegisterRequest, AuthResponse, CreditBalanceResponse } from '../../../../shared/api-types.js';
 
 const router = Router();
 
+// ═══════════════════════════════════════
+// 验证码 + 人机验证
+// ═══════════════════════════════════════
+
+// POST /api/auth/send-verify-email — 发送邮箱验证码
+router.post('/send-verify-email', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ success: false, error: '请提供邮箱' });
+      return;
+    }
+    const key = `email:${email.toLowerCase().trim()}`;
+    const { code, error } = setCode(key);
+    if (error) {
+      res.status(429).json({ success: false, error });
+      return;
+    }
+    if (!isEmailConfigured()) {
+      // 未配置邮件服务时返回 mock（开发环境）
+      console.log(`[verify] MOCK email code ${code} → ${email}`);
+      res.json({ success: true, mock: true, message: '验证码已发送（开发模式）' });
+      return;
+    }
+    const result = await sendVerifyEmail(email, code);
+    if (!result.ok) {
+      res.status(500).json({ success: false, error: result.error || '邮件发送失败' });
+      return;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[verify] send-email error:', err);
+    res.status(500).json({ success: false, error: '发送失败' });
+  }
+});
+
+// POST /api/auth/send-verify-sms — 发送短信验证码
+router.post('/send-verify-sms', async (req: Request, res: Response) => {
+  try {
+    const { phone, countryCode } = req.body;
+    if (!phone) {
+      res.status(400).json({ success: false, error: '请提供手机号' });
+      return;
+    }
+    const cleaned = phone.replace(/[\s\-]/g, '');
+    const key = `sms:${countryCode || ''}${cleaned}`;
+    const { code, error } = setCode(key);
+    if (error) {
+      res.status(429).json({ success: false, error });
+      return;
+    }
+    const result = await sendVerifySms(cleaned, countryCode || '+86', code);
+    if (!result.ok) {
+      res.status(500).json({ success: false, error: result.error || '短信发送失败' });
+      return;
+    }
+    res.json({ success: true, provider: result.provider });
+  } catch (err) {
+    console.error('[verify] send-sms error:', err);
+    res.status(500).json({ success: false, error: '发送失败' });
+  }
+});
+
+// POST /api/auth/verify-turnstile — 服务端验证 Turnstile（前端可预先调用）
+router.post('/verify-turnstile', async (req: Request, res: Response) => {
+  const { token } = req.body;
+  const result = await verifyTurnstile(token);
+  if (!result.ok) {
+    res.status(400).json({ success: false, error: result.error });
+    return;
+  }
+  res.json({ success: true });
+});
+
 // POST /api/auth/register
 // 支持邮箱注册 / 手机号注册 / 公司注册
-router.post('/register', (req: Request, res: Response) => {
+// 要求: Turnstile token 必传，验证码可选（如果配置了邮件/短信服务则必传）
+router.post('/register', async (req: Request, res: Response) => {
   try {
-    const body = req.body as RegisterRequest;
+    const body = req.body as RegisterRequest & { turnstileToken?: string; verifyCode?: string; codeTarget?: string };
+
+    // ── Turnstile 验证 ──
+    const tsResult = await verifyTurnstile(body.turnstileToken || '');
+    if (!tsResult.ok) {
+      res.status(400).json({ success: false, error: '安全验证未通过，请刷新后重试' } as AuthResponse);
+      return;
+    }
+
+    // ── 验证码校验（如果配置了邮件/短信服务） ──
+    if (body.verifyCode && body.codeTarget) {
+      const codeKey = body.codeTarget; // 前端传的 key (email:xxx 或 sms:xxx)
+      const verified = verifyCode(codeKey, body.verifyCode);
+      if (verified !== true) {
+        const errMsg = verified === 'expired' ? '验证码已过期，请重新获取' : '验证码错误';
+        res.status(400).json({ success: false, error: errMsg } as AuthResponse);
+        return;
+      }
+    }
 
     // 至少提供一种登录方式
     if (!body.email && !body.phone) {
