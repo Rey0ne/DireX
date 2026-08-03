@@ -7,7 +7,36 @@ import { BACKEND_URL } from '../api/config';
 import type { IdType } from '../../shared/api-types.js';
 
 const CRED_KEY = 'direx_remembered';
-const TURNSTILE_SITE_KEY = (typeof window !== 'undefined' && (window as any).__TURNSTILE_SITE_KEY__) || '1x00000000000000000000AA'; // dev: always-passes test key
+const TURNSTILE_SITE_KEY = (typeof window !== 'undefined' && (window as any).__TURNSTILE_SITE_KEY__) || '1x00000000000000000000AA';
+
+// 区号 → ISO 3166-1 alpha-2 region code 映射
+const COUNTRY_LIST = [
+  { code: '+86', region: 'CN' },  { code: '+81', region: 'JP' },  { code: '+82', region: 'KR' },
+  { code: '+91', region: 'IN' },  { code: '+65', region: 'SG' },  { code: '+60', region: 'MY' },
+  { code: '+66', region: 'TH' },  { code: '+84', region: 'VN' },  { code: '+62', region: 'ID' },
+  { code: '+63', region: 'PH' },  { code: '+886', region: 'TW' }, { code: '+852', region: 'HK' },
+  { code: '+44', region: 'GB' },  { code: '+49', region: 'DE' },  { code: '+33', region: 'FR' },
+  { code: '+39', region: 'IT' },  { code: '+34', region: 'ES' },  { code: '+31', region: 'NL' },
+  { code: '+32', region: 'BE' },  { code: '+41', region: 'CH' },  { code: '+43', region: 'AT' },
+  { code: '+46', region: 'SE' },  { code: '+47', region: 'NO' },  { code: '+45', region: 'DK' },
+  { code: '+358', region: 'FI' }, { code: '+351', region: 'PT' }, { code: '+353', region: 'IE' },
+  { code: '+7', region: 'RU' },   { code: '+380', region: 'UA' }, { code: '+48', region: 'PL' },
+  { code: '+420', region: 'CZ' }, { code: '+40', region: 'RO' },  { code: '+36', region: 'HU' },
+  { code: '+30', region: 'GR' },  { code: '+971', region: 'AE' }, { code: '+966', region: 'SA' },
+  { code: '+974', region: 'QA' }, { code: '+972', region: 'IL' }, { code: '+90', region: 'TR' },
+  { code: '+20', region: 'EG' },  { code: '+98', region: 'IR' },  { code: '+1', region: 'US' },
+  { code: '+1', region: 'CA' },   { code: '+52', region: 'MX' },  { code: '+55', region: 'BR' },
+  { code: '+54', region: 'AR' },  { code: '+56', region: 'CL' },  { code: '+57', region: 'CO' },
+  { code: '+61', region: 'AU' },  { code: '+64', region: 'NZ' },  { code: '+27', region: 'ZA' },
+  { code: '+234', region: 'NG' }, { code: '+254', region: 'KE' },
+];
+
+function countryLabel(code: string, region: string, lang: string): string {
+  try {
+    const name = new Intl.DisplayNames(lang, { type: 'region' }).of(region);
+    return name ? `${code} ${name}` : `${code} ${region}`;
+  } catch { return `${code} ${region}`; }
+}
 
 declare global { interface Window { turnstile: any; } }
 
@@ -16,7 +45,8 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onEnter }: LoginPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || 'zh-CN';
   const { login, register, deleteAccount, loading, error } = useAuthStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const turnstileRef = useRef<HTMLDivElement>(null);
@@ -285,60 +315,12 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             ) : (
               <>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 140, flexShrink: 0, cursor: 'pointer' }}>
-                    <option value="+86">+86 中国</option>
-                    <option value="+81">+81 日本</option>
-                    <option value="+82">+82 韩国</option>
-                    <option value="+91">+91 印度</option>
-                    <option value="+65">+65 新加坡</option>
-                    <option value="+60">+60 马来西亚</option>
-                    <option value="+66">+66 泰国</option>
-                    <option value="+84">+84 越南</option>
-                    <option value="+62">+62 印尼</option>
-                    <option value="+63">+63 菲律宾</option>
-                    <option value="+886">+886 台湾</option>
-                    <option value="+852">+852 香港</option>
-                    <option value="+44">+44 英国</option>
-                    <option value="+49">+49 德国</option>
-                    <option value="+33">+33 法国</option>
-                    <option value="+39">+39 意大利</option>
-                    <option value="+34">+34 西班牙</option>
-                    <option value="+31">+31 荷兰</option>
-                    <option value="+32">+32 比利时</option>
-                    <option value="+41">+41 瑞士</option>
-                    <option value="+43">+43 奥地利</option>
-                    <option value="+46">+46 瑞典</option>
-                    <option value="+47">+47 挪威</option>
-                    <option value="+45">+45 丹麦</option>
-                    <option value="+358">+358 芬兰</option>
-                    <option value="+351">+351 葡萄牙</option>
-                    <option value="+353">+353 爱尔兰</option>
-                    <option value="+7">+7 俄罗斯</option>
-                    <option value="+380">+380 乌克兰</option>
-                    <option value="+48">+48 波兰</option>
-                    <option value="+420">+420 捷克</option>
-                    <option value="+40">+40 罗马尼亚</option>
-                    <option value="+36">+36 匈牙利</option>
-                    <option value="+30">+30 希腊</option>
-                    <option value="+971">+971 阿联酋</option>
-                    <option value="+966">+966 沙特</option>
-                    <option value="+974">+974 卡塔尔</option>
-                    <option value="+972">+972 以色列</option>
-                    <option value="+90">+90 土耳其</option>
-                    <option value="+20">+20 埃及</option>
-                    <option value="+98">+98 伊朗</option>
-                    <option value="+1">+1 美国</option>
-                    <option value="+1">+1 加拿大</option>
-                    <option value="+52">+52 墨西哥</option>
-                    <option value="+55">+55 巴西</option>
-                    <option value="+54">+54 阿根廷</option>
-                    <option value="+56">+56 智利</option>
-                    <option value="+57">+57 哥伦比亚</option>
-                    <option value="+61">+61 澳大利亚</option>
-                    <option value="+64">+64 新西兰</option>
-                    <option value="+27">+27 南非</option>
-                    <option value="+234">+234 尼日利亚</option>
-                    <option value="+254">+254 肯尼亚</option>
+                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 160, flexShrink: 0, cursor: 'pointer' }}>
+                    {COUNTRY_LIST.map(c => (
+                      <option key={`${c.code}-${c.region}`} value={c.code}>
+                        {countryLabel(c.code, c.region, lang)}
+                      </option>
+                    ))}
                   </select>
                   <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t('login.placeholderPhoneNumber')} style={inputStyle} autoComplete="tel" />
                 </div>
@@ -385,14 +367,12 @@ export function LoginPage({ onEnter }: LoginPageProps) {
                 <div style={sectLabel}>{t('login.companySectionTitle')}</div>
                 <input value={companyCode} onChange={e => setCompanyCode(e.target.value)} placeholder={t('login.companyCodePlaceholder')} style={inputStyle} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 140, flexShrink: 0, cursor: 'pointer' }}>
-                    <option value="+86">+86 中国</option><option value="+81">+81 日本</option><option value="+82">+82 韩国</option><option value="+91">+91 印度</option><option value="+65">+65 新加坡</option><option value="+60">+60 马来西亚</option><option value="+66">+66 泰国</option><option value="+84">+84 越南</option><option value="+62">+62 印尼</option><option value="+63">+63 菲律宾</option><option value="+886">+886 台湾</option><option value="+852">+852 香港</option>
-                    <option value="+44">+44 英国</option><option value="+49">+49 德国</option><option value="+33">+33 法国</option><option value="+39">+39 意大利</option><option value="+34">+34 西班牙</option><option value="+31">+31 荷兰</option><option value="+32">+32 比利时</option><option value="+41">+41 瑞士</option><option value="+43">+43 奥地利</option><option value="+46">+46 瑞典</option><option value="+47">+47 挪威</option><option value="+45">+45 丹麦</option><option value="+358">+358 芬兰</option><option value="+351">+351 葡萄牙</option><option value="+353">+353 爱尔兰</option>
-                    <option value="+7">+7 俄罗斯</option><option value="+380">+380 乌克兰</option><option value="+48">+48 波兰</option><option value="+420">+420 捷克</option><option value="+40">+40 罗马尼亚</option><option value="+36">+36 匈牙利</option><option value="+30">+30 希腊</option>
-                    <option value="+971">+971 阿联酋</option><option value="+966">+966 沙特</option><option value="+974">+974 卡塔尔</option><option value="+972">+972 以色列</option><option value="+90">+90 土耳其</option><option value="+20">+20 埃及</option><option value="+98">+98 伊朗</option>
-                    <option value="+1">+1 美国</option><option value="+1">+1 加拿大</option><option value="+52">+52 墨西哥</option><option value="+55">+55 巴西</option><option value="+54">+54 阿根廷</option><option value="+56">+56 智利</option><option value="+57">+57 哥伦比亚</option>
-                    <option value="+61">+61 澳大利亚</option><option value="+64">+64 新西兰</option>
-                    <option value="+27">+27 南非</option><option value="+234">+234 尼日利亚</option><option value="+254">+254 肯尼亚</option>
+                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 160, flexShrink: 0, cursor: 'pointer' }}>
+                    {COUNTRY_LIST.map(c => (
+                      <option key={`${c.code}-${c.region}`} value={c.code}>
+                        {countryLabel(c.code, c.region, lang)}
+                      </option>
+                    ))}
                   </select>
                   <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t('login.placeholderPhone')} style={inputStyle} autoComplete="tel" />
                 </div>
