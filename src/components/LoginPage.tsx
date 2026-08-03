@@ -1,6 +1,8 @@
 /* === LoginPage — Register / Login screen === */
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/useAuthStore';
+import { LangSwitcher } from '../i18n/LangSwitcher';
 
 const CRED_KEY = 'direx_remembered';
 
@@ -9,6 +11,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onEnter }: LoginPageProps) {
+  const { t } = useTranslation();
   const { login, register, loading, error } = useAuthStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -65,6 +68,14 @@ export function LoginPage({ onEnter }: LoginPageProps) {
       position: 'relative', overflow: 'hidden',
       background: 'var(--tap-bg)',
     }}>
+      {/* ── 语言切换器 ── */}
+      <div style={{
+        position: 'absolute', top: 24, right: 24,
+        zIndex: 10,
+      }}>
+        <LangSwitcher />
+      </div>
+
       {/* ── 背景视频 ── */}
       <video
         ref={videoRef}
@@ -101,7 +112,7 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             Dire<span style={{ color: 'var(--tap-accent)' }}>X</span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--tap-text-3)', marginTop: 4 }}>
-            AI 内容制作管线
+            {t('login.subtitle')}
           </div>
         </div>
 
@@ -117,7 +128,7 @@ export function LoginPage({ onEnter }: LoginPageProps) {
                 borderBottom: mode === m ? '2px solid var(--tap-accent)' : '2px solid transparent',
                 transition: 'all 0.15s',
               }}
-            >{m === 'login' ? '登录' : '注册'}</button>
+            >{m === 'login' ? t('login.tabLogin') : t('login.tabRegister')}</button>
           ))}
         </div>
 
@@ -126,19 +137,19 @@ export function LoginPage({ onEnter }: LoginPageProps) {
           {mode === 'register' && (
             <input
               value={name} onChange={e => setName(e.target.value)}
-              placeholder="用户名（选填）"
+              placeholder={t('login.placeholderName')}
               style={inputStyle}
             />
           )}
           <input
             type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="邮箱"
+            placeholder={t('login.placeholderEmail')}
             style={inputStyle}
             autoComplete="email"
           />
           <input
             type="password" value={password} onChange={e => setPassword(e.target.value)}
-            placeholder="密码（至少6位）"
+            placeholder={t('login.placeholderPassword')}
             style={inputStyle}
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
@@ -147,7 +158,7 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--tap-text-3)' }}>
               <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
                 style={{ accentColor: 'var(--tap-accent)', cursor: 'pointer' }} />
-              记住密码
+              {t('login.rememberPassword')}
             </label>
           )}
 
@@ -166,14 +177,14 @@ export function LoginPage({ onEnter }: LoginPageProps) {
               transition: 'all 0.15s',
             }}
           >
-            {loading ? '处理中…' : mode === 'login' ? '登录' : '注册（送 200 积分）'}
+            {loading ? t('login.btnProcessing') : mode === 'login' ? t('login.btnLogin') : t('login.btnRegister')}
           </button>
         </form>
 
         {/* ── 免登录入口 ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, height: 1, background: 'var(--tap-divider)' }} />
-          <span style={{ fontSize: 11, color: 'var(--tap-text-4)' }}>或</span>
+          <span style={{ fontSize: 11, color: 'var(--tap-text-4)' }}>{t('login.orDivider')}</span>
           <div style={{ flex: 1, height: 1, background: 'var(--tap-divider)' }} />
         </div>
         <button type="button" onClick={onEnter}
@@ -191,10 +202,10 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             e.currentTarget.style.borderColor = 'var(--tap-border-light)';
             e.currentTarget.style.color = 'var(--tap-text-2)';
           }}
-        >直接进入（免登录）</button>
+        >{t('login.btnSkip')}</button>
 
         <div style={{ fontSize: 11, color: 'var(--tap-text-4)', textAlign: 'center' }}>
-          注册即表示同意服务条款和隐私政策
+          {t('login.termsFooter')}
         </div>
       </div>
     </div>

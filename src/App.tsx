@@ -29,6 +29,7 @@ import { SlashPanel } from './components/SlashPanel';
 import { LeftToolbar } from './components/LeftToolbar';
 import type { ToolMode } from './components/LeftToolbar';
 import { ProjectSelector } from './components/ProjectSelector';
+import './i18n'; // 初始化多语言
 import { LoginPage } from './components/LoginPage';
 import { QAssistant } from './components/QAssistant';
 import { QChatPanel } from './components/QChatPanel';

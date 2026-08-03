@@ -1,0 +1,18 @@
+{
+  "login": {
+    "title": "DireX",
+    "subtitle": "AI Content Production Pipeline",
+    "tabLogin": "Sign In",
+    "tabRegister": "Sign Up",
+    "placeholderName": "Username (optional)",
+    "placeholderEmail": "Email",
+    "placeholderPassword": "Password (min. 6 chars)",
+    "rememberPassword": "Remember me",
+    "btnLogin": "Sign In",
+    "btnRegister": "Sign Up (+200 credits)",
+    "btnProcessing": "Processing…",
+    "orDivider": "or",
+    "btnSkip": "Skip & Enter",
+    "termsFooter": "By signing up you agree to the Terms of Service and Privacy Policy"
+  }
+}
