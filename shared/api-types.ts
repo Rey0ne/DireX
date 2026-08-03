@@ -184,8 +184,66 @@ export interface AgentGenerateResult {
 export interface UserProfile {
   userId: string;
   email: string;
+  phone?: string;              // 脱敏后（如 +86 138****1234）
+  nickname: string;
+  accountType: 'individual' | 'company';
+  companyCode?: string;
   plan: 'free' | 'creator' | 'pro' | 'elite' | 'ultra' | 'pro_base' | 'pro_mid' | 'pro_high' | 'pro_pro' | 'pro_max';
   credits: number;
+  createdAt?: string;
+}
+
+// ── 身份证件类型 ──
+export type IdType =
+  | 'cn-id'        // 中国居民身份证
+  | 'us-ssn'       // 美国社会安全号
+  | 'ja-mynumber'  // 日本个人番号
+  | 'de-pa'        // 德国身份证
+  | 'fr-cni'       // 法国身份证
+  | 'it-ci'        // 意大利身份证
+  | 'passport';    // 护照（国际通用）
+
+export const ID_TYPE_LABELS: Record<IdType, string> = {
+  'cn-id': '居民身份证',
+  'us-ssn': 'Social Security Number',
+  'ja-mynumber': 'マイナンバー',
+  'de-pa': 'Personalausweis',
+  'fr-cni': 'Carte Nationale d\'Identité',
+  'it-ci': 'Carta d\'Identità',
+  'passport': 'Passport / 护照',
+};
+
+export interface RegisterRequest {
+  // 注册方式（二选一）
+  email?: string;
+  phone?: string;
+  phoneCountry?: string;    // 国际区号，如 '+86'
+  password: string;
+
+  // 必填 — 所有用户
+  nickname: string;
+  accountType: 'individual' | 'company';
+
+  // 个人用户必填
+  idType?: IdType;
+  idNumber?: string;
+  realName?: string;
+  address?: string;
+
+  // 公司用户必填
+  companyCode?: string;
+}
+
+export interface LoginRequest {
+  account: string;           // email 或 phone
+  password: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: UserProfile;
+  error?: string;
 }
 
 export interface KeyStatus {

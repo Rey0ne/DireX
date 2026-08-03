@@ -1,6 +1,6 @@
 /* === Auth Store — User login state === */
 import { create } from 'zustand';
-import type { UserProfile } from '../../shared/api-types.js';
+import type { UserProfile, RegisterRequest } from '../../shared/api-types.js';
 import { BACKEND_URL } from '../api/config';
 const STORAGE_KEY = 'direx_auth';
 
@@ -8,6 +8,8 @@ const STORAGE_KEY = 'direx_auth';
 export const DEV_GUEST: UserProfile = {
   userId: 'guest-dev',
   email: 'dev@localhost',
+  nickname: 'Guest',
+  accountType: 'individual',
   credits: 5000,
   plan: 'free',
 };
@@ -18,30 +20,25 @@ interface AuthState {
   loading: boolean;
   error: string | null;
 
-  register: (email: string, password: string, name?: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: RegisterRequest) => Promise<boolean>;
+  login: (account: string, password: string) => Promise<boolean>;
   logout: () => void;
+  deleteAccount: (account: string, password: string) => Promise<{ success: boolean; error?: string }>;
   refreshCredits: () => Promise<void>;
   spendCredits: (amount: number, type: string, description: string) => Promise<boolean>;
-  /** Refund credits (on generation failure). Positive amount = added back to balance. */
   refundCredits: (amount: number, description: string) => Promise<boolean>;
-  /** Initialize guest user state (免登录) — saves to Zustand + localStorage */
   initGuestUser: () => void;
-  /** Deduct credits from local state only (guest fallback, no backend call) */
   deductLocalCredits: (amount: number) => boolean;
   getToken: () => string | null;
   isLoggedIn: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  // 从 localStorage 恢复登录态
-  // Guest users (免登录) have user but no token — still valid.
   const saved = (() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      // Logged-in user needs both token + user; guest user only needs user
       if (!parsed.user) return null;
       return parsed;
     } catch { return null; }
@@ -53,13 +50,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     loading: false,
     error: null,
 
-    register: async (email, password, name) => {
+    register: async (data) => {
       set({ loading: true, error: null });
       try {
         const resp = await fetch(`${BACKEND_URL}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, name }),
+          body: JSON.stringify(data),
         });
         const json = await resp.json();
         if (!json.success) {
@@ -75,13 +72,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
 
-    login: async (email, password) => {
+    login: async (account, password) => {
       set({ loading: true, error: null });
       try {
         const resp = await fetch(`${BACKEND_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ account, password }),
         });
         const json = await resp.json();
         if (!json.success) {
@@ -102,6 +99,25 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ user: null, token: null, error: null });
     },
 
+    deleteAccount: async (account, password) => {
+      try {
+        const resp = await fetch(`${BACKEND_URL}/api/auth/delete-account`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account, password, confirm: 'DELETE' }),
+        });
+        const json = await resp.json();
+        if (json.success) {
+          localStorage.removeItem(STORAGE_KEY);
+          set({ user: null, token: null, error: null });
+          return { success: true };
+        }
+        return { success: false, error: json.error || '注销失败' };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Network error' };
+      }
+    },
+
     refreshCredits: async () => {
       const { token } = get();
       if (!token) return;
@@ -118,7 +134,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     spendCredits: async (amount, type, description) => {
       const { token, user } = get();
-      // Guest user: deduct locally (no backend user record)
       if (!token) {
         if (!user || user.credits < amount) return false;
         const newCredits = user.credits - amount;
@@ -170,16 +185,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     refundCredits: async (amount, description) => {
       const { token, user } = get();
       if (amount <= 0) return true;
-      // Guest user: add back locally
       if (!token) {
         if (!user) return false;
         const updated = { ...user, credits: user.credits + amount };
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: updated }));
         set({ user: updated });
-        console.log(`[credits] Refunded ${amount} DireX (local) — ${description}`);
         return true;
       }
-      // Logged-in user: call topup with negative reasoning
       try {
         const resp = await fetch(`${BACKEND_URL}/api/auth/credits/topup`, {
           method: 'POST',
@@ -192,7 +204,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const json = await resp.json();
         if (json.success) {
           set({ user: { ...get().user!, credits: json.credits } });
-          console.log(`[credits] Refunded ${amount} DireX (server) — ${description}`);
           return true;
         }
         return false;
