@@ -10,7 +10,9 @@
  * Last verified: 2026-08-01
  */
 
-export const DIREX_MARKUP = 1.6;
+export const IMAGE_DIREX_MARKUP = 2.0;  // 100% markup on image models
+export const VIDEO_DIREX_MARKUP = 1.6;  // 60% markup on video models
+export const TEXT_DIREX_MARKUP = 2.0;   // 100% markup on text/LLM models
 export const USD_PER_KIECREDIT = 0.005;
 
 export interface PricingEntry {
@@ -199,12 +201,12 @@ const VIDEO_PRICES: Record<string, VideoPriceEntry> = {
   'seedance-2_1080p':        { credits: 102,  unit: 'per second' },
   'seedance-2_4k':           { credits: 208,  unit: 'per second' },
   'seedance-2_default':      { credits: 41,   unit: 'per second' },
-  // i2v/v2v tier — with video input (motion control, multi-ref with video)
-  'seedance-2-i2v_480p':     { credits: 11.5, unit: 'per second' },
-  'seedance-2-i2v_720p':     { credits: 25,   unit: 'per second' },
-  'seedance-2-i2v_1080p':    { credits: 62,   unit: 'per second' },
-  'seedance-2-i2v_4k':       { credits: 128,  unit: 'per second' },
-  'seedance-2-i2v_default':  { credits: 25,   unit: 'per second' },
+  // V2V tier — with video input (motion control, multi-ref with video refs). ~40% cheaper than t2v/i2v.
+  'seedance-2-v2v_480p':     { credits: 11.5, unit: 'per second' },
+  'seedance-2-v2v_720p':     { credits: 25,   unit: 'per second' },
+  'seedance-2-v2v_1080p':    { credits: 62,   unit: 'per second' },
+  'seedance-2-v2v_4k':       { credits: 128,  unit: 'per second' },
+  'seedance-2-v2v_default':  { credits: 25,   unit: 'per second' },
 
   // ── Seedance 1.5 Pro ──
   // Source: bytedance/seedance-1.5-pro, without audio, 480P=1.75cr/s, 720P=3.5cr/s, 1080P=7.5cr/s
@@ -282,13 +284,15 @@ function countCJK(text: string): number {
 }
 
 /** Estimate token count from text.
- *  CJK: ~1.5 chars/token | ASCII/other: ~4 chars/token
+ *  CJK: ~1.7 tokens/char (GPT tokenizers use 1-2 tokens per Chinese character)
+ *  ASCII/other: ~0.25 tokens/char (~4 chars/token, ~1.3 tokens/word)
+ *  Verified against actual Kie.ai GPT-5.6 Sol usage: 13,602-char script = ~23,000 input tokens.
  *  This is an approximation — actual tokenization varies by model tokenizer.
  */
 export function estimateTokens(text: string): number {
   const cjk = countCJK(text);
   const other = text.length - cjk;
-  return Math.ceil(cjk / 1.5 + other / 4);
+  return Math.ceil(cjk * 1.7 + other / 4);
 }
 
 // ── Text pricing lookup ──────────────────────────────────────────────
@@ -305,7 +309,7 @@ export interface TextPricingResult extends PricingEntry {
  * Calculate Kie credit cost for a text/LLM request.
  * @param modelId — Kie model ID (e.g. 'gpt-5.4', 'gpt-5.6-sol')
  * @param inputText — the prompt/input text
- * @param estimatedOutputTokens — override output token estimate (default: 25% of input)
+ * @param estimatedOutputTokens — override output token estimate (default: 50% of input tokens)
  */
 export function getTextKiePrice(
   modelId: string,
@@ -314,7 +318,7 @@ export function getTextKiePrice(
 ): TextPricingResult {
   const prices = TEXT_MODEL_PRICES[modelId] || TEXT_MODEL_PRICES['default'];
   const inputTokens = estimateTokens(inputText);
-  const outTokens = estimatedOutputTokens ?? Math.ceil(inputTokens * 0.25);
+  const outTokens = estimatedOutputTokens ?? Math.ceil(inputTokens * 0.5);
 
   const inputCr = (inputTokens / 1_000_000) * prices.inputCrPerM;
   const outputCr = (outTokens / 1_000_000) * prices.outputCrPerM;
@@ -329,8 +333,23 @@ export function getTextKiePrice(
     kieCredits: +totalCr.toFixed(4),
     unit: 'per request',
     usdPrice: +(totalCr * USD_PER_KIECREDIT).toFixed(4),
-    direxCredits: Math.ceil(totalCr * DIREX_MARKUP),
+    direxCredits: Math.ceil(totalCr * TEXT_DIREX_MARKUP),
   };
+}
+
+/**
+ * Calculate Kie credit cost for script/full-pipeline analysis.
+ * Script analysis generates ~1.4-1.5× output (shots + characters + scenes + music prompts).
+ * Verified against 13,602-char script consuming 62.41 Kie credits via GPT-5.6 Sol.
+ */
+export function getScriptAnalysisKiePrice(
+  modelId: string,
+  inputText: string,
+): TextPricingResult {
+  const inputTokens = estimateTokens(inputText);
+  // Script analysis output is ~144% of input (verified: 13602-char → ~33K out tokens)
+  const outTokens = Math.ceil(inputTokens * 1.44);
+  return getTextKiePrice(modelId, inputText, outTokens);
 }
 
 /**
@@ -358,12 +377,12 @@ function normalizeRes(resolution?: string): string {
   return r.toLowerCase();
 }
 
-function makeEntry(credits: number, unit: string): PricingEntry {
+function makeEntry(credits: number, unit: string, markup: number = VIDEO_DIREX_MARKUP): PricingEntry {
   return {
     kieCredits: credits,
     unit,
     usdPrice: +(credits * USD_PER_KIECREDIT).toFixed(4),
-    direxCredits: Math.ceil(credits * DIREX_MARKUP),
+    direxCredits: Math.ceil(credits * markup),
   };
 }
 
@@ -392,7 +411,7 @@ function lookupPrice(
  */
 export function getImageKiePrice(modelId: string, resolution?: string): PricingEntry {
   const entry = lookupPrice(IMAGE_PRICES, modelId, resolution);
-  return makeEntry(entry.credits, entry.unit);
+  return makeEntry(entry.credits, entry.unit, IMAGE_DIREX_MARKUP);
 }
 
 // ── Seedance 2.0 V2V Token-based Pricing ─────────────────────────
@@ -459,10 +478,10 @@ export function getVideoKiePrice(
 
   // Select pricing tier based on genMode (fallback when refVideoDuration unavailable)
   if (genMode) {
-    // Seedance 2.0: "motion" and "multi-ref" modes use video input → cheaper "-i2v" tier
+    // Seedance 2.0: "motion" and "multi-ref" modes use video input → cheaper V2V tier
     if ((lookupModelId === 'bytedance/seedance-2' || lookupModelId === 'seedance-2') &&
         (genMode === 'motion' || genMode === 'multi-ref')) {
-      lookupModelId = lookupModelId + '-i2v';
+      lookupModelId = lookupModelId + '-v2v';
     }
     // Kling 3.0: "motion" mode uses video-to-video → more expensive "-v2v" tier
     if ((lookupModelId === 'kling-3.0/video' || lookupModelId === 'kling-video') &&

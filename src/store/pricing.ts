@@ -1,7 +1,8 @@
 /* === DireX Model Pricing Store === */
-/* Real pricing data extracted from Kie.ai market API × 1.6 markup (60%) */
+/* Image markup: 2.0× (100% — covers model + LLM overhead) */
+/* Video markup: 1.6× (60%) */
 /* Exchange rate: 1 credit = $0.005 USD (fixed, never changes) */
-/* DireX markup: 1.6× Kie credit price (applied to credits, not exchange rate) */
+/* Note: markup is applied to Kie credits, not exchange rate */
 
 // ── Kie Model ID Map (DireX name → Kie API model string) ──
 // Scraped 2026-08 from kie.ai model detail pages.
@@ -181,7 +182,9 @@ const KIE_RAW: Array<{
 ];
 
 // ── COMPUTED PRICING ──
-const DIREX_MARKUP = 1.6; // Kie × 1.6 (60% markup)
+const IMAGE_MARKUP = 2.0;  // 100% markup on images (covers LLM overhead)
+const VIDEO_MARKUP = 1.6;  // 60% markup on video (unchanged)
+const TEXT_MARKUP = 2.0;   // 100% markup on text/LLM
 
 function buildPricing(): ModelPricing[] {
   return KIE_RAW.map(r => ({
@@ -191,8 +194,8 @@ function buildPricing(): ModelPricing[] {
     kieCredits: Number(r.creditPrice),
     creditUnit: r.creditUnit,
     kieUsd: Number(r.usdPrice),
-    direxCredits: Math.ceil(Number(r.creditPrice) * DIREX_MARKUP),
-    direxUsd: Math.ceil(Number(r.usdPrice) * DIREX_MARKUP * 1000) / 1000,
+    direxCredits: Math.ceil(Number(r.creditPrice) * (r.interfaceType === 'image' ? IMAGE_MARKUP : VIDEO_MARKUP)),
+    direxUsd: Math.ceil(Number(r.usdPrice) * (r.interfaceType === 'image' ? IMAGE_MARKUP : VIDEO_MARKUP) * 1000) / 1000,
     anchor: r.anchor,
     discountRate: r.discountRate,
   }));
@@ -381,7 +384,7 @@ export function getImageCreditCost(
   const verified = VERIFIED_IMAGE_PRICES[familyKey];
   if (verified) {
     const kieCredits = verified[resKey] ?? verified[Object.keys(verified)[0]];
-    if (kieCredits) return Math.ceil(kieCredits * DIREX_MARKUP);
+    if (kieCredits) return Math.ceil(kieCredits * IMAGE_MARKUP);
   }
 
   // 2. Fallback: try exact match from scraped KIE_RAW
@@ -448,6 +451,7 @@ export function getImageCost(modelName: string, resolution: string, imgCount: nu
     'Nano Banana 2': 'nano banana 2',
     'Nano Banana Pro': 'nano banana pro',
     'GPT Image 2': 'gpt image 2',
+    'GPT Image2': 'gpt image 2',
     'Seedream 5 Pro': 'seedream 5 pro',
     'Grok Imagine': 'grok-imagine',
     'Flux 2 Pro': 'flux 2 pro',
@@ -475,17 +479,17 @@ export function getImageUsdCost(modelName: string, resolution: string): number {
   return match?.direxUsd ?? 0.05;
 }
 
-/** Build a compact label: "12cr (~$0.06)" */
+/** Build a compact label: "12 (~$0.06)" */
 export function formatCreditCost(modelName: string, resolution: string, imgCount: number): string {
   const credits = getImageCost(modelName, resolution, imgCount);
   const usd = getImageUsdCost(modelName, resolution) * imgCount;
-  return `${credits}cr (~$${usd.toFixed(3)})`;
+  return `${credits} (~$${usd.toFixed(3)})`;
 }
 
 // ── VIDEO PRICING ──────────────────────────────────────
 // Kie credit cost per second at 1080P (text-to-video, representative variant).
 // Extracted 2026-08 from kie.ai/pricing. For models not in Kie market, estimates used.
-// All values are Kie raw credits; DireX credits = Kie × DIREX_MARKUP (1.6×).
+// All values are Kie raw credits; DireX = ceil(Kie × markup). Image=2.0×, Video=1.6×.
 
 export interface VideoPricingEntry {
   modelName: string;
@@ -530,8 +534,8 @@ function buildVideoPricing(): Record<string, VideoPricingEntry> {
       modelName: r.name,
       kieCreditsPerSecond: cr1080,
       kieUsdPerSecond: usd1080,
-      direxCreditsPerSecond: Math.ceil(cr1080 * DIREX_MARKUP),
-      direxUsdPerSecond: Math.round(usd1080 * DIREX_MARKUP * 10000) / 10000,
+      direxCreditsPerSecond: Math.ceil(cr1080 * VIDEO_MARKUP),
+      direxUsdPerSecond: Math.round(usd1080 * VIDEO_MARKUP * 10000) / 10000,
       crPerSecByRes: r.crPerSec,
       source: r.src,
     };
@@ -562,7 +566,7 @@ function getSeedanceV2VTokens(h: number, w: number, refDur: number, outDur: numb
 function getSeedanceV2VDirexCost(h: number, w: number, refDur: number, outDur: number): number {
   const tokens = getSeedanceV2VTokens(h, w, refDur, outDur);
   const kieCr = (tokens / 1_000_000) * SEEDANCE_V2V_KIE_CR_PER_M_TOKENS;
-  return Math.ceil(kieCr * DIREX_MARKUP);
+  return Math.ceil(kieCr * VIDEO_MARKUP);
 }
 
 function getSeedanceResDims(res?: string): { h: number; w: number } {
@@ -614,13 +618,13 @@ export function getVideoCreditCost(
   const entry = VIDEO_PRICING[lookupName] || VIDEO_PRICING[modelName];
   if (!entry) {
     console.warn(`[pricing] No video pricing for "${lookupName}", using default 20cr/s`);
-    return Math.ceil(20 * DIREX_MARKUP * durationSeconds);
+    return Math.ceil(20 * VIDEO_MARKUP * durationSeconds);
   }
 
   // Resolution-aware: look up per-resolution rate, fall back to flat 1080p rate
   const resKey = normalizeVideoRes(resolution);
   const crPerSec = entry.crPerSecByRes[resKey] || entry.kieCreditsPerSecond;
-  const direxPerSec = Math.ceil(crPerSec * DIREX_MARKUP);
+  const direxPerSec = Math.ceil(crPerSec * VIDEO_MARKUP);
   return Math.ceil(direxPerSec * durationSeconds);
 }
 
@@ -635,7 +639,7 @@ export function getVideoPricing(modelName: string): VideoPricingEntry | undefine
 }
 
 // ── EXPORT FOR OTHER CONSUMERS ──
-export { ALL_PRICING, DIREX_MARKUP, VIDEO_PRICING };
+export { ALL_PRICING, VIDEO_PRICING };
 
 // ── TEXT / LLM PRICING ─────────────────────────────────────
 // Source: .tmp_kie_pricing.json — per-million-token rates on Kie
@@ -667,11 +671,15 @@ function countCJK(text: string): number {
   return (text.match(/[一-鿿㐀-䶿぀-ゟ゠-ヿ가-힯]/g) || []).length;
 }
 
-/** Estimate token count: CJK ~1.5/tok, ASCII ~4/tok */
+/** Estimate token count from text.
+ *  CJK: ~1.7 tokens/char (GPT tokenizers use 1-2 tokens per Chinese character)
+ *  ASCII/other: ~0.25 tokens/char (~4 chars/token)
+ *  Verified: 13,602-char Chinese script = ~23,000 input tokens via GPT-5.6 Sol.
+ */
 export function estimateTokens(text: string): number {
   const cjk = countCJK(text);
   const other = text.length - cjk;
-  return Math.ceil(cjk / 1.5 + other / 4);
+  return Math.ceil(cjk * 1.7 + other / 4);
 }
 
 export interface TextCostEstimate {
@@ -688,7 +696,7 @@ export interface TextCostEstimate {
  * @param modelId — Kie model ID
  * @param inputText — the prompt/input text
  * @param estimatedOutputTokens — override output tokens directly
- * @param outputRatio — output/input ratio (default: 0.25 = 25%)
+ * @param outputRatio — output/input ratio (default: 0.5 = 50%)
  */
 export function estimateTextCost(
   modelId: string,
@@ -696,9 +704,9 @@ export function estimateTextCost(
   estimatedOutputTokens?: number,
   outputRatio?: number,
 ): TextCostEstimate {
-  const model = TEXT_MODEL_MAP[modelId] || TEXT_MODEL_MAP['gpt-5.4'];
+  const model = TEXT_MODEL_MAP[modelId] || TEXT_MODEL_MAP['gpt-5.6-sol'];
   const inputTokens = estimateTokens(inputText);
-  const outTokens = estimatedOutputTokens ?? Math.ceil(inputTokens * (outputRatio ?? 0.25));
+  const outTokens = estimatedOutputTokens ?? Math.ceil(inputTokens * (outputRatio ?? 0.5));
 
   const inputCr = (inputTokens / 1_000_000) * model.inputCrPerM;
   const outputCr = (outTokens / 1_000_000) * model.outputCrPerM;
@@ -710,13 +718,77 @@ export function estimateTextCost(
     inputTokens,
     estimatedOutputTokens: outTokens,
     kieCredits: Math.round(kieCr * 100) / 100,
-    direxCredits: Math.ceil(kieCr * DIREX_MARKUP),
+    direxCredits: Math.ceil(kieCr * TEXT_MARKUP),
   };
 }
 
 /**
- * Format text cost as a display string: "~48cr (约800 tokens)"
+ * Estimate DireX credit cost for script analysis (full pipeline).
+ * Script analysis generates ~144% output (shots + characters + scenes + music).
+ * Verified against 13,602-char script consuming 62.41 Kie credits via GPT-5.6 Sol.
+ */
+export function estimateScriptAnalysisCost(inputText: string, modelId: string = 'gpt-5.6-sol'): TextCostEstimate {
+  const inputTokens = estimateTokens(inputText);
+  // Script analysis output ratio: ~144% of input (verified with actual Kie usage)
+  const outTokens = Math.ceil(inputTokens * 1.44);
+  return estimateTextCost(modelId, inputText, outTokens, 1.44);
+}
+
+/**
+ * Format text cost as a display string: "~48 (约800 tokens)"
  */
 export function formatTextCost(estimate: TextCostEstimate): string {
-  return `~${estimate.direxCredits}cr (${estimate.inputTokens}+${estimate.estimatedOutputTokens} tokens)`;
+  return `~${estimate.direxCredits} (${estimate.inputTokens}+${estimate.estimatedOutputTokens} tokens)`;
+}
+
+// ── AUDIO / SUNO PRICING ────────────────────────────────────
+// Suno via Kie.ai: 12 Kie credits per request (any duration up to 4min)
+// Markup: 1.6× (same as video/text — audio is non-image generation)
+
+const AUDIO_MODELS: Record<string, { kieCredits: number }> = {
+  'Suno v4': { kieCredits: 12 },
+};
+
+/** Get DireX credit cost for audio/music generation (Suno only). Returns 0 for non-Kie models. */
+export function getAudioDirexCost(modelName: string): number {
+  const entry = AUDIO_MODELS[modelName];
+  if (!entry) return 0;
+  return Math.ceil(entry.kieCredits * 1.6);
+}
+
+export function getAudioUsdCost(modelName: string): number {
+  const entry = AUDIO_MODELS[modelName];
+  if (!entry) return 0;
+  return +(entry.kieCredits * 0.005).toFixed(3);
+}
+
+// ── TRIPO 3D PRICING ────────────────────────────────────────
+// Tripo is direct-connected (NOT through Kie). Tripo API credits are $0.01 each.
+// Conversion to DireX: TripoCr × ($0.01 / $0.005) × 1.6 = TripoCr × 3.2
+// Base costs (Tripo credits): P series ~10, H series ~20
+// Texture: +5-10 cr; PBR: included with texture
+
+const TRIPO_BASE: Record<string, number> = {
+  'P': 10,
+  'H': 20,
+};
+
+const TRIPO_TEXTURE_COST: Record<string, number> = {
+  'standard': 5,
+  'detailed': 10,   // was 40 total in research, so +20 base = ~40
+  'extreme': 30,    // was ~80 total for detailed+geometry
+};
+
+/** Convert raw Tripo API credits to DireX credits. */
+export function tripoCreditsToDirex(tripoCredits: number): number {
+  return Math.ceil(tripoCredits * 2 * 1.6);
+}
+
+/** Estimate DireX credit cost for Tripo3D generation based on config. */
+export function getTripoDirexCost(series: 'P' | 'H', texture: boolean, texQuality: string): number {
+  let tripoCredits = TRIPO_BASE[series] || 15;
+  if (texture) {
+    tripoCredits += TRIPO_TEXTURE_COST[texQuality] || TRIPO_TEXTURE_COST['standard'];
+  }
+  return tripoCreditsToDirex(tripoCredits);
 }

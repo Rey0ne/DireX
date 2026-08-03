@@ -10,7 +10,8 @@ import { useMention } from '../shared/useMention';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { getSharedApiKey, qDecide, type QDecideResponse, analyzeText } from '../../api/gateway';
 import { BACKEND_URL } from '../../api/config';
-import { estimateTextCost, formatTextCost } from '../../store/pricing';
+import { estimateTextCost, formatTextCost, estimateScriptAnalysisCost } from '../../store/pricing';
+import { useAuthStore } from '../../store/useAuthStore';
 
 
 interface ShotNodeData {
@@ -89,12 +90,12 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
   // ── Real-time text cost estimate ──
   // Pipeline: 2 calls — ① DeepSeek template advisor (negligible) + ② GPT-5.6-Sol unified analysis.
-  // Output ratio: ~100% (model generates 6 sections: characters/scenes/storyboard/props/music/spaces).
+  // Output ratio: ~144% (verified: 13602-char script → ~33K out tokens for 21 shots + 10 chars + scenes + music).
   const textCost = useMemo(() => {
     if (!prompt.trim()) return null;
     // GPT-5.6-Sol: input=280cr/M, output=1680cr/M on Kie.
-    // Output ratio 100% (unified pipeline generates as much content as it receives).
-    return estimateTextCost('gpt-5.6-sol', prompt, undefined, 1.0);
+    // Markup: 2.0× (100% — aligned with TEXT_MARKUP)
+    return estimateTextCost('gpt-5.6-sol', prompt, undefined, 1.44);
   }, [prompt]);
   const getOverview = () => g.scriptOverview || null;
   const getScenes = () => g.scriptScenes || null;
@@ -312,6 +313,27 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
 
   const handleScriptAnalysis = async () => {
     if (!prompt.trim()) return;
+
+    // ── Credit check ──
+    const auth = useAuthStore.getState();
+    const balance = auth.user?.credits ?? 0;
+    if (balance < 6) {
+      (window as any).__showCreditPanel?.();
+      return;
+    }
+
+    // ── Estimate cost upfront (GPT-5.6 Sol, 1.44× output ratio) ──
+    const estimate = estimateScriptAnalysisCost(prompt);
+    const upfront = estimate.direxCredits;
+    let deducted = 0;
+    if (upfront > 0) {
+      const ok = auth.deductLocalCredits(upfront);
+      if (auth.isLoggedIn()) {
+        auth.spendCredits(upfront, 'spend_text', 'Script analysis (upfront)');
+      }
+      deducted = ok ? upfront : 0;
+    }
+
     genRunningRef.current = true; setGenRunning(true);
     const apiBase = BACKEND_URL;
     try {
@@ -324,7 +346,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const submitJson = await submitResp.json();
       console.log('[analysis] Submit response:', submitResp.status, submitJson);
       const { taskId } = submitJson;
-      if (!taskId) throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
+      if (!taskId) {
+        // Refund if submission failed
+        if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — no taskId');
+        throw new Error('No taskId returned — server responded: ' + JSON.stringify(submitJson).slice(0, 120));
+      }
 
       // ── Persist taskId so polling survives page refresh ──
       patch('scriptTaskId', taskId);
@@ -342,9 +368,11 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           if (json.status === 'done' || json.status === 'completed') {
             if (json.success) {
               applySectionResult(json, setPhase);
+              // Settle: keep upfront (backend cost may differ, but script tasks don't return cost yet)
             } else {
               console.error('[analysis] Task error:', json.error);
               setAnalysisError(json.error || '分析失败，请重试');
+              if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — task error');
             }
             patch('scriptTaskId', null);
             return;
@@ -352,12 +380,14 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
           if (json.status === 'failed') {
             console.error('[analysis] Task failed:', json.error);
             setAnalysisError(json.error || '分析失败，请重试');
+            if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — failed');
             patch('scriptTaskId', null);
             return;
           }
           if (json.status === 'lost') {
             console.warn('[analysis] Task lost — server may have restarted');
             setAnalysisError('任务丢失（服务器可能重启了），请重试');
+            if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — lost');
             patch('scriptTaskId', null);
             return;
           }
@@ -378,8 +408,13 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       }
       console.error('[analysis] Timeout after 50 polls (~25 min) — no server data');
       setAnalysisError('分析超时（超过25分钟），请重试');
+      if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — timeout');
       patch('scriptTaskId', null);
-    } catch (err) { console.error('[analysis] Error:', err); setAnalysisError('提交失败：' + String(err).slice(0, 80)); }
+    } catch (err) {
+      console.error('[analysis] Error:', err);
+      setAnalysisError('提交失败：' + String(err).slice(0, 80));
+      if (deducted > 0) await auth.refundCredits(deducted, '失败退款: Script analysis — network error');
+    }
     finally { genRunningRef.current = false; setGenRunning(false); }
   };
 
@@ -810,7 +845,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+d,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,d],i)=>{const nid='sc_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+d,model:'GPT Image 2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sc_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -820,7 +855,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+de,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,de],i)=>{const nid='sp_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'场景：'+n+'。'+de,model:'GPT Image 2',aspect:'16:9',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_sp_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -830,7 +865,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     const next=new Map(canvasStore.nodes);const nextEdges=new Map(canvasStore.edges);
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(e.length,5,bx,by,380,200,40,80);
-    e.forEach(([n,de],i)=>{const nid='pr_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'纯白背景棚拍。道具设计：'+n+'。'+de.slice(0,500)+'。产品级道具设定图。',model:'GPT Image2',aspect:'1:1',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    e.forEach(([n,de],i)=>{const nid='pr_'+ts+'_'+i;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[i].x,y:grid[i].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:'纯白背景棚拍。道具设计：'+n+'。'+de.slice(0,500)+'。产品级道具设定图。',model:'GPT Image 2',aspect:'1:1',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_pr_'+i;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -1000,7 +1035,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
     }
     const {startX:bx,startY:by}=computeStartPos(next,nextEdges);
     const ts=Date.now();const grid=getGrid(newShots.length,5,bx,by,380,200,40,80);
-    newShots.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;const prompt = formatShotPrompt(sh, charProfiles, sceneDescs) || (sh.genPrompt || sh.visualPrompt || sh.contentCN || '');next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:grid[si].x,y:grid[si].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotFunction:sh.shotFunction||'',shotType:sh.shotType,shotSide:sh.shotSide||'',angle:sh.angle,lens:sh.lens,composition:sh.composition,depthLayers:sh.depthLayers||'',characterPosition:sh.characterPosition||'',characterFacing:sh.characterFacing||'',characterAction:sh.characterAction||'',characterExpression:sh.characterExpression||'',characterProps:sh.characterProps||'',foreground:sh.foreground||'',midground:sh.midground||'',background:sh.background||'',lightSources:sh.lightSources||'',keyLight:sh.keyLight||'',fillLight:sh.fillLight||'',rimLight:sh.rimLight||'',specialLight:sh.specialLight||'',lighting:sh.keyLight||sh.lightSources||'',color:sh.color,material:sh.material,atmosphere:sh.atmosphere}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    newShots.forEach((sh:any,si:number)=>{const nid='s_'+ts+'_'+si;const prompt = formatShotPrompt(sh, charProfiles, sceneDescs) || (sh.genPrompt || sh.visualPrompt || sh.contentCN || '');next.set(nid,{id:nid,type:'image.generate',title:(sh.shotType||'MS')+' #'+(sh.shotNumber||si+1),pos:{x:grid[si].x,y:grid[si].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt,model:'GPT Image 2',aspect:'16:9',resolution:'2K',quality:'high'},shot:{shotFunction:sh.shotFunction||'',shotType:sh.shotType,shotSide:sh.shotSide||'',angle:sh.angle,lens:sh.lens,composition:sh.composition,depthLayers:sh.depthLayers||'',characterPosition:sh.characterPosition||'',characterFacing:sh.characterFacing||'',characterAction:sh.characterAction||'',characterExpression:sh.characterExpression||'',characterProps:sh.characterProps||'',foreground:sh.foreground||'',midground:sh.midground||'',background:sh.background||'',lightSources:sh.lightSources||'',keyLight:sh.keyLight||'',fillLight:sh.fillLight||'',rimLight:sh.rimLight||'',specialLight:sh.specialLight||'',lighting:sh.keyLight||sh.lightSources||'',color:sh.color,material:sh.material,atmosphere:sh.atmosphere}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
     const eid='e_'+ts+'_'+si;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});});
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
   };
@@ -1019,7 +1054,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
       const sheetPrompt = extractCharSheetPrompt(de);
       const genPrompt = sheetPrompt
         || '白色无缝影棚背景。专业服装定妆照多角度拍摄。角色设定图：'+n+'。'+de;
-      const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[ci].x,y:grid[ci].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:genPrompt,model:'GPT Image2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      const nid='c_'+ts+'_'+ci;next.set(nid,{id:nid,type:'image.generate',title:n,pos:{x:grid[ci].x,y:grid[ci].y},size:{w:380,h:200},ports:[],status:'idle',meta:{gen:{prompt:genPrompt,model:'GPT Image 2',aspect:'3:2',resolution:'2K',quality:'high'}},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
       const eid='e_'+ts+'_c_'+ci;nextEdges.set(eid,{id:eid,from:{nodeId:id,portId:'shot-out'},to:{nodeId:nid,portId:'refs-in'},dataType:'any',style:{animated:false},meta:{semantic:'dataflow'}});
     });
     useCanvasStore.setState({nodes:next,edges:nextEdges});canvasStore.triggerSync();
@@ -1335,7 +1370,7 @@ export function ShotNode({ id, data, selected }: { id: string; data: ShotNodeDat
               {/* Send — glass pill with cost estimate */}
               <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',height:'20px',borderRadius:'10px',background:'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',border:'1px solid var(--tap-divider)',boxShadow:'0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',flexShrink:0,padding:'0 2px 0 8px' }}>
                 {textCost && (
-                  <span style={{ fontSize:'8px',color:'var(--tap-text-4)',whiteSpace:'nowrap',lineHeight:1 }}
+                  <span style={{ fontSize:'8px',color:'#000',whiteSpace:'nowrap',lineHeight:1 }}
                     title={`2 calls: DeepSeek template + GPT-5.6-Sol unified\n${textCost.inputTokens} in + ~${textCost.estimatedOutputTokens} out tokens`}
                   >{textCost.direxCredits}</span>
                 )}

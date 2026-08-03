@@ -5,8 +5,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useStore } from '@xyflow/react';
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { BACKEND_URL } from '../../api/config';
 import { TripoModelPreview } from '../TripoModelPreview';
+import { getTripoDirexCost, tripoCreditsToDirex } from '../../store/pricing';
 
 // ─── Types ───────────────────────────────────────
 interface TripoNodeData {
@@ -425,6 +427,12 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
   // ─── Generate ────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (genRunning) return;
+    // Credit check
+    const credits = useAuthStore.getState().user?.credits ?? 0;
+    if (credits < 6) {
+      (window as any).__showCreditPanel?.();
+      return;
+    }
     setStatus('generating'); setProgress(0); setError(''); setSavedPath(''); setSavedName('');
 
     try {
@@ -464,6 +472,18 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
             setRenderedUrl(task.output?.rendered_image_url || '');
             setCredits(task.credits_consumed || 0);
             setStatus('done'); setProgress(100);
+            // Deduct credits from user balance
+            const tripoCr = task.credits_consumed || 0;
+            if (tripoCr > 0) {
+              const direxCost = tripoCreditsToDirex(tripoCr);
+              const auth = useAuthStore.getState();
+              if (auth.isLoggedIn()) {
+                auth.spendCredits(direxCost, 'gen_tripo3d', `Tripo3D ${modelVer}`);
+              } else {
+                auth.deductLocalCredits(direxCost);
+              }
+              console.log(`[credits] Tripo3D: ${tripoCr} Tripo cr → ${direxCost} DireX deducted`);
+            }
           } else if (task.success === false || ['failed', 'cancelled', 'banned', 'expired'].includes(task.status)) {
             setStatus('idle');
             setError(task.error || `任务${task.status || '失败'}`);
@@ -870,7 +890,7 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                         ⚠ H系列面数较高(150万)，3D世界暂不支持直接导入
                       </div>
                     )}
-                    {credits > 0 && <div style={{ fontSize: 9, color: 'var(--tap-text-5)', textAlign: 'right' }}>消耗 {credits} 积分</div>}
+                    {credits > 0 && <div style={{ fontSize: 9, color: '#000', textAlign: 'right' }}>{tripoCreditsToDirex(credits)}</div>}
                   </div>
                 )}
 
@@ -976,12 +996,15 @@ export function Tripo3DNode({ id, data, selected }: { id: string; data: TripoNod
                   {/* Send — glass pill + circle arrow, matching ImageGenerateNode */}
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                    width: '50px', height: '20px', borderRadius: '10px',
+                    height: '20px', borderRadius: '10px',
                     background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)',
                     border: '1px solid var(--tap-divider)',
                     boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)',
-                    flexShrink: 0, paddingRight: '2px',
+                    flexShrink: 0, paddingLeft: '8px', paddingRight: '4px', gap: '6px',
                   }}>
+                    <span style={{fontSize:'9px',color:'#000',fontWeight:500,whiteSpace:'nowrap',fontFamily:'Inter, sans-serif'}}>
+                      {getTripoDirexCost(series, texture, texQuality)}
+                    </span>
                     <button onClick={handleGenerate} disabled={genRunning}
                       style={{
                         width: '16px', height: '16px', borderRadius: '50%',

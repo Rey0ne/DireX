@@ -127,6 +127,7 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
   const [proTier, setProTier] = useState(2); // 默认高级
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [customDollars, setCustomDollars] = useState(50);
+  const [selectedPack, setSelectedPack] = useState<typeof TOPUP_PACKS[number] | null>(null);
   const [msg, setMsg] = useState('');
 
   const currentPlanId = user.plan;
@@ -143,11 +144,12 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
   };
 
   const handleTopup = async (pack: typeof TOPUP_PACKS[number]) => {
-    setMsg('');
-    const json = await callApi('/api/auth/credits/topup', { amount: pack.credits, description: `积分充值 ${pack.credits}分` });
-    if (json.success) {
-      useAuthStore.setState({ user: { ...user, credits: json.credits } });
-      setMsg(`充值成功！`);
+    // Toggle: deselect if already selected, otherwise select and update preview
+    if (selectedPack?.credits === pack.credits) {
+      setSelectedPack(null);
+    } else {
+      setSelectedPack(pack);
+      setCustomDollars(pack.price); // sync slider position
     }
   };
 
@@ -312,9 +314,26 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
                       style={{
                         padding: '12px 0', borderRadius: 10, border: 'none',
                         cursor: active ? 'default' : 'pointer',
-                        background: active ? 'rgba(255,255,255,0.06)' : '#5EEAD4',
-                        color: active ? 'rgba(255,255,255,0.3)' : '#fff',
+                        background: active ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.08)',
+                        color: active ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.5)',
                         fontSize: 14, fontWeight: 600, width: '100%',
+                        transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        boxShadow: 'none',
+                        transform: 'translateY(0)',
+                      }}
+                      onMouseEnter={e => {
+                        if (active) return;
+                        e.currentTarget.style.background = '#FFF65D';
+                        e.currentTarget.style.color = '#1a1a2e';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,246,93,0.35), 0 2px 6px rgba(0,0,0,0.2)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={e => {
+                        if (active) return;
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >{active ? '当前方案' : billing === 'monthly' ? '连续包月' : '订阅'}</button>
 
@@ -359,8 +378,16 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
         {tab === 'topup' && (() => {
           const discount = getPlanDiscount(user.plan);
           const rate = discount ? discount.rate : 1;
-          const customCredits = customDollars * 100;
-          const customPrice = (customDollars * rate).toFixed(2);
+          // Use selected pack values when a pack is chosen, otherwise use slider
+          const isPackSelected = selectedPack !== null;
+          const displayCredits = isPackSelected ? selectedPack.credits : customDollars * 100;
+          const displayPrice = isPackSelected
+            ? (discount ? (selectedPack.price * rate).toFixed(2) : selectedPack.price.toFixed(2))
+            : (customDollars * rate).toFixed(2);
+          const topupAmount = isPackSelected ? selectedPack.credits : customDollars * 100;
+          const topupDesc = isPackSelected
+            ? `积分充值 ${selectedPack.credits}分`
+            : `自定义充值 ${Math.round(customDollars * 100)}分`;
 
           return (
             <>
@@ -381,15 +408,15 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 56 }}>
                     <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>选择充值积分数量</div>
                     <input type="range" min={5} max={5000} value={customDollars}
-                      onChange={e => setCustomDollars(Number(e.target.value))}
+                      onChange={e => { setCustomDollars(Number(e.target.value)); setSelectedPack(null); }}
                       style={{ width: '100%', accentColor: '#5EEAD4', cursor: 'pointer' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                       <span style={{ color: 'rgba(255,255,255,0.35)' }}>500 积分</span>
                       <span style={{ color: 'rgba(255,255,255,0.35)' }}>500,000 积分</span>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 20 }}>${customDollars.toLocaleString()}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginLeft: 4 }}>/ {customCredits.toLocaleString()} 积分</span>
+                      <span style={{ color: '#fff', fontWeight: 700, fontSize: 20 }}>${isPackSelected ? selectedPack.price.toFixed(2) : customDollars.toLocaleString()}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginLeft: 4 }}>/ {displayCredits.toLocaleString()} 积分</span>
                     </div>
                   </div>
 
@@ -398,15 +425,16 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
                     {TOPUP_PACKS.map(p => {
                       const d = getPlanDiscount(user.plan);
                       const finalPrice = d ? (p.price * d.rate).toFixed(2) : p.price.toFixed(2);
+                      const isSelected = selectedPack?.credits === p.credits;
                       return (
                         <div key={p.credits} onClick={() => handleTopup(p)} style={{
                           padding: '8px 8px', borderRadius: 8, cursor: 'pointer',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          background: 'rgba(255,255,255,0.02)', textAlign: 'center',
-                          transition: 'all 0.15s',
+                          border: isSelected ? '1px solid rgba(94,234,212,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                          background: isSelected ? 'rgba(94,234,212,0.08)' : 'rgba(255,255,255,0.02)',
+                          textAlign: 'center', transition: 'all 0.15s',
                         }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(94,234,212,0.3)'; e.currentTarget.style.background = 'rgba(94,234,212,0.05)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                          onMouseEnter={e => { if (!isSelected) { e.currentTarget.style.borderColor = 'rgba(94,234,212,0.3)'; e.currentTarget.style.background = 'rgba(94,234,212,0.05)'; } }}
+                          onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; } }}
                         >
                           <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>{p.credits.toLocaleString()}</div>
                           <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginTop: 1 }}>积分</div>
@@ -428,7 +456,7 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>获得积分</span>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 22 }}>{customCredits.toLocaleString()} <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400, fontSize: 12 }}>积分</span></span>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 22 }}>{displayCredits.toLocaleString()} <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400, fontSize: 12 }}>积分</span></span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>当前汇率</span>
@@ -437,14 +465,15 @@ export function CreditPanel({ onClose, user }: CreditPanelProps) {
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>需支付金额</span>
-                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 20 }}>${customPrice}</span>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: 20 }}>${displayPrice}</span>
                   </div>
                   <button
                     onClick={() => {
-                      callApi('/api/auth/credits/topup', { amount: customCredits, description: `自定义充值 ${customCredits}分` }).then(json => {
+                      callApi('/api/auth/credits/topup', { amount: topupAmount, description: topupDesc }).then(json => {
                         if (json.success) {
                           useAuthStore.setState({ user: { ...user, credits: json.credits } });
                           setMsg('充值成功！');
+                          setSelectedPack(null);
                         }
                       });
                     }}

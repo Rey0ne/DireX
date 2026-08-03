@@ -7,6 +7,7 @@ export type { GenerateRequest, GenerateResult };
 export { mapModelNameToProviderId } from '../../shared/api-types.js';
 import { BACKEND_URL } from './config';
 import { useAuthStore } from '../store/useAuthStore';
+import { getImageCost, getAudioDirexCost, getVideoCreditCost, estimateTextCost, estimateScriptAnalysisCost } from '../store/pricing';
 
 // ─── Model provider metadata (for UI display only) ─────
 export interface ModelProvider {
@@ -43,50 +44,49 @@ export const MODEL_PROVIDERS: ModelProvider[] = [
 
 // ─── Generate (via backend proxy) ──────────────────────
 export async function generateImage(req: GenerateRequest): Promise<GenerateResult> {
-  // Use relative URL in dev (Vite proxy), absolute in production
+  if (isCreditBlocked()) return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: '积分不足，请充值' };
+  const upfront = deductUpfront(req);
   const url = BACKEND_URL ? `${BACKEND_URL}/api/generate` : '/api/generate';
+  const desc = `${req.providerId} ${req.resolution || ''}`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify(req),
     });
 
     if (!response.ok) {
       const text = await response.text();
+      await settleCredits(upfront, 0, `${desc} — HTTP ${response.status}`);
       return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status} ${text}` };
     }
 
     const result = await response.json() as GenerateResult;
-    // Auto-deduct credits on success
-    if (result.success && result.cost > 0) {
-      useAuthStore.getState().spendCredits(result.cost, 'spend_image', `${req.providerId} ${req.resolution || ''}`);
-    }
+    await settleCredits(upfront, result.cost || 0, desc);
     return result;
   } catch (err) {
+    await settleCredits(upfront, 0, `${desc} — 网络错误`);
     return { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) };
   }
 }
 
 // ─── Generate with Agent (DeepSeek compile → Image API) ──
 export async function generateWithAgent(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
+  if (isCreditBlocked()) return creditBlockedResult();
+  const upfront = deductUpfront(req);
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/generate` : '/api/agent/generate';
+  const desc = `${req.providerId} ${(req as any).resolution || ''}`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify(req),
     });
 
     if (!response.ok) {
+      await settleCredits(upfront, 0, `${desc} — HTTP ${response.status}`);
       return {
         compiled: { en: '', cn: '', negative: '', debug: [] },
         result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
@@ -94,11 +94,10 @@ export async function generateWithAgent(req: AgentGenerateRequest): Promise<Agen
     }
 
     const agentResult = await response.json() as AgentGenerateResult;
-    if (agentResult.result?.success && agentResult.result.cost > 0) {
-      useAuthStore.getState().spendCredits(agentResult.result.cost, 'spend_image', `${req.providerId} ${req.resolution || ''} (agent)`);
-    }
+    await settleCredits(upfront, agentResult.result?.cost || 0, desc);
     return agentResult;
   } catch (err) {
+    await settleCredits(upfront, 0, `${desc} — 网络错误`);
     return {
       compiled: { en: '', cn: '', negative: '', debug: [] },
       result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) },
@@ -111,7 +110,7 @@ export async function pollVideoTask(taskId: string): Promise<{ status: string; a
   const url = BACKEND_URL ? `${BACKEND_URL}/api/task/${taskId}/poll` : `/api/task/${taskId}/poll`;
   try {
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${getSharedApiKey()}` },
+      headers: authHeaders(),
     });
     if (!response.ok) return { status: 'error', error: `HTTP ${response.status}` };
     return await response.json();
@@ -136,27 +135,31 @@ export function hasExtractionIntent(prompt: string): boolean {
 }
 
 export async function visualExtract(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
+  if (isCreditBlocked()) return creditBlockedResult();
+  const upfront = deductUpfront(req);
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/visual-extract` : '/api/agent/visual-extract';
+  const desc = `${req.providerId} ${(req as any).resolution || ''} (extract)`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify(req),
     });
 
     if (!response.ok) {
+      await settleCredits(upfront, 0, `${desc} — HTTP ${response.status}`);
       return {
         compiled: { en: '', cn: '', negative: '', debug: [] },
         result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
       };
     }
 
-    return await response.json() as AgentGenerateResult;
+    const agentResult = await response.json() as AgentGenerateResult;
+    await settleCredits(upfront, agentResult.result?.cost || 0, desc);
+    return agentResult;
   } catch (err) {
+    await settleCredits(upfront, 0, `${desc} — 网络错误`);
     return {
       compiled: { en: '', cn: '', negative: '', debug: [] },
       result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) },
@@ -166,27 +169,31 @@ export async function visualExtract(req: AgentGenerateRequest): Promise<AgentGen
 
 // ─── Text analysis (single Agent, fast) ──
 export async function analyzeText(req: AgentGenerateRequest): Promise<AgentGenerateResult> {
+  if (isCreditBlocked()) return creditBlockedResult();
+  const upfront = deductUpfront(req);
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/text` : '/api/agent/text';
+  const desc = `GPT-5.6 Sol (text)`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify(req),
     });
 
     if (!response.ok) {
+      await settleCredits(upfront, 0, `${desc} — HTTP ${response.status}`);
       return {
         compiled: { en: '', cn: '', negative: '', debug: [] },
         result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: `Server: ${response.status}` },
       };
     }
 
-    return await response.json() as AgentGenerateResult;
+    const agentResult = await response.json() as AgentGenerateResult;
+    await settleCredits(upfront, agentResult.result?.cost || 0, desc);
+    return agentResult;
   } catch (err) {
+    await settleCredits(upfront, 0, `${desc} — 网络错误`);
     return {
       compiled: { en: '', cn: '', negative: '', debug: [] },
       result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: String(err) },
@@ -221,29 +228,61 @@ export interface FullPipelineApiResponse {
     contentCN: string;
   }>;
   totalDurationMs?: number;
+  /** DireX credit cost (from backend GPT-5.6 Sol consumption) */
+  cost?: number;
   error?: string;
 }
 
 export async function analyzeFull(scriptText: string, visualStyle?: string): Promise<FullPipelineApiResponse> {
+  if (isCreditBlocked()) return { success: false, error: '积分不足，请充值' };
+
+  // Estimate script analysis cost upfront (GPT-5.6 Sol, 1.44× output ratio)
+  const estimate = estimateScriptAnalysisCost(scriptText);
+  const upfront = estimate.direxCredits;
+  let deducted = 0;
+  if (upfront > 0) {
+    const ok = useAuthStore.getState().deductLocalCredits(upfront);
+    const auth = useAuthStore.getState();
+    if (auth.isLoggedIn()) {
+      auth.spendCredits(upfront, 'spend_text', 'Script analysis (upfront)');
+    }
+    deducted = ok ? upfront : 0;
+  }
+
   const url = BACKEND_URL ? `${BACKEND_URL}/api/agent/full` : '/api/agent/full';
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({ rawText: scriptText, visualStyle }),
     });
 
     if (!response.ok) {
       const text = await response.text();
+      if (deducted > 0) {
+        await useAuthStore.getState().refundCredits(deducted, `失败退款: Script analysis — HTTP ${response.status}`);
+      }
       return { success: false, error: `Server: ${response.status} ${text}` };
     }
 
-    return await response.json() as FullPipelineApiResponse;
+    const result = await response.json() as FullPipelineApiResponse;
+
+    // Settle: if backend returned cost, use it; otherwise keep upfront estimate
+    if (deducted > 0 && result.cost !== undefined) {
+      await settleCredits(deducted, result.cost, 'Script analysis');
+    } else if (!result.success && deducted > 0) {
+      await useAuthStore.getState().refundCredits(deducted, '失败退款: Script analysis');
+    } else if (!result.success && deducted === 0 && result.cost && result.cost > 0) {
+      // No upfront was deducted but backend charged → deduct now
+      useAuthStore.getState().spendCredits(result.cost, 'spend_text', 'Script analysis');
+    }
+
+    return result;
   } catch (err) {
+    if (deducted > 0) {
+      await useAuthStore.getState().refundCredits(deducted, '失败退款: Script analysis — 网络错误');
+    }
     return { success: false, error: String(err) };
   }
 }
@@ -293,10 +332,7 @@ export async function qDecide(params: {
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getSharedApiKey()}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         action: params.action,
         scriptText: params.scriptText,
@@ -350,4 +386,128 @@ export async function generateWithQGatekeeper(params: {
 // ─── Shared API key (frontend ↔ backend auth, NOT provider keys) ──
 export function getSharedApiKey(): string {
   return import.meta.env.VITE_SHARED_API_KEY || 'tapnow-dev-key';
+}
+
+/** Build headers for backend requests: shared API key + optional user JWT for credit deduction. */
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getSharedApiKey()}`,
+  };
+  const userToken = useAuthStore.getState().token;
+  if (userToken) {
+    headers['X-User-Token'] = `Bearer ${userToken}`;
+  }
+  return headers;
+}
+
+/** Minimum credits required to generate. Returns true if blocked (panel shown). */
+const MIN_GEN_CREDITS = 6;
+function isCreditBlocked(): boolean {
+  const credits = useAuthStore.getState().user?.credits ?? 0;
+  if (credits < MIN_GEN_CREDITS) {
+    (window as any).__showCreditPanel?.();
+    return true;
+  }
+  return false;
+}
+
+/** Stub result returned when credit check fails. */
+function creditBlockedResult(): AgentGenerateResult {
+  return {
+    compiled: { en: '', cn: '', negative: '', debug: [] },
+    result: { success: false, assetUrls: [], cost: 0, durationMs: 0, seed: 0, error: '积分不足，请充值' },
+  };
+}
+
+/** Map providerId → display model name for frontend pricing estimate. */
+function providerToModelName(providerId: string): string {
+  const m: Record<string, string> = {
+    'nano-banana-pro': 'Nano Banana Pro',
+    'google/nano-banana': 'Nano Banana 2',
+    'gpt-image-2-text-to-image': 'GPT Image 2',
+    'gpt-image-2-image-to-image': 'GPT Image 2',
+    'seedream/5-pro-text-to-image': 'Seedream 5 Pro',
+    'grok-imagine/text-to-image': 'Grok Imagine',
+    'flux-2/pro-text-to-image': 'Flux 2 Pro',
+    'flux-2/flex-text-to-image': 'Flux 2 Flex',
+    'wan/2-7-image-pro': 'Wan 2.7 Image Pro',
+    'google/imagen4-fast': 'Imagen 4',
+    'kling-video': 'Kling 3.0',
+    'seedance-2': 'Seedance 2.0',
+    'suno-v4': 'Suno v4',
+  };
+  return m[providerId] || '';
+}
+
+/** Estimate DireX credit cost from request params (deducted upfront, adjusted after API). */
+function estimateCost(req: AgentGenerateRequest | GenerateRequest): number {
+  const pid = (req as any).providerId || '';
+  const model = providerToModelName(pid);
+  const resolution = ((req as any).resolution as string) || '2K';
+  const duration = Number((req as any).duration) || 5;
+  const genMode = (req as any).genMode as string | undefined;
+
+  // Text / LLM — use GPT-5.6 Sol token pricing
+  // CJK: 1.7 tokens/char, ASCII: 0.25 tokens/char. Output ratio: 50% default.
+  if (pid === 'text') {
+    const inputText = ((req as any).rawText as string) || ((req as any).prompt as string) || '';
+    if (!inputText) return 0;
+    return estimateTextCost('gpt-5.6-sol', inputText).direxCredits;
+  }
+
+  // Video
+  if (pid === 'kling-video' || pid === 'seedance-2') {
+    return getVideoCreditCost(model, duration, genMode, resolution, (req as any).refVideoDuration);
+  }
+  // Audio / Suno
+  if (pid === 'suno-v4' || pid === 'elevenlabs') {
+    return getAudioDirexCost('Suno v4');
+  }
+  // Image (1 image per call)
+  if (model) {
+    return getImageCost(model, resolution, 1);
+  }
+  // Text / unknown: don't deduct upfront
+  return 0;
+}
+
+/** Deduct credits upfront, returns the amount deducted (0 if skipped). */
+function deductUpfront(req: AgentGenerateRequest | GenerateRequest): number {
+  const cost = estimateCost(req);
+  if (cost <= 0) return 0;
+  const ok = useAuthStore.getState().deductLocalCredits(cost);
+  // Also try server-side for logged-in users
+  const auth = useAuthStore.getState();
+  if (auth.isLoggedIn()) {
+    auth.spendCredits(cost, 'spend_image', `${(req as any).providerId} (upfront)`);
+  }
+  return ok ? cost : 0;
+}
+
+/** After API response: adjust deduction — keep if success with cost, refund otherwise. */
+async function settleCredits(upfrontCost: number, resultCost: number, desc: string): Promise<void> {
+  if (upfrontCost <= 0) {
+    // No upfront deduction — if API returned a cost, deduct now (success case)
+    if (resultCost > 0) {
+      useAuthStore.getState().spendCredits(resultCost, 'spend_image', desc);
+    }
+    return;
+  }
+  // Upfront was deducted. If API failed or cost is 0 → refund.
+  if (resultCost <= 0) {
+    await useAuthStore.getState().refundCredits(upfrontCost, `失败退款: ${desc}`);
+    return;
+  }
+  // Both upfront and API have costs. Adjust difference.
+  if (resultCost > upfrontCost) {
+    // API charged more — deduct the difference
+    const diff = resultCost - upfrontCost;
+    useAuthStore.getState().spendCredits(diff, 'spend_image', `${desc} (补扣差额)`);
+  } else if (resultCost < upfrontCost) {
+    // API charged less — refund the difference
+    const diff = upfrontCost - resultCost;
+    await useAuthStore.getState().refundCredits(diff, `多退少补: ${desc}`);
+  }
+  // Equal: no adjustment needed
 }

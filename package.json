@@ -17,9 +17,11 @@
   },
   "dependencies": {
     "@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5": "^1.4.0",
+    "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
+    "@sparkjsdev/spark": "^2.1.0",
     "@xyflow/react": "^12.10.2",
     "dexie": "^4.4.2",
     "docx": "^9.7.1",

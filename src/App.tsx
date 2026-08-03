@@ -33,7 +33,7 @@ import { LoginPage } from './components/LoginPage';
 import { QAssistant } from './components/QAssistant';
 import { QChatPanel } from './components/QChatPanel';
 import { CreditPanel } from './components/CreditPanel';
-import { useAuthStore } from './store/useAuthStore';
+import { useAuthStore, DEV_GUEST } from './store/useAuthStore';
 import { InpaintTool, RelightTool, MultiAngleTool, ExpandTool, ExtractTool } from './components/ImageTools';
 import { FullscreenImage } from './components/FullscreenImage';
 import { ZoomSlider } from './components/ZoomSlider';
@@ -124,20 +124,54 @@ function getNodeProviderId(store: ReturnType<typeof useCanvasStore.getState>, no
 function UserBadge({ onLogout, user }: { onLogout: () => void; user: UserProfile | null }) {
   const credits = user?.credits ?? 0;
   const [showPanel, setShowPanel] = useState(false);
+
+  // ── Balance color: teal (≥50) → amber (10-49) → red (<10, pulsing) ──
+  const balanceColor = credits >= 50 ? '#5EEAD4' : credits >= 10 ? '#FBBF24' : '#EF4444';
+  const balancePulse = credits < 10;
+
+  // ── Auto-warn when balance drops below 6 ──
+  const prevCredits = useRef(credits);
+  useEffect(() => {
+    if (prevCredits.current >= 6 && credits < 6) {
+      setShowPanel(true);
+    }
+    prevCredits.current = credits;
+  }, [credits]);
+
   return (
     <>
+      <style>{`
+        @keyframes direx-credit-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.08); }
+        }
+      `}</style>
       <div style={{
         position: 'fixed', top: '18px', right: '18px', zIndex: 500,
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '6px 6px 6px 16px', borderRadius: '20px',
         background: 'rgba(22,26,34,0.85)', backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: `1px solid ${credits < 10 ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.06)'}`,
       }}>
         <span
           onClick={() => setShowPanel(true)}
-          style={{ color: '#5EEAD4', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
-          title="积分中心"
+          style={{
+            color: balanceColor,
+            fontWeight: 700, fontSize: 12, cursor: 'pointer',
+            animation: balancePulse ? 'direx-credit-pulse 1.2s ease-in-out infinite' : 'none',
+          }}
+          title={credits < 6 ? '余额不足，点击充值' : credits < 50 ? '余额偏低，点击充值' : '积分中心'}
         >{credits}</span>
+        {credits < 50 && (
+          <span
+            onClick={() => setShowPanel(true)}
+            style={{
+              color: '#FFF65D', fontWeight: 700, fontSize: 10, cursor: 'pointer',
+              background: 'rgba(255,246,93,0.15)', borderRadius: '10px',
+              padding: '2px 8px',
+            }}
+          >充值</span>
+        )}
         <button onClick={onLogout} title="登出"
           style={{
             width: '26px', height: '26px', borderRadius: '50%',
@@ -647,8 +681,9 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
 
             const numImages = (!isTextNode && !isAudio && !useExtraction) ? ((meta.imgCount as number) || 1) : 1;
 
-            let agentResult;
+            let agentResult: any;
             let allImageUrls: string[] = [];
+            let multiResults: any[] = []; // populated for parallel ×2/×4 generation
 
             if (isTextNode) {
               agentResult = await analyzeText({
@@ -699,9 +734,9 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
                 filmStock: meta.filmStock as string | undefined,
               } as any);
             } else if (numImages > 1) {
-              const results = await Promise.all(Array.from({ length: numImages }, () => generateWithAgent(buildImgReq())));
-              agentResult = results[0];
-              allImageUrls = results.flatMap(r => r.result?.assetUrls || []);
+              multiResults = await Promise.all(Array.from({ length: numImages }, () => generateWithAgent(buildImgReq())));
+              agentResult = multiResults[0];
+              allImageUrls = multiResults.flatMap(r => r.result?.assetUrls || []);
             } else {
               agentResult = await generateWithAgent(buildImgReq());
             }
@@ -709,6 +744,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
             const result = agentResult.result;
             if (result.needsPoll && result.taskId) {
               // Video generation — server submitted, client polls
+              // Credits deducted by gateway (generateWithAgent reads result.cost)
               // compiledPrompt will be updated from poll response when compilation finishes
               const taskId = result.taskId;
               // Persist clientTaskId on node so polling can resume after page refresh / reconnect
@@ -750,6 +786,7 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
               setTimeout(() => { clearInterval(pollInterval); if (useCanvasStore.getState().nodes.get(n.id)?.status === 'running') store.setNodeStatus(n.id, 'failed'); }, 30 * 60 * 1000);
             } else if (result.success) {
               store.setNodeStatus(n.id, 'succeeded');
+              // Credits deducted by gateway (generateWithAgent/visualExtract reads result.cost)
               const compiledEn = agentResult.compiled?.en || '';
               const compiledCn = agentResult.compiled?.cn || '';
               const genPatch: Record<string, unknown> = { compiledPrompt: compiledEn, compiledPromptCn: compiledCn };
@@ -1604,14 +1641,6 @@ function CanvasWorkspace({ onGoHome, onLogout, user }: { onGoHome: () => void; o
 
 // ─── Root: two-layer routing ────────────────────
 
-// Dev guest user — used when skip-login / 免登录 (no real auth data)
-const DEV_GUEST: UserProfile = {
-  userId: 'guest-dev',
-  email: 'dev@localhost',
-  credits: 5000,
-  plan: 'free',
-};
-
 // Direct localStorage read — bypass Zustand for reliability in child components
 function readAuthFromStorage(): UserProfile | null {
   try {
@@ -1627,17 +1656,27 @@ export default function App() {
   // Fallback chain: Zustand → localStorage → dev guest (skip-login mode)
   const authUser = useMemo(() => zustandUser ?? readAuthFromStorage() ?? DEV_GUEST, [zustandUser]);
   const [authReady, setAuthReady] = useState(() => useAuthStore.getState().isLoggedIn() || !!readAuthFromStorage());
+  // Credit panel — also triggered by gateway when balance < 6
+  const [showCreditPanel, setShowCreditPanel] = useState(false);
+  useEffect(() => {
+    (window as any).__showCreditPanel = () => setShowCreditPanel(true);
+    return () => { delete (window as any).__showCreditPanel; };
+  }, []);
   // Note: DEV_GUEST is NOT used for authReady — only real auth data bypasses login page.
   // Skip-login users see LoginPage → click 免登录 → handleEnter sets authReady=true.
   const [entering, setEntering] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
-  // 登录：先播动画再进入
+  // 登录 / 免登录进入：先播动画再进入
   const handleEnter = useCallback(() => {
     setEntering(true);
     // Clear saved project so user always lands on ProjectSelector first
     localStorage.removeItem('tapnow-current-project');
     setCurrentProjectId(null);
+    // Guest user (免登录): persist guest state so credits can be tracked
+    if (!useAuthStore.getState().isLoggedIn()) {
+      useAuthStore.getState().initGuestUser();
+    }
     setTimeout(() => {
       setAuthReady(true);
       setEntering(false);
@@ -1655,8 +1694,10 @@ export default function App() {
   }, []);
 
   // 保持 authReady 与 store 同步（处理其他地方调 logout 的情况）
+  // ⚠️ 免登录用户有 user 但无 token — 不踢回登录页。
   useEffect(() => {
-    if (!useAuthStore.getState().isLoggedIn()) {
+    const auth = useAuthStore.getState();
+    if (!auth.user) {
       setAuthReady(false);
     }
   }, [authUser]);
@@ -1746,6 +1787,7 @@ export default function App() {
       }}>
         <CanvasWorkspace onGoHome={handleGoHome} onLogout={handleLogout} user={authUser} />
       </div>
+      {showCreditPanel && <CreditPanel onClose={() => setShowCreditPanel(false)} user={authUser} />}
     </ReactFlowProvider>
   );
 }

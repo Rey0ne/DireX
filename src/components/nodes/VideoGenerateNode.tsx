@@ -196,7 +196,6 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
   const isSeedance = curModel.startsWith('Seedance');
   // Credit cost preview (1080P tier, per-second × duration)
   const videoCredits = isUpcoming ? 0 : getVideoCreditCost(curModel, parseInt(curDuration) || 5, genMode, curRes, refVideoDur);
-  const [count, setCount] = useState(1);
   const [soundOn, setSoundOn] = useState(gen.keepOriginalSound ?? true);
   const durations = isKling ? KLING_DURATIONS : isSeedance ? SEEDANCE_DURATIONS : GENERIC_VIDEO_DURATIONS;
   const resolutions = isKling ? KLING_RESOLUTIONS : isSeedance ? SEEDANCE_RESOLUTIONS : GENERIC_VIDEO_RESOLUTIONS;
@@ -403,25 +402,11 @@ export function VideoGenerateNode({ id, data, selected }: { id: string; data: Vi
             </div>
 
             <div style={{ flex: 1 }} />
-            {/* Count */}
-            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
-            <div style={{ position: 'relative' }}><DropBtn v={`×${count}`} picker="cnt" />
-              {open === 'cnt' && <PD onClose={() => setOpen(null)} anchorRect={anchorRect}>
-                {[1, 2].map(c => (
-                  <div key={c} onClick={() => { setCount(c); setOpen(null); }}
-                    style={{ height: '28px', padding: '0 10px', borderRadius: 'var(--tap-r-md)', cursor: 'pointer', color: 'var(--tap-text-1)', background: count === c ? 'rgba(0,207,255,0.10)' : 'transparent', display: 'flex', alignItems: 'center', fontSize: '11px', gap: '6px' }}
-                    onMouseEnter={e => { if (count !== c) e.currentTarget.style.background = 'rgba(0,207,255,0.10)'; }}
-                    onMouseLeave={e => { if (count !== c) e.currentTarget.style.background = 'transparent'; }}>
-                    ×{c}
-                  </div>))}
-              </PD>}
-            </div>
-            <span style={{ width: '1px', height: '14px', background: 'rgba(0,0,0,0.10)', flexShrink: 0 }} />
             {/* Send */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '20px', borderRadius: '10px', background: 'linear-gradient(135deg,rgba(0,0,0,0.03) 0%,rgba(0,0,0,0.01) 50%,rgba(0,0,0,0.03) 100%)', border: '1px solid var(--tap-divider)', boxShadow: '0 0 10px rgba(0,0,0,0.02),inset 0 1px 0 rgba(0,0,0,0.03)', flexShrink: 0, paddingLeft: '10px', paddingRight: '4px', gap: '6px' }}>
               {isUpcoming
                 ? <span style={{ fontSize: '9px', color: '#B8860B', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>即将上市</span>
-                : <span style={{ fontSize: '9px', color: '#1B1B1B', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>{videoCredits}cr</span>
+                : <span style={{ fontSize: '9px', color: '#000', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>{videoCredits}</span>
               }
               <button onClick={handleGenerate} disabled={isUpcoming || isBusy}
                 style={{ width: '16px', height: '16px', borderRadius: '50%', background: isUpcoming ? '#E0E0E0' : '#FFF65D', color: isUpcoming ? '#999' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '9px', cursor: isUpcoming ? 'not-allowed' : isBusy ? 'wait' : 'pointer', border: 'none', boxShadow: '0 1.5px 4px rgba(0,0,0,0.2), 0 1px 1.5px rgba(0,0,0,0.12)', opacity: isBusy ? 0.7 : 1, transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s' }}
