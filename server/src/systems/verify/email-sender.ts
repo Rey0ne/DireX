@@ -1,12 +1,16 @@
 /* === Email Sender — Resend (primary) + Nodemailer SMTP (fallback) === */
 import { Resend } from 'resend';
 
-const RESEND_KEY = process.env.RESEND_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@direx.app';
-
-let resend: Resend | null = null;
-if (RESEND_KEY) {
-  resend = new Resend(RESEND_KEY);
+// 懒加载：ESM 模块顶层在 dotenv 之前执行，必须在函数内读 process.env
+function getResendKey() { return process.env.RESEND_API_KEY || ''; }
+function getFromEmail() { return process.env.FROM_EMAIL || 'noreply@direx.app'; }
+let _resend: Resend | null = null;
+let _resendKey: string = '';
+function getResend(): Resend | null {
+  const key = getResendKey();
+  if (!key) return null;
+  if (key !== _resendKey) { _resend = new Resend(key); _resendKey = key; }
+  return _resend;
 }
 
 export interface SendResult {
@@ -37,11 +41,12 @@ export async function sendVerifyEmail(to: string, code: string): Promise<SendRes
     </div>
   `;
 
-  // Resend
+  // Resend 优先
+  const resend = getResend();
   if (resend) {
     try {
       const result = await resend.emails.send({
-        from: `DireX <${FROM_EMAIL}>`,
+        from: `DireX <${getFromEmail()}>`,
         to: [to],
         subject: `DireX 验证码: ${code}`,
         html,
@@ -64,17 +69,18 @@ export async function sendVerifyEmail(to: string, code: string): Promise<SendRes
 async function fallbackSend(to: string, code: string, html: string): Promise<SendResult> {
   try {
     const nodemailer = await import('nodemailer');
+    const port = Number(process.env.SMTP_PORT) || 587;
     const transport = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: false,
+      port,
+      secure: port === 465,   // 465 = implicit SSL, 587 = STARTTLS
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
     const info = await transport.sendMail({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to,
       subject: `DireX Verification Code: ${code}`,
       html,
@@ -88,5 +94,5 @@ async function fallbackSend(to: string, code: string, html: string): Promise<Sen
 
 /** 检查邮件服务是否可用 */
 export function isEmailConfigured(): boolean {
-  return !!(RESEND_KEY || process.env.SMTP_USER);
+  return !!(getResendKey() || process.env.SMTP_USER);
 }

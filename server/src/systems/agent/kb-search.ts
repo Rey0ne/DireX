@@ -115,7 +115,7 @@ export const UNIFIED_KB_CATALOG = `# DireX 知识库总目录 (Unified Knowledge
 ## 🎨 时尚风格 (Style)
 - FASHION_STYLE_DB — 30+ 当代风格 + 18 历史/传统风格（汉服先秦/唐/宋/明/清旗装/旗袍民国/和服平安/江户/韩服朝鲜/印度古典/莫卧儿/中东伊斯兰/欧洲中世纪/文艺复兴/维多利亚/爱德华/非洲传统/拉美传统）。
 - ERA_MAP (13时代) / REGION_MAP (16区域) / FUNCTION_MAP (17功能) / MOOD_MAP (10情绪) / IDENTITY_MAP (17身份) — 5维风格决策引擎。
-- 由 `lookupEraCostume(era)` 自动匹配历史风格，非当代时代自动注入。
+- 由 \`lookupEraCostume(era)\` 自动匹配历史风格，非当代时代自动注入。
 
 ---
 

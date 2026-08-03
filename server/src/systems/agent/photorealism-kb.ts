@@ -215,7 +215,7 @@ export const SURFACE_QUALITY = `## 🔬 材质表面真实性 (Material Surface 
 |------------|------|---------|
 | 完美对称脸 | 左右镜像复制、照片翻转感 | prompt 中加 "slight natural facial asymmetry, one eyebrow slightly higher, subtle uneven smile" |
 | 死眼 (Dead Eyes) | 虹膜无景深/高光单一/瞳孔等大/无血丝 | "natural catchlights in both eyes, subtle iris texture and color variation, tiny visible blood vessels at sclera edges" |
-| 塑料皮肤 | 无毛孔/无纹理/均匀色调 → 硅胶感 | 已在 Layer 1 负词中排除（见上方 `PHOTOREALISM_NEGATIVE`）|
+| 塑料皮肤 | 无毛孔/无纹理/均匀色调 → 硅胶感 | 已在 Layer 1 负词中排除（见上方 \`PHOTOREALISM_NEGATIVE\`）|
 | 过度锐利 (Hyper-Sharp) | 所有边缘同等锐利→手机计算摄影感 | "natural depth of field falloff, softer edges on background elements, lens-appropriate sharpness rolloff at frame edges" |
 | 完美牙齿 | 纯白/等大/等间距 → 假牙感 | "natural teeth with subtle ivory tone, slight irregularity, natural gum line, not bleached white" |
 | 无重力头发 | 头发像头盔/无碎发/无重力拉扯 | "natural flyaway hairs, subtle frizz, hair reacting to gravity and movement, few strands out of place" |

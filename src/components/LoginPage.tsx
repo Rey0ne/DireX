@@ -152,7 +152,8 @@ export function LoginPage({ onEnter }: LoginPageProps) {
         setCodeSent(true);
         setCodeCountdown(60);
         setMsg('');
-        if (json.mock) setMsg(t('login.verifyCodeSent') + ' (DEV)');
+        if (json.code) setMsg(`验证码: ${json.code} (DEV)`);
+        else if (json.mock) setMsg(t('login.verifyCodeSent') + ' (DEV)');
       } else {
         setMsg(json.error || '发送失败');
       }

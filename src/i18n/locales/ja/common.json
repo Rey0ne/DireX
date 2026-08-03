@@ -10,6 +10,14 @@
     "placeholderPhoneNumber": "電話番号を入力",
     "placeholderPassword": "パスワード（6文字以上）",
     "placeholderNewPassword": "パスワードを設定（6文字以上）",
+    "placeholderConfirmPassword": "パスワードを再入力",
+    "verifying": "確認中…",
+    "sendVerifyCode": "認証コードを送信",
+    "verifyCodeSent": "送信済み",
+    "verifyCodePlaceholder": "認証コードを入力",
+    "verifyCodeCountdown": "秒後に再送",
+    "turnstileLoading": "セキュリティ確認中…",
+    "turnstileRequired": "セキュリティ確認を完了してください",
     "rememberPassword": "パスワードを保存",
     "btnLogin": "ログイン",
     "btnRegister": "登録（200ポイント進呈）",
@@ -47,6 +55,7 @@
     "errLoginFailed": "ログイン失敗",
     "errNickname": "ニックネームを入力してください",
     "errPasswordShort": "パスワードは6文字以上必要です",
+    "errPasswordMismatch": "パスワードが一致しません",
     "errEmailOrPhone": "メールまたは電話番号が必要です",
     "errIdRequired": "本人確認情報が必要です",
     "errAddress": "住所を入力してください",
@@ -54,6 +63,9 @@
     "errCompanyEmail": "企業アカウントはメールアドレスが必要です",
     "errRegisterFailed": "登録失敗",
     "errDeleteConfirm": "DELETE と入力して確認してください",
-    "errDeleteFailed": "アカウント削除に失敗しました"
+    "errDeleteFailed": "アカウント削除に失敗しました",
+    "errVerifyCodeRequired": "認証コードを入力してください",
+    "errVerifyCodeInvalid": "認証コードが無効または期限切れです",
+    "errTurnstileFailed": "セキュリティ確認に失敗しました"
   }
 }

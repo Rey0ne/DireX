@@ -10,6 +10,14 @@
     "placeholderPhoneNumber": "Inserisci il numero",
     "placeholderPassword": "Password (min. 6 caratteri)",
     "placeholderNewPassword": "Imposta password (min. 6 caratteri)",
+    "placeholderConfirmPassword": "Conferma password",
+    "verifying": "Verifica in corso…",
+    "sendVerifyCode": "Invia codice",
+    "verifyCodeSent": "Inviato",
+    "verifyCodePlaceholder": "Inserisci codice",
+    "verifyCodeCountdown": "s per reinviare",
+    "turnstileLoading": "Verifica di sicurezza…",
+    "turnstileRequired": "Completa la verifica di sicurezza",
     "rememberPassword": "Ricordami",
     "btnLogin": "Accedi",
     "btnRegister": "Registrati (+200 crediti)",
@@ -47,6 +55,7 @@
     "errLoginFailed": "Accesso fallito",
     "errNickname": "Nickname richiesto",
     "errPasswordShort": "La password deve essere di almeno 6 caratteri",
+    "errPasswordMismatch": "Le password non corrispondono",
     "errEmailOrPhone": "Email o telefono richiesto",
     "errIdRequired": "Documento d'identità richiesto",
     "errAddress": "Indirizzo richiesto",
@@ -54,6 +63,9 @@
     "errCompanyEmail": "L'account aziendale richiede un'email",
     "errRegisterFailed": "Registrazione fallita",
     "errDeleteConfirm": "Digita DELETE per confermare",
-    "errDeleteFailed": "Eliminazione account fallita"
+    "errDeleteFailed": "Eliminazione account fallita",
+    "errVerifyCodeRequired": "Codice di verifica richiesto",
+    "errVerifyCodeInvalid": "Codice non valido o scaduto",
+    "errTurnstileFailed": "Verifica di sicurezza fallita"
   }
 }

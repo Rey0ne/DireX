@@ -37,7 +37,7 @@ export const FASHION_STYLE_DB = `## 风格视觉速查 (Fashion Style Visual Ref
 
 ## 历史/传统风格速查 (Historical & Traditional Style Reference)
 > 当代风格以上。以下为各文明的历史传统服装风格，用于生成非当代时代的角色。
-> 由 `lookupEraCostume(era)` 自动匹配，作为 FASHION_STYLE_DB 的补充注入 prompt。
+> 由 \`lookupEraCostume(era)\` 自动匹配，作为 \`FASHION_STYLE_DB\` 的补充注入 prompt。
 
 | 风格 | 廓形 | 关键面料 | 配色+纹样 | 标志单品+时代 |
 |------|------|---------|----------|-------------|

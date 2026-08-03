@@ -10,6 +10,14 @@
     "placeholderPhoneNumber": "Entrez le numéro",
     "placeholderPassword": "Mot de passe (min. 6 caractères)",
     "placeholderNewPassword": "Définir le mot de passe (min. 6 car.)",
+    "placeholderConfirmPassword": "Confirmer le mot de passe",
+    "verifying": "Vérification…",
+    "sendVerifyCode": "Envoyer le code",
+    "verifyCodeSent": "Envoyé",
+    "verifyCodePlaceholder": "Saisir le code",
+    "verifyCodeCountdown": "s avant renvoi",
+    "turnstileLoading": "Vérification de sécurité…",
+    "turnstileRequired": "Veuillez compléter la vérification",
     "rememberPassword": "Se souvenir de moi",
     "btnLogin": "Connexion",
     "btnRegister": "Inscription (+200 crédits)",
@@ -47,6 +55,7 @@
     "errLoginFailed": "Échec de la connexion",
     "errNickname": "Pseudo requis",
     "errPasswordShort": "Le mot de passe doit comporter au moins 6 caractères",
+    "errPasswordMismatch": "Les mots de passe ne correspondent pas",
     "errEmailOrPhone": "Email ou téléphone requis",
     "errIdRequired": "Informations d'identité requises",
     "errAddress": "Adresse requise",
@@ -54,6 +63,9 @@
     "errCompanyEmail": "Le compte entreprise nécessite un email",
     "errRegisterFailed": "Échec de l'inscription",
     "errDeleteConfirm": "Tapez DELETE pour confirmer",
-    "errDeleteFailed": "Échec de la suppression du compte"
+    "errDeleteFailed": "Échec de la suppression du compte",
+    "errVerifyCodeRequired": "Code de vérification requis",
+    "errVerifyCodeInvalid": "Code invalide ou expiré",
+    "errTurnstileFailed": "Échec de la vérification de sécurité"
   }
 }

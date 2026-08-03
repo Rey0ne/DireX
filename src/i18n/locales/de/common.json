@@ -10,6 +10,14 @@
     "placeholderPhoneNumber": "Telefonnummer eingeben",
     "placeholderPassword": "Passwort (mind. 6 Zeichen)",
     "placeholderNewPassword": "Passwort festlegen (mind. 6 Zeichen)",
+    "placeholderConfirmPassword": "Passwort wiederholen",
+    "verifying": "Wird geprüft…",
+    "sendVerifyCode": "Code senden",
+    "verifyCodeSent": "Gesendet",
+    "verifyCodePlaceholder": "Code eingeben",
+    "verifyCodeCountdown": "s bis erneut senden",
+    "turnstileLoading": "Sicherheitsprüfung…",
+    "turnstileRequired": "Bitte Sicherheitsprüfung abschließen",
     "rememberPassword": "Angemeldet bleiben",
     "btnLogin": "Anmelden",
     "btnRegister": "Registrieren (+200 Punkte)",
@@ -47,6 +55,7 @@
     "errLoginFailed": "Anmeldung fehlgeschlagen",
     "errNickname": "Spitzname erforderlich",
     "errPasswordShort": "Passwort muss mindestens 6 Zeichen lang sein",
+    "errPasswordMismatch": "Passwörter stimmen nicht überein",
     "errEmailOrPhone": "E-Mail oder Telefon erforderlich",
     "errIdRequired": "Ausweisdaten erforderlich",
     "errAddress": "Adresse erforderlich",
@@ -54,6 +63,9 @@
     "errCompanyEmail": "Unternehmenskonto benötigt E-Mail",
     "errRegisterFailed": "Registrierung fehlgeschlagen",
     "errDeleteConfirm": "DELETE zur Bestätigung eingeben",
-    "errDeleteFailed": "Kontolöschung fehlgeschlagen"
+    "errDeleteFailed": "Kontolöschung fehlgeschlagen",
+    "errVerifyCodeRequired": "Verifizierungscode erforderlich",
+    "errVerifyCodeInvalid": "Ungültiger oder abgelaufener Code",
+    "errTurnstileFailed": "Sicherheitsprüfung fehlgeschlagen"
   }
 }

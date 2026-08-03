@@ -32,7 +32,7 @@ router.post('/send-verify-email', async (req: Request, res: Response) => {
     if (!isEmailConfigured()) {
       // 未配置邮件服务时返回 mock（开发环境）
       console.log(`[verify] MOCK email code ${code} → ${email}`);
-      res.json({ success: true, mock: true, message: '验证码已发送（开发模式）' });
+      res.json({ success: true, mock: true, code, message: '验证码已发送（开发模式）' });
       return;
     }
     const result = await sendVerifyEmail(email, code);
@@ -67,7 +67,7 @@ router.post('/send-verify-sms', async (req: Request, res: Response) => {
       res.status(500).json({ success: false, error: result.error || '短信发送失败' });
       return;
     }
-    res.json({ success: true, provider: result.provider });
+    res.json({ success: true, provider: result.provider, ...(result.provider === 'mock' ? { mock: true, code } : {}) });
   } catch (err) {
     console.error('[verify] send-sms error:', err);
     res.status(500).json({ success: false, error: '发送失败' });
