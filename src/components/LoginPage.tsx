@@ -285,74 +285,60 @@ export function LoginPage({ onEnter }: LoginPageProps) {
             ) : (
               <>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 100, flexShrink: 0, cursor: 'pointer' }}>
-                    <optgroup label="亚洲 Asia">
-                      <option value="+86">+86 🇨🇳</option>
-                      <option value="+81">+81 🇯🇵</option>
-                      <option value="+82">+82 🇰🇷</option>
-                      <option value="+91">+91 🇮🇳</option>
-                      <option value="+65">+65 🇸🇬</option>
-                      <option value="+60">+60 🇲🇾</option>
-                      <option value="+66">+66 🇹🇭</option>
-                      <option value="+84">+84 🇻🇳</option>
-                      <option value="+62">+62 🇮🇩</option>
-                      <option value="+63">+63 🇵🇭</option>
-                      <option value="+886">+886 🇹🇼</option>
-                      <option value="+852">+852 🇭🇰</option>
-                    </optgroup>
-                    <optgroup label="欧洲 Europe">
-                      <option value="+44">+44 🇬🇧</option>
-                      <option value="+49">+49 🇩🇪</option>
-                      <option value="+33">+33 🇫🇷</option>
-                      <option value="+39">+39 🇮🇹</option>
-                      <option value="+34">+34 🇪🇸</option>
-                      <option value="+31">+31 🇳🇱</option>
-                      <option value="+32">+32 🇧🇪</option>
-                      <option value="+41">+41 🇨🇭</option>
-                      <option value="+43">+43 🇦🇹</option>
-                      <option value="+46">+46 🇸🇪</option>
-                      <option value="+47">+47 🇳🇴</option>
-                      <option value="+45">+45 🇩🇰</option>
-                      <option value="+358">+358 🇫🇮</option>
-                      <option value="+351">+351 🇵🇹</option>
-                      <option value="+353">+353 🇮🇪</option>
-                    </optgroup>
-                    <optgroup label="东欧 Eastern Europe">
-                      <option value="+7">+7 🇷🇺</option>
-                      <option value="+380">+380 🇺🇦</option>
-                      <option value="+48">+48 🇵🇱</option>
-                      <option value="+420">+420 🇨🇿</option>
-                      <option value="+40">+40 🇷🇴</option>
-                      <option value="+36">+36 🇭🇺</option>
-                      <option value="+30">+30 🇬🇷</option>
-                    </optgroup>
-                    <optgroup label="中东 Middle East">
-                      <option value="+971">+971 🇦🇪</option>
-                      <option value="+966">+966 🇸🇦</option>
-                      <option value="+974">+974 🇶🇦</option>
-                      <option value="+972">+972 🇮🇱</option>
-                      <option value="+90">+90 🇹🇷</option>
-                      <option value="+20">+20 🇪🇬</option>
-                      <option value="+98">+98 🇮🇷</option>
-                    </optgroup>
-                    <optgroup label="美洲 Americas">
-                      <option value="+1">+1 🇺🇸</option>
-                      <option value="+1">+1 🇨🇦</option>
-                      <option value="+52">+52 🇲🇽</option>
-                      <option value="+55">+55 🇧🇷</option>
-                      <option value="+54">+54 🇦🇷</option>
-                      <option value="+56">+56 🇨🇱</option>
-                      <option value="+57">+57 🇨🇴</option>
-                    </optgroup>
-                    <optgroup label="大洋洲 Oceania">
-                      <option value="+61">+61 🇦🇺</option>
-                      <option value="+64">+64 🇳🇿</option>
-                    </optgroup>
-                    <optgroup label="非洲 Africa">
-                      <option value="+27">+27 🇿🇦</option>
-                      <option value="+234">+234 🇳🇬</option>
-                      <option value="+254">+254 🇰🇪</option>
-                    </optgroup>
+                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 140, flexShrink: 0, cursor: 'pointer' }}>
+                    <option value="+86">+86 中国</option>
+                    <option value="+81">+81 日本</option>
+                    <option value="+82">+82 韩国</option>
+                    <option value="+91">+91 印度</option>
+                    <option value="+65">+65 新加坡</option>
+                    <option value="+60">+60 马来西亚</option>
+                    <option value="+66">+66 泰国</option>
+                    <option value="+84">+84 越南</option>
+                    <option value="+62">+62 印尼</option>
+                    <option value="+63">+63 菲律宾</option>
+                    <option value="+886">+886 台湾</option>
+                    <option value="+852">+852 香港</option>
+                    <option value="+44">+44 英国</option>
+                    <option value="+49">+49 德国</option>
+                    <option value="+33">+33 法国</option>
+                    <option value="+39">+39 意大利</option>
+                    <option value="+34">+34 西班牙</option>
+                    <option value="+31">+31 荷兰</option>
+                    <option value="+32">+32 比利时</option>
+                    <option value="+41">+41 瑞士</option>
+                    <option value="+43">+43 奥地利</option>
+                    <option value="+46">+46 瑞典</option>
+                    <option value="+47">+47 挪威</option>
+                    <option value="+45">+45 丹麦</option>
+                    <option value="+358">+358 芬兰</option>
+                    <option value="+351">+351 葡萄牙</option>
+                    <option value="+353">+353 爱尔兰</option>
+                    <option value="+7">+7 俄罗斯</option>
+                    <option value="+380">+380 乌克兰</option>
+                    <option value="+48">+48 波兰</option>
+                    <option value="+420">+420 捷克</option>
+                    <option value="+40">+40 罗马尼亚</option>
+                    <option value="+36">+36 匈牙利</option>
+                    <option value="+30">+30 希腊</option>
+                    <option value="+971">+971 阿联酋</option>
+                    <option value="+966">+966 沙特</option>
+                    <option value="+974">+974 卡塔尔</option>
+                    <option value="+972">+972 以色列</option>
+                    <option value="+90">+90 土耳其</option>
+                    <option value="+20">+20 埃及</option>
+                    <option value="+98">+98 伊朗</option>
+                    <option value="+1">+1 美国</option>
+                    <option value="+1">+1 加拿大</option>
+                    <option value="+52">+52 墨西哥</option>
+                    <option value="+55">+55 巴西</option>
+                    <option value="+54">+54 阿根廷</option>
+                    <option value="+56">+56 智利</option>
+                    <option value="+57">+57 哥伦比亚</option>
+                    <option value="+61">+61 澳大利亚</option>
+                    <option value="+64">+64 新西兰</option>
+                    <option value="+27">+27 南非</option>
+                    <option value="+234">+234 尼日利亚</option>
+                    <option value="+254">+254 肯尼亚</option>
                   </select>
                   <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t('login.placeholderPhoneNumber')} style={inputStyle} autoComplete="tel" />
                 </div>
@@ -399,14 +385,14 @@ export function LoginPage({ onEnter }: LoginPageProps) {
                 <div style={sectLabel}>{t('login.companySectionTitle')}</div>
                 <input value={companyCode} onChange={e => setCompanyCode(e.target.value)} placeholder={t('login.companyCodePlaceholder')} style={inputStyle} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 100, flexShrink: 0, cursor: 'pointer' }}>
-                    <optgroup label="亚洲 Asia"><option value="+86">+86 🇨🇳</option><option value="+81">+81 🇯🇵</option><option value="+82">+82 🇰🇷</option><option value="+91">+91 🇮🇳</option><option value="+65">+65 🇸🇬</option><option value="+60">+60 🇲🇾</option><option value="+66">+66 🇹🇭</option><option value="+84">+84 🇻🇳</option><option value="+62">+62 🇮🇩</option><option value="+63">+63 🇵🇭</option><option value="+886">+886 🇹🇼</option><option value="+852">+852 🇭🇰</option></optgroup>
-                    <optgroup label="欧洲 Europe"><option value="+44">+44 🇬🇧</option><option value="+49">+49 🇩🇪</option><option value="+33">+33 🇫🇷</option><option value="+39">+39 🇮🇹</option><option value="+34">+34 🇪🇸</option><option value="+31">+31 🇳🇱</option><option value="+32">+32 🇧🇪</option><option value="+41">+41 🇨🇭</option><option value="+43">+43 🇦🇹</option><option value="+46">+46 🇸🇪</option><option value="+47">+47 🇳🇴</option><option value="+45">+45 🇩🇰</option><option value="+358">+358 🇫🇮</option><option value="+351">+351 🇵🇹</option><option value="+353">+353 🇮🇪</option></optgroup>
-                    <optgroup label="东欧 Eastern Europe"><option value="+7">+7 🇷🇺</option><option value="+380">+380 🇺🇦</option><option value="+48">+48 🇵🇱</option><option value="+420">+420 🇨🇿</option><option value="+40">+40 🇷🇴</option><option value="+36">+36 🇭🇺</option><option value="+30">+30 🇬🇷</option></optgroup>
-                    <optgroup label="中东 Middle East"><option value="+971">+971 🇦🇪</option><option value="+966">+966 🇸🇦</option><option value="+974">+974 🇶🇦</option><option value="+972">+972 🇮🇱</option><option value="+90">+90 🇹🇷</option><option value="+20">+20 🇪🇬</option><option value="+98">+98 🇮🇷</option></optgroup>
-                    <optgroup label="美洲 Americas"><option value="+1">+1 🇺🇸</option><option value="+1">+1 🇨🇦</option><option value="+52">+52 🇲🇽</option><option value="+55">+55 🇧🇷</option><option value="+54">+54 🇦🇷</option><option value="+56">+56 🇨🇱</option><option value="+57">+57 🇨🇴</option></optgroup>
-                    <optgroup label="大洋洲 Oceania"><option value="+61">+61 🇦🇺</option><option value="+64">+64 🇳🇿</option></optgroup>
-                    <optgroup label="非洲 Africa"><option value="+27">+27 🇿🇦</option><option value="+234">+234 🇳🇬</option><option value="+254">+254 🇰🇪</option></optgroup>
+                  <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} style={{ ...inputStyle, width: 140, flexShrink: 0, cursor: 'pointer' }}>
+                    <option value="+86">+86 中国</option><option value="+81">+81 日本</option><option value="+82">+82 韩国</option><option value="+91">+91 印度</option><option value="+65">+65 新加坡</option><option value="+60">+60 马来西亚</option><option value="+66">+66 泰国</option><option value="+84">+84 越南</option><option value="+62">+62 印尼</option><option value="+63">+63 菲律宾</option><option value="+886">+886 台湾</option><option value="+852">+852 香港</option>
+                    <option value="+44">+44 英国</option><option value="+49">+49 德国</option><option value="+33">+33 法国</option><option value="+39">+39 意大利</option><option value="+34">+34 西班牙</option><option value="+31">+31 荷兰</option><option value="+32">+32 比利时</option><option value="+41">+41 瑞士</option><option value="+43">+43 奥地利</option><option value="+46">+46 瑞典</option><option value="+47">+47 挪威</option><option value="+45">+45 丹麦</option><option value="+358">+358 芬兰</option><option value="+351">+351 葡萄牙</option><option value="+353">+353 爱尔兰</option>
+                    <option value="+7">+7 俄罗斯</option><option value="+380">+380 乌克兰</option><option value="+48">+48 波兰</option><option value="+420">+420 捷克</option><option value="+40">+40 罗马尼亚</option><option value="+36">+36 匈牙利</option><option value="+30">+30 希腊</option>
+                    <option value="+971">+971 阿联酋</option><option value="+966">+966 沙特</option><option value="+974">+974 卡塔尔</option><option value="+972">+972 以色列</option><option value="+90">+90 土耳其</option><option value="+20">+20 埃及</option><option value="+98">+98 伊朗</option>
+                    <option value="+1">+1 美国</option><option value="+1">+1 加拿大</option><option value="+52">+52 墨西哥</option><option value="+55">+55 巴西</option><option value="+54">+54 阿根廷</option><option value="+56">+56 智利</option><option value="+57">+57 哥伦比亚</option>
+                    <option value="+61">+61 澳大利亚</option><option value="+64">+64 新西兰</option>
+                    <option value="+27">+27 南非</option><option value="+234">+234 尼日利亚</option><option value="+254">+254 肯尼亚</option>
                   </select>
                   <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t('login.placeholderPhone')} style={inputStyle} autoComplete="tel" />
                 </div>
