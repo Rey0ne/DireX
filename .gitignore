@@ -45,3 +45,24 @@ public/models/stand*
 .cheat-hooks/harness-events.jsonl
 .cheat-hooks/.current-session
 .cheat-cache/
+
+# ─────────────────────────────────────────────
+# BUILD CACHE
+# ─────────────────────────────────────────────
+.vite/
+
+# ─────────────────────────────────────────────
+# DEV TOOLS & TEMP
+# ─────────────────────────────────────────────
+.tmp_*
+*.bak
+
+# ─────────────────────────────────────────────
+# HARNESS — 内部开发工具，不入发布版
+# ─────────────────────────────────────────────
+.claude/
+.cheat-hooks/
+CLAUDE-backend.md
+CLAUDE-frontend.md
+CLAUDE-contract.md
+memory/
