@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html style="width:100%;height:100%">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+<link rel="shortcut icon" href="http://127.0.0.1:80/43ef81525e6853dc.ico" type="image/x-icon">
+<title>UE5 Pixel Streaming</title>
+<style>
+  html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;background:#000;font-family:Montserrat}
+  #status{position:fixed;top:8px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font:11px monospace;
+    background:rgba(0,0,0,0.6);padding:3px 10px;border-radius:4px;z-index:10;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="status">加载中...</div>
+<script src="http://127.0.0.1:80/player.js"></script>
+
+<script>
+var el=document.getElementById('status');
+function log(t){el.textContent=t;console.log('[UE5]',t)}
+
+// After official player initializes, set up our custom command channel
+var cmdWs=null, retryCount=0;
+
+function setupCommandChannel(){
+  // Open a second WebSocket for custom commands (independent of Pixel Streaming signaling)
+  log('建立命令通道...');
+  cmdWs=new WebSocket('ws://127.0.0.1:8888');
+  cmdWs.onopen=function(){
+    log('命令通道已就绪');
+    retryCount=0;
+    // Tell parent we're ready
+    window.parent.postMessage({type:'ue5-ready'},'*');
+  };
+  cmdWs.onmessage=function(e){
+    try{
+      var msg=JSON.parse(typeof e.data==='string'?e.data:new TextDecoder().decode(e.data));
+      console.log('[cmd]',msg);
+      // Handle recording responses from UE5
+      if(msg.type==='recording-complete' && msg.url){
+        log('录制完成: '+msg.url.slice(0,50));
+        window.parent.postMessage({type:'ue5-video-url',url:msg.url,duration:msg.duration},'*');
+      }
+      if(msg.type==='recording-error'){
+        log('录制错误: '+(msg.error||'unknown'));
+        window.parent.postMessage({type:'ue5-recording-error',error:msg.error},'*');
+      }
+    }catch(e){}
+  };
+  cmdWs.onclose=function(){
+    log('命令通道断开');
+    if(retryCount<5){retryCount++;setTimeout(setupCommandChannel,2000)}
+  };
+  cmdWs.onerror=function(){log('命令通道错误')};
+}
+
+// Listen for commands from parent (UE5Node)
+window.addEventListener('message',function(e){
+  var cmd=e.data;
+  if(typeof cmd!=='object') return;
+
+  switch(cmd.type){
+    case 'start-recording':
+      // Send recording command to UE5 via command WebSocket
+      if(cmdWs && cmdWs.readyState===WebSocket.OPEN){
+        cmdWs.send(JSON.stringify({
+          type:'start-recording',
+          quality:cmd.quality||'high',
+          preset:cmd.preset||'custom'
+        }));
+        log('▶ 录制命令已发送');
+        window.parent.postMessage({type:'ue5-recording-started'},'*');
+      } else {
+        log('✕ 命令通道未就绪');
+      }
+      break;
+
+    case 'stop-recording':
+      if(cmdWs && cmdWs.readyState===WebSocket.OPEN){
+        cmdWs.send(JSON.stringify({type:'stop-recording'}));
+        log('⏹ 停止录制');
+        window.parent.postMessage({type:'ue5-recording-stopped'},'*');
+      }
+      break;
+
+    case 'import-video':
+      // Parent asks us to import — we forward the last received URL
+      // (URL should have been received via 'recording-complete' message)
+      break;
+  }
+});
+
+// Start command channel after a short delay (let player.js load first)
+setTimeout(setupCommandChannel, 1000);
+</script>
+</body>
+</html>
